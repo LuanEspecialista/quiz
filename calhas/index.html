@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>Diagnóstico de Crescimento para Calheiros</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
-
-  <!-- Google Analytics -->
+  <!-- GOOGLE ANALYTICS -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-R80W976BDG"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -18,7 +14,11 @@
     gtag('config', 'G-R80W976BDG');
   </script>
 
-  <!-- Meta Pixel Code -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- META PIXEL -->
   <script>
     !function(f,b,e,v,n,t,s){
       if(f.fbq)return;
@@ -37,17 +37,112 @@
     fbq('init', '1657702775681835');
     fbq('track', 'PageView');
   </script>
-  <noscript>
-    <img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1657702775681835&ev=PageView&noscript=1" />
-  </noscript>
-  <!-- End Meta Pixel Code -->
 
-  <!-- TODO: resto do seu CSS permanece igual -->
+  <style>
+    body {
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+      background: #070709;
+      color: #fff;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+
+    p {
+      color: #aaa;
+      margin-bottom: 30px;
+    }
+
+    button {
+      background: #d4af37;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 50px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: none;
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- TODO: todo o restante do seu HTML permanece IGUAL (não alterei nada abaixo) -->
+<div class="container">
+  <h1>Você está deixando dinheiro na mesa?</h1>
+  <p>Responda rápido e descubra onde sua empresa está travando.</p>
+
+  <button onclick="startQuiz()">Começar diagnóstico</button>
+
+  <div id="quiz" style="display:none;">
+    <p>Qual seu maior problema hoje?</p>
+
+    <button onclick="answer('Falta de veículo')">Falta de veículo</button><br><br>
+    <button onclick="answer('Falta de dinheiro')">Falta de dinheiro</button><br><br>
+    <button onclick="answer('Falta de organização')">Falta de organização</button>
+
+    <div id="form" style="display:none;">
+      <h3>Seu diagnóstico está pronto</h3>
+      <input id="nome" placeholder="Seu nome">
+      <input id="whatsapp" placeholder="Seu WhatsApp">
+
+      <button onclick="sendLead()">Ver resultado</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let resposta = "";
+
+function startQuiz(){
+  document.getElementById("quiz").style.display = "block";
+
+  // Evento GA
+  gtag('event', 'quiz_start');
+}
+
+function answer(valor){
+  resposta = valor;
+  document.getElementById("form").style.display = "block";
+}
+
+function sendLead(){
+  const nome = document.getElementById("nome").value;
+  const whats = document.getElementById("whatsapp").value;
+
+  if(!nome || !whats){
+    alert("Preencha os dados");
+    return;
+  }
+
+  // Evento GA
+  gtag('event', 'lead');
+
+  // Evento Meta
+  fbq('track', 'Lead');
+
+  const msg = `Olá, sou ${nome}. Meu problema é: ${resposta}`;
+  const url = `https://wa.me/5547992120915?text=${encodeURIComponent(msg)}`;
+
+  window.location.href = url;
+}
+</script>
 
 </body>
 </html>
