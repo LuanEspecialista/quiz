@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+  />
+  <title>Estratégia Patrimonial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #070709;
+      --border: rgba(212,175,55,0.18);
+      --border-soft: rgba(255,255,255,0.08);
+      --gold: #d4af37;
+      --gold-2: #f3e5ab;
+      --text: #ffffff;
+      --muted: #b3b3b3;
+      --danger: #ff6b6b;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.42);
+      --radius-xl: 24px;
+      --radius-lg: 16px;
+      --transition: 0.28s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Montserrat", sans-serif;
+    }
+
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      min-height: 100vh;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    img, video, iframe {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      filter: blur(90px);
+      z-index: 0;
+      opacity: 0.1;
+      pointer-events: none;
+    }
+
+    .hero::before {
+      background: var(--gold);
+      top: 0;
+      left: -80px;
+    }
+
+    .hero::after {
+      background: #ffffff;
+      bottom: 0;
+      right: -100px;
+    }
+
+    .hero-content {
+      width: 100%;
+      max-width: 760px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(212,175,55,0.08);
+      color: var(--gold-2);
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      max-width: 100%;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.8rem, 7vw, 3.6rem);
+      line-height: 1.08;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      word-break: break-word;
+    }
+
+    .hero h1 span {
+      color: var(--gold);
+    }
+
+    .hero p {
+      max-width: 680px;
+      margin: 0 auto 24px;
+      color: var(--muted);
+      font-size: clamp(0.96rem, 3.3vw, 1.08rem);
+      line-height: 1.65;
+      word-break: break-word;
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .btn-primary {
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      max-width: 320px;
+      padding: 16px 18px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+      color: #111;
+      background: linear-gradient(135deg, #f3e5ab 0%, #d4af37 50%, #aa771c 100%);
+      box-shadow: 0 12px 28px rgba(212, 175, 55, 0.24);
+      transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+      white-space: normal;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 35px rgba(212, 175, 55, 0.32);
+      filter: brightness(1.02);
+    }
+
+    .quiz-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      background: rgba(0,0,0,0.84);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+      overflow: hidden;
+    }
+
+    .quiz-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .quiz-container {
+      width: min(100%, 680px);
+      max-width: 100%;
+      max-height: calc(100dvh - 24px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: linear-gradient(180deg, rgba(15,15,18,0.98), rgba(10,10,12,0.98));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      padding: 22px 16px 18px;
+      position: relative;
+      transform: translateY(10px);
+      transition: transform 0.35s ease;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .quiz-overlay.active .quiz-container {
+      transform: translateY(0);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: transparent;
+      border: none;
+      color: #bdbdbd;
+      font-size: 2rem;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .progress-wrap {
+      margin: 14px 0 20px;
+      padding-right: 22px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #e6c96e, #d4af37);
+      box-shadow: 0 0 14px rgba(212,175,55,0.45);
+      transition: width 0.35s ease;
+    }
+
+    .step-label {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .quiz-step {
+      display: none;
+      animation: fadeIn 0.25s ease forwards;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .quiz-step.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .question {
+      text-align: center;
+      font-size: clamp(1.12rem, 5vw, 1.9rem);
+      line-height: 1.35;
+      font-weight: 800;
+      margin-bottom: 10px;
+      word-break: break-word;
+    }
+
+    .question-subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      max-width: 100%;
+      margin: 0 auto 18px;
+      word-break: break-word;
+    }
+
+    .options-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .options-grid-compact {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .option-btn {
+      width: 100%;
+      max-width: 100%;
+      min-height: 68px;
+      border: 1px solid var(--border-soft);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
+      color: var(--text);
+      border-radius: var(--radius-lg);
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition), background var(--transition);
+      font-size: 0.88rem;
+      font-weight: 800;
+      line-height: 1.28;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .option-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(212,175,55,0.45);
+      background: rgba(212,175,55,0.10);
+      box-shadow: 0 0 0 1px rgba(212,175,55,0.18), 0 12px 22px rgba(0,0,0,0.18);
+    }
+
+    .option-btn small {
+      display: block;
+      margin-top: 4px;
+      color: #cfcfcf;
+      font-size: 0.76rem;
+      font-weight: 600;
+      opacity: 0.88;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .calculating-view {
+      display: none;
+      text-align: center;
+      padding: 24px 6px 8px;
+    }
+
+    .spinner {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 16px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-left-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .calculating-view h3 {
+      color: var(--gold);
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+
+    .calculating-view p {
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 100%;
+      word-break: break-word;
+    }
+
+    .form-wrapper {
+      margin-top: 8px;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .final-highlight {
+      text-align: center;
+      background: rgba(212,175,55,0.08);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      color: #f0e2a9;
+      font-weight: 700;
+      line-height: 1.55;
+      margin-bottom: 18px;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      color: #d5d5d5;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .form-control {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.28);
+      color: var(--text);
+      padding: 15px 14px;
+      font-size: 16px;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+
+    .form-control::placeholder {
+      color: rgba(255,255,255,0.32);
+    }
+
+    .form-control:focus {
+      border-color: rgba(212,175,55,0.65);
+      background: rgba(0,0,0,0.4);
+      box-shadow: 0 0 0 4px rgba(212,175,55,0.08);
+    }
+
+    .error-text {
+      display: none;
+      color: var(--danger);
+      font-size: 0.84rem;
+      font-weight: 700;
+      margin-top: 8px;
+      word-break: break-word;
+    }
+
+    .quiz-footer {
+      margin-top: 16px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    @media (max-width: 420px) {
+      .hero {
+        padding: 22px 14px;
+      }
+
+      .hero h1 {
+        font-size: 1.65rem;
+      }
+
+      .hero p {
+        font-size: 0.93rem;
+      }
+
+      .badge {
+        font-size: 0.76rem;
+        padding: 8px 12px;
+      }
+
+      .quiz-overlay {
+        padding: 8px;
+      }
+
+      .quiz-container {
+        max-height: calc(100dvh - 16px);
+        padding: 20px 12px 16px;
+        border-radius: 20px;
+      }
+
+      .progress-wrap {
+        margin-bottom: 18px;
+      }
+
+      .question {
+        font-size: 1.08rem;
+      }
+
+      .question-subtitle {
+        font-size: 0.88rem;
+      }
+
+      .options-grid-compact {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .option-btn {
+        min-height: 64px;
+        padding: 12px 8px;
+        font-size: 0.82rem;
+      }
+
+      .option-btn small {
+        font-size: 0.72rem;
+      }
+    }
+
+    @media (min-width: 641px) {
+      .hero {
+        padding: 32px 20px;
+      }
+
+      .btn-primary {
+        width: auto;
+        min-width: 260px;
+      }
+
+      .quiz-container {
+        padding: 26px 24px 22px;
+      }
+
+      .question-subtitle {
+        max-width: 560px;
+      }
+
+      .option-btn {
+        font-size: 0.96rem;
+        min-height: 72px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="hero">
+    <div class="hero-content">
+      <div class="badge">Estratégia inteligente • sem descapitalizar</div>
+
+      <h1>
+        Você não precisa<br>
+        enriquecer o banco para<br>
+        <span>construir patrimônio</span>
+      </h1>
+
+      <p>
+        Descubra, em poucos passos, uma estratégia mais inteligente para acelerar seu próximo movimento
+        com planejamento, clareza e sem cair em decisões pesadas demais para o seu momento.
+      </p>
+
+      <div class="hero-actions">
+        <button class="btn-primary" type="button" onclick="openQuiz()">
+          Desenhar minha estratégia
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <div class="quiz-overlay" id="quizOverlay" aria-hidden="true">
+    <div class="quiz-container" role="dialog" aria-modal="true" aria-labelledby="quizTitle">
+      <button class="close-btn" type="button" aria-label="Fechar" onclick="closeQuiz()">&times;</button>
+
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-track">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="step-label" id="stepLabel">Etapa 1 de 5</div>
+      </div>
+
+      <div id="quizSteps">
+        <section class="quiz-step active" data-step="1">
+          <h2 class="question" id="quizTitle">O que você quer destravar agora?</h2>
+          <p class="question-subtitle">
+            Escolha a opção que mais combina com o seu momento.
+          </p>
+
+          <div class="options-grid options-grid-compact">
+            <button class="option-btn" type="button" onclick="selectGoal('casa', 'Minha casa')">🏠 Minha casa</button>
+            <button class="option-btn" type="button" onclick="selectGoal('carro', 'Meu carro')">🚗 Meu carro</button>
+            <button class="option-btn" type="button" onclick="selectGoal('renda_veiculos', 'Renda com veículos')">💰 Renda com veículos</button>
+            <button class="option-btn" type="button" onclick="selectGoal('estrategia', 'Investir melhor')">📈 Investir melhor</button>
+            <button class="option-btn" type="button" onclick="selectGoal('frota', 'Minha frota')">🚚 Minha frota</button>
+            <button class="option-btn" type="button" onclick="selectGoal('comecar', 'Começar leve')">🚀 Começar leve</button>
+          </div>
+        </section>
+
+        <section class="quiz-step" data-step="2">
+          <h2 class="question" id="dynamicQuestion">Sua situação</h2>
+          <p class="question-subtitle" id="dynamicSubtitle">
+            Vamos entender melhor seu momento para montar algo mais coerente.
+          </p>
+          <div class="options-grid" id="dynamicOptions"></div>
+        </section>
+
+        <section class="quiz-step" data-step="3">
+          <h2 class="question">Quanto você conseguiria investir por mês sem apertar sua vida?</h2>
+          <p class="question-subtitle">
+            Escolha o valor mais realista para o seu momento atual.
+          </p>
+
+          <div class="options-grid">
+            <button class="option-btn" type="button" onclick="saveAndNext('monthlyBudget', 'Até R$ 1.500')">Até R$ 1.500</button>
+            <button class="option-btn" type="button" onclick="saveAndNext('monthlyBudget', 'R$ 1.500 a R$ 3.000')">R$ 1.500 a R$ 3.000</button>
+            <button class="option-btn" type="button" onclick="saveAndNext('monthlyBudget', 'R$ 3.000 a R$ 7.000')">R$ 3.000 a R$ 7.000</button>
+            <button class="option-btn" type="button" onclick="saveAndNext('monthlyBudget', 'Acima de R$ 7.000')">Acima de R$ 7.000</button>
+          </div>
+        </section>
+
+        <section class="quiz-step" data-step="4">
+          <h2 class="question">Se aparecer uma oportunidade boa, você conseguiria agir rápido?</h2>
+          <p class="question-subtitle">
+            Isso ajuda a desenhar uma estratégia mais segura, mais agressiva ou mais gradual.
+          </p>
+
+          <div class="options-grid">
+            <button class="option-btn" type="button" onclick="showCalculating('readiness', 'Sim, tenho reserva')">Sim, tenho reserva</button>
+            <button class="option-btn" type="button" onclick="showCalculating('readiness', 'Depende da estratégia')">Depende da estratégia</button>
+            <button class="option-btn" type="button" onclick="showCalculating('readiness', 'Não tenho valor agora')">Não tenho valor agora</button>
+          </div>
+        </section>
+
+        <section class="calculating-view" id="calculatingView">
+          <div class="spinner"></div>
+          <h3>Analisando seu perfil...</h3>
+          <p>
+            Estamos organizando um caminho mais coerente com seu momento para evitar passos errados.
+          </p>
+        </section>
+
+        <section class="quiz-step" data-step="5">
+          <h2 class="question">Estratégia encontrada para o seu perfil</h2>
+          <p class="question-subtitle">
+            Deixe seus dados para receber uma explicação personalizada.
+          </p>
+
+          <div class="form-wrapper">
+            <div class="final-highlight" id="summaryBox">
+              Pelo seu perfil, existe uma estratégia que pode acelerar seu objetivo com mais clareza e menos peso financeiro.
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="nome">Seu nome</label>
+              <input class="form-control" id="nome" type="text" placeholder="Digite seu nome" autocomplete="name" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="whatsapp">Seu WhatsApp</label>
+              <input class="form-control" id="whatsapp" type="tel" placeholder="(47) 99999-9999" autocomplete="tel" />
+              <div class="error-text" id="formError">Preencha nome e WhatsApp corretamente para continuar.</div>
+            </div>
+
+            <button class="btn-primary" style="width:100%; max-width:100%; margin-top: 6px;" type="button" onclick="submitQuiz()">
+              Quero minha estratégia personalizada
+            </button>
+
+            <div class="quiz-footer">
+              Você será direcionado para o WhatsApp com uma mensagem já pronta, baseada nas suas respostas.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const phoneNumber = "5547992120915";
+    const totalSteps = 5;
+    let currentStep = 1;
+
+    const answers = {
+      goalKey: "",
+      goalLabel: "",
+      currentSituation: "",
+      monthlyBudget: "",
+      readiness: ""
+    };
+
+    const dynamicMap = {
+      casa: {
+        question: "Hoje, qual dessas situações mais parece com a sua?",
+        subtitle: "Assim conseguimos entender se seu cenário é de saída, planejamento ou avanço.",
+        options: [
+          "Pago aluguel todo mês",
+          "Moro com família e quero sair",
+          "Já tenho entrada e quero me organizar melhor",
+          "Estou pesquisando o melhor caminho"
+        ]
+      },
+      carro: {
+        question: "Hoje, como está sua situação com veículo?",
+        subtitle: "Isso ajuda a montar uma linha mais coerente para você.",
+        options: [
+          "Ainda não tenho carro",
+          "Tenho carro e quero trocar por um melhor",
+          "Preciso de carro para trabalhar",
+          "Quero me organizar antes de decidir"
+        ]
+      },
+      renda_veiculos: {
+        question: "Você quer criar renda com veículos em qual nível?",
+        subtitle: "Entender isso muda a estratégia.",
+        options: [
+          "Quero começar do zero",
+          "Já trabalho com aplicativo",
+          "Quero alugar veículo para terceiros",
+          "Quero estruturar ou crescer frota"
+        ]
+      },
+      estrategia: {
+        question: "Qual dessas opções representa melhor seu momento?",
+        subtitle: "Vamos alinhar sua estratégia com seu nível atual.",
+        options: [
+          "Tenho dinheiro parado e quero usar melhor",
+          "Quero crescer patrimônio sem travar tudo",
+          "Quero uma estratégia mais segura",
+          "Ainda estou entendendo qual direção faz sentido"
+        ]
+      },
+      frota: {
+        question: "Em qual fase você está com sua frota ou operação?",
+        subtitle: "Isso ajuda a saber se sua necessidade é entrada, expansão ou troca.",
+        options: [
+          "Estou começando agora",
+          "Já tenho veículo de trabalho",
+          "Quero aumentar minha capacidade",
+          "Quero renovar ou estruturar melhor"
+        ]
+      },
+      comecar: {
+        question: "O que mais pesa hoje na sua decisão?",
+        subtitle: "Queremos tirar o peso sem perder a oportunidade.",
+        options: [
+          "Não quero descapitalizar",
+          "Tenho receio de assumir algo errado",
+          "Quero começar leve e com estratégia",
+          "Estou buscando o melhor momento"
+        ]
+      }
+    };
+
+    function openQuiz() {
+      document.getElementById("quizOverlay").classList.add("active");
+      document.getElementById("quizOverlay").setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      updateProgress();
+      scrollContainerTop();
+    }
+
+    function closeQuiz() {
+      document.getElementById("quizOverlay").classList.remove("active");
+      document.getElementById("quizOverlay").setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    function updateProgress() {
+      const percent = (currentStep / totalSteps) * 100;
+      document.getElementById("progressBar").style.width = `${percent}%`;
+      document.getElementById("stepLabel").textContent = `Etapa ${currentStep} de ${totalSteps}`;
+    }
+
+    function scrollContainerTop() {
+      const container = document.querySelector(".quiz-container");
+      if (container) container.scrollTop = 0;
+    }
+
+    function goToStep(stepNumber) {
+      const allSteps = document.querySelectorAll(".quiz-step");
+      allSteps.forEach(step => step.classList.remove("active"));
+
+      const step = document.querySelector(`.quiz-step[data-step="${stepNumber}"]`);
+      if (step) step.classList.add("active");
+
+      currentStep = stepNumber;
+      updateProgress();
+      scrollContainerTop();
+    }
+
+    function selectGoal(goalKey, goalLabel) {
+      answers.goalKey = goalKey;
+      answers.goalLabel = goalLabel;
+
+      const config = dynamicMap[goalKey];
+      document.getElementById("dynamicQuestion").textContent = config.question;
+      document.getElementById("dynamicSubtitle").textContent = config.subtitle;
+
+      const container = document.getElementById("dynamicOptions");
+      container.innerHTML = "";
+
+      config.options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "option-btn";
+        btn.textContent = option;
+        btn.onclick = () => saveAndNext("currentSituation", option);
+        container.appendChild(btn);
+      });
+
+      goToStep(2);
+    }
+
+    function saveAndNext(key, value) {
+      answers[key] = value;
+      if (currentStep < totalSteps) goToStep(currentStep + 1);
+    }
+
+    function showCalculating(key, value) {
+      answers[key] = value;
+
+      const step4 = document.querySelector('.quiz-step[data-step="4"]');
+      const loading = document.getElementById("calculatingView");
+      const progressWrap = document.getElementById("progressWrap");
+
+      if (step4) step4.classList.remove("active");
+
+      progressWrap.style.display = "none";
+      loading.style.display = "block";
+      scrollContainerTop();
+
+      setTimeout(() => {
+        loading.style.display = "none";
+        progressWrap.style.display = "block";
+        buildSummary();
+        goToStep(5);
+      }, 1400);
+    }
+
+    function buildSummary() {
+      const summary = document.getElementById("summaryBox");
+
+      const objective = answers.goalLabel || "seu objetivo";
+      const situation = answers.currentSituation || "sua situação atual";
+      const budget = answers.monthlyBudget || "um valor mensal viável";
+      const readiness = answers.readiness || "um nível de ação alinhado ao seu momento";
+
+      summary.innerHTML = `
+        Pelo que você mostrou, o foco hoje é <strong>${objective}</strong>.<br><br>
+        Seu cenário atual aponta para <strong>${situation}</strong>, com possibilidade de investir
+        <strong>${budget}</strong> e um perfil de decisão de <strong>${readiness}</strong>.<br><br>
+        Agora faz sentido montar uma explicação personalizada para o seu caso.
+      `;
+    }
+
+    function onlyDigits(value) {
+      return value.replace(/\D/g, "");
+    }
+
+    function isValidBrazilPhone(phone) {
+      const digits = onlyDigits(phone);
+      return digits.length >= 10 && digits.length <= 11;
+    }
+
+    function submitQuiz() {
+      const nome = document.getElementById("nome").value.trim();
+      const whatsapp = document.getElementById("whatsapp").value.trim();
+      const error = document.getElementById("formError");
+
+      if (!nome || !whatsapp || !isValidBrazilPhone(whatsapp)) {
+        error.style.display = "block";
+        return;
+      }
+
+      error.style.display = "none";
+
+      const message =
+`Fala Luan, acabei de fazer o diagnóstico no site.
+
+Meu objetivo hoje é: ${answers.goalLabel}
+Minha situação atual é: ${answers.currentSituation}
+Consigo investir por mês: ${answers.monthlyBudget}
+Meu momento de ação hoje é: ${answers.readiness}
+
+Meu nome é ${nome} e quero entender a melhor estratégia para o meu caso.`;
+
+      const encodedMessage = encodeURIComponent(message);
+      const url = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+      window.open(url, "_blank");
+    }
+
+    document.addEventListener("keydown", function (event) {
+      const overlay = document.getElementById("quizOverlay");
+      if (event.key === "Escape" && overlay.classList.contains("active")) {
+        closeQuiz();
+      }
+    });
+  </script>
+</body>
+</html>
