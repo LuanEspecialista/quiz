@@ -2,7 +2,10 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
+  />
   <title>Diagnóstico de Crescimento para Calheiros</title>
 
   <!-- Google Analytics -->
@@ -17,7 +20,10 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800;900&display=swap"
+    rel="stylesheet"
+  />
 
   <!-- Meta Pixel Code -->
   <script>
@@ -39,23 +45,28 @@
     fbq('track', 'PageView');
   </script>
   <noscript>
-    <img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1657702775681835&ev=PageView&noscript=1" />
+    <img
+      height="1"
+      width="1"
+      style="display:none"
+      src="https://www.facebook.com/tr?id=1657702775681835&ev=PageView&noscript=1"
+      alt=""
+    />
   </noscript>
   <!-- End Meta Pixel Code -->
 
   <style>
     :root {
       --bg: #070709;
-      --panel: rgba(11,11,14,0.96);
+      --panel: rgba(11, 11, 14, 0.96);
       --gold: #d4af37;
       --gold-2: #f3e5ab;
       --text: #ffffff;
       --muted: #b8c0c8;
-      --border: rgba(212,175,55,0.18);
-      --border-soft: rgba(255,255,255,0.08);
+      --border: rgba(212, 175, 55, 0.18);
+      --border-soft: rgba(255, 255, 255, 0.08);
       --danger: #ff6b6b;
-      --shadow: 0 18px 45px rgba(0,0,0,0.42);
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.42);
       --radius-xl: 22px;
       --radius-lg: 15px;
       --transition: 0.28s ease;
@@ -71,6 +82,7 @@
 
     html, body {
       width: 100%;
+      min-height: 100%;
       overflow-x: hidden;
       background: var(--bg);
       color: var(--text);
@@ -79,8 +91,8 @@
     body {
       min-height: 100vh;
       background-image:
-        linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+        linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
       background-size: 28px 28px;
     }
 
@@ -89,11 +101,11 @@
     }
 
     .hero {
-      min-height: 78svh;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 18px 16px 20px;
+      padding: 24px 16px;
       position: relative;
       overflow: hidden;
     }
@@ -138,7 +150,7 @@
       padding: 8px 12px;
       border: 1px solid var(--border);
       border-radius: 999px;
-      background: rgba(212,175,55,0.08);
+      background: rgba(212, 175, 55, 0.08);
       color: var(--gold-2);
       font-size: 0.74rem;
       font-weight: 700;
@@ -191,22 +203,22 @@
       text-align: center;
       color: #111;
       background: linear-gradient(135deg, #f3e5ab 0%, #d4af37 50%, #aa771c 100%);
-      box-shadow: 0 10px 24px rgba(212,175,55,0.22);
+      box-shadow: 0 10px 24px rgba(212, 175, 55, 0.22);
       transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
     }
 
     .btn-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 14px 28px rgba(212,175,55,0.28);
+      box-shadow: 0 14px 28px rgba(212, 175, 55, 0.28);
       filter: brightness(1.02);
     }
 
     .quiz-overlay {
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100dvh;
-      background: rgba(0,0,0,0.84);
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.84);
       backdrop-filter: blur(8px);
       display: flex;
       justify-content: center;
@@ -225,9 +237,9 @@
 
     .quiz-container {
       width: min(100%, 620px);
-      max-height: min(88dvh, 760px);
+      max-height: 88vh;
       overflow-y: auto;
-      background: linear-gradient(180deg, rgba(15,15,18,0.98), rgba(8,8,11,0.985));
+      background: linear-gradient(180deg, rgba(15, 15, 18, 0.98), rgba(8, 8, 11, 0.985));
       border: 1px solid var(--border);
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow);
@@ -237,7 +249,7 @@
       transition: transform 0.35s ease;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,0.35) transparent;
+      scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
     }
 
     .quiz-container::-webkit-scrollbar {
@@ -245,7 +257,7 @@
     }
 
     .quiz-container::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.25);
+      background: rgba(255, 255, 255, 0.25);
       border-radius: 999px;
     }
 
@@ -257,7 +269,7 @@
     .back-btn {
       position: absolute;
       top: 10px;
-      background: rgba(255,255,255,0.03);
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border-soft);
       color: #d7d7d7;
       cursor: pointer;
@@ -296,7 +308,7 @@
     .progress-track {
       width: 100%;
       height: 5px;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 999px;
       overflow: hidden;
     }
@@ -306,7 +318,7 @@
       height: 100%;
       border-radius: 999px;
       background: linear-gradient(90deg, #e6c96e, #d4af37);
-      box-shadow: 0 0 12px rgba(212,175,55,0.35);
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
       transition: width 0.35s ease;
     }
 
@@ -328,8 +340,14 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateX(6px); }
-      to { opacity: 1; transform: translateX(0); }
+      from {
+        opacity: 0;
+        transform: translateX(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     .question {
@@ -358,7 +376,7 @@
       width: 100%;
       min-height: 58px;
       border: 1px solid var(--border-soft);
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.022));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.022));
       color: var(--text);
       border-radius: var(--radius-lg);
       padding: 11px 10px;
@@ -379,9 +397,9 @@
 
     .option-btn:hover {
       transform: translateY(-1px);
-      border-color: rgba(212,175,55,0.42);
-      background: rgba(212,175,55,0.10);
-      box-shadow: 0 0 0 1px rgba(212,175,55,0.12), 0 10px 18px rgba(0,0,0,0.16);
+      border-color: rgba(212, 175, 55, 0.42);
+      background: rgba(212, 175, 55, 0.10);
+      box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.12), 0 10px 18px rgba(0, 0, 0, 0.16);
     }
 
     .option-btn small {
@@ -413,14 +431,16 @@
       width: 48px;
       height: 48px;
       margin: 0 auto 14px;
-      border: 4px solid rgba(255,255,255,0.1);
+      border: 4px solid rgba(255, 255, 255, 0.1);
       border-left-color: var(--gold);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .calculating-view h3 {
@@ -437,10 +457,10 @@
 
     .final-highlight {
       text-align: center;
-      background: rgba(212,175,55,0.08);
+      background: rgba(212, 175, 55, 0.08);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 14px 14px;
+      padding: 14px;
       color: #f0e2a9;
       font-weight: 700;
       line-height: 1.55;
@@ -463,23 +483,23 @@
     .form-control {
       width: 100%;
       border-radius: 13px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.26);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.26);
       color: var(--text);
-      padding: 13px 13px;
+      padding: 13px;
       font-size: 15px;
       outline: none;
       transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
     }
 
     .form-control::placeholder {
-      color: rgba(255,255,255,0.32);
+      color: rgba(255, 255, 255, 0.32);
     }
 
     .form-control:focus {
-      border-color: rgba(212,175,55,0.62);
-      background: rgba(0,0,0,0.38);
-      box-shadow: 0 0 0 4px rgba(212,175,55,0.08);
+      border-color: rgba(212, 175, 55, 0.62);
+      background: rgba(0, 0, 0, 0.38);
+      box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
     }
 
     .error-text {
@@ -501,7 +521,7 @@
 
     @media (max-width: 480px) {
       .hero {
-        min-height: auto;
+        min-height: 100vh;
         padding: 18px 14px 22px;
       }
 
@@ -534,7 +554,7 @@
 
       .quiz-container {
         width: 100%;
-        max-height: calc(100dvh - 14px);
+        max-height: calc(100vh - 14px);
         padding: 16px 12px 14px;
         border-radius: 18px;
       }
@@ -570,7 +590,7 @@
 
     @media (min-width: 641px) {
       .hero {
-        min-height: 74svh;
+        min-height: 100vh;
         padding: 22px 20px;
       }
 
@@ -600,7 +620,7 @@
 
       .quiz-container {
         width: min(100%, 640px);
-        max-height: 84dvh;
+        max-height: 84vh;
       }
     }
   </style>
@@ -612,8 +632,8 @@
       <div class="badge">Diagnóstico estratégico • sem descapitalizar</div>
 
       <h1>
-        Você trabalha muito<br>
-        mas sente que poderia<br>
+        Você trabalha muito<br />
+        mas sente que poderia<br />
         <span>estar ganhando mais?</span>
       </h1>
 
@@ -644,8 +664,12 @@
 
       <div id="quizSteps">
         <section class="quiz-step active" data-step="1">
-          <h2 class="question" id="quizTitle">Qual dessas situações mais parece com o seu momento hoje?</h2>
-          <p class="question-subtitle">Começamos pela sua realidade, não por faturamento.</p>
+          <h2 class="question" id="quizTitle">
+            Qual dessas situações mais parece com o seu momento hoje?
+          </h2>
+          <p class="question-subtitle">
+            Começamos pela sua realidade, não por faturamento.
+          </p>
           <div class="options-grid">
             <button class="option-btn" type="button" data-key="momento" data-value="Trabalho muito, mas não cresço como deveria">
               😓 Trabalho muito, mas não cresço como deveria
@@ -668,44 +692,99 @@
 
         <section class="quiz-step" data-step="2">
           <h2 class="question">O que mais te trava hoje?</h2>
-          <p class="question-subtitle">Escolha o gargalo que mais pesa no seu dia a dia.</p>
+          <p class="question-subtitle">
+            Escolha o gargalo que mais pesa no seu dia a dia.
+          </p>
           <div class="options-grid">
-            <button class="option-btn" type="button" data-key="gargalo" data-value="Falta de veículo">🚚 Falta de veículo<small>Atendimento e logística limitados</small></button>
-            <button class="option-btn" type="button" data-key="gargalo" data-value="Falta de gente boa">👷 Falta de gente boa<small>Demanda existe, mas falta braço</small></button>
-            <button class="option-btn" type="button" data-key="gargalo" data-value="Falta de organização">📋 Falta de organização<small>Tudo passa por você</small></button>
-            <button class="option-btn" type="button" data-key="gargalo" data-value="Falta de dinheiro para crescer">💸 Falta de dinheiro para crescer<small>Crescimento fica adiado</small></button>
-            <button class="option-btn" type="button" data-key="gargalo" data-value="Um pouco de tudo">🧩 Um pouco de tudo<small>Vários gargalos ao mesmo tempo</small></button>
+            <button class="option-btn" type="button" data-key="gargalo" data-value="Falta de veículo">
+              🚚 Falta de veículo
+              <small>Atendimento e logística limitados</small>
+            </button>
+            <button class="option-btn" type="button" data-key="gargalo" data-value="Falta de gente boa">
+              👷 Falta de gente boa
+              <small>Demanda existe, mas falta braço</small>
+            </button>
+            <button class="option-btn" type="button" data-key="gargalo" data-value="Falta de organização">
+              📋 Falta de organização
+              <small>Tudo passa por você</small>
+            </button>
+            <button class="option-btn" type="button" data-key="gargalo" data-value="Falta de dinheiro para crescer">
+              💸 Falta de dinheiro para crescer
+              <small>Crescimento fica adiado</small>
+            </button>
+            <button class="option-btn" type="button" data-key="gargalo" data-value="Um pouco de tudo">
+              🧩 Um pouco de tudo
+              <small>Vários gargalos ao mesmo tempo</small>
+            </button>
           </div>
-          <div class="hint-line">⚡ Normalmente é aqui que a empresa começa a perder dinheiro sem perceber.</div>
+          <div class="hint-line">
+            ⚡ Normalmente é aqui que a empresa começa a perder dinheiro sem perceber.
+          </div>
         </section>
 
         <section class="quiz-step" data-step="3">
           <h2 class="question">Qual dessas situações já aconteceu com você?</h2>
-          <p class="question-subtitle">Se já aconteceu, existe um custo invisível aí.</p>
+          <p class="question-subtitle">
+            Se já aconteceu, existe um custo invisível aí.
+          </p>
           <div class="options-grid">
-            <button class="option-btn" type="button" data-key="dor" data-value="Perdi serviço por não atender">❌ Perdi serviço por não atender<small>Faturamento ficou na mesa</small></button>
-            <button class="option-btn" type="button" data-key="dor" data-value="Recusei trabalho por falta de estrutura">📵 Recusei trabalho por falta de estrutura<small>Capacidade abaixo da demanda</small></button>
-            <button class="option-btn" type="button" data-key="dor" data-value="Cliente foi para outro por falta de agilidade">🏃 Cliente foi para outro por falta de agilidade<small>Estrutura influencia fechamento</small></button>
-            <button class="option-btn" type="button" data-key="dor" data-value="Trabalho muito e ganho pouco para o esforço">😮‍💨 Trabalho muito e ganho pouco para o esforço<small>Esforço sem escala</small></button>
+            <button class="option-btn" type="button" data-key="dor" data-value="Perdi serviço por não atender">
+              ❌ Perdi serviço por não atender
+              <small>Faturamento ficou na mesa</small>
+            </button>
+            <button class="option-btn" type="button" data-key="dor" data-value="Recusei trabalho por falta de estrutura">
+              📵 Recusei trabalho por falta de estrutura
+              <small>Capacidade abaixo da demanda</small>
+            </button>
+            <button class="option-btn" type="button" data-key="dor" data-value="Cliente foi para outro por falta de agilidade">
+              🏃 Cliente foi para outro por falta de agilidade
+              <small>Estrutura influencia fechamento</small>
+            </button>
+            <button class="option-btn" type="button" data-key="dor" data-value="Trabalho muito e ganho pouco para o esforço">
+              😮‍💨 Trabalho muito e ganho pouco para o esforço
+              <small>Esforço sem escala</small>
+            </button>
           </div>
-          <div class="hint-line">⚡ A maioria só percebe isso quando já perdeu serviço ou margem.</div>
+          <div class="hint-line">
+            ⚡ A maioria só percebe isso quando já perdeu serviço ou margem.
+          </div>
         </section>
 
         <section class="quiz-step" data-step="4">
-          <h2 class="question">Se você pudesse melhorar uma coisa primeiro, o que escolheria?</h2>
-          <p class="question-subtitle">Agora estamos entrando no que você realmente quer destravar.</p>
+          <h2 class="question">
+            Se você pudesse melhorar uma coisa primeiro, o que escolheria?
+          </h2>
+          <p class="question-subtitle">
+            Agora estamos entrando no que você realmente quer destravar.
+          </p>
           <div class="options-grid">
-            <button class="option-btn" type="button" data-key="objetivo" data-value="Atender mais clientes por semana">📅 Atender mais clientes por semana<small>Mais capacidade no dia a dia</small></button>
-            <button class="option-btn" type="button" data-key="objetivo" data-value="Ter um veículo melhor ou mais adequado">🚐 Ter um veículo melhor ou mais adequado<small>Logística mais forte</small></button>
-            <button class="option-btn" type="button" data-key="objetivo" data-value="Ter uma estrutura mais organizada">🏭 Ter uma estrutura mais organizada<small>Menos improviso, mais controle</small></button>
-            <button class="option-btn" type="button" data-key="objetivo" data-value="Aumentar meu faturamento com mais previsibilidade">💰 Aumentar meu faturamento com mais previsibilidade<small>Foco direto em resultado</small></button>
+            <button class="option-btn" type="button" data-key="objetivo" data-value="Atender mais clientes por semana">
+              📅 Atender mais clientes por semana
+              <small>Mais capacidade no dia a dia</small>
+            </button>
+            <button class="option-btn" type="button" data-key="objetivo" data-value="Ter um veículo melhor ou mais adequado">
+              🚐 Ter um veículo melhor ou mais adequado
+              <small>Logística mais forte</small>
+            </button>
+            <button class="option-btn" type="button" data-key="objetivo" data-value="Ter uma estrutura mais organizada">
+              🏭 Ter uma estrutura mais organizada
+              <small>Menos improviso, mais controle</small>
+            </button>
+            <button class="option-btn" type="button" data-key="objetivo" data-value="Aumentar meu faturamento com mais previsibilidade">
+              💰 Aumentar meu faturamento com mais previsibilidade
+              <small>Foco direto em resultado</small>
+            </button>
           </div>
           <div class="hint-line">⚡ Aqui começa a aparecer o seu próximo nível.</div>
         </section>
 
         <section class="quiz-step" data-step="5">
-          <h2 class="question">Se hoje você tivesse estrutura para crescer… qual cenário faria mais sentido pra você?</h2>
-          <p class="question-subtitle">Sem pensar em banco ou financiamento. Pense no que faria mais diferença real.</p>
+          <h2 class="question">
+            Se hoje você tivesse estrutura para crescer… qual cenário faria mais sentido pra você?
+          </h2>
+          <p class="question-subtitle">
+            Sem pensar em banco ou financiamento. Pense no que faria mais diferença real.
+          </p>
           <div class="options-grid">
             <button class="option-btn" type="button" data-key="cenarioCrescimento" data-value="Dobrar a quantidade de serviços por semana">
               🚀 Dobrar a quantidade de serviços por semana
@@ -733,38 +812,75 @@
 
         <section class="quiz-step" data-step="6">
           <h2 class="question">Antes de continuar… como eu posso te chamar?</h2>
-          <p class="question-subtitle">Vou usar seu nome no resultado para deixar a análise mais pessoal.</p>
+          <p class="question-subtitle">
+            Vou usar seu nome no resultado para deixar a análise mais pessoal.
+          </p>
           <div class="form-group">
             <label class="form-label" for="nomeIntermediario">Seu nome</label>
-            <input class="form-control" id="nomeIntermediario" type="text" placeholder="Digite seu nome" autocomplete="name" />
+            <input
+              class="form-control"
+              id="nomeIntermediario"
+              type="text"
+              placeholder="Digite seu nome"
+              autocomplete="name"
+            />
           </div>
-          <button class="btn-primary" style="width:100%; max-width:100%;" type="button" id="nameNextBtn">
+          <button
+            class="btn-primary"
+            style="width:100%; max-width:100%;"
+            type="button"
+            id="nameNextBtn"
+          >
             Continuar
           </button>
-          <div class="hint-line">⚡ Falta pouco para aparecer o seu perfil de crescimento.</div>
+          <div class="hint-line">
+            ⚡ Falta pouco para aparecer o seu perfil de crescimento.
+          </div>
         </section>
 
         <section class="quiz-step" data-step="7">
-          <h2 class="question">Se aparecer um serviço grande hoje… você consegue pegar?</h2>
-          <p class="question-subtitle">Essa resposta mostra o quanto sua operação depende do momento atual.</p>
+          <h2 class="question">
+            Se aparecer um serviço grande hoje… você consegue pegar?
+          </h2>
+          <p class="question-subtitle">
+            Essa resposta mostra o quanto sua operação depende do momento atual.
+          </p>
           <div class="options-grid">
-            <button class="option-btn" type="button" data-key="acao" data-value="Sim, tranquilo">✅ Sim, tranquilo<small>Tenho estrutura e fôlego hoje</small></button>
-            <button class="option-btn" type="button" data-key="acao" data-value="Meio apertado">😬 Meio apertado<small>Dá para fazer, mas com risco</small></button>
-            <button class="option-btn" type="button" data-key="acao" data-value="Não consigo">🚫 Não consigo<small>A operação travaria</small></button>
-            <button class="option-btn" type="button" data-key="acao" data-value="Depende">🤔 Depende<small>Falta previsibilidade para agir</small></button>
+            <button class="option-btn" type="button" data-key="acao" data-value="Sim, tranquilo">
+              ✅ Sim, tranquilo
+              <small>Tenho estrutura e fôlego hoje</small>
+            </button>
+            <button class="option-btn" type="button" data-key="acao" data-value="Meio apertado">
+              😬 Meio apertado
+              <small>Dá para fazer, mas com risco</small>
+            </button>
+            <button class="option-btn" type="button" data-key="acao" data-value="Não consigo">
+              🚫 Não consigo
+              <small>A operação travaria</small>
+            </button>
+            <button class="option-btn" type="button" data-key="acao" data-value="Depende">
+              🤔 Depende
+              <small>Falta previsibilidade para agir</small>
+            </button>
           </div>
-          <div class="hint-line">⚡ Essa é uma das respostas que mais revelam potencial travado.</div>
+          <div class="hint-line">
+            ⚡ Essa é uma das respostas que mais revelam potencial travado.
+          </div>
         </section>
 
         <section class="calculating-view" id="calculatingView">
           <div class="spinner"></div>
           <h3>Identificando onde você pode estar perdendo dinheiro…</h3>
-          <p>Estamos organizando seu perfil para mostrar o que pode estar travando seu próximo nível.</p>
+          <p>
+            Estamos organizando seu perfil para mostrar o que pode estar travando seu próximo nível.
+          </p>
         </section>
 
         <section class="quiz-step" data-step="8">
           <h2 class="question">Seu diagnóstico está pronto</h2>
-          <p class="question-subtitle">Pelas suas respostas, existe espaço real para destravar crescimento.</p>
+          <p class="question-subtitle">
+            Pelas suas respostas, existe espaço real para destravar crescimento.
+          </p>
 
           <div class="final-highlight" id="summaryBox">
             Pelo que você mostrou, existe potencial na sua operação, mas ele está sendo limitado por estrutura, capacidade ou momento de ação.
@@ -772,17 +888,36 @@
 
           <div class="form-group">
             <label class="form-label" for="whatsapp">Seu WhatsApp</label>
-            <input class="form-control" id="whatsapp" type="tel" placeholder="(47) 99999-9999" autocomplete="tel" />
+            <input
+              class="form-control"
+              id="whatsapp"
+              type="tel"
+              placeholder="(47) 99999-9999"
+              autocomplete="tel"
+            />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="cidade">Sua cidade</label>
-            <input class="form-control" id="cidade" type="text" placeholder="Sua cidade" autocomplete="address-level2" />
+            <input
+              class="form-control"
+              id="cidade"
+              type="text"
+              placeholder="Sua cidade"
+              autocomplete="address-level2"
+            />
           </div>
 
-          <div class="error-text" id="formError">Preencha nome e WhatsApp corretamente para continuar.</div>
+          <div class="error-text" id="formError">
+            Preencha nome e WhatsApp corretamente para continuar.
+          </div>
 
-          <button class="btn-primary" style="width:100%; max-width:100%; margin-top: 4px;" type="button" id="submitBtn">
+          <button
+            class="btn-primary"
+            style="width:100%; max-width:100%; margin-top:4px;"
+            type="button"
+            id="submitBtn"
+          >
             Quero entender como destravar isso
           </button>
 
@@ -837,7 +972,7 @@
     }
 
     function hideAllSteps() {
-      document.querySelectorAll(".quiz-step").forEach(step => {
+      document.querySelectorAll(".quiz-step").forEach((step) => {
         step.classList.remove("active");
       });
     }
@@ -1008,28 +1143,19 @@
       window.open(url, "_blank");
     }
 
-    openQuizBtn.addEventListener("click", () => {
-      if (typeof gtag === "function") {
-        gtag("event", "select_content", {
-          event_category: "quiz",
-          event_label: "abrir_diagnostico"
-        });
-      }
-      openQuiz();
-    });
-
+    openQuizBtn.addEventListener("click", openQuiz);
     closeQuizBtn.addEventListener("click", closeQuiz);
     backBtn.addEventListener("click", goBack);
     nameNextBtn.addEventListener("click", saveNameAndNext);
     submitBtn.addEventListener("click", submitQuiz);
 
-    document.querySelectorAll(".option-btn[data-key]").forEach(btn => {
+    document.querySelectorAll(".option-btn[data-key]").forEach((btn) => {
       btn.addEventListener("click", () => {
         saveAndNext(btn.getAttribute("data-key"), btn.getAttribute("data-value"));
       });
     });
 
-    document.addEventListener("keydown", event => {
+    document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && overlay.classList.contains("active")) {
         closeQuiz();
       }
