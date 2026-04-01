@@ -38,111 +38,155 @@
     fbq('track', 'PageView');
   </script>
 
+  <noscript>
+    <img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1657702775681835&ev=PageView&noscript=1"/>
+  </noscript>
+
+  <!-- SEU CSS ORIGINAL -->
   <style>
-    body {
+    :root {
+      --bg: #070709;
+      --panel: rgba(11,11,14,0.96);
+      --gold: #d4af37;
+      --gold-2: #f3e5ab;
+      --text: #ffffff;
+      --muted: #b8c0c8;
+      --border: rgba(212,175,55,0.18);
+      --border-soft: rgba(255,255,255,0.08);
+      --danger: #ff6b6b;
+      --shadow: 0 18px 45px rgba(0,0,0,0.42);
+      --radius-xl: 22px;
+      --radius-lg: 15px;
+      --transition: 0.28s ease;
+    }
+
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
       font-family: "Montserrat", sans-serif;
-      background: #070709;
-      color: #fff;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       text-align: center;
-      padding: 40px 20px;
+      padding: 20px;
     }
 
-    .container {
-      max-width: 600px;
-      margin: auto;
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 900;
     }
 
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 20px;
-    }
-
-    p {
-      color: #aaa;
-      margin-bottom: 30px;
-    }
-
-    button {
-      background: #d4af37;
-      border: none;
-      padding: 15px 25px;
+    .btn-primary {
+      margin-top: 20px;
+      padding: 15px 30px;
       border-radius: 50px;
+      background: var(--gold);
+      border: none;
       font-weight: bold;
       cursor: pointer;
     }
 
-    input {
+    .quiz-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .quiz-overlay.active {
+      display: flex;
+    }
+
+    .quiz-container {
+      background: #111;
+      padding: 20px;
+      border-radius: 20px;
+      max-width: 500px;
       width: 100%;
-      padding: 12px;
+    }
+
+    .option-btn {
+      display: block;
+      width: 100%;
       margin: 10px 0;
+      padding: 12px;
       border-radius: 10px;
       border: none;
+      cursor: pointer;
+      background: #222;
+      color: #fff;
     }
   </style>
 </head>
 
 <body>
 
-<div class="container">
-  <h1>Você está deixando dinheiro na mesa?</h1>
-  <p>Responda rápido e descubra onde sua empresa está travando.</p>
-
-  <button onclick="startQuiz()">Começar diagnóstico</button>
-
-  <div id="quiz" style="display:none;">
-    <p>Qual seu maior problema hoje?</p>
-
-    <button onclick="answer('Falta de veículo')">Falta de veículo</button><br><br>
-    <button onclick="answer('Falta de dinheiro')">Falta de dinheiro</button><br><br>
-    <button onclick="answer('Falta de organização')">Falta de organização</button>
-
-    <div id="form" style="display:none;">
-      <h3>Seu diagnóstico está pronto</h3>
-      <input id="nome" placeholder="Seu nome">
-      <input id="whatsapp" placeholder="Seu WhatsApp">
-
-      <button onclick="sendLead()">Ver resultado</button>
+  <div class="hero">
+    <div>
+      <h1>Você trabalha muito mas sente que poderia ganhar mais?</h1>
+      <button class="btn-primary" onclick="openQuiz()">Ver diagnóstico</button>
     </div>
   </div>
-</div>
 
-<script>
-let resposta = "";
+  <div class="quiz-overlay" id="quiz">
+    <div class="quiz-container">
+      <h2>Qual seu maior problema?</h2>
 
-function startQuiz(){
-  document.getElementById("quiz").style.display = "block";
+      <button class="option-btn" onclick="next('Falta de veículo')">Falta de veículo</button>
+      <button class="option-btn" onclick="next('Falta de dinheiro')">Falta de dinheiro</button>
+      <button class="option-btn" onclick="next('Falta de organização')">Falta de organização</button>
 
-  // Evento GA
-  gtag('event', 'quiz_start');
-}
+      <div id="form" style="display:none;">
+        <input id="nome" placeholder="Seu nome"><br><br>
+        <input id="whats" placeholder="WhatsApp"><br><br>
+        <button class="btn-primary" onclick="enviar()">Ver resultado</button>
+      </div>
+    </div>
+  </div>
 
-function answer(valor){
-  resposta = valor;
-  document.getElementById("form").style.display = "block";
-}
+  <script>
+    let resposta = "";
 
-function sendLead(){
-  const nome = document.getElementById("nome").value;
-  const whats = document.getElementById("whatsapp").value;
+    function openQuiz(){
+      document.getElementById("quiz").classList.add("active");
+      gtag('event', 'quiz_start');
+    }
 
-  if(!nome || !whats){
-    alert("Preencha os dados");
-    return;
-  }
+    function next(valor){
+      resposta = valor;
+      document.getElementById("form").style.display = "block";
+    }
 
-  // Evento GA
-  gtag('event', 'lead');
+    function enviar(){
+      const nome = document.getElementById("nome").value;
+      const whats = document.getElementById("whats").value;
 
-  // Evento Meta
-  fbq('track', 'Lead');
+      if(!nome || !whats){
+        alert("Preencha os dados");
+        return;
+      }
 
-  const msg = `Olá, sou ${nome}. Meu problema é: ${resposta}`;
-  const url = `https://wa.me/5547992120915?text=${encodeURIComponent(msg)}`;
+      gtag('event', 'lead');
+      fbq('track', 'Lead');
 
-  window.location.href = url;
-}
-</script>
+      const msg = `Olá, sou ${nome}. Meu problema é: ${resposta}`;
+      window.location.href = `https://wa.me/5547992120915?text=${encodeURIComponent(msg)}`;
+    }
+  </script>
 
 </body>
 </html>
