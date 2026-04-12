@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultoria Patrimonial Luan - Sistema Integrado</title>
+    <title>Consultoria Patrimonial Luan - Master Pro</title>
     <style>
         :root {
             --primary: #0a0e14; --card-bg: #161b22; --accent: #c5a059;
@@ -12,9 +12,8 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--primary); color: var(--text); margin: 0; padding: 20px; }
         .wrapper { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
         
-        .main-panel, .side-panel { background: var(--card-bg); border-radius: 15px; padding: 25px; border: 1px solid #30363d; }
+        .main-panel, .side-panel { background: var(--card-bg); border-radius: 15px; padding: 25px; border: 1px solid #30363d; min-height: 600px; }
         
-        /* Menu de Seleção */
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; background: #0d1117; padding: 8px; border-radius: 12px; }
         .tab-btn { flex: 1; padding: 15px; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: #8b949e; font-weight: bold; text-transform: uppercase; font-size: 12px; transition: 0.3s; }
         .tab-btn.active { background: var(--accent); color: var(--primary); box-shadow: 0 4px 15px rgba(197, 160, 89, 0.3); }
@@ -25,16 +24,13 @@
         .input-group { margin-bottom: 18px; }
         label { display: block; font-size: 11px; color: var(--accent); font-weight: bold; margin-bottom: 6px; text-transform: uppercase; }
         input, select { width: 100%; padding: 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: white; font-size: 16px; box-sizing: border-box; }
-        input:focus { border-color: var(--accent); outline: none; }
 
         .btn-action { width: 100%; padding: 18px; background: var(--accent); color: var(--primary); border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
         
-        /* Resultados */
         .res-container { margin-top: 25px; background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; border-left: 5px solid var(--accent); }
-        .res-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #30363d; font-size: 14px; }
-        .val-highlight { color: var(--success); font-weight: 800; font-size: 18px; }
+        .res-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #30363d; font-size: 15px; }
+        .val-highlight { color: var(--success); font-weight: 800; font-size: 19px; }
 
-        /* Estilo Lateral */
         .side-title { color: var(--accent); font-size: 14px; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
         .info-card { background: #0d1117; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; line-height: 1.6; }
         .badge { display: inline-block; padding: 3px 8px; background: var(--accent); color: var(--primary); border-radius: 4px; font-size: 10px; font-weight: bold; margin-bottom: 10px; }
@@ -55,11 +51,11 @@
         <div id="tab-imovel" class="section active">
             <div class="input-group">
                 <label>Valor do Imóvel / Crédito</label>
-                <input type="text" class="money" id="vI" oninput="autoE(this, 'eI')">
+                <input type="text" class="money" id="vI" placeholder="R$ 0,00" oninput="autoE(this, 'eI')">
             </div>
             <div class="input-group">
-                <label>Entrada (Mín. 20%)</label>
-                <input type="text" class="money" id="eI">
+                <label>Entrada (Mín. 20% Banco)</label>
+                <input type="text" class="money" id="eI" placeholder="R$ 0,00">
             </div>
             <div class="input-group">
                 <label>Prazo Financiamento</label>
@@ -75,18 +71,18 @@
         <div id="tab-veiculo" class="section">
             <div class="input-group">
                 <label>Valor do Veículo</label>
-                <input type="text" class="money" id="vV" oninput="autoE(this, 'eV')">
+                <input type="text" class="money" id="vV" placeholder="R$ 0,00" oninput="autoE(this, 'eV')">
             </div>
             <div class="input-group">
                 <label>Entrada (Mín. 20%)</label>
-                <input type="text" class="money" id="eV">
+                <input type="text" class="money" id="eV" placeholder="R$ 0,00">
             </div>
             <div class="input-group">
                 <label>Prazo</label>
                 <select id="pV">
                     <option value="60">60 meses (5 anos)</option>
                     <option value="48">48 meses (4 anos)</option>
-                    <option value="24">24 meses (2 anos)</option>
+                    <option value="36">36 meses (3 anos)</option>
                 </select>
             </div>
             <button class="btn-action" onclick="calcV()">Analisar Financiamento Veículo</button>
@@ -95,23 +91,22 @@
         <div id="tab-investor" class="section">
             <div class="input-group">
                 <label>Capital para Investir</label>
-                <input type="text" class="money" id="capInv">
+                <input type="text" class="money" id="capInv" placeholder="R$ 100.000,00">
             </div>
             <div class="input-group">
                 <label>Parcela de Crédito</label>
-                <input type="text" class="money" id="parcCred">
+                <input type="text" class="money" id="parcCred" placeholder="R$ 1.500,00">
             </div>
             <div class="input-group">
                 <label>Estratégia de Alocação</label>
-                <select id="selAtivo" onchange="updSide()">
+                <select id="selAtivo">
                     <option value="0.01|0.225|D+1">CDB / Tesouro (Curto Prazo - IR 22,5%)</option>
                     <option value="0.011|0.15|D+30">CDB (Longo Prazo - IR 15%)</option>
                     <option value="0.009|0|D+2">FIIs (Fundos Imobiliários - Isento)</option>
                     <option value="0.0105|0.15|D+1">Tesouro Selic (Liquidez Diária)</option>
                     <option value="0.0085|0|D+90">LCI / LCA (Isento de IR)</option>
-                    <option value="0.012|0.20|D+2">Ações - Dividendos (Isento)</option>
+                    <option value="0.012|0|D+2">Ações - Dividendos (Isento)</option>
                     <option value="0.035|0.15|D+0">Cripto Staking (Stablecoins)</option>
-                    <option value="0.005|0|D+0">Poupança (Isento - Não Recomendado)</option>
                 </select>
             </div>
             <button class="btn-action" style="background:#2ea043; color:white;" onclick="calcA()">Simular Alavancagem</button>
@@ -125,11 +120,10 @@
         <div id="sideContent">
             <div class="info-card">
                 <span class="badge">DICA DO CONSULTOR</span><br>
-                Selecione uma modalidade ao lado para ver como o dinheiro do cliente pode trabalhar para ele em vez de ser entregue ao banco.
+                Utilize os dados ao lado para mostrar ao cliente o <strong>Custo de Oportunidade</strong>. No banco, o dinheiro morre. Aqui, o patrimônio se multiplica.
             </div>
         </div>
-        <div id="impactBox" style="margin-top:20px; padding:15px; border-radius:10px; text-align:center; font-weight:bold; display:none;">
-        </div>
+        <div id="impactBox" style="margin-top:20px; padding:15px; border-radius:10px; text-align:center; font-weight:bold; display:none;"></div>
     </div>
 </div>
 
@@ -141,6 +135,10 @@
         btn.classList.add('active');
         document.getElementById('resFinal').style.display = 'none';
         document.getElementById('impactBox').style.display = 'none';
+    }
+
+    function formatBRL(v) {
+        return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
     function mask(i) {
@@ -156,10 +154,12 @@
 
     function autoE(i, target) {
         const v = parse(i.value);
-        if(v > 0) document.getElementById(target).value = "R$ " + (v * 0.2).toLocaleString('pt-BR', {minimumFractionDigits:2});
+        if(v > 0) {
+            const entrada = v * 0.20;
+            document.getElementById(target).value = formatBRL(entrada);
+        }
     }
 
-    // LÓGICA IMÓVEL (SAC)
     function calcI() {
         const v = parse(document.getElementById('vI').value);
         const e = parse(document.getElementById('eI').value);
@@ -171,15 +171,14 @@
         const juros = (((p1 + pL)/2)*n) - fin;
 
         showRes(`
-            <div class="res-row"><span>1ª Parcela (SAC):</span><strong>R$ ${p1.toLocaleString('pt-BR')}</strong></div>
-            <div class="res-row"><span>Última Parcela:</span><strong>R$ ${pL.toLocaleString('pt-BR')}</strong></div>
-            <div class="res-row" style="color:var(--danger)"><span>Custo Total de Juros:</span><strong>R$ ${juros.toLocaleString('pt-BR')}</strong></div>
-            <div class="res-row" style="border:none"><span>Total Pago ao Banco:</span><strong class="val-highlight">R$ ${(juros+v).toLocaleString('pt-BR')}</strong></div>
+            <div class="res-row"><span>1ª Parcela (SAC):</span><strong>${formatBRL(p1)}</strong></div>
+            <div class="res-row"><span>Última Parcela:</span><strong>${formatBRL(pL)}</strong></div>
+            <div class="res-row" style="color:var(--danger)"><span>Custo Total de Juros:</span><strong>${formatBRL(juros)}</strong></div>
+            <div class="res-row" style="border:none"><span>Total Pago ao Banco:</span><strong class="val-highlight">${formatBRL(juros+v)}</strong></div>
         `);
-        showImpact(`O cliente perde R$ ${juros.toLocaleString('pt-BR')} apenas em juros!`, 'var(--danger)');
+        showImpact(`O cliente queima ${formatBRL(juros)} em juros bancários!`, 'var(--danger)');
     }
 
-    // LÓGICA VEÍCULO (PRICE)
     function calcV() {
         const v = parse(document.getElementById('vV').value);
         const e = parse(document.getElementById('eV').value);
@@ -190,14 +189,13 @@
         const juros = (parc * n) - fin;
 
         showRes(`
-            <div class="res-row"><span>Parcela Fixa (PRICE):</span><strong>R$ ${parc.toLocaleString('pt-BR')}</strong></div>
-            <div class="res-row" style="color:var(--danger)"><span>Custo de Juros:</span><strong>R$ ${juros.toLocaleString('pt-BR')}</strong></div>
-            <div class="res-row" style="border:none"><span>Desembolso Final:</span><strong class="val-highlight">R$ ${(parc*n+e).toLocaleString('pt-BR')}</strong></div>
+            <div class="res-row"><span>Parcela Fixa (PRICE):</span><strong>${formatBRL(parc)}</strong></div>
+            <div class="res-row" style="color:var(--danger)"><span>Custo Total de Juros:</span><strong>${formatBRL(juros)}</strong></div>
+            <div class="res-row" style="border:none"><span>Desembolso Final:</span><strong class="val-highlight">${formatBRL(parc*n+e)}</strong></div>
         `);
         showImpact(`No banco, o cliente paga quase 2 carros!`, 'var(--danger)');
     }
 
-    // LÓGICA ALAVANCAGEM
     function calcA() {
         const cap = parse(document.getElementById('capInv').value);
         const parc = parse(document.getElementById('parcCred').value);
@@ -209,28 +207,22 @@
         const cr = parc - rl;
 
         showRes(`
-            <div class="res-row"><span>Rendimento Bruto:</span><strong>R$ ${rb.toLocaleString('pt-BR')}</strong></div>
-            <div class="res-row" style="color:var(--danger)"><span>Imposto Retido (IR):</span><strong>- R$ ${vir.toLocaleString('pt-BR')}</strong></div>
-            <div class="res-row"><span>Rendimento LÍQUIDO:</span><strong class="val-highlight">R$ ${rl.toLocaleString('pt-BR')}</strong></div>
-            <div class="res-row" style="border-top:2px solid #30363d; margin-top:10px;"><span>Seu Custo Real Mensal:</span><strong style="font-size:20px; color:var(--accent)">R$ ${(cr < 0 ? 0 : cr).toLocaleString('pt-BR')}</strong></div>
+            <div class="res-row"><span>Rendimento Mensal Líquido:</span><strong class="val-highlight">${formatBRL(rl)}</strong></div>
+            <div class="res-row"><span>Parcela de Crédito:</span><strong>${formatBRL(parc)}</strong></div>
+            <div class="res-row" style="border-top:2px solid #30363d; margin-top:10px;"><span>Custo Real p/ Investidor:</span><strong style="font-size:22px; color:var(--accent)">${formatBRL(cr < 0 ? 0 : cr)}</strong></div>
         `);
-        showImpact(`O investimento paga ${((rl/parc)*100).toFixed(1)}% da sua parcela!`, 'var(--success)');
+        showImpact(`O dinheiro trabalhando paga ${((rl/parc)*100).toFixed(1)}% da parcela!`, 'var(--success)');
     }
 
     function showRes(html) {
         const r = document.getElementById('resFinal');
-        r.innerHTML = html;
-        r.style.display = 'block';
+        r.innerHTML = html; r.style.display = 'block';
     }
 
     function showImpact(txt, color) {
         const i = document.getElementById('impactBox');
-        i.innerText = txt;
-        i.style.background = color + '22';
-        i.style.color = color;
-        i.style.display = 'block';
+        i.innerText = txt; i.style.background = color + '22'; i.style.color = color; i.style.display = 'block';
     }
 </script>
-
 </body>
 </html>
