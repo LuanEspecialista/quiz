@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Financiamento Caixa 2026</title>
+    <style>
+        /* Estilização Geral */
+        :root {
+            --primaria: #005ca9; /* Azul Caixa */
+            --secundaria: #f39200; /* Laranja Caixa */
+            --fundo: #f0f2f5;
+            --texto: #333;
+            --sucesso: #28a745;
+            --erro: #dc3545;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--fundo);
+            color: var(--texto);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: #fff;
+            width: 100%;
+            max-width: 450px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            color: var(--primaria);
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Campos de Entrada */
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primaria);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primaria);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #004680;
+        }
+
+        /* Área de Resultado */
+        #resultado {
+            margin-top: 25px;
+            display: none;
+            padding: 20px;
+            border-radius: 10px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .card-resultado {
+            border-left: 5px solid var(--primaria);
+            background: #f8fbff;
+        }
+
+        .card-alerta {
+            border-left: 5px solid var(--erro);
+            background: #fff5f5;
+        }
+
+        .resultado-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .resultado-item:last-child {
+            border-bottom: none;
+        }
+
+        .valor {
+            font-weight: bold;
+            color: var(--primaria);
+        }
+
+        .destaque-parcela {
+            font-size: 20px;
+            color: var(--sucesso);
+        }
+
+        .alerta-texto {
+            color: var(--erro);
+            font-size: 13px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .footer-note {
+            font-size: 11px;
+            color: #999;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Simulador 2026</h1>
+        <p>Regras SAC - 80% de Financiamento</p>
+    </div>
+
+    <div class="input-group">
+        <label>Valor do Imóvel</label>
+        <input type="text" id="valorImovel" placeholder="R$ 0,00" oninput="mascaraMoeda(this)">
+    </div>
+
+    <div class="input-group">
+        <label>Sua Renda Mensal Bruta</label>
+        <input type="text" id="rendaMensal" placeholder="R$ 0,00" oninput="mascaraMoeda(this)">
+    </div>
+
+    <div class="input-group">
+        <label>Prazo (meses)</label>
+        <input type="number" id="prazo" value="360" max="420">
+    </div>
+
+    <button onclick="calcular()">Simular Agora</button>
+
+    <div id="resultado">
+        </div>
+
+    <p class="footer-note">Simulação baseada nas taxas estimadas para 2026 (MCMV e SBPE). Valores podem variar após análise de crédito real.</p>
+</div>
+
+<script>
+    // Função para formatar moeda enquanto digita
+    function mascaraMoeda(i) {
+        let v = i.value.replace(/\D/g,'');
+        v = (v/100).toFixed(2) + '';
+        v = v.replace(".", ",");
+        v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
+        v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
+        i.value = v == '0,00' ? '' : 'R$ ' + v;
+    }
+
+    function limparValor(valor) {
+        return parseFloat(valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
+    }
+
+    function calcular() {
+        const vImovel = limparValor(document.getElementById('valorImovel').value);
+        const vRenda = limparValor(document.getElementById('rendaMensal').value);
+        const vPrazo = parseInt(document.getElementById('prazo').value);
+        const resDiv = document.getElementById('resultado');
+
+        if (isNaN(vImovel) || isNaN(vRenda)) {
+            alert("Por favor, preencha os valores corretamente.");
+            return;
+        }
+
+        // Lógica de Negócio 2026
+        let taxaAnual = vImovel <= 500000 ? 0.0816 : 0.0980; // MCMV vs SBPE
+        let cota = 0.80; // Retomada dos 80% conforme sua instrução
+        let valorFinanciado = vImovel * cota;
+        let entrada = vImovel - valorFinanciado;
+
+        // Cálculos SAC
+        let amortizacao = valorFinanciado / vPrazo;
+        let taxaMensal = Math.pow(1 + taxaAnual, 1/12) - 1;
+        let jurosPrimeira = valorFinanciado * taxaMensal;
+        let segurosEstimados = vImovel * 0.0006; // MIP + DFI
+        let primeiraParcela = amortizacao + jurosPrimeira + 25 + segurosEstimados;
+
+        // Validação de margem (30%)
+        let limiteRenda = vRenda * 0.30;
+        let aprovado = primeiraParcela <= limiteRenda;
+
+        resDiv.style.display = "block";
+        resDiv.className = aprovado ? "card-resultado" : "card-alerta";
+
+        resDiv.innerHTML = `
+            <div style="text-align:center; font-weight:bold; margin-bottom:15px; color:${aprovado ? '#28a745' : '#dc3545'}">
+                ${aprovado ? '✅ CRÉDITO PRÉ-APROVADO' : '❌ RENDA INSUFICIENTE'}
+            </div>
+            <div class="resultado-item">
+                <span>Entrada (20%)</span>
+                <span class="valor">R$ ${entrada.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+            </div>
+            <div class="resultado-item">
+                <span>Valor Financiado</span>
+                <span class="valor">R$ ${valorFinanciado.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+            </div>
+            <div class="resultado-item">
+                <span>Taxa aplicada</span>
+                <span class="valor">${(taxaAnual*100).toFixed(2)}% a.a.</span>
+            </div>
+            <div class="resultado-item" style="border-top: 2px dashed #ccc; margin-top:10px;">
+                <span><strong>1ª Parcela</strong></span>
+                <span class="valor destaque-parcela">R$ ${primeiraParcela.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+            </div>
+            ${!aprovado ? `<p class="alerta-texto">A parcela compromete ${( (primeiraParcela/vRenda)*100 ).toFixed(1)}% da sua renda. O máximo permitido é 30%.</p>` : ''}
+        `;
+    }
+</script>
+
+</body>
+</html>
