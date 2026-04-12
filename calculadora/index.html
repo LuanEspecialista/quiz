@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultoria Master - Luan</title>
+    <title>Consultoria Patrimonial Luan - Sistema Integrado</title>
     <style>
         :root {
             --primary: #0a0e14; --card-bg: #161b22; --accent: #c5a059;
@@ -12,10 +12,10 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--primary); color: var(--text); margin: 0; padding: 20px; }
         .wrapper { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
         
-        .main-panel, .side-panel { background: var(--card-bg); border-radius: 15px; padding: 25px; border: 1px solid #30363d; min-height: 550px; }
+        .main-panel, .side-panel { background: var(--card-bg); border-radius: 15px; padding: 25px; border: 1px solid #30363d; min-height: 620px; }
         
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; background: #0d1117; padding: 8px; border-radius: 12px; }
-        .tab-btn { flex: 1; padding: 15px; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: #8b949e; font-weight: bold; text-transform: uppercase; font-size: 12px; transition: 0.3s; }
+        .tab-btn { flex: 1; padding: 15px; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: #8b949e; font-weight: bold; text-transform: uppercase; font-size: 11px; transition: 0.3s; }
         .tab-btn.active { background: var(--accent); color: var(--primary); box-shadow: 0 4px 15px rgba(197, 160, 89, 0.3); }
 
         .section { display: none; }
@@ -50,11 +50,11 @@
 
         <div id="tab-imovel" class="section active">
             <div class="input-group">
-                <label>Valor do Imóvel</label>
-                <input type="text" class="money" id="vI" placeholder="R$ 0,00" oninput="autoEntrada(this, 'eI')">
+                <label>Valor do Imóvel / Crédito</label>
+                <input type="text" class="money" id="vI" placeholder="R$ 0,00" oninput="autoCalculoEntrada(this, 'eI')">
             </div>
             <div class="input-group">
-                <label>Entrada (20% p/ Banco)</label>
+                <label>Entrada (20% Sugerida Banco)</label>
                 <input type="text" class="money" id="eI" placeholder="R$ 0,00">
             </div>
             <div class="input-group">
@@ -65,16 +65,16 @@
                     <option value="240">240 meses (20 anos)</option>
                 </select>
             </div>
-            <button class="btn-action" onclick="calcImovel()">Analisar Cronograma</button>
+            <button class="btn-action" onclick="calcImovel()">Analisar Cronograma Banco</button>
         </div>
 
         <div id="tab-veiculo" class="section">
             <div class="input-group">
                 <label>Valor do Veículo</label>
-                <input type="text" class="money" id="vV" placeholder="R$ 0,00" oninput="autoEntrada(this, 'eV')">
+                <input type="text" class="money" id="vV" placeholder="R$ 0,00" oninput="autoCalculoEntrada(this, 'eV')">
             </div>
             <div class="input-group">
-                <label>Entrada (20% p/ Banco)</label>
+                <label>Entrada (20% Sugerida Banco)</label>
                 <input type="text" class="money" id="eV" placeholder="R$ 0,00">
             </div>
             <div class="input-group">
@@ -90,7 +90,7 @@
 
         <div id="tab-investor" class="section">
             <div class="input-group">
-                <label>Capital Disponível</label>
+                <label>Capital para Investir</label>
                 <input type="text" class="money" id="capInv" placeholder="R$ 100.000,00">
             </div>
             <div class="input-group">
@@ -98,15 +98,21 @@
                 <input type="text" class="money" id="parcCred" placeholder="R$ 1.500,00">
             </div>
             <div class="input-group">
-                <label>Ativo Financeiro</label>
-                <select id="selAtivo">
-                    <option value="0.01|0.225">CDB / Tesouro (IR 22,5%)</option>
-                    <option value="0.009|0">FIIs (Isento de IR)</option>
-                    <option value="0.011|0.15">CDB Longo Prazo (IR 15%)</option>
-                    <option value="0.035|0.15">Cripto Staking (Stablecoins)</option>
+                <label>Estratégia de Alocação</label>
+                <select id="selAtivo" onchange="atualizarTextoLateral()">
+                    <option value="0.01|0.225|D+1">CDB Curto Prazo (IR 22,5% - Liquidez D+1)</option>
+                    <option value="0.011|0.15|D+30">CDB Longo Prazo (IR 15% - Liquidez D+30)</option>
+                    <option value="0.0092|0|D+2">FIIs - Fundo Imobiliário (Isento de IR - Liquidez D+2)</option>
+                    <option value="0.0105|0.15|D+0">Tesouro Selic (IR Regressivo - Liquidez Diária)</option>
+                    <option value="0.0085|0|D+90">LCI / LCA (Isento de IR - Liquidez 90 dias)</option>
+                    <option value="0.012|0|D+2">Ações - Dividend Yield (Isento - Renda Variável)</option>
+                    <option value="0.032|0.15|D+0">Cripto Staking Stablecoin (Alto Rendimento)</option>
+                    <option value="0.005|0|D+0">Poupança (Baixo Rendimento - Isento)</option>
+                    <option value="0.0098|0.15|D+1">Fundo Renda Fixa Digital (Praticidade)</option>
+                    <option value="0.008|0|D+1">Letra de Câmbio (Isenta - Conservador)</option>
                 </select>
             </div>
-            <button class="btn-action" style="background:var(--success); color:white;" onclick="calcAlavancagem()">Gerar Estratégia</button>
+            <button class="btn-action" style="background:#2ea043; color:white;" onclick="calcAlavancagem()">Gerar Plano Investidor</button>
         </div>
 
         <div id="resFinal" class="res-container" style="display:none;"></div>
@@ -114,9 +120,11 @@
 
     <div class="side-panel">
         <div class="side-title">ANÁLISE ESTRATÉGICA</div>
-        <div class="info-card">
-            <span class="badge">DICA DO CONSULTOR</span><br>
-            No banco, o dinheiro morre na entrada. Aqui, o patrimônio trabalha para pagar o crédito. <strong>Custo de Oportunidade</strong> é a sua maior ferramenta de fechamento.
+        <div id="sideContent">
+            <div class="info-card">
+                <span class="badge">CONSULTORIA MASTER</span><br>
+                <p id="txtLateral">O banco exige entrada para mitigar o risco dele. Nossa estratégia usa o seu capital para mitigar o <strong>seu</strong> custo mensal.</p>
+            </div>
         </div>
         <div id="impactBox" style="margin-top:20px; padding:15px; border-radius:10px; text-align:center; font-weight:bold; display:none;"></div>
     </div>
@@ -145,19 +153,13 @@
 
     function parse(v) { return parseFloat(v.replace('R$ ', '').replace(/\./g, '').replace(',', '.')) || 0; }
 
-    function autoEntrada(i, targetId) {
-        const v = parse(i.value);
-        if(v > 0) {
-            const entrada = v * 0.20;
-            document.getElementById(targetId).value = formatBRL(entrada);
+    // CORREÇÃO DO CÁLCULO DE ENTRADA
+    function autoCalculoEntrada(i, targetId) {
+        const valorBem = parse(i.value);
+        if(valorBem > 0) {
+            const entradaSugerida = valorBem * 0.20;
+            document.getElementById(targetId).value = formatBRL(entradaSugerida);
         }
-    }
-
-    function showRes(html, msg, color) {
-        const r = document.getElementById('resFinal');
-        r.innerHTML = html; r.style.display = 'block';
-        const i = document.getElementById('impactBox');
-        i.innerText = msg; i.style.background = color + '22'; i.style.color = color; i.style.display = 'block';
     }
 
     function calcImovel() {
@@ -169,11 +171,13 @@
         const p1 = (fin / n) + (fin * tx);
         const pL = (fin / n) + ((fin/n) * tx);
         const juros = (((p1 + pL)/2)*n) - fin;
+
         showRes(`
-            <div class="res-row"><span>1ª Parcela:</span><strong>${formatBRL(p1)}</strong></div>
+            <div class="res-row"><span>1ª Parcela (SAC):</span><strong>${formatBRL(p1)}</strong></div>
             <div class="res-row"><span>Última Parcela:</span><strong>${formatBRL(pL)}</strong></div>
-            <div class="res-row" style="color:var(--danger)"><span>Juros Totais:</span><strong>${formatBRL(juros)}</strong></div>
-        `, `O cliente queima ${formatBRL(juros)} no banco!`, 'var(--danger)');
+            <div class="res-row" style="color:var(--danger)"><span>Juros Pagos ao Banco:</span><strong>${formatBRL(juros)}</strong></div>
+            <div class="res-row" style="border:none"><span>Total Final:</span><strong class="val-highlight">${formatBRL(juros+v)}</strong></div>
+        `, `Prejuízo Financeiro: ${formatBRL(juros)} em juros!`, 'var(--danger)');
     }
 
     function calcVeiculo() {
@@ -181,27 +185,47 @@
         const e = parse(document.getElementById('eV').value);
         const n = parseInt(document.getElementById('pV').value);
         const fin = v - e;
-        const tx = 0.0199;
+        const tx = 0.0210; // Taxa média mercado
         const p = fin * (tx * Math.pow(1+tx, n)) / (Math.pow(1+tx, n) - 1);
         const juros = (p * n) - fin;
+
         showRes(`
-            <div class="res-row"><span>Parcela Fixa:</span><strong>${formatBRL(p)}</strong></div>
-            <div class="res-row" style="color:var(--danger)"><span>Juros Totais:</span><strong>${formatBRL(juros)}</strong></div>
+            <div class="res-row"><span>Parcela Mensal:</span><strong>${formatBRL(p)}</strong></div>
+            <div class="res-row" style="color:var(--danger)"><span>Custo de Juros:</span><strong>${formatBRL(juros)}</strong></div>
             <div class="res-row" style="border:none"><span>Total Pago:</span><strong class="val-highlight">${formatBRL(p*n+e)}</strong></div>
-        `, `No banco, ele paga quase dois carros!`, 'var(--danger)');
+        `, `No banco, o cliente paga quase 2 veículos!`, 'var(--danger)');
     }
 
     function calcAlavancagem() {
         const cap = parse(document.getElementById('capInv').value);
         const p = parse(document.getElementById('parcCred').value);
-        const [tx, ir] = document.getElementById('selAtivo').value.split('|');
-        const rl = (cap * parseFloat(tx)) * (1 - parseFloat(ir));
+        const [tx, ir, liq] = document.getElementById('selAtivo').value.split('|');
+        const rb = cap * parseFloat(tx);
+        const rl = rb * (1 - parseFloat(ir));
         const cr = p - rl;
+
         showRes(`
             <div class="res-row"><span>Rendimento Líquido:</span><strong class="val-highlight">${formatBRL(rl)}</strong></div>
             <div class="res-row"><span>Parcela Original:</span><strong>${formatBRL(p)}</strong></div>
-            <div class="res-row" style="border-top:2px solid #30363d; margin-top:10px;"><span>Custo Real:</span><strong style="color:var(--accent); font-size:22px;">${formatBRL(cr < 0 ? 0 : cr)}</strong></div>
-        `, `O capital paga ${((rl/p)*100).toFixed(1)}% da parcela!`, 'var(--success)');
+            <div class="res-row" style="border-top:2px solid #30363d; margin-top:10px;"><span>Custo de Crédito Real:</span><strong style="color:var(--accent); font-size:22px;">${formatBRL(cr < 0 ? 0 : cr)}</strong></div>
+        `, `O rendimento paga ${((rl/p)*100).toFixed(1)}% da sua parcela!`, 'var(--success)');
+    }
+
+    function showRes(html, msg, color) {
+        const r = document.getElementById('resFinal');
+        r.innerHTML = html; r.style.display = 'block';
+        const i = document.getElementById('impactBox');
+        i.innerText = msg; i.style.background = color + '22'; i.style.color = color; i.style.display = 'block';
+    }
+
+    function atualizarTextoLateral() {
+        const sel = document.getElementById('selAtivo');
+        const labels = {
+            "0.0092|0|D+2": "Os Fundos Imobiliários (FIIs) são excelentes para o crédito de imóveis, pois o rendimento é isento de IR e cai todo mês.",
+            "0.01|0.225|D+1": "O CDB de curto prazo oferece segurança e liquidez, mas a mordida do IR (22,5%) é maior se sacar antes de 6 meses.",
+            "0.032|0.15|D+0": "Staking de dólar digital oferece rendimentos agressivos para investidores que buscam quitar o crédito mais rápido."
+        };
+        document.getElementById('txtLateral').innerText = labels[sel.value] || "Escolha o melhor ativo para o perfil do seu cliente.";
     }
 </script>
 </body>
