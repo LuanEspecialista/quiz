@@ -3,25 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analista de Crédito Pro - Luan</title>
+    <title>Analista Pro - Luan</title>
     <style>
         :root { --azul: #005ca9; --vermelho: #e30613; --bg: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; color: #333; }
         .container { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .header h1 { font-size: 20px; color: var(--azul); margin: 0; text-transform: uppercase; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; background: #eee; transition: 0.3s; }
+        .tab-btn.active { background: var(--azul); color: white; }
+
         .input-group { margin-bottom: 15px; }
         label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 5px; color: #666; text-transform: uppercase; }
-        input, select { width: 100%; padding: 14px; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
-        input:focus { border-color: var(--azul); outline: none; }
+        input, select { width: 100%; padding: 14px; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        
         .btn-calc { width: 100%; padding: 18px; border: none; border-radius: 10px; background: var(--azul); color: white; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
+        
         .resultado { margin-top: 25px; display: none; }
         .res-card { background: #fffcfc; border: 1px solid #eee; border-radius: 15px; padding: 20px; border-left: 6px solid var(--vermelho); }
         .tabela-parcelas { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 14px; }
-        .tabela-parcelas th { text-align: left; color: #888; font-size: 11px; text-transform: uppercase; padding-bottom: 8px; }
         .tabela-parcelas td { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
-        .parc-range { font-weight: 600; color: #444; }
         .parc-valor { font-weight: 800; color: var(--vermelho); text-align: right; }
+        
         .total-box { background: #222; color: white; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; }
         .total-box span { display: block; font-size: 26px; font-weight: 900; color: #ffcc00; }
         .alerta { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; display: none; font-weight: bold; }
@@ -30,80 +35,78 @@
 <body>
 
 <div class="container">
-    <div class="header"><h1>Relatório de Perda Patrimonial</h1></div>
+    <div class="header"><h1 id="titulo-principal">Relatório Imobiliário</h1></div>
+
+    <div class="tabs">
+        <button id="btn-imovel" class="tab-btn active" onclick="setMode('imovel')">🏠 Imóvel</button>
+        <button id="btn-veiculo" class="tab-btn" onclick="setMode('veiculo')">🚗 Veículo</button>
+    </div>
 
     <div id="alerta-entrada" class="alerta"></div>
 
     <div class="input-group">
-        <label>Valor do Imóvel / Crédito</label>
-        <input type="text" id="valor" placeholder="R$ 0,00" oninput="autoPreencherEntrada(this)">
+        <label id="label-valor">Valor do Imóvel</label>
+        <input type="text" id="valor" placeholder="R$ 0,00" oninput="autoPreencher(this)">
     </div>
 
     <div class="input-group">
-        <label>Valor da Entrada (Mín. 20% p/ Banco)</label>
+        <label>Entrada (Mín. 20%)</label>
         <input type="text" id="entrada" placeholder="R$ 0,00" oninput="maskMoney(this)">
     </div>
 
     <div class="input-group">
-        <label>Prazo do Financiamento</label>
-        <select id="prazo">
-            <option value="420">420 meses (35 anos)</option>
-            <option value="360" selected>360 meses (30 anos)</option>
-            <option value="240">240 meses (20 anos)</option>
-            <option value="180">180 meses (15 anos)</option>
-        </select>
+        <label>Prazo de Pagamento</label>
+        <select id="prazo"></select>
     </div>
 
     <button class="btn-calc" onclick="calcular()">Analisar Cronograma do Banco</button>
 
     <div id="resultado" class="resultado">
         <div class="res-card">
-            <div style="text-align:center; font-weight:bold; color:var(--vermelho); font-size: 13px; margin-bottom: 10px;">EVOLUÇÃO DAS PARCELAS (SISTEMA SAC)</div>
-            
-            <table class="tabela-parcelas">
-                <thead>
-                    <tr>
-                        <th>Intervalo de Meses</th>
-                        <th style="text-align: right;">Parcela Estimada</th>
-                    </tr>
-                </thead>
-                <tbody id="corpo-tabela"></tbody>
-            </table>
-
-            <div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid #eee;">
-                <div style="display:flex; justify-content:space-between; font-size: 14px;">
-                    <span>Total de Juros (Sua Perda):</span>
-                    <strong id="res-juros" style="color:var(--vermelho)"></strong>
-                </div>
+            <div id="tipo-sistema" style="text-align:center; font-weight:bold; color:var(--vermelho); font-size: 12px; margin-bottom: 10px;"></div>
+            <table class="tabela-parcelas"><tbody id="corpo-tabela"></tbody></table>
+            <div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid #eee; display:flex; justify-content:space-between;">
+                <span>Total de Juros:</span>
+                <strong id="res-juros" style="color:var(--vermelho)"></strong>
             </div>
         </div>
-
-        <div class="total-box">
-            <small>VOCÊ ENTREGARÁ AO BANCO O TOTAL DE:</small>
-            <span id="res-total"></span>
-        </div>
+        <div class="total-box"><small>DESEMBOLSO TOTAL AO BANCO</small><span id="res-total"></span></div>
     </div>
 </div>
 
 <script>
+    let mode = 'imovel';
+    const prazosImovel = [420, 360, 240, 180];
+    const prazosVeiculo = [60, 48, 36, 24, 12];
+
+    function setMode(m) {
+        mode = m;
+        document.getElementById('btn-imovel').classList.toggle('active', m === 'imovel');
+        document.getElementById('btn-veiculo').classList.toggle('active', m === 'veiculo');
+        document.getElementById('titulo-principal').innerText = m === 'imovel' ? "Relatório Imobiliário" : "Relatório de Veículos";
+        document.getElementById('label-valor').innerText = m === 'imovel' ? "Valor do Imóvel" : "Valor do Veículo";
+        
+        const select = document.getElementById('prazo');
+        select.innerHTML = (m === 'imovel' ? prazosImovel : prazosVeiculo)
+            .map(p => `<option value="${p}">${p} meses (${(p/12).toFixed(1).replace('.0','')} anos)</option>`).join('');
+        
+        document.getElementById('resultado').style.display = 'none';
+    }
+
     function maskMoney(i) {
         let v = i.value.replace(/\D/g,'');
         v = (v/100).toFixed(2) + '';
-        v = v.replace(".", ",");
-        v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
-        v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
+        v = v.replace(".", ",").replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,").replace(/(\d)(\d{3}),/g, "$1.$2,");
         i.value = v == '0,00' ? '' : 'R$ ' + v;
     }
 
     function parseV(v) { return parseFloat(v.replace('R$ ', '').replace(/\./g, '').replace(',', '.')) || 0; }
 
-    // FUNÇÃO QUE VOCÊ PEDIU: Preenche 20% automático
-    function autoPreencherEntrada(i) {
+    function autoPreencher(i) {
         maskMoney(i);
         const vBem = parseV(i.value);
         if (vBem > 0) {
-            const vSugerido = vBem * 0.20;
-            document.getElementById('entrada').value = "R$ " + vSugerido.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('entrada').value = "R$ " + (vBem * 0.20).toLocaleString('pt-BR', {minimumFractionDigits: 2});
         }
     }
 
@@ -111,49 +114,44 @@
         const vBem = parseV(document.getElementById('valor').value);
         const vEntrada = parseV(document.getElementById('entrada').value);
         const n = parseInt(document.getElementById('prazo').value);
-        const alerta = document.getElementById('alerta-entrada');
-
-        // Validação de entrada
+        const financiado = vBem - vEntrada;
+        
         if(vEntrada < (vBem * 0.2)) {
-            alerta.innerText = "⚠️ BLOQUEADO: O banco exige no mínimo 20% de entrada (R$ " + (vBem*0.2).toLocaleString('pt-BR',{minimumFractionDigits:2}) + ").";
-            alerta.style.display = 'block';
-            document.getElementById('resultado').style.display = 'none';
+            document.getElementById('alerta-entrada').style.display = 'block';
+            document.getElementById('alerta-entrada').innerText = "BLOQUEADO: Entrada mínima de 20% exigida.";
             return;
         }
-        alerta.style.display = 'none';
+        document.getElementById('alerta-entrada').style.display = 'none';
 
-        const financiado = vBem - vEntrada;
-        const taxaAnual = 0.105; 
-        const taxaMensal = Math.pow(1 + taxaAnual, 1/12) - 1;
-        const amort = financiado / n;
-
-        const getParc = (mes) => amort + ((financiado - (amort * (mes - 1))) * taxaMensal);
-
-        // Faixas de parcelas para mostrar a queda decrescente do SAC
-        const faixas = [
-            { de: 1, label: "1ª à 12ª Parcela" },
-            { de: Math.round(n * 0.25), label: "Parcela no 1/4 do Prazo" },
-            { de: Math.round(n * 0.5), label: "Parcela na Metade (50%)" },
-            { de: Math.round(n * 0.75), label: "Parcela no 3/4 do Prazo" },
-            { de: n, label: n + "ª Parcela (Última)" }
-        ];
-
-        let html = "";
-        faixas.forEach(f => {
-            const valor = getParc(f.de);
-            html += `<tr><td class="parc-range">${f.label}</td><td class="parc-valor">R$ ${valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
-        });
-
-        const p1 = getParc(1);
-        const pLast = getParc(n);
-        const totalPagamento = ((p1 + pLast) / 2) * n;
-        const juros = totalPagamento - financiado;
+        let jurosTotal, totalGeral, html = "";
+        
+        if (mode === 'imovel') {
+            const tx = Math.pow(1 + 0.105, 1/12) - 1; // SAC 10.5% aa
+            const amort = financiado / n;
+            const p1 = amort + (financiado * tx);
+            const pLast = amort + (amort * tx);
+            jurosTotal = (((p1 + pLast) / 2) * n) - financiado;
+            totalGeral = financiado + jurosTotal + vEntrada;
+            document.getElementById('tipo-sistema').innerText = "SISTEMA DE AMORTIZAÇÃO SAC (DECRESCENTE)";
+            html = `<tr><td>1ª Parcela</td><td class="parc-valor">R$ ${p1.toLocaleString('pt-BR')}</td></tr>
+                    <tr><td>Parcela Meio</td><td class="parc-valor">R$ ${((p1+pLast)/2).toLocaleString('pt-BR')}</td></tr>
+                    <tr><td>Última Parcela</td><td class="parc-valor">R$ ${pLast.toLocaleString('pt-BR')}</td></tr>`;
+        } else {
+            const tx = 0.0199; // PRICE 1.99% am (Média Veículos)
+            const parcela = financiado * (tx * Math.pow(1+tx, n)) / (Math.pow(1+tx, n) - 1);
+            totalGeral = (parcela * n) + vEntrada;
+            jurosTotal = (parcela * n) - financiado;
+            document.getElementById('tipo-sistema').innerText = "SISTEMA PRICE (PARCELAS FIXAS)";
+            html = `<tr><td>${n}x Parcelas Fixas de:</td><td class="parc-valor">R$ ${parcela.toLocaleString('pt-BR')}</td></tr>`;
+        }
 
         document.getElementById('corpo-tabela').innerHTML = html;
-        document.getElementById('res-juros').innerText = "R$ " + juros.toLocaleString('pt-BR',{minimumFractionDigits:2});
-        document.getElementById('res-total').innerText = "R$ " + (totalPagamento + vEntrada).toLocaleString('pt-BR',{minimumFractionDigits:2});
+        document.getElementById('res-juros').innerText = "R$ " + jurosTotal.toLocaleString('pt-BR');
+        document.getElementById('res-total').innerText = "R$ " + totalGeral.toLocaleString('pt-BR');
         document.getElementById('resultado').style.display = 'block';
     }
+
+    setMode('imovel');
 </script>
 </body>
 </html>
