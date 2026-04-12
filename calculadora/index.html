@@ -3,108 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultoria Especializada em Crédito 2026</title>
+    <title>Luan - Consultoria de Crédito Estratégica</title>
     <style>
-        :root {
-            --primaria: #005ca9; 
-            --sucesso: #28a745;
-            --perigo: #dc3545;
-            --fundo: #f4f7f6;
-        }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--fundo); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { background: #fff; width: 100%; max-width: 500px; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        :root { --azul-banco: #005ca9; --vermelho-embracon: #e30613; --bg: #f8f9fa; --perigo: #d9534f; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .container { background: #fff; width: 100%; max-width: 550px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         
-        /* Tabs */
-        .tabs { display: flex; gap: 5px; margin-bottom: 25px; background: #eee; padding: 5px; border-radius: 10px; }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: none; cursor: pointer; font-weight: bold; border-radius: 8px; color: #555; transition: 0.3s; }
-        .tab-btn.active { background: white; color: var(--primaria); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; background: #eee; padding: 5px; border-radius: 10px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: none; cursor: pointer; font-weight: bold; border-radius: 8px; color: #666; }
+        .tab-btn.active { background: white; color: var(--azul-banco); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
-        /* Form */
+        .card { border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-top: 20px; display: none; }
+        .header-card { text-align: center; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        
         .input-group { margin-bottom: 15px; }
-        label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; color: #444; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; }
-        input:focus { border-color: var(--primaria); }
-        .calc-btn { width: 100%; padding: 16px; background: var(--primaria); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        
+        button { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-banco { background: var(--azul-banco); color: white; margin-bottom: 10px; }
+        .btn-embracon { background: var(--vermelho-embracon); color: white; }
 
-        /* Resultado Estilo Relatório */
-        .resultado { margin-top: 25px; display: none; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; animation: slideDown 0.4s ease; }
-        .res-header { background: #f8f9fa; padding: 15px; border-bottom: 1px solid #eee; text-align: center; font-weight: bold; color: var(--primaria); }
-        .res-body { padding: 20px; }
-        .res-line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 14px; }
-        .res-line:last-child { border-bottom: none; }
-        .total-highlight { background: #333; color: #fff; padding: 15px; text-align: center; }
-        .total-highlight span { display: block; font-size: 20px; font-weight: bold; color: #ffd700; }
+        .res-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted #eee; font-size: 14px; }
+        .total-box { background: #333; color: #ffd700; padding: 15px; text-align: center; border-radius: 8px; margin-top: 15px; }
+        .total-box small { color: #fff; display: block; font-size: 11px; }
+        .total-box span { font-size: 22px; font-weight: bold; }
         
-        .juros-alerta { color: var(--perigo); font-weight: bold; }
-        .evolucao-box { background: #fffbe6; padding: 10px; border-radius: 6px; margin: 15px 0; border: 1px solid #ffe58f; font-size: 13px; }
-        
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .destaque-juros { color: var(--perigo); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="tabs">
-        <button class="tab-btn active" onclick="openTab(event, 'imovel')">🏠 Imóvel (SAC)</button>
-        <button class="tab-btn" onclick="openTab(event, 'auto')">🚗 Veículo (PRICE)</button>
+        <button class="tab-btn active" onclick="show('tab-banco', this)">🏦 Banco (Vilão)</button>
+        <button class="tab-btn" onclick="show('tab-embracon', this)">🤝 Embracon (Solução)</button>
     </div>
 
-    <div id="imovel" class="content" style="display: block;">
+    <div class="input-group">
+        <label>Valor do Crédito/Bem</label>
+        <input type="text" id="vGeral" placeholder="R$ 0,00" oninput="mask(this)">
+    </div>
+
+    <div id="tab-banco" class="card" style="display: block;">
+        <div class="header-card">FINANCIAMENTO BANCÁRIO (SAC)</div>
         <div class="input-group">
-            <label>Valor do Imóvel</label>
-            <input type="text" id="vImovel" placeholder="R$ 0,00" oninput="mascara(this)">
-        </div>
-        <div class="input-group">
-            <label>Prazo de Pagamento</label>
-            <select id="pImovel">
+            <label>Prazo (Meses)</label>
+            <select id="pBanco">
                 <option value="420">420 meses (35 anos)</option>
                 <option value="360" selected>360 meses (30 anos)</option>
-                <option value="240">240 meses (20 anos)</option>
+                <option value="180">180 meses (15 anos)</option>
             </select>
         </div>
-        <button class="calc-btn" onclick="analisarImovel()">Gerar Análise Habitacional</button>
-        <div id="resImovel" class="resultado"></div>
+        <button class="btn-banco" onclick="calcBanco()">Analisar Perda Financeira</button>
+        <div id="resBanco"></div>
     </div>
 
-    <div id="auto" class="content" style="display: none;">
+    <div id="tab-embracon" class="card">
+        <div class="header-card">CONSÓRCIO EMBRACON</div>
         <div class="input-group">
-            <label>Valor do Veículo</label>
-            <input type="text" id="vAuto" placeholder="R$ 0,00" oninput="mascara(this)">
-        </div>
-        <div class="input-group">
-            <label>Entrada (Média de 20%)</label>
-            <input type="text" id="vEntrada" placeholder="R$ 0,00" oninput="mascara(this)">
-        </div>
-        <div class="input-group">
-            <label>Prazo</label>
-            <select id="pAuto">
-                <option value="60">60 meses</option>
-                <option value="48" selected>48 meses</option>
-                <option value="36">36 meses</option>
+            <label>Modalidade Estratégica</label>
+            <select id="modEmbracon">
+                <option value="select">Select Mais (150 meses - 16% adm)</option>
+                <option value="convencional">Convencional (180 meses - 18% adm)</option>
+                <option value="estendido">Estendido (Mais por Menos - 25% adm)</option>
             </select>
         </div>
-        <button class="calc-btn" onclick="analisarAuto()">Gerar Análise Veicular</button>
-        <div id="resAuto" class="resultado"></div>
+        <button class="btn-embracon" onclick="calcEmbracon()">Analisar Ganho Patrimonial</button>
+        <div id="resEmbracon"></div>
     </div>
-
-    <p style="font-size: 11px; color: #999; text-align: center; margin-top: 20px;">
-        Análise técnica baseada em projeções bancárias para 2026.<br>
-        Consultoria luan-especialista.pro
-    </p>
 </div>
 
 <script>
-    function openTab(evt, tabName) {
-        let i, content, tablinks;
-        content = document.getElementsByClassName("content");
-        for (i = 0; i < content.length; i++) content[i].style.display = "none";
-        tablinks = document.getElementsByClassName("tab-btn");
-        for (i = 0; i < tablinks.length; i++) tablinks[i].className = tablinks[i].className.replace(" active", "");
-        document.getElementById(tabName).style.display = "block";
-        evt.currentTarget.className += " active";
+    function show(id, btn) {
+        document.querySelectorAll('.card').forEach(c => c.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).style.display = 'block';
+        btn.classList.add('active');
     }
 
-    function mascara(i) {
+    function mask(i) {
         let v = i.value.replace(/\D/g,'');
         v = (v/100).toFixed(2) + '';
         v = v.replace(".", ",");
@@ -113,74 +91,45 @@
         i.value = v == '0,00' ? '' : 'R$ ' + v;
     }
 
-    function limpar(v) { return parseFloat(v.replace('R$ ', '').replace(/\./g, '').replace(',', '.')); }
+    function num(v) { return parseFloat(v.replace('R$ ', '').replace(/\./g, '').replace(',', '.')); }
 
-    function analisarImovel() {
-        const total = limpar(document.getElementById('vImovel').value);
-        const n = parseInt(document.getElementById('pImovel').value);
-        const res = document.getElementById('resImovel');
-        if(!total) return;
+    function calcBanco() {
+        const v = num(document.getElementById('vGeral').value);
+        const n = parseInt(document.getElementById('pBanco').value);
+        if(!v) return;
 
-        let taxaAnual = total <= 500000 ? 0.0816 : 0.0980;
-        let financiado = total * 0.80;
-        let amortizacao = financiado / n;
-        let taxaMensal = Math.pow(1 + taxaAnual, 1/12) - 1;
+        let taxa = 0.095; // 9.5% a.a. média
+        let financiado = v * 0.8;
+        let mensal = Math.pow(1+taxa, 1/12)-1;
+        let p1 = (financiado/n) + (financiado * mensal) + 50; 
+        let total = ((p1 + (financiado/n + 50))/2 * n) + (v*0.2);
         
-        let p1 = amortizacao + (financiado * taxaMensal) + 25 + (total * 0.0006);
-        let pMeio = amortizacao + ((financiado/2) * taxaMensal) + 25 + (total * 0.0004);
-        let pUltima = amortizacao + 25 + (total * 0.0002);
-        
-        let custoTotal = ((p1 + pUltima) / 2) * n + (total * 0.20);
-        let jurosPuros = custoTotal - total;
-
-        res.style.display = "block";
-        res.innerHTML = `
-            <div class="res-header">RELATÓRIO DE FINANCIAMENTO (SAC)</div>
-            <div class="res-body">
-                <div class="res-line"><span>Custo da Taxa:</span> <strong>${(taxaAnual*100).toFixed(2)}% a.a.</strong></div>
-                <div class="res-line"><span>Total de Juros/Taxas:</span> <span class="juros-alerta">R$ ${jurosPuros.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
-                
-                <div class="evolucao-box">
-                    <strong>Evolução da Parcela Decrescente:</strong><br>
-                    • Mês 001: R$ ${p1.toLocaleString('pt-BR',{minimumFractionDigits:2})}<br>
-                    • Mês ${Math.floor(n/2)}: R$ ${pMeio.toLocaleString('pt-BR',{minimumFractionDigits:2})}<br>
-                    • Mês ${n}: R$ ${pUltima.toLocaleString('pt-BR',{minimumFractionDigits:2})}
-                </div>
-            </div>
-            <div class="total-highlight">
-                <small>DESEMBOLSO TOTAL AO BANCO</small>
-                <span>R$ ${custoTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-            </div>
+        document.getElementById('resBanco').innerHTML = `
+            <div class="res-row"><span>1ª Parcela:</span> <strong>R$ ${p1.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+            <div class="res-row"><span>Total em Juros:</span> <span class="destaque-juros">R$ ${(total-v).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
+            <div class="total-box"><small>DESEMBOLSO TOTAL AO BANCO</small><span>R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
         `;
     }
 
-    function analisarAuto() {
-        const total = limpar(document.getElementById('vAuto').value);
-        const entrada = limpar(document.getElementById('vEntrada').value) || 0;
-        const n = parseInt(document.getElementById('pAuto').value);
-        const res = document.getElementById('resAuto');
-        if(!total) return;
+    function calcEmbracon() {
+        const v = num(document.getElementById('vGeral').value);
+        const mod = document.getElementById('modEmbracon').value;
+        if(!v) return;
 
-        let financiado = total - entrada;
-        let taxaMensal = 0.0175;
-        let p = financiado * ( (taxaMensal * Math.pow(1 + taxaMensal, n)) / (Math.pow(1 + taxaMensal, n) - 1) );
-        p += (financiado * 0.03 / n); // IOF
+        let adm, fundo = 0.02, prazo;
+        if(mod === 'select') { adm = 0.16; prazo = 150; }
+        else if(mod === 'convencional') { adm = 0.18; prazo = 180; }
+        else { adm = 0.25; prazo = 240; }
 
-        let totalPago = (p * n) + entrada;
-        let juros = totalPago - total;
+        let totalAdm = v * (adm + fundo);
+        let parcela = (v + totalAdm) / prazo;
+        let total = v + totalAdm;
 
-        res.style.display = "block";
-        res.innerHTML = `
-            <div class="res-header">RELATÓRIO DE FINANCIAMENTO (PRICE)</div>
-            <div class="res-body">
-                <div class="res-line"><span>Parcela Fixa:</span> <strong>R$ ${p.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
-                <div class="res-line"><span>Valor dos Juros:</span> <span class="juros-alerta">R$ ${juros.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
-                <div class="res-line"><span>Multiplicador:</span> <strong>${(totalPago/total).toFixed(2)}x o valor do bem</strong></div>
-            </div>
-            <div class="total-highlight">
-                <small>VALOR TOTAL FINAL</small>
-                <span>R$ ${totalPago.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-            </div>
+        document.getElementById('resEmbracon').innerHTML = `
+            <div class="res-row"><span>Parcela Média:</span> <strong>R$ ${parcela.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+            <div class="res-row"><span>Taxa Total (${prazo}m):</span> <strong>${(adm*100).toFixed(2)}%</strong></div>
+            <div class="res-row"><span>Custo Total Adm:</span> <strong>R$ ${totalAdm.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+            <div class="total-box"><small>INVESTIMENTO TOTAL FINAL</small><span>R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
         `;
     }
 </script>
