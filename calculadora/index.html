@@ -6,32 +6,23 @@
     <title>Luan - Especialista em Crédito</title>
     <style>
         :root { --azul: #005ca9; --vermelho: #e30613; --cinza: #666; --bg: #f4f7f6; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; color: #333; }
         .container { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        
         .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .header h1 { font-size: 22px; color: var(--azul); margin: 0; }
         .header p { font-size: 14px; color: var(--cinza); }
-
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; background: #eee; transition: 0.3s; }
         .tab-btn.active { background: var(--azul); color: white; }
-
         .input-group { margin-bottom: 15px; }
         label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-
         .btn-calc { width: 100%; padding: 15px; border: none; border-radius: 10px; background: var(--azul); color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-calc:hover { background: #004a87; }
-
         .resultado { margin-top: 25px; padding: 20px; border: 1px solid #eee; border-radius: 15px; display: none; background: #fafafa; }
         .res-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         .res-destaque { color: var(--vermelho); font-weight: bold; font-size: 18px; }
-        
         .total-box { background: #333; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-top: 15px; }
-        .total-box small { color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
         .total-box span { display: block; font-size: 24px; font-weight: 800; color: #ffcc00; }
-        
         .alerta { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; display: none; }
     </style>
 </head>
@@ -40,7 +31,7 @@
 <div class="container">
     <div class="header">
         <h1>Análise de Custo Bancário</h1>
-        <p>Simulador de Perda (Financiamento SAC/PRICE)</p>
+        <p>Simulador de Financiamento (SAC/PRICE)</p>
     </div>
 
     <div class="tabs">
@@ -61,22 +52,19 @@
     </div>
 
     <div class="input-group">
-        <label>Prazo de Pagamento</label>
+        <label>Prazo de Pagamento (Meses)</label>
         <select id="prazo"></select>
     </div>
 
     <button class="btn-calc" onclick="calcular()">Gerar Relatório de Perda</button>
 
     <div id="resultado" class="resultado">
-        <div style="text-align:center; font-weight:bold; color:var(--azul); margin-bottom:15px; font-size: 14px;">RELATÓRIO DE FINANCIAMENTO BANCÁRIO</div>
+        <div style="text-align:center; font-weight:bold; color:var(--azul); margin-bottom:15px;">DADOS DO FINANCIAMENTO BANCÁRIO</div>
         <div id="detalhes"></div>
         <div class="total-box">
-            <small>Desembolso Total ao Banco</small>
+            <small>DESEMBOLSO TOTAL AO BANCO</small>
             <span id="total-final">R$ 0,00</span>
         </div>
-        <p style="font-size: 11px; text-align: center; margin-top: 15px; color: #999;">
-            *Simulação baseada em taxas médias de mercado (2026).<br>Use para comparar com o plano Embracon no Convert+.
-        </p>
     </div>
 </div>
 
@@ -88,16 +76,24 @@
         document.getElementById('tab-imovel').classList.toggle('active', t === 'imovel');
         document.getElementById('tab-veiculo').classList.toggle('active', t === 'veiculo');
         document.getElementById('lbl-valor').innerText = t === 'imovel' ? "Valor do Imóvel" : "Valor do Veículo";
-        document.getElementById('lbl-entrada').innerText = t === 'imovel' ? "Valor da Entrada (Mín. 20%)" : "Valor da Entrada (Sugerido 10%)";
+        document.getElementById('lbl-entrada').innerText = t === 'imovel' ? "Valor da Entrada (Mín. 20%)" : "Valor da Entrada (Mín. 10%)";
         
         const p = document.getElementById('prazo');
         if(t === 'imovel') {
-            p.innerHTML = '<option value="420">420 meses (35 anos)</option><option value="360" selected>360 meses (30 anos)</option><option value="180">180 meses (15 anos)</option>';
+            // Prazos imobiliários mais usados
+            p.innerHTML = `
+                <option value="420">420 meses (35 anos)</option>
+                <option value="360" selected>360 meses (30 anos)</option>
+                <option value="240">240 meses (20 anos)</option>
+                <option value="180">180 meses (15 anos)</option>
+            `;
         } else {
-            p.innerHTML = '<option value="60">60 meses (5 anos)</option><option value="48" selected>48 meses (4 anos)</option><option value="36">36 meses (3 anos)</option>';
+            p.innerHTML = `
+                <option value="60">60 meses (5 anos)</option>
+                <option value="48" selected>48 meses (4 anos)</option>
+                <option value="36">36 meses (3 anos)</option>
+            `;
         }
-        document.getElementById('valor').value = "";
-        document.getElementById('entrada').value = "";
         hideRes();
     }
 
@@ -116,8 +112,7 @@
         if (vBem > 0) {
             const perc = mode === 'imovel' ? 0.20 : 0.10;
             const vSugerido = vBem * perc;
-            const campoEntrada = document.getElementById('entrada');
-            campoEntrada.value = "R$ " + vSugerido.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('entrada').value = "R$ " + vSugerido.toLocaleString('pt-BR', {minimumFractionDigits: 2});
         }
     }
 
@@ -130,11 +125,8 @@
         const n = parseInt(document.getElementById('prazo').value);
         const alerta = document.getElementById('alerta-entrada');
 
-        if(!vBem) return alert("Insira o valor do bem");
-
-        // Trava de 20% para Imóvel
         if(mode === 'imovel' && vEntrada < (vBem * 0.2)) {
-            alerta.innerText = "⚠️ Entrada Insuficiente! O banco exige no mínimo 20% (R$ " + (vBem*0.2).toLocaleString('pt-BR',{minimumFractionDigits:2}) + ") para este imóvel.";
+            alerta.innerText = "⚠️ Entrada Insuficiente! O banco exige no mínimo 20% (R$ " + (vBem*0.2).toLocaleString('pt-BR',{minimumFractionDigits:2}) + ").";
             alerta.style.display = 'block';
             return;
         }
@@ -152,24 +144,23 @@
             totalFinal = ((p1 + pLast) / 2 * n) + vEntrada;
             
             html = `
-                <div class="res-item"><span>1ª Parcela (Início):</span> <strong>R$ ${p1.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</strong></div>
-                <div class="res-item"><span>Última Parcela (Fim):</span> <strong>R$ ${pLast.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</strong></div>
-                <div class="res-item"><span>Perda em Juros:</span> <span class="res-destaque">R$ ${(totalFinal - vBem).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+                <div class="res-item"><span>1ª Parcela (SAC):</span> <strong>R$ ${p1.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+                <div class="res-item"><span>Última Parcela:</span> <strong>R$ ${pLast.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+                <div class="res-item"><span>Custo de Juros:</span> <span class="res-destaque">R$ ${(totalFinal - vBem).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
             `;
         } else {
-            const taxaMensal = 0.0185; // 1.85% am
+            const taxaMensal = 0.019; // 1.9% am
             const parcela = financiado * ( (taxaMensal * Math.pow(1+taxaMensal, n)) / (Math.pow(1+taxaMensal, n) - 1) );
             totalFinal = (parcela * n) + vEntrada;
             
             html = `
-                <div class="res-item"><span>Parcela Fixa:</span> <strong>R$ ${parcela.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</strong></div>
-                <div class="res-item"><span>Taxa Estimada:</span> <strong>1,85% a.m.</strong></div>
-                <div class="res-item"><span>Perda em Juros:</span> <span class="res-destaque">R$ ${(totalFinal - vBem).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+                <div class="res-item"><span>Parcela Fixa (PRICE):</span> <strong>R$ ${parcela.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+                <div class="res-item"><span>Custo de Juros:</span> <span class="res-destaque">R$ ${(totalFinal - vBem).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
             `;
         }
 
         document.getElementById('detalhes').innerHTML = html;
-        document.getElementById('total-final').innerText = "R$ " + totalFinal.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+        document.getElementById('total-final').innerText = "R$ " + totalFinal.toLocaleString('pt-BR', {minimumFractionDigits:2});
         document.getElementById('resultado').style.display = 'block';
     }
 
