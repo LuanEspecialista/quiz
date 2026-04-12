@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Financiamento Caixa 2026</title>
+    <title>Simuladores Caixa 2026</title>
     <style>
-        /* Estilização Geral */
         :root {
             --primaria: #005ca9; /* Azul Caixa */
             --secundaria: #f39200; /* Laranja Caixa */
@@ -18,179 +17,153 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--fundo);
-            color: var(--texto);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
             padding: 20px;
+            display: flex;
+            justify-content: center;
         }
 
         .container {
             background: #fff;
             width: 100%;
-            max-width: 450px;
-            padding: 30px;
+            max-width: 480px;
+            padding: 25px;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .header h1 {
-            color: var(--primaria);
-            font-size: 24px;
-            margin: 0;
-        }
-
-        .header p {
-            font-size: 14px;
-            color: #666;
-        }
-
-        /* Campos de Entrada */
-        .input-group {
-            margin-bottom: 18px;
-        }
-
-        label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            box-sizing: border-box;
-            transition: border-color 0.3s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primaria);
-        }
-
-        button {
-            width: 100%;
-            padding: 15px;
-            background-color: var(--primaria);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background-color: #004680;
-        }
-
-        /* Área de Resultado */
-        #resultado {
-            margin-top: 25px;
-            display: none;
-            padding: 20px;
-            border-radius: 10px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .card-resultado {
-            border-left: 5px solid var(--primaria);
-            background: #f8fbff;
-        }
-
-        .card-alerta {
-            border-left: 5px solid var(--erro);
-            background: #fff5f5;
-        }
-
-        .resultado-item {
+        /* Estilo das Abas */
+        .tabs {
             display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
         }
 
-        .resultado-item:last-child {
-            border-bottom: none;
-        }
-
-        .valor {
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #e9ecef;
+            cursor: pointer;
             font-weight: bold;
-            color: var(--primaria);
+            border-radius: 8px;
+            color: #666;
+            transition: 0.3s;
         }
 
-        .destaque-parcela {
-            font-size: 20px;
-            color: var(--sucesso);
+        .tab-btn.active {
+            background: var(--primaria);
+            color: white;
         }
 
-        .alerta-texto {
-            color: var(--erro);
-            font-size: 13px;
-            margin-top: 10px;
-            text-align: center;
+        .content { display: none; }
+        .content.active { display: block; }
+
+        /* Estilo Comum dos Formulários */
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h2 { color: var(--primaria); margin: 0; font-size: 20px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+        input, select {
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box;
+        }
+        button.calc-btn {
+            width: 100%; padding: 15px; background: var(--primaria); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Resultados */
+        .resultado {
+            margin-top: 20px; padding: 20px; border-radius: 10px; display: none; animation: fadeIn 0.4s;
         }
+        .card-ok { border-left: 5px solid var(--sucesso); background: #f0fff4; }
+        .card-info { border-left: 5px solid var(--primaria); background: #f8fbff; }
+        .card-erro { border-left: 5px solid var(--erro); background: #fff5f5; }
+        
+        .res-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .destaque { font-size: 22px; color: var(--primaria); font-weight: bold; display: block; text-align: center; margin: 10px 0; }
 
-        .footer-note {
-            font-size: 11px;
-            color: #999;
-            text-align: center;
-            margin-top: 20px;
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .footer { font-size: 11px; color: #999; text-align: center; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <h1>Simulador 2026</h1>
-        <p>Regras SAC - 80% de Financiamento</p>
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'tab-imovel')">🏠 Imóvel</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-veiculo')">🚗 Veículo</button>
     </div>
 
-    <div class="input-group">
-        <label>Valor do Imóvel</label>
-        <input type="text" id="valorImovel" placeholder="R$ 0,00" oninput="mascaraMoeda(this)">
-    </div>
-
-    <div class="input-group">
-        <label>Sua Renda Mensal Bruta</label>
-        <input type="text" id="rendaMensal" placeholder="R$ 0,00" oninput="mascaraMoeda(this)">
-    </div>
-
-    <div class="input-group">
-        <label>Prazo (meses)</label>
-        <input type="number" id="prazo" value="360" max="420">
-    </div>
-
-    <button onclick="calcular()">Simular Agora</button>
-
-    <div id="resultado">
+    <div id="tab-imovel" class="content active">
+        <div class="header">
+            <h2>Simulador Habitacional</h2>
+            <p style="font-size: 12px; color: #666;">Sistema SAC - Financia até 80%</p>
         </div>
+        <div class="input-group">
+            <label>Valor do Imóvel</label>
+            <input type="text" id="vImovel" placeholder="R$ 0,00" oninput="mascara(this)">
+        </div>
+        <div class="input-group">
+            <label>Renda Mensal Bruta</label>
+            <input type="text" id="vRenda" placeholder="R$ 0,00" oninput="mascara(this)">
+        </div>
+        <div class="input-group">
+            <label>Prazo</label>
+            <select id="pImovel">
+                <option value="420">420 meses (35 anos)</option>
+                <option value="360" selected>360 meses (30 anos)</option>
+                <option value="240">240 meses (20 anos)</option>
+                <option value="120">120 meses (10 anos)</option>
+            </select>
+        </div>
+        <button class="calc-btn" onclick="calcImovel()">Simular Financiamento</button>
+        <div id="resImovel" class="resultado"></div>
+    </div>
 
-    <p class="footer-note">Simulação baseada nas taxas estimadas para 2026 (MCMV e SBPE). Valores podem variar após análise de crédito real.</p>
+    <div id="tab-veiculo" class="content">
+        <div class="header">
+            <h2>Crédito Auto Caixa</h2>
+            <p style="font-size: 12px; color: #666;">Tabela PRICE - Parcelas Fixas</p>
+        </div>
+        <div class="input-group">
+            <label>Valor do Veículo</label>
+            <input type="text" id="vAuto" placeholder="R$ 0,00" oninput="mascara(this)">
+        </div>
+        <div class="input-group">
+            <label>Valor da Entrada</label>
+            <input type="text" id="vEntrada" placeholder="R$ 0,00" oninput="mascara(this)">
+        </div>
+        <div class="input-group">
+            <label>Prazo</label>
+            <select id="pAuto">
+                <option value="60">60 meses (5 anos)</option>
+                <option value="48" selected>48 meses (4 anos)</option>
+                <option value="36">36 meses (3 anos)</option>
+                <option value="24">24 meses (2 anos)</option>
+            </select>
+        </div>
+        <button class="calc-btn" onclick="calcAuto()">Simular Financiamento</button>
+        <div id="resAuto" class="resultado"></div>
+    </div>
+
+    <p class="footer">Simulação baseada em taxas estimadas para 2026. <br> Sujeito a aprovação de crédito bancário.</p>
 </div>
 
 <script>
-    // Função para formatar moeda enquanto digita
-    function mascaraMoeda(i) {
+    // Navegação de Abas
+    function openTab(evt, tabName) {
+        let contents = document.getElementsByClassName("content");
+        for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
+        let buttons = document.getElementsByClassName("tab-btn");
+        for (let i = 0; i < buttons.length; i++) buttons[i].classList.remove("active");
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    // Máscara Moeda
+    function mascara(i) {
         let v = i.value.replace(/\D/g,'');
         v = (v/100).toFixed(2) + '';
         v = v.replace(".", ",");
@@ -199,62 +172,53 @@
         i.value = v == '0,00' ? '' : 'R$ ' + v;
     }
 
-    function limparValor(valor) {
-        return parseFloat(valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
+    function limpar(v) { return parseFloat(v.replace('R$ ', '').replace(/\./g, '').replace(',', '.')); }
+
+    // Cálculo Imóvel (SAC)
+    function calcImovel() {
+        const total = limpar(document.getElementById('vImovel').value);
+        const renda = limpar(document.getElementById('vRenda').value);
+        const n = parseInt(document.getElementById('pImovel').value);
+        const res = document.getElementById('resImovel');
+
+        if (!total || !renda) return alert("Preencha os campos!");
+
+        let taxaAnual = total <= 500000 ? 0.0816 : 0.0980;
+        let financiado = total * 0.80;
+        let amortizacao = financiado / n;
+        let taxaMensal = Math.pow(1 + taxaAnual, 1/12) - 1;
+        let primeiraP = amortizacao + (financiado * taxaMensal) + 25 + (total * 0.0006);
+        let aprovado = primeiraP <= (renda * 0.30);
+
+        res.style.display = "block";
+        res.className = "resultado " + (aprovado ? "card-ok" : "card-erro");
+        res.innerHTML = `
+            <div class="res-row"><span>Entrada (20%):</span> <strong>R$ ${(total*0.2).toLocaleString('pt-BR')}</strong></div>
+            <div class="res-row"><span>1ª Parcela:</span> <strong>R$ ${primeiraP.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+            <span class="destaque">${aprovado ? "APROVADO" : "RENDA BAIXA"}</span>
+        `;
     }
 
-    function calcular() {
-        const vImovel = limparValor(document.getElementById('valorImovel').value);
-        const vRenda = limparValor(document.getElementById('rendaMensal').value);
-        const vPrazo = parseInt(document.getElementById('prazo').value);
-        const resDiv = document.getElementById('resultado');
+    // Cálculo Veículo (PRICE)
+    function calcAuto() {
+        const total = limpar(document.getElementById('vAuto').value);
+        const entrada = limpar(document.getElementById('vEntrada').value) || 0;
+        const n = parseInt(document.getElementById('pAuto').value);
+        const res = document.getElementById('resAuto');
 
-        if (isNaN(vImovel) || isNaN(vRenda)) {
-            alert("Por favor, preencha os valores corretamente.");
-            return;
-        }
+        if (!total) return alert("Informe o valor do veículo!");
 
-        // Lógica de Negócio 2026
-        let taxaAnual = vImovel <= 500000 ? 0.0816 : 0.0980; // MCMV vs SBPE
-        let cota = 0.80; // Retomada dos 80% conforme sua instrução
-        let valorFinanciado = vImovel * cota;
-        let entrada = vImovel - valorFinanciado;
+        let financiado = total - entrada;
+        let taxaMensal = 0.0175; // 1.75% a.m.
+        let parcela = financiado * ( (taxaMensal * Math.pow(1 + taxaMensal, n)) / (Math.pow(1 + taxaMensal, n) - 1) );
+        parcela += (financiado * 0.03 / n); // Estimativa IOF
 
-        // Cálculos SAC
-        let amortizacao = valorFinanciado / vPrazo;
-        let taxaMensal = Math.pow(1 + taxaAnual, 1/12) - 1;
-        let jurosPrimeira = valorFinanciado * taxaMensal;
-        let segurosEstimados = vImovel * 0.0006; // MIP + DFI
-        let primeiraParcela = amortizacao + jurosPrimeira + 25 + segurosEstimados;
-
-        // Validação de margem (30%)
-        let limiteRenda = vRenda * 0.30;
-        let aprovado = primeiraParcela <= limiteRenda;
-
-        resDiv.style.display = "block";
-        resDiv.className = aprovado ? "card-resultado" : "card-alerta";
-
-        resDiv.innerHTML = `
-            <div style="text-align:center; font-weight:bold; margin-bottom:15px; color:${aprovado ? '#28a745' : '#dc3545'}">
-                ${aprovado ? '✅ CRÉDITO PRÉ-APROVADO' : '❌ RENDA INSUFICIENTE'}
-            </div>
-            <div class="resultado-item">
-                <span>Entrada (20%)</span>
-                <span class="valor">R$ ${entrada.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
-            </div>
-            <div class="resultado-item">
-                <span>Valor Financiado</span>
-                <span class="valor">R$ ${valorFinanciado.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
-            </div>
-            <div class="resultado-item">
-                <span>Taxa aplicada</span>
-                <span class="valor">${(taxaAnual*100).toFixed(2)}% a.a.</span>
-            </div>
-            <div class="resultado-item" style="border-top: 2px dashed #ccc; margin-top:10px;">
-                <span><strong>1ª Parcela</strong></span>
-                <span class="valor destaque-parcela">R$ ${primeiraParcela.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
-            </div>
-            ${!aprovado ? `<p class="alerta-texto">A parcela compromete ${( (primeiraParcela/vRenda)*100 ).toFixed(1)}% da sua renda. O máximo permitido é 30%.</p>` : ''}
+        res.style.display = "block";
+        res.className = "resultado card-info";
+        res.innerHTML = `
+            <div class="res-row"><span>Valor Financiado:</span> <strong>R$ ${financiado.toLocaleString('pt-BR')}</strong></div>
+            <span style="display:block; text-align:center; font-size:12px; margin-top:10px;">PARCELA FIXA</span>
+            <span class="destaque">R$ ${parcela.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
         `;
     }
 </script>
