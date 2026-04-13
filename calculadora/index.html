@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Consultoria Patrimonial - Luan</title>
+    <title>Consultoria Patrimonial Luan - Sistema Infalível</title>
     <style>
         :root {
             --primary: #0a0e14; --card-bg: #161b22; --accent: #c5a059;
@@ -43,29 +43,29 @@
         <div id="tab-imovel" class="section active">
             <div class="input-group">
                 <label>Valor do Imóvel</label>
-                <input type="text" class="money" id="vI" placeholder="R$ 0,00" oninput="autoCalculoEntrada(this, 'eI')">
+                <input type="text" class="money" id="vI" placeholder="R$ 0,00" oninput="forcarCalculoEntrada(this, 'eI')">
             </div>
             <div class="input-group">
-                <label>Entrada (20% p/ Banco)</label>
+                <label>Entrada (Mínimo 20% Banco)</label>
                 <input type="text" class="money" id="eI" placeholder="R$ 0,00">
             </div>
             <div class="input-group">
-                <label>Prazo Financiamento</label>
+                <label>Prazo</label>
                 <select id="pI">
                     <option value="360" selected>360 meses (30 anos)</option>
                     <option value="240">240 meses (20 anos)</option>
                 </select>
             </div>
-            <button class="btn-action" onclick="calcImovel()">Analisar Cronograma</button>
+            <button class="btn-action" onclick="calcImovel()">Simular Financiamento Imobiliário</button>
         </div>
 
         <div id="tab-veiculo" class="section">
             <div class="input-group">
                 <label>Valor do Veículo</label>
-                <input type="text" class="money" id="vV" placeholder="R$ 0,00" oninput="autoCalculoEntrada(this, 'eV')">
+                <input type="text" class="money" id="vV" placeholder="R$ 0,00" oninput="forcarCalculoEntrada(this, 'eV')">
             </div>
             <div class="input-group">
-                <label>Entrada (20% p/ Banco)</label>
+                <label>Entrada (Mínimo 20% Banco)</label>
                 <input type="text" class="money" id="eV" placeholder="R$ 0,00">
             </div>
             <div class="input-group">
@@ -75,38 +75,37 @@
                     <option value="48">48 meses (4 anos)</option>
                 </select>
             </div>
-            <button class="btn-action" onclick="calcVeiculo()">Analisar Financiamento</button>
+            <button class="btn-action" onclick="calcVeiculo()">Simular Financiamento Veículo</button>
         </div>
 
         <div id="tab-investor" class="section">
             <div class="input-group">
-                <label>Capital Disponível</label>
+                <label>Capital para Investir</label>
                 <input type="text" class="money" id="capInv" placeholder="R$ 100.000,00">
             </div>
             <div class="input-group">
-                <label>Parcela de Crédito</label>
+                <label>Parcela do Crédito</label>
                 <input type="text" class="money" id="parcCred" placeholder="R$ 1.500,00">
             </div>
             <div class="input-group">
-                <label>Ativo Financeiro</label>
+                <label>Onde está o dinheiro?</label>
                 <select id="selAtivo">
-                    <option value="0.0092|0|D+2">FIIs (Rendimento Isento - Liquidez D+2)</option>
-                    <option value="0.01|0.225|D+1">CDB Curto Prazo (IR 22,5%)</option>
-                    <option value="0.011|0.15|D+30">CDB Longo Prazo (IR 15%)</option>
-                    <option value="0.0085|0|D+90">LCI/LCA (Isento de IR)</option>
+                    <option value="0.01|0.225">CDB Curto Prazo (22,5% IR)</option>
+                    <option value="0.011|0.15">CDB/Tesouro Longo Prazo (15% IR)</option>
+                    <option value="0.0095|0">FIIs / LCI / LCA (Isento de IR)</option>
                 </select>
             </div>
-            <button class="btn-action" style="background:var(--success); color:white;" onclick="calcAlavancagem()">Simular Alavancagem</button>
+            <button class="btn-action" style="background:var(--success); color:white;" onclick="calcAlavancagem()">Calcular Alavancagem</button>
         </div>
 
         <div id="resFinal" class="res-container" style="display:none;"></div>
     </div>
 
     <div class="side-panel">
-        <div class="side-title">ANÁLISE ESTRATÉGICA</div>
+        <div class="side-title">PAINEL ESTRATÉGICO</div>
         <div class="info-card">
-            <span class="badge">DICA DO CONSULTOR</span><br>
-            A entrada do banco é um capital que para de render para você e começa a render para eles. Nossa estratégia mantém o dinheiro sob seu controle.
+            <span class="badge">CONSULTORIA MASTER</span><br>
+            Use este simulador para mostrar que a entrada do banco é o maior inimigo do patrimônio do cliente.
         </div>
         <div id="impactBox" style="margin-top:20px; padding:15px; border-radius:10px; text-align:center; font-weight:bold; display:none;"></div>
     </div>
@@ -122,31 +121,36 @@
         document.getElementById('impactBox').style.display = 'none';
     }
 
-    function formatBRL(v) {
+    // Função de limpeza absoluta: remove tudo que não for número
+    function limparParaNumero(str) {
+        if (!str) return 0;
+        let apenasNumeros = str.replace(/\D/g, '');
+        return parseFloat(apenasNumeros) / 100;
+    }
+
+    function formatarParaMoeda(v) {
         return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
-    // Função que limpa TUDO para garantir que a conta matemática funcione
-    function parseRealValue(str) {
-        if (!str) return 0;
-        let cleaned = str.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
-        return parseFloat(cleaned) || 0;
-    }
-
-    function mask(i) {
+    function aplicarMascara(i) {
         let v = i.value.replace(/\D/g,'');
         v = (v/100).toFixed(2) + '';
         v = v.replace(".", ",").replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,").replace(/(\d)(\d{3}),/g, "$1.$2,");
         i.value = v == '0,00' ? '' : 'R$ ' + v;
     }
 
-    document.querySelectorAll('.money').forEach(el => el.addEventListener('input', () => mask(el)));
+    document.querySelectorAll('.money').forEach(el => {
+        el.addEventListener('input', () => aplicarMascara(el));
+    });
 
-    function autoCalculoEntrada(i, targetId) {
-        const valorTotal = parseRealValue(i.value);
-        if(valorTotal > 0) {
-            const entrada = valorTotal * 0.20;
-            document.getElementById(targetId).value = formatBRL(entrada);
+    // Função que corrige o erro das imagens: calcula 20% real sobre o valor limpo
+    function forcarCalculoEntrada(inputOrigem, idDestino) {
+        const valorReal = limparParaNumero(inputOrigem.value);
+        if(valorReal > 0) {
+            const vintePorCento = valorReal * 0.20;
+            document.getElementById(idDestino).value = formatarParaMoeda(vintePorCento);
+        } else {
+            document.getElementById(idDestino).value = '';
         }
     }
 
@@ -158,8 +162,8 @@
     }
 
     function calcImovel() {
-        const v = parseRealValue(document.getElementById('vI').value);
-        const e = parseRealValue(document.getElementById('eI').value);
+        const v = limparParaNumero(document.getElementById('vI').value);
+        const e = limparParaNumero(document.getElementById('eI').value);
         const n = parseInt(document.getElementById('pI').value);
         const fin = v - e;
         const tx = 0.0087; 
@@ -167,37 +171,38 @@
         const pL = (fin / n) + ((fin/n) * tx);
         const juros = (((p1 + pL)/2)*n) - fin;
         showRes(`
-            <div class="res-row"><span>1ª Parcela:</span><strong>${formatBRL(p1)}</strong></div>
-            <div class="res-row"><span>Última Parcela:</span><strong>${formatBRL(pL)}</strong></div>
-            <div class="res-row" style="color:var(--danger)"><span>Juros Totais Banco:</span><strong>${formatBRL(juros)}</strong></div>
-        `, `Prejuízo de Juros: ${formatBRL(juros)}`, 'var(--danger)');
+            <div class="res-row"><span>1ª Parcela (SAC):</span><strong>${formatarParaMoeda(p1)}</strong></div>
+            <div class="res-row"><span>Última Parcela:</span><strong>${formatarParaMoeda(pL)}</strong></div>
+            <div class="res-row" style="color:var(--danger)"><span>Juros Totais:</span><strong>${formatarParaMoeda(juros)}</strong></div>
+        `, `O banco lucra ${formatarParaMoeda(juros)} com esse contrato!`, 'var(--danger)');
     }
 
     function calcVeiculo() {
-        const v = parseRealValue(document.getElementById('vV').value);
-        const e = parseRealValue(document.getElementById('eV').value);
+        const v = limparParaNumero(document.getElementById('vV').value);
+        const e = limparParaNumero(document.getElementById('eV').value);
         const n = parseInt(document.getElementById('pV').value);
         const fin = v - e;
-        const tx = 0.0210;
+        const tx = 0.021;
         const p = fin * (tx * Math.pow(1+tx, n)) / (Math.pow(1+tx, n) - 1);
         const juros = (p * n) - fin;
         showRes(`
-            <div class="res-row"><span>Parcela Fixa:</span><strong>${formatBRL(p)}</strong></div>
-            <div class="res-row" style="color:var(--danger)"><span>Custo de Juros:</span><strong>${formatBRL(juros)}</strong></div>
-        `, `Total pago ao banco: ${formatBRL(p*n+e)}`, 'var(--danger)');
+            <div class="res-row"><span>Parcela Fixa:</span><strong>${formatarParaMoeda(p)}</strong></div>
+            <div class="res-row" style="color:var(--danger)"><span>Custo de Juros:</span><strong>${formatarParaMoeda(juros)}</strong></div>
+            <div class="res-row" style="border:none"><span>Total Pago:</span><strong class="val-highlight">${formatarParaMoeda(p*n+e)}</strong></div>
+        `, `Financiamento: O cliente paga quase 2 carros.`, 'var(--danger)');
     }
 
     function calcAlavancagem() {
-        const cap = parseRealValue(document.getElementById('capInv').value);
-        const p = parseRealValue(document.getElementById('parcCred').value);
+        const cap = limparParaNumero(document.getElementById('capInv').value);
+        const p = limparParaNumero(document.getElementById('parcCred').value);
         const [tx, ir] = document.getElementById('selAtivo').value.split('|');
         const rl = (cap * parseFloat(tx)) * (1 - parseFloat(ir));
         const cr = p - rl;
         showRes(`
-            <div class="res-row"><span>Rendimento Líquido:</span><strong class="val-highlight">${formatBRL(rl)}</strong></div>
-            <div class="res-row"><span>Parcela Original:</span><strong>${formatBRL(p)}</strong></div>
-            <div class="res-row" style="border-top:2px solid #30363d; margin-top:10px;"><span>Custo Real:</span><strong style="color:var(--accent); font-size:22px;">${formatBRL(cr < 0 ? 0 : cr)}</strong></div>
-        `, `O capital paga ${((rl/p)*100).toFixed(1)}% da parcela!`, 'var(--success)');
+            <div class="res-row"><span>Rendimento Líquido:</span><strong class="val-highlight">${formatarParaMoeda(rl)}</strong></div>
+            <div class="res-row"><span>Sua Parcela:</span><strong>${formatarParaMoeda(p)}</strong></div>
+            <div class="res-row" style="border-top:2px solid #30363d; margin-top:10px;"><span>Custo Real Mensal:</span><strong style="color:var(--accent); font-size:22px;">${formatarParaMoeda(cr < 0 ? 0 : cr)}</strong></div>
+        `, `O rendimento cobre ${((rl/p)*100).toFixed(1)}% da parcela!`, 'var(--success)');
     }
 </script>
 </body>
