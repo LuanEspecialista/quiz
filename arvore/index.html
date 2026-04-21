@@ -1,327 +1,419 @@
-import React, { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, RotateCcw, MessageCircle, CheckCircle2 } from "lucide-react";
-
-const tree = {
-  start: {
-    id: "start",
-    stage: "Saudação",
-    color: "bg-slate-900 text-white",
-    title: "Abertura inicial",
-    script:
-      "Bom dia, [nome], tudo certo? Aqui é o Luan, te atendi aí com as calhas.",
-    helper: "Objetivo: ativar memória sem parecer vendedor.",
-    options: [{ label: "Ir para contexto", next: "contexto" }],
-  },
-  contexto: {
-    id: "contexto",
-    stage: "Contexto",
-    color: "bg-slate-100 text-slate-900",
-    title: "Reconexão e contexto",
-    script:
-      "Esses dias lembrei de alguns clientes daí depois de tudo que aconteceu... acabei me mudando pra Piçarras. Como vocês estão hoje?",
-    helper: "Objetivo: humanizar e abrir conversa.",
-    options: [
-      { label: "Cliente está bem", next: "bem" },
-      { label: "Cliente inseguro / enchente", next: "inseguro" },
-      { label: "Resposta fria / curta", next: "frio" },
-    ],
-  },
-  bem: {
-    id: "bem",
-    stage: "Ramo A",
-    color: "bg-emerald-50 text-emerald-950",
-    title: "Cliente está bem",
-    script:
-      "Que bom 🙏 Muita gente começou a repensar algumas coisas depois disso tudo, principalmente casa e segurança. Vocês já pensaram nisso ou seguem do mesmo jeito?",
-    helper: "Objetivo: puxar reflexão sem pressionar.",
-    options: [
-      { label: "Está perdido", next: "diagnostico_perdido" },
-      { label: "Já está vendo algo", next: "diagnostico_vendo" },
-      { label: "Tem casa / dinheiro / base", next: "diagnostico_base" },
-    ],
-  },
-  inseguro: {
-    id: "inseguro",
-    stage: "Ramo B",
-    color: "bg-amber-50 text-amber-950",
-    title: "Cliente inseguro / afetado",
-    script:
-      "Imagino... não dá pra passar por isso todo ano mesmo. Vocês já estão vendo algo ou ainda tão meio sem direção nisso?",
-    helper: "Objetivo: validar dor e puxar diagnóstico.",
-    options: [
-      { label: "Está perdido", next: "diagnostico_perdido" },
-      { label: "Já está vendo algo", next: "diagnostico_vendo" },
-      { label: "Tem casa / dinheiro / base", next: "diagnostico_base" },
-      { label: "Quer sair logo", next: "quer_sair" },
-    ],
-  },
-  frio: {
-    id: "frio",
-    stage: "Ramo C",
-    color: "bg-zinc-100 text-zinc-950",
-    title: "Cliente frio / seco",
-    script:
-      "Entendi. Te chamei mais pra retomar contato mesmo, porque lembrei de bastante gente daí. Como estão as coisas por aí hoje?",
-    helper: "Objetivo: não vender; reaquecer.",
-    options: [
-      { label: "Cliente abriu mais", next: "contexto" },
-      { label: "Continuou frio", next: "followup_frio" },
-    ],
-  },
-  followup_frio: {
-    id: "followup_frio",
-    stage: "Follow-up",
-    color: "bg-zinc-50 text-zinc-950",
-    title: "Follow-up leve",
-    script:
-      "Sem problema 🙏 Qualquer hora que eu puder te ajudar com algo relacionado a moradia, patrimônio ou planejamento, fico à disposição.",
-    helper: "Objetivo: sair elegante e deixar porta aberta.",
-    options: [{ label: "Encerrar", next: "fim" }],
-  },
-  quer_sair: {
-    id: "quer_sair",
-    stage: "Dor quente",
-    color: "bg-rose-50 text-rose-950",
-    title: "Cliente quer sair da cidade / mudar",
-    script:
-      "Te entendo... muita gente chegou exatamente nesse ponto. Mas me diz, vocês já estão vendo algo ou ainda tão meio sem direção nisso?",
-    helper: "Objetivo: manter o cliente falando e entender base atual.",
-    options: [
-      { label: "Está perdido", next: "diagnostico_perdido" },
-      { label: "Já está vendo algo", next: "diagnostico_vendo" },
-      { label: "Tem casa / dinheiro / base", next: "diagnostico_base" },
-    ],
-  },
-  diagnostico_perdido: {
-    id: "diagnostico_perdido",
-    stage: "Diagnóstico",
-    color: "bg-sky-50 text-sky-950",
-    title: "Cliente sem direção",
-    script:
-      "Normal... muita gente trava exatamente aí. Porque acha que precisa ter tudo pronto pra começar. Mas na prática dá pra organizar isso com calma, passo a passo.",
-    helper: "Objetivo: aliviar e preparar seu posicionamento.",
-    options: [{ label: "Ir para posicionamento", next: "posicionamento" }],
-  },
-  diagnostico_vendo: {
-    id: "diagnostico_vendo",
-    stage: "Diagnóstico",
-    color: "bg-sky-50 text-sky-950",
-    title: "Cliente já olhando opções",
-    script:
-      "Boa... isso já ajuda bastante. O ponto é só cuidar pra não entrar em algo que depois pese ou não resolva de verdade.",
-    helper: "Objetivo: virar consultor, não vendedor.",
-    options: [{ label: "Ir para posicionamento", next: "posicionamento" }],
-  },
-  diagnostico_base: {
-    id: "diagnostico_base",
-    stage: "Diagnóstico",
-    color: "bg-sky-50 text-sky-950",
-    title: "Cliente já tem base",
-    script:
-      "Perfeito... então vocês já têm uma base. Isso abre bastante possibilidade de fazer algo bem estruturado.",
-    helper: "Objetivo: reconhecer valor e elevar percepção.",
-    options: [{ label: "Ir para posicionamento", next: "posicionamento" }],
-  },
-  posicionamento: {
-    id: "posicionamento",
-    stage: "Posicionamento",
-    color: "bg-violet-50 text-violet-950",
-    title: "Seu posicionamento",
-    script:
-      "Hoje eu trabalho ajudando justamente nisso: organizar a parte de moradia e patrimônio pra pessoa sair melhor do que tá hoje, sem se enrolar.",
-    helper: "Objetivo: mostrar autoridade sem falar produto cedo.",
-    options: [{ label: "Ir para convite", next: "convite" }],
-  },
-  convite: {
-    id: "convite",
-    stage: "Convite",
-    color: "bg-indigo-50 text-indigo-950",
-    title: "Convite leve",
-    script:
-      "Se fizer sentido, posso te mostrar algumas possibilidades bem diretas pro teu caso.",
-    helper: "Objetivo: abrir espaço para avanço sem pressão.",
-    options: [
-      { label: "Cliente aceitou", next: "fechamento" },
-      { label: "Cliente pediu tempo", next: "tempo" },
-      { label: "Cliente desconversou", next: "desconversou" },
-    ],
-  },
-  fechamento: {
-    id: "fechamento",
-    stage: "Fechamento",
-    color: "bg-emerald-100 text-emerald-950",
-    title: "Próximo passo",
-    script:
-      "Me chama aqui mesmo ou me passa um horário que eu te explico rapidinho, sem compromisso.",
-    helper: "Objetivo: tirar do abstrato e levar para ação.",
-    options: [{ label: "Finalizar", next: "fim" }],
-  },
-  tempo: {
-    id: "tempo",
-    stage: "Objeção leve",
-    color: "bg-yellow-50 text-yellow-950",
-    title: "Cliente pediu tempo",
-    script:
-      "Claro, sem problema. O importante é fazer isso do jeito certo e no teu tempo. Quando quiser, eu te mostro com calma.",
-    helper: "Objetivo: manter porta aberta sem carência.",
-    options: [{ label: "Finalizar", next: "fim" }],
-  },
-  desconversou: {
-    id: "desconversou",
-    stage: "Objeção leve",
-    color: "bg-orange-50 text-orange-950",
-    title: "Cliente desconversou",
-    script:
-      "Tranquilo 🙏 Só quis retomar contato mesmo. De qualquer forma, fico à disposição se em algum momento vocês quiserem olhar isso com mais calma.",
-    helper: "Objetivo: preservar relação para follow-up futuro.",
-    options: [{ label: "Finalizar", next: "fim" }],
-  },
-  fim: {
-    id: "fim",
-    stage: "Fim",
-    color: "bg-slate-950 text-white",
-    title: "Fluxo encerrado",
-    script: "Conversa concluída ou pausada. Próximo contato depende do retorno do cliente.",
-    helper: "Use reset para começar outro caso.",
-    options: [],
-  },
-};
-
-function StepCard({ node, onNext, onCopy }) {
-  return (
-    <Card className="rounded-2xl shadow-sm border-slate-200">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <Badge className="rounded-full">{node.stage}</Badge>
-          <Button variant="outline" size="sm" onClick={() => onCopy(node.script)}>
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Copiar fala
-          </Button>
-        </div>
-        <CardTitle className="text-xl md:text-2xl">{node.title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className={`rounded-2xl p-4 ${node.color}`}>
-          <p className="text-sm md:text-base leading-7">{node.script}</p>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
-          {node.helper}
-        </div>
-        {node.options.length > 0 && (
-          <div className="grid gap-2">
-            {node.options.map((option) => (
-              <Button
-                key={option.label}
-                variant="secondary"
-                className="justify-between rounded-2xl h-auto py-3 whitespace-normal text-left"
-                onClick={() => onNext(option.next)}
-              >
-                <span>{option.label}</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function MapaConversaApp() {
-  const [path, setPath] = useState(["start"]);
-  const [copied, setCopied] = useState(false);
-
-  const currentId = path[path.length - 1];
-  const current = tree[currentId];
-  const trail = useMemo(() => path.map((id) => tree[id]), [path]);
-
-  const goNext = (next) => setPath((prev) => [...prev, next]);
-  const goBack = () => setPath((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
-  const reset = () => setPath(["start"]);
-
-  const copyText = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch (e) {
-      console.error(e);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa de Conversa</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fb;
+      color: #1f2937;
     }
-  };
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    .sidebar, .main-card, .history-card {
+      padding: 18px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    .title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    .muted { color: #6b7280; font-size: 14px; line-height: 1.6; }
+    .buttons-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.2s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    .btn-outline {
+      background: #fff;
+      border: 1px solid #d1d5db;
+      color: #111827;
+    }
+    .btn-option {
+      width: 100%;
+      text-align: left;
+      background: #f3f4f6;
+      color: #111827;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-copy {
+      background: #111827;
+      color: #fff;
+    }
+    .section {
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 14px;
+      margin-top: 14px;
+      border: 1px solid #eef2f7;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 700;
+      margin: 0 6px 6px 0;
+    }
+    .stage {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7280;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .node-title { font-size: 26px; font-weight: 700; margin-bottom: 12px; }
+    .script-box {
+      border-radius: 18px;
+      padding: 18px;
+      line-height: 1.8;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+    .history-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 12px;
+      background: #fff;
+    }
+    .ok {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #ecfdf5;
+      color: #065f46;
+      font-size: 14px;
+      display: none;
+    }
+    ul.rules {
+      margin: 10px 0 0 18px;
+      padding: 0;
+      color: #374151;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .node-title { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card sidebar">
+      <h1 class="title">Mapa de Conversa</h1>
+      <p class="muted">Fluxo prático para reativar clientes antigos e conduzir a conversa até o convite.</p>
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-4 md:p-8">
-      <div className="max-w-6xl mx-auto grid gap-6 lg:grid-cols-[320px,1fr]">
-        <Card className="rounded-2xl shadow-sm border-slate-200 h-fit">
-          <CardHeader>
-            <CardTitle className="text-xl">Mapa de Conversa</CardTitle>
-            <p className="text-sm text-slate-600 leading-6">
-              Fluxo prático para reativar clientes antigos e conduzir a conversa até o convite.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2 flex-wrap">
-              <Button onClick={goBack} variant="outline" className="rounded-2xl">
-                Voltar
-              </Button>
-              <Button onClick={reset} variant="outline" className="rounded-2xl">
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Resetar
-              </Button>
-            </div>
+      <div class="buttons-row">
+        <button class="btn-outline" onclick="goBack()">Voltar</button>
+        <button class="btn-outline" onclick="resetFlow()">Resetar</button>
+      </div>
 
-            <div className="rounded-2xl bg-slate-50 p-3">
-              <div className="text-xs font-medium text-slate-500 mb-2">CAMINHO</div>
-              <div className="flex flex-wrap gap-2">
-                {trail.map((item, idx) => (
-                  <Badge key={item.id} variant={idx === trail.length - 1 ? "default" : "secondary"} className="rounded-full">
-                    {item.stage}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+      <div class="section">
+        <div class="stage">Caminho</div>
+        <div id="trail"></div>
+      </div>
 
-            <div className="rounded-2xl bg-white border border-slate-200 p-3">
-              <div className="text-xs font-medium text-slate-500 mb-2">REGRAS</div>
-              <ul className="text-sm text-slate-700 space-y-2 leading-6">
-                <li>Não falar produto cedo.</li>
-                <li>Não falar parcela cedo.</li>
-                <li>Conduzir leve e humano.</li>
-                <li>Fazer o cliente falar mais.</li>
-              </ul>
-            </div>
+      <div class="section">
+        <div class="stage">Regras</div>
+        <ul class="rules">
+          <li>Não falar produto cedo.</li>
+          <li>Não falar parcela cedo.</li>
+          <li>Conduzir leve e humano.</li>
+          <li>Fazer o cliente falar mais.</li>
+        </ul>
+      </div>
 
-            {copied && (
-              <div className="rounded-2xl bg-emerald-50 text-emerald-900 p-3 text-sm flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Fala copiada.
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div id="copyFeedback" class="ok">Fala copiada.</div>
+    </div>
 
-        <div className="space-y-4">
-          <StepCard node={current} onNext={goNext} onCopy={copyText} />
-
-          <Card className="rounded-2xl shadow-sm border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-lg">Histórico do fluxo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {trail.map((item, index) => (
-                <div key={item.id + index} className="rounded-2xl border border-slate-200 p-3">
-                  <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">{item.stage}</div>
-                  <div className="font-medium text-slate-900 mb-2">{item.title}</div>
-                  <div className="text-sm text-slate-700 leading-6">{item.script}</div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+    <div>
+      <div class="card main-card">
+        <div id="currentStage" class="stage"></div>
+        <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+          <h2 id="currentTitle" class="node-title"></h2>
+          <button class="btn-copy" onclick="copyScript()">Copiar fala</button>
         </div>
+        <div id="scriptBox" class="script-box"></div>
+        <div id="helperBox" class="section"></div>
+        <div id="optionsBox"></div>
+      </div>
+
+      <div class="card history-card" style="margin-top:20px;">
+        <h3 class="title" style="font-size:20px;">Histórico do fluxo</h3>
+        <div id="history"></div>
       </div>
     </div>
-  );
-}
+  </div>
+
+  <script>
+    const tree = {
+      start: {
+        stage: 'Saudação',
+        title: 'Abertura inicial',
+        script: 'Bom dia, [nome], tudo certo? Aqui é o Luan, te atendi aí com as calhas.',
+        helper: 'Objetivo: ativar memória sem parecer vendedor.',
+        color: '#111827',
+        text: '#ffffff',
+        options: [{ label: 'Ir para contexto', next: 'contexto' }]
+      },
+      contexto: {
+        stage: 'Contexto',
+        title: 'Reconexão e contexto',
+        script: 'Esses dias lembrei de alguns clientes daí depois de tudo que aconteceu... acabei me mudando pra Piçarras. Como vocês estão hoje?',
+        helper: 'Objetivo: humanizar e abrir conversa.',
+        color: '#f3f4f6',
+        text: '#111827',
+        options: [
+          { label: 'Cliente está bem', next: 'bem' },
+          { label: 'Cliente inseguro / enchente', next: 'inseguro' },
+          { label: 'Resposta fria / curta', next: 'frio' }
+        ]
+      },
+      bem: {
+        stage: 'Ramo A',
+        title: 'Cliente está bem',
+        script: 'Que bom 🙏 Muita gente começou a repensar algumas coisas depois disso tudo, principalmente casa e segurança. Vocês já pensaram nisso ou seguem do mesmo jeito?',
+        helper: 'Objetivo: puxar reflexão sem pressionar.',
+        color: '#ecfdf5',
+        text: '#064e3b',
+        options: [
+          { label: 'Está perdido', next: 'diagnostico_perdido' },
+          { label: 'Já está vendo algo', next: 'diagnostico_vendo' },
+          { label: 'Tem casa / dinheiro / base', next: 'diagnostico_base' }
+        ]
+      },
+      inseguro: {
+        stage: 'Ramo B',
+        title: 'Cliente inseguro / afetado',
+        script: 'Imagino... não dá pra passar por isso todo ano mesmo. Vocês já estão vendo algo ou ainda tão meio sem direção nisso?',
+        helper: 'Objetivo: validar dor e puxar diagnóstico.',
+        color: '#fffbeb',
+        text: '#78350f',
+        options: [
+          { label: 'Está perdido', next: 'diagnostico_perdido' },
+          { label: 'Já está vendo algo', next: 'diagnostico_vendo' },
+          { label: 'Tem casa / dinheiro / base', next: 'diagnostico_base' },
+          { label: 'Quer sair logo', next: 'quer_sair' }
+        ]
+      },
+      frio: {
+        stage: 'Ramo C',
+        title: 'Cliente frio / seco',
+        script: 'Entendi. Te chamei mais pra retomar contato mesmo, porque lembrei de bastante gente daí. Como estão as coisas por aí hoje?',
+        helper: 'Objetivo: não vender; reaquecer.',
+        color: '#f4f4f5',
+        text: '#18181b',
+        options: [
+          { label: 'Cliente abriu mais', next: 'contexto' },
+          { label: 'Continuou frio', next: 'followup_frio' }
+        ]
+      },
+      followup_frio: {
+        stage: 'Follow-up',
+        title: 'Follow-up leve',
+        script: 'Sem problema 🙏 Qualquer hora que eu puder te ajudar com algo relacionado a moradia, patrimônio ou planejamento, fico à disposição.',
+        helper: 'Objetivo: sair elegante e deixar porta aberta.',
+        color: '#fafafa',
+        text: '#111827',
+        options: [{ label: 'Encerrar', next: 'fim' }]
+      },
+      quer_sair: {
+        stage: 'Dor quente',
+        title: 'Cliente quer sair da cidade / mudar',
+        script: 'Te entendo... muita gente chegou exatamente nesse ponto. Mas me diz, vocês já estão vendo algo ou ainda tão meio sem direção nisso?',
+        helper: 'Objetivo: manter o cliente falando e entender base atual.',
+        color: '#fff1f2',
+        text: '#881337',
+        options: [
+          { label: 'Está perdido', next: 'diagnostico_perdido' },
+          { label: 'Já está vendo algo', next: 'diagnostico_vendo' },
+          { label: 'Tem casa / dinheiro / base', next: 'diagnostico_base' }
+        ]
+      },
+      diagnostico_perdido: {
+        stage: 'Diagnóstico',
+        title: 'Cliente sem direção',
+        script: 'Normal... muita gente trava exatamente aí. Porque acha que precisa ter tudo pronto pra começar. Mas na prática dá pra organizar isso com calma, passo a passo.',
+        helper: 'Objetivo: aliviar e preparar seu posicionamento.',
+        color: '#eff6ff',
+        text: '#1e3a8a',
+        options: [{ label: 'Ir para posicionamento', next: 'posicionamento' }]
+      },
+      diagnostico_vendo: {
+        stage: 'Diagnóstico',
+        title: 'Cliente já olhando opções',
+        script: 'Boa... isso já ajuda bastante. O ponto é só cuidar pra não entrar em algo que depois pese ou não resolva de verdade.',
+        helper: 'Objetivo: virar consultor, não vendedor.',
+        color: '#eff6ff',
+        text: '#1e3a8a',
+        options: [{ label: 'Ir para posicionamento', next: 'posicionamento' }]
+      },
+      diagnostico_base: {
+        stage: 'Diagnóstico',
+        title: 'Cliente já tem base',
+        script: 'Perfeito... então vocês já têm uma base. Isso abre bastante possibilidade de fazer algo bem estruturado.',
+        helper: 'Objetivo: reconhecer valor e elevar percepção.',
+        color: '#eff6ff',
+        text: '#1e3a8a',
+        options: [{ label: 'Ir para posicionamento', next: 'posicionamento' }]
+      },
+      posicionamento: {
+        stage: 'Posicionamento',
+        title: 'Seu posicionamento',
+        script: 'Hoje eu trabalho ajudando justamente nisso: organizar a parte de moradia e patrimônio pra pessoa sair melhor do que tá hoje, sem se enrolar.',
+        helper: 'Objetivo: mostrar autoridade sem falar produto cedo.',
+        color: '#f5f3ff',
+        text: '#4c1d95',
+        options: [{ label: 'Ir para convite', next: 'convite' }]
+      },
+      convite: {
+        stage: 'Convite',
+        title: 'Convite leve',
+        script: 'Se fizer sentido, posso te mostrar algumas possibilidades bem diretas pro teu caso.',
+        helper: 'Objetivo: abrir espaço para avanço sem pressão.',
+        color: '#eef2ff',
+        text: '#312e81',
+        options: [
+          { label: 'Cliente aceitou', next: 'fechamento' },
+          { label: 'Cliente pediu tempo', next: 'tempo' },
+          { label: 'Cliente desconversou', next: 'desconversou' }
+        ]
+      },
+      fechamento: {
+        stage: 'Fechamento',
+        title: 'Próximo passo',
+        script: 'Me chama aqui mesmo ou me passa um horário que eu te explico rapidinho, sem compromisso.',
+        helper: 'Objetivo: tirar do abstrato e levar para ação.',
+        color: '#dcfce7',
+        text: '#14532d',
+        options: [{ label: 'Finalizar', next: 'fim' }]
+      },
+      tempo: {
+        stage: 'Objeção leve',
+        title: 'Cliente pediu tempo',
+        script: 'Claro, sem problema. O importante é fazer isso do jeito certo e no teu tempo. Quando quiser, eu te mostro com calma.',
+        helper: 'Objetivo: manter porta aberta sem carência.',
+        color: '#fefce8',
+        text: '#713f12',
+        options: [{ label: 'Finalizar', next: 'fim' }]
+      },
+      desconversou: {
+        stage: 'Objeção leve',
+        title: 'Cliente desconversou',
+        script: 'Tranquilo 🙏 Só quis retomar contato mesmo. De qualquer forma, fico à disposição se em algum momento vocês quiserem olhar isso com mais calma.',
+        helper: 'Objetivo: preservar relação para follow-up futuro.',
+        color: '#fff7ed',
+        text: '#9a3412',
+        options: [{ label: 'Finalizar', next: 'fim' }]
+      },
+      fim: {
+        stage: 'Fim',
+        title: 'Fluxo encerrado',
+        script: 'Conversa concluída ou pausada. Próximo contato depende do retorno do cliente.',
+        helper: 'Use reset para começar outro caso.',
+        color: '#0f172a',
+        text: '#ffffff',
+        options: []
+      }
+    };
+
+    let path = ['start'];
+
+    function render() {
+      const currentId = path[path.length - 1];
+      const current = tree[currentId];
+
+      document.getElementById('currentStage').textContent = current.stage;
+      document.getElementById('currentTitle').textContent = current.title;
+      document.getElementById('scriptBox').textContent = current.script;
+      document.getElementById('scriptBox').style.background = current.color;
+      document.getElementById('scriptBox').style.color = current.text;
+      document.getElementById('helperBox').innerHTML = '<strong>Objetivo:</strong> ' + current.helper.replace('Objetivo: ', '');
+
+      const optionsBox = document.getElementById('optionsBox');
+      optionsBox.innerHTML = '';
+      current.options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-option';
+        btn.innerHTML = '<span>' + option.label + '</span><span>→</span>';
+        btn.onclick = () => goNext(option.next);
+        optionsBox.appendChild(btn);
+      });
+
+      const trail = document.getElementById('trail');
+      trail.innerHTML = path.map(id => '<span class="badge">' + tree[id].stage + '</span>').join('');
+
+      const history = document.getElementById('history');
+      history.innerHTML = path.map(id => {
+        const item = tree[id];
+        return `
+          <div class="history-item">
+            <div class="stage">${item.stage}</div>
+            <div style="font-weight:700; margin-bottom:8px;">${item.title}</div>
+            <div style="line-height:1.7; color:#374151;">${item.script}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function goNext(next) {
+      path.push(next);
+      render();
+    }
+
+    function goBack() {
+      if (path.length > 1) path.pop();
+      render();
+    }
+
+    function resetFlow() {
+      path = ['start'];
+      render();
+    }
+
+    function copyScript() {
+      const current = tree[path[path.length - 1]];
+      navigator.clipboard.writeText(current.script).then(() => {
+        const feedback = document.getElementById('copyFeedback');
+        feedback.style.display = 'block';
+        setTimeout(() => { feedback.style.display = 'none'; }, 1600);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
