@@ -1,46 +1,657 @@
-<div class="compare-grid">
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <div class="compare-card">
-    <span>Brasil</span>
-    <h3>R$ 400 mil</h3>
+  <title>Brasileiros em Portugal | Luan Especialista</title>
+  <meta name="description" content="Mora em Portugal? Transforme parte do que você ganha em euro em patrimônio no Brasil com estratégia." />
 
-    <div class="euro">
-      ≈ €275<span>/mês</span>
+  <style>
+    :root {
+      --bg: #050505;
+      --bg2: #0b0b0b;
+      --card: rgba(10,10,10,.82);
+      --gold: #d6a84f;
+      --gold2: #f3d27b;
+      --text: #ffffff;
+      --muted: #b9b9b9;
+      --line: rgba(214,168,79,.32);
+      --max: 1180px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .wrap {
+      width: min(92%, var(--max));
+      margin: auto;
+    }
+
+    header {
+      height: 74px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0,0,0,.88);
+      display: flex;
+      align-items: center;
+      position: relative;
+      z-index: 5;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: .5px;
+    }
+
+    .brand-mark {
+      color: var(--gold2);
+      font-size: 30px;
+      font-weight: 900;
+      border-right: 1px solid var(--line);
+      padding-right: 12px;
+    }
+
+    .brand small {
+      display: block;
+      color: var(--gold2);
+      font-size: 11px;
+      letter-spacing: 1.6px;
+      margin-top: -2px;
+    }
+
+    .top-text {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #fff;
+      text-align: center;
+    }
+
+    .top-text span {
+      color: var(--gold2);
+    }
+
+    .top-btn {
+      background: linear-gradient(135deg, var(--gold2), #a87522);
+      color: #050505;
+      padding: 11px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .hero {
+      min-height: 520px;
+      display: flex;
+      align-items: center;
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.97) 0%, rgba(0,0,0,.86) 39%, rgba(0,0,0,.35) 100%),
+        url("../imagens/portugal-hero.webp.jpg") center/cover no-repeat;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr .9fr;
+      gap: 38px;
+      align-items: end;
+      padding: 44px 0;
+    }
+
+    .hero-content {
+      max-width: 610px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--gold2);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 13px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      background: rgba(0,0,0,.46);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(34px, 4.2vw, 52px);
+      line-height: 1.02;
+      letter-spacing: -1.4px;
+      margin-bottom: 15px;
+    }
+
+    h1 span,
+    h2 span,
+    .gold {
+      color: var(--gold2);
+    }
+
+    .lead {
+      color: #e1e1e1;
+      font-size: 17px;
+      max-width: 570px;
+      margin-bottom: 18px;
+    }
+
+    .main-offer {
+      border: 1px solid var(--line);
+      background: rgba(8,8,8,.86);
+      border-radius: 14px;
+      padding: 16px 18px;
+      max-width: 530px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .main-offer small {
+      color: var(--gold2);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .main-offer strong {
+      display: block;
+      font-size: 23px;
+      line-height: 1.05;
+      margin-top: 4px;
+    }
+
+    .main-offer .euro {
+      color: var(--gold2);
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1;
+      text-align: right;
+    }
+
+    .main-offer .euro span {
+      font-size: 16px;
+      color: var(--gold2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--gold2), #a87522);
+      color: #050505;
+      min-height: 46px;
+      padding: 13px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 900;
+      box-shadow: 0 10px 26px rgba(214,168,79,.16);
+    }
+
+    .safe {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .hero-points {
+      background: rgba(7,7,7,.84);
+      border: 1px solid rgba(214,168,79,.2);
+      border-radius: 16px;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      backdrop-filter: blur(5px);
+    }
+
+    .point-icon {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold2);
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .hero-points h3 {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .hero-points p {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    section {
+      padding: 46px 0;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1.65fr .75fr;
+      gap: 34px;
+      align-items: start;
+    }
+
+    .title {
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: clamp(25px, 3vw, 36px);
+      line-height: 1.1;
+      letter-spacing: -.7px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 16px;
+    }
+
+    .compare-card {
+      position: relative;
+      background: linear-gradient(180deg, #111, #070707);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 20px;
+      min-height: 238px;
+    }
+
+    .compare-card.featured {
+      border-color: rgba(243,210,123,.75);
+      box-shadow: 0 0 32px rgba(214,168,79,.12);
+    }
+
+    .popular {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gold2);
+      color: #050505;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 10px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .compare-card small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .compare-card h3 {
+      font-size: 28px;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .compare-card h3 span {
+      color: var(--gold2);
+    }
+
+    .line {
+      height: 1px;
+      background: var(--line);
+      margin: 14px 0;
+    }
+
+    .installment {
+      color: var(--gold2);
+      font-size: 37px;
+      line-height: 1;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .installment span {
+      font-size: 15px;
+    }
+
+    .compare-card p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .why {
+      border-left: 1px solid var(--line);
+      padding-left: 28px;
+      margin-top: 54px;
+    }
+
+    .why h3 {
+      color: var(--gold2);
+      text-transform: uppercase;
+      font-size: 18px;
+      margin-bottom: 18px;
+    }
+
+    .why ul {
+      list-style: none;
+      display: grid;
+      gap: 14px;
+    }
+
+    .why li {
+      color: #e7e7e7;
+      font-size: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .why li::before {
+      content: "✓";
+      color: var(--gold2);
+      font-weight: 900;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 14px;
+    }
+
+    .cta-bar {
+      margin-top: 26px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(214,168,79,.10), rgba(0,0,0,.65));
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .cta-bar h3 {
+      font-size: 24px;
+      margin-bottom: 2px;
+    }
+
+    .cta-bar p {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    @media (max-width: 900px) {
+      header {
+        height: auto;
+        padding: 14px 0;
+      }
+
+      .header-inner {
+        flex-direction: column;
+      }
+
+      .top-text {
+        display: none;
+      }
+
+      .top-btn {
+        width: 100%;
+        text-align: center;
+      }
+
+      .hero {
+        min-height: auto;
+        background:
+          linear-gradient(180deg, rgba(0,0,0,.20) 0%, rgba(0,0,0,.74) 37%, rgba(0,0,0,.98) 100%),
+          url("../imagens/portugal-hero.webp.jpg") center/cover no-repeat;
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 90px 0 34px;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
+
+      .lead {
+        font-size: 16px;
+      }
+
+      .main-offer {
+        grid-template-columns: 1fr;
+      }
+
+      .main-offer .euro {
+        text-align: left;
+      }
+
+      .hero-points {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .section-grid,
+      .compare-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .why {
+        border-left: 0;
+        padding-left: 0;
+        margin-top: 10px;
+      }
+
+      .cta-bar {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .cta-bar .btn,
+      .btn {
+        width: 100%;
+      }
+
+      section {
+        padding: 38px 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <div class="brand-mark">LE</div>
+      <div>
+        LUAN
+        <small>ESPECIALISTA</small>
+      </div>
+    </a>
+
+    <div class="top-text">
+      <span>Estratégia patrimonial</span> para brasileiros na Europa
     </div>
 
-    <p>
-      Uma possibilidade patrimonial que muitos brasileiros em Portugal ainda não enxergaram.
-    </p>
+    <a class="top-btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20entender%20como%20usar%20o%20euro%20para%20construir%20patrim%C3%B4nio%20no%20Brasil." target="_blank">
+      Falar no WhatsApp
+    </a>
+  </div>
+</header>
+
+<main class="hero">
+  <div class="wrap hero-grid">
+
+    <div class="hero-content">
+      <div class="tag">🇵🇹 Para brasileiros que moram em Portugal</div>
+
+      <h1>
+        Você mora em Portugal.  
+        Mas o euro pode construir seu <span>patrimônio no Brasil.</span>
+      </h1>
+
+      <p class="lead">
+        Enquanto muitos usam o salário apenas para sobreviver fora, alguns estão transformando parte dessa renda em imóvel, renda futura e segurança familiar no Brasil.
+      </p>
+
+      <div class="main-offer">
+        <div>
+          <small>Exemplo de possibilidade</small>
+          <strong>Imóvel de R$ 700.000</strong>
+        </div>
+
+        <div class="euro">≈ €482<span>/mês</span></div>
+      </div>
+
+      <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20entender%20a%20estrat%C3%A9gia%20do%20cr%C3%A9dito%20de%20R%24%20700.000%20pagando%20aproximadamente%20%E2%82%AC482%20por%20m%C3%AAs." target="_blank">
+        Quero entender essa estratégia
+      </a>
+
+      <div class="safe">Atendimento personalizado e análise conforme perfil.</div>
+    </div>
+
+    <div class="hero-points">
+      <div>
+        <div class="point-icon">✓</div>
+        <h3>Segurança</h3>
+        <p>Estratégia pensada com clareza e responsabilidade.</p>
+      </div>
+
+      <div>
+        <div class="point-icon">⌖</div>
+        <h3>Planejamento</h3>
+        <p>Cada detalhe analisado para seu objetivo.</p>
+      </div>
+
+      <div>
+        <div class="point-icon">→</div>
+        <h3>Acompanhamento</h3>
+        <p>Do início ao fim com orientação direta.</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<section>
+  <div class="wrap section-grid">
+
+    <div>
+      <div class="title">
+        <h2>
+          Compare o poder do euro: patrimônio no Brasil com parcelas que cabem no seu orçamento.
+        </h2>
+        <p class="subtitle">Câmbio aproximado usado: EUR 5,84.</p>
+      </div>
+
+      <div class="compare-grid">
+
+        <div class="compare-card">
+          <small>Crédito no Brasil</small>
+          <h3>R$ 400 <span>mil</span></h3>
+          <div class="line"></div>
+          <small>Parcela aproximada em Portugal</small>
+          <div class="installment">≈ €275<span>/mês</span></div>
+          <p>Um começo acessível para construir patrimônio.</p>
+        </div>
+
+        <div class="compare-card featured">
+          <div class="popular">MAIS PROCURADO</div>
+          <small>Crédito no Brasil</small>
+          <h3>R$ 700 <span>mil</span></h3>
+          <div class="line"></div>
+          <small>Parcela aproximada em Portugal</small>
+          <div class="installment">≈ €482<span>/mês</span></div>
+          <p>Equilíbrio entre parcela, patrimônio e oportunidade.</p>
+        </div>
+
+        <div class="compare-card">
+          <small>Crédito no Brasil</small>
+          <h3>R$ 1 <span>milhão</span></h3>
+          <div class="line"></div>
+          <small>Parcela aproximada em Portugal</small>
+          <div class="installment">≈ €688<span>/mês</span></div>
+          <p>Para quem quer construir mais e deixar legado.</p>
+        </div>
+
+      </div>
+
+      <p class="note">
+        Valores aproximados. Sujeito à análise de crédito, perfil e condições vigentes.
+      </p>
+    </div>
+
+    <aside class="why">
+      <h3>Por que fazer isso agora?</h3>
+
+      <ul>
+        <li>O euro tem poder de compra maior quando convertido para o Brasil.</li>
+        <li>Imóvel continua sendo uma das formas mais sólidas de construir riqueza.</li>
+        <li>Você diversifica, protege e cria oportunidades para sua família.</li>
+        <li>Planejamento hoje pode virar tranquilidade amanhã.</li>
+      </ul>
+    </aside>
+
   </div>
 
-  <div class="compare-card featured">
-    <div class="popular">
-      MAIS PROCURADO
+  <div class="wrap">
+    <div class="cta-bar">
+      <div>
+        <h3>Vamos conversar sobre o seu objetivo?</h3>
+        <p>Me chame no WhatsApp e descubra qual estratégia faz sentido para seu momento.</p>
+      </div>
+
+      <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20comparar%20os%20valores%20de%20R%24%20400%20mil%2C%20R%24%20700%20mil%20e%20R%24%201%20milh%C3%A3o%20para%20investir%20no%20Brasil." target="_blank">
+        Falar com Luan agora
+      </a>
     </div>
-
-    <span>Brasil</span>
-    <h3>R$ 700 mil</h3>
-
-    <div class="euro">
-      ≈ €482<span>/mês</span>
-    </div>
-
-    <p>
-      O equilíbrio entre parcela, patrimônio e oportunidade para quem recebe em euro.
-    </p>
   </div>
+</section>
 
-  <div class="compare-card">
-    <span>Brasil</span>
-    <h3>R$ 1 milhão</h3>
-
-    <div class="euro">
-      ≈ €688<span>/mês</span>
-    </div>
-
-    <p>
-      Para quem deseja construir patrimônio maior usando a força do euro no Brasil.
-    </p>
-  </div>
-
-</div>
+</body>
+</html>
