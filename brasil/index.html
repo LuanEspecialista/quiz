@@ -3,21 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Brasil | Luan Especialista</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-    }
+    *{margin:0;padding:0;box-sizing:border-box}
 
     html,body{
       background:#050505;
@@ -26,26 +19,34 @@
       overflow-x:hidden;
     }
 
-    body{
-      min-height:100vh;
-    }
-
-    a{
-      text-decoration:none;
-      color:inherit;
-    }
+    a{text-decoration:none;color:inherit}
 
     .page{
       min-height:100vh;
+      background:#050505;
+    }
 
+    .hero-wrap{
+      position:relative;
+      overflow:hidden;
+      border-radius:0 0 42px 42px;
+      margin-bottom:36px;
+    }
+
+    .hero-wrap::before{
+      content:"";
+      position:absolute;
+      inset:0;
       background:
-      linear-gradient(to bottom,
-      rgba(0,0,0,.68),
-      rgba(0,0,0,.88) 48%,
-      #050505 74%),
+        linear-gradient(to right,rgba(0,0,0,.84),rgba(0,0,0,.58),rgba(0,0,0,.34)),
+        linear-gradient(to bottom,rgba(0,0,0,.18),rgba(0,0,0,.78)),
+        url("../imagens/brasil-hero.webp") center center/cover no-repeat;
+      z-index:0;
+    }
 
-      url("../imagens/brasil-hero.webp")
-      center center/cover no-repeat;
+    .hero-wrap > *{
+      position:relative;
+      z-index:1;
     }
 
     .container{
@@ -75,17 +76,12 @@
       font-size:13px;
       font-weight:700;
       background:rgba(255,255,255,.04);
-      transition:.25s;
-    }
-
-    .whats-btn:hover{
-      background:rgba(255,255,255,.08);
     }
 
     .hero{
-      max-width:760px;
-      padding-top:26px;
-      margin-bottom:62px;
+      max-width:720px;
+      padding-top:24px;
+      padding-bottom:76px;
     }
 
     .eyebrow{
@@ -106,15 +102,11 @@
       max-width:760px;
     }
 
-    .gold{
-      color:#d7ab63;
-    }
-
     .hero p{
       color:rgba(255,255,255,.76);
       font-size:16px;
       line-height:1.7;
-      max-width:560px;
+      max-width:540px;
       margin-bottom:28px;
     }
 
@@ -129,25 +121,14 @@
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      gap:10px;
-
       background:#d7ab63;
       color:#070707;
-
       border-radius:999px;
-
       padding:15px 24px;
-
       font-size:12px;
       font-weight:800;
       letter-spacing:.5px;
       text-transform:uppercase;
-
-      transition:.25s;
-    }
-
-    .primary-btn:hover{
-      transform:translateY(-2px);
     }
 
     .secondary-btn{
@@ -155,6 +136,13 @@
       font-size:13px;
       font-weight:700;
       padding:14px 8px;
+    }
+
+    .content{
+      width:100%;
+      max-width:1120px;
+      margin:auto;
+      padding:0 22px 60px;
     }
 
     .section-title{
@@ -185,17 +173,13 @@
     }
 
     .path-card{
-      min-height:420px;
-
+      min-height:390px;
       border-radius:28px;
       overflow:hidden;
       position:relative;
-
       background-size:cover;
       background-position:center;
-
       border:1px solid rgba(255,255,255,.12);
-
       display:flex;
       align-items:flex-end;
     }
@@ -204,12 +188,7 @@
       content:"";
       position:absolute;
       inset:0;
-
-      background:
-      linear-gradient(to top,
-      rgba(0,0,0,.88),
-      rgba(0,0,0,.42),
-      rgba(0,0,0,.08));
+      background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,.42),rgba(0,0,0,.08));
     }
 
     .path-content{
@@ -221,13 +200,9 @@
 
     .glass{
       background:rgba(8,10,12,.62);
-
       border:1px solid rgba(255,255,255,.10);
-
       backdrop-filter:blur(14px);
-
       border-radius:22px;
-
       padding:24px;
     }
 
@@ -251,23 +226,13 @@
       display:grid;
       grid-template-columns:1fr 2fr;
       gap:24px;
-
-      margin-top:20px;
       margin-bottom:34px;
-
       padding:26px;
-
       border-radius:28px;
-
       background:
-      radial-gradient(circle at right,
-      rgba(215,171,99,.12),
-      transparent 38%),
-
-      rgba(255,255,255,.05);
-
+        radial-gradient(circle at right,rgba(215,171,99,.12),transparent 38%),
+        rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.10);
-
       backdrop-filter:blur(12px);
     }
 
@@ -286,11 +251,8 @@
 
     .step{
       padding:22px;
-
       border-radius:22px;
-
       background:rgba(255,255,255,.045);
-
       border:1px solid rgba(255,255,255,.08);
     }
 
@@ -316,20 +278,12 @@
       justify-content:space-between;
       align-items:center;
       gap:26px;
-
       padding:34px;
-
       border-radius:28px;
-
       background:
-      radial-gradient(circle at right,
-      rgba(215,171,99,.16),
-      transparent 36%),
-
-      rgba(255,255,255,.055);
-
+        radial-gradient(circle at right,rgba(215,171,99,.16),transparent 36%),
+        rgba(255,255,255,.055);
       border:1px solid rgba(255,255,255,.10);
-
       backdrop-filter:blur(12px);
     }
 
@@ -348,9 +302,12 @@
     }
 
     @media(max-width:900px){
-
       .container{
-        padding:20px 16px 42px;
+        padding:20px 16px 0;
+      }
+
+      .content{
+        padding:0 16px 42px;
       }
 
       .top{
@@ -367,15 +324,20 @@
 
       .hero{
         padding-top:8px;
-        margin-bottom:48px;
+        padding-bottom:58px;
       }
 
       h1{
-        font-size:48px;
+        font-size:44px;
       }
 
       .hero p{
         font-size:15px;
+      }
+
+      .hero-wrap{
+        margin-bottom:30px;
+        border-radius:0 0 30px 30px;
       }
 
       .paths{
@@ -383,7 +345,7 @@
       }
 
       .path-card{
-        min-height:340px;
+        min-height:330px;
       }
 
       .path-content{
@@ -411,9 +373,7 @@
       .final-cta h2{
         font-size:30px;
       }
-
     }
-
   </style>
 </head>
 
@@ -421,230 +381,126 @@
 
   <main class="page">
 
-    <div class="container">
+    <div class="hero-wrap">
+      <div class="container">
 
-      <header class="top">
-
-        <a href="../index.html">
-          <img
-            class="logo"
-            src="../imagens/logo.png"
-            alt="Luan Especialista"
-          >
-        </a>
-
-        <a
-          class="whats-btn"
-          href="https://wa.me/5547992120915?text=Quero%20entender%20as%20possibilidades%20patrimoniais"
-        >
-          Falar com especialista →
-        </a>
-
-      </header>
-
-      <section class="hero">
-
-        <div class="eyebrow">
-          Estratégias patrimoniais para o Brasil
-        </div>
-
-        <h1>
-          Estratégias inteligentes para construir patrimônio no Brasil.
-        </h1>
-
-        <p>
-          Caminhos mais inteligentes para sair do aluguel,
-          estruturar patrimônio e transformar possibilidades
-          em construção de longo prazo.
-        </p>
-
-        <div class="cta-row">
-
-          <a
-            class="primary-btn"
-            href="https://wa.me/5547992120915?text=Quero%20entender%20possibilidades%20patrimoniais"
-          >
-            Entender possibilidades →
+        <header class="top">
+          <a href="../index.html">
+            <img class="logo" src="../imagens/logo.png" alt="Luan Especialista">
           </a>
 
-          <a class="secondary-btn" href="#cenarios">
-            Ver cenários ↓
+          <a class="whats-btn" href="https://wa.me/5547992120915?text=Quero%20entender%20as%20possibilidades%20patrimoniais">
+            Falar com especialista →
           </a>
+        </header>
 
-        </div>
+        <section class="hero">
+          <div class="eyebrow">Estratégias patrimoniais para o Brasil</div>
 
-      </section>
+          <h1>Estratégias inteligentes para construir patrimônio no Brasil.</h1>
 
-      <section id="cenarios">
+          <p>
+            Caminhos mais inteligentes para sair do aluguel, estruturar patrimônio
+            e transformar possibilidades em construção de longo prazo.
+          </p>
 
-        <div class="section-title">
-          <span>Escolha seu momento</span>
-          <h2>
-            Qual cenário faz mais sentido para você hoje?
-          </h2>
-        </div>
+          <div class="cta-row">
+            <a class="primary-btn" href="https://wa.me/5547992120915?text=Quero%20entender%20possibilidades%20patrimoniais">
+              Entender possibilidades →
+            </a>
 
-        <div class="paths">
+            <a class="secondary-btn" href="#cenarios">
+              Ver cenários ↓
+            </a>
+          </div>
+        </section>
 
-          <article
-            class="path-card"
-            style="background-image:url('../imagens/sairdoaluguel.png')"
-          >
+      </div>
+    </div>
 
-            <div class="path-content">
+    <section class="content" id="cenarios">
 
-              <div class="glass">
+      <div class="section-title">
+        <span>Escolha seu momento</span>
+        <h2>Qual cenário faz mais sentido para você hoje?</h2>
+      </div>
 
-                <h3>
-                  Sair do aluguel
-                </h3>
+      <div class="paths">
 
-                <p>
-                  Para quem deseja transformar aluguel
-                  em patrimônio e começar uma nova fase.
-                </p>
-
-                <a
-                  class="primary-btn"
-                  href="https://wa.me/5547992120915?text=Quero%20entender%20possibilidades%20para%20sair%20do%20aluguel"
-                >
-                  Quero entender →
-                </a>
-
-              </div>
-
+        <article class="path-card" style="background-image:url('../imagens/sairdoaluguel.png')">
+          <div class="path-content">
+            <div class="glass">
+              <h3>Sair do aluguel</h3>
+              <p>
+                Para quem deseja transformar aluguel em patrimônio
+                e começar uma nova fase.
+              </p>
+              <a class="primary-btn" href="https://wa.me/5547992120915?text=Quero%20entender%20possibilidades%20para%20sair%20do%20aluguel">
+                Quero entender →
+              </a>
             </div>
+          </div>
+        </article>
 
-          </article>
-
-          <article
-            class="path-card"
-            style="background-image:url('../imagens/kitnets.png')"
-          >
-
-            <div class="path-content">
-
-              <div class="glass">
-
-                <h3>
-                  Construção patrimonial
-                </h3>
-
-                <p>
-                  Para quem pensa em renda,
-                  kitnets, imóveis e crescimento
-                  patrimonial no longo prazo.
-                </p>
-
-                <a
-                  class="primary-btn"
-                  href="https://wa.me/5547992120915?text=Quero%20entender%20construção%20patrimonial"
-                >
-                  Ver estratégia →
-                </a>
-
-              </div>
-
+        <article class="path-card" style="background-image:url('../imagens/kitnets.png')">
+          <div class="path-content">
+            <div class="glass">
+              <h3>Construção patrimonial</h3>
+              <p>
+                Para quem pensa em renda, kitnets, imóveis
+                e crescimento patrimonial no longo prazo.
+              </p>
+              <a class="primary-btn" href="https://wa.me/5547992120915?text=Quero%20entender%20construção%20patrimonial">
+                Ver estratégia →
+              </a>
             </div>
+          </div>
+        </article>
 
-          </article>
-
-        </div>
-
-      </section>
+      </div>
 
       <section class="how">
-
         <div class="how-left">
-
-          <div class="eyebrow">
-            Como funciona
-          </div>
-
-          <h2>
-            Uma conversa para entender
-            qual caminho faz sentido para você.
-          </h2>
-
+          <div class="eyebrow">Como funciona</div>
+          <h2>Uma conversa para entender qual caminho faz sentido para você.</h2>
         </div>
 
         <div class="steps">
-
           <div class="step">
-
             <strong>01</strong>
-
-            <h4>
-              Cenário
-            </h4>
-
-            <p>
-              Entendemos o seu momento atual
-              e o objetivo que deseja alcançar.
-            </p>
-
+            <h4>Cenário</h4>
+            <p>Entendemos o seu momento atual e o objetivo que deseja alcançar.</p>
           </div>
 
           <div class="step">
-
             <strong>02</strong>
-
-            <h4>
-              Estratégia
-            </h4>
-
-            <p>
-              Organizamos possibilidades de acordo
-              com seu perfil e realidade.
-            </p>
-
+            <h4>Estratégia</h4>
+            <p>Organizamos possibilidades de acordo com seu perfil e realidade.</p>
           </div>
 
           <div class="step">
-
             <strong>03</strong>
-
-            <h4>
-              Direção
-            </h4>
-
-            <p>
-              Você recebe mais clareza antes
-              de tomar qualquer decisão.
-            </p>
-
+            <h4>Direção</h4>
+            <p>Você recebe mais clareza antes de tomar qualquer decisão.</p>
           </div>
-
         </div>
-
       </section>
 
       <section class="final-cta">
-
         <div>
-
-          <h2>
-            Quer entender qual estratégia faz mais sentido para você?
-          </h2>
-
+          <h2>Quer entender qual estratégia faz mais sentido para você?</h2>
           <p>
-            Fale diretamente comigo no WhatsApp
-            e entenda possibilidades reais
+            Fale diretamente comigo no WhatsApp e entenda possibilidades reais
             para o seu momento.
           </p>
-
         </div>
 
-        <a
-          class="primary-btn"
-          href="https://wa.me/5547992120915?text=Quero%20entender%20qual%20estratégia%20faz%20sentido%20para%20mim"
-        >
+        <a class="primary-btn" href="https://wa.me/5547992120915?text=Quero%20entender%20qual%20estratégia%20faz%20sentido%20para%20mim">
           Falar no WhatsApp →
         </a>
-
       </section>
 
-    </div>
+    </section>
 
   </main>
 
