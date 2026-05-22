@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brasileiros em Portugal | Luan Especialista</title>
+  <meta name="description" content="Estratégia para brasileiros que moram em Portugal e querem construir patrimônio no Brasil usando o euro com inteligência." />
+
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-soft: #0d0d0d;
+      --gold: #d6a84f;
+      --gold-soft: #f0cf7a;
+      --text: #ffffff;
+      --muted: #b8b8b8;
+      --line: rgba(214, 168, 79, .28);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .hero {
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.94) 0%, rgba(0,0,0,.82) 42%, rgba(0,0,0,.25) 100%),
+        url("../imagens/portugal-hero.webp") center/cover no-repeat;
+      display: flex;
+      align-items: center;
+      padding: 32px 7%;
+    }
+
+    .hero-content {
+      max-width: 680px;
+    }
+
+    .eyebrow {
+      color: var(--gold-soft);
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 18px;
+      font-weight: 700;
+    }
+
+    h1 {
+      font-size: clamp(38px, 6vw, 72px);
+      line-height: 1.02;
+      margin-bottom: 24px;
+      letter-spacing: -2px;
+    }
+
+    h1 span {
+      color: var(--gold);
+    }
+
+    .hero p {
+      font-size: clamp(18px, 2vw, 23px);
+      color: var(--muted);
+      max-width: 610px;
+      margin-bottom: 32px;
+    }
+
+    .highlight-box {
+      border: 1px solid var(--line);
+      background: rgba(10,10,10,.78);
+      padding: 24px;
+      border-radius: 22px;
+      margin-bottom: 32px;
+      max-width: 590px;
+    }
+
+    .highlight-box strong {
+      display: block;
+      font-size: clamp(24px, 4vw, 38px);
+      color: var(--gold-soft);
+      line-height: 1.12;
+      margin-bottom: 8px;
+    }
+
+    .highlight-box small {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--gold), #8f641f);
+      color: #050505;
+      padding: 16px 26px;
+      border-radius: 999px;
+      font-weight: 800;
+      box-shadow: 0 12px 34px rgba(214,168,79,.22);
+    }
+
+    section {
+      padding: 90px 7%;
+    }
+
+    .section-title {
+      max-width: 780px;
+      margin-bottom: 42px;
+    }
+
+    .section-title h2 {
+      font-size: clamp(30px, 4vw, 52px);
+      line-height: 1.08;
+      margin-bottom: 18px;
+    }
+
+    .section-title p {
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 22px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, #101010, #080808);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      padding: 30px;
+    }
+
+    .card .label {
+      color: var(--gold-soft);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .card h3 {
+      font-size: clamp(26px, 4vw, 44px);
+      margin-bottom: 12px;
+    }
+
+    .card p {
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .step-number {
+      color: var(--gold);
+      font-size: 38px;
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+
+    .final {
+      text-align: center;
+      background:
+        radial-gradient(circle at center, rgba(214,168,79,.14), transparent 45%),
+        #070707;
+    }
+
+    .final h2 {
+      font-size: clamp(32px, 5vw, 58px);
+      line-height: 1.08;
+      max-width: 850px;
+      margin: 0 auto 22px;
+    }
+
+    .final p {
+      color: var(--muted);
+      max-width: 680px;
+      margin: 0 auto 32px;
+      font-size: 18px;
+    }
+
+    @media (max-width: 820px) {
+      .hero {
+        min-height: auto;
+        padding: 110px 6% 70px;
+        background:
+          linear-gradient(180deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.84) 48%, rgba(0,0,0,.65) 100%),
+          url("../imagens/portugal-hero.webp") center/cover no-repeat;
+      }
+
+      .comparison,
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      section {
+        padding: 68px 6%;
+      }
+
+      .card {
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="hero">
+    <div class="hero-content">
+      <div class="eyebrow">Para brasileiros morando em Portugal</div>
+
+      <h1>
+        Você saiu do Brasil.  
+        Mas o Brasil ainda pode construir seu <span>patrimônio.</span>
+      </h1>
+
+      <p>
+        Morar em Portugal muda sua visão sobre dinheiro. Com o tempo, você percebe que ganhar em euro pode abrir oportunidades reais no Brasil.
+      </p>
+
+      <div class="highlight-box">
+        <strong>Imagine um imóvel de R$ 700.000 pagando menos de 500 euros por mês.</strong>
+        <small>Uma estratégia para transformar parte da sua renda em patrimônio no Brasil.</small>
+      </div>
+
+      <a class="btn" href="https://wa.me/5547992120915" target="_blank">
+        Quero entender essa possibilidade
+      </a>
+    </div>
+  </main>
+
+  <section>
+    <div class="section-title">
+      <h2>O euro pode ser mais do que sobrevivência fora do Brasil.</h2>
+      <p>
+        Para muitos brasileiros em Portugal, €500 viram apenas mais uma despesa mensal. Mas, com estratégia, esse mesmo valor pode ser direcionado para construir patrimônio, renda futura ou segurança para a família no Brasil.
+      </p>
+    </div>
+
+    <div class="comparison">
+      <div class="card">
+        <div class="label">Em Portugal</div>
+        <h3>€500</h3>
+        <p>Podem desaparecer em aluguel, contas, mercado ou gastos do mês.</p>
+      </div>
+
+      <div class="card">
+        <div class="label">No Brasil</div>
+        <h3>R$ 700 mil</h3>
+        <p>Podem entrar em uma estratégia de aquisição patrimonial planejada.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>Essa página é para quem não quer apenas morar fora.</h2>
+      <p>
+        É para quem quer usar essa fase da vida para criar base, patrimônio e possibilidade de escolha no futuro.
+      </p>
+    </div>
+
+    <div class="steps">
+      <div class="card">
+        <div class="step-number">01</div>
+        <h3>Você mora em Portugal</h3>
+        <p>Recebe em euro e percebe que pode usar essa vantagem com mais inteligência.</p>
+      </div>
+
+      <div class="card">
+        <div class="step-number">02</div>
+        <h3>Seu objetivo continua no Brasil</h3>
+        <p>Comprar imóvel, ajudar a família, gerar renda ou preparar uma volta futura.</p>
+      </div>
+
+      <div class="card">
+        <div class="step-number">03</div>
+        <h3>A estratégia conecta os dois mundos</h3>
+        <p>Você usa parte da renda em euro para construir patrimônio em real.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <h2>Você não saiu do Brasil para apenas pagar contas em outro país.</h2>
+    <p>
+      Talvez esse seja o momento de transformar o esforço que você faz em Portugal em patrimônio real no Brasil.
+    </p>
+
+    <a class="btn" href="https://wa.me/5547992120915" target="_blank">
+      Falar com Luan Especialista
+    </a>
+  </section>
+
+</body>
+</html>
