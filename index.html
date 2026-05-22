@@ -1,12 +1,393 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=/alavancagem/">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Luan Especialista</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      background:#050505;
+      color:white;
+      font-family:'Inter', sans-serif;
+      overflow-x:hidden;
+    }
+
+    .hero{
+      min-height:100vh;
+      background:
+      linear-gradient(to bottom, rgba(0,0,0,.65), rgba(0,0,0,.82)),
+      url('./imagens/hero-bg.webp');
+
+      background-size:cover;
+      background-position:center;
+      position:relative;
+      padding:40px 24px 80px;
+    }
+
+    .container{
+      width:100%;
+      max-width:1300px;
+      margin:auto;
+    }
+
+    .top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:70px;
+    }
+
+    .logo{
+      width:72px;
+    }
+
+    .top-btn{
+      border:1px solid rgba(255,215,120,.35);
+      padding:14px 24px;
+      border-radius:999px;
+      text-decoration:none;
+      color:#f3d28a;
+      font-size:14px;
+      backdrop-filter:blur(12px);
+      background:rgba(255,255,255,.04);
+      transition:.3s;
+    }
+
+    .top-btn:hover{
+      background:rgba(255,215,120,.12);
+    }
+
+    .hero-content{
+      text-align:center;
+      max-width:900px;
+      margin:auto;
+    }
+
+    h1{
+      font-family:'Cormorant Garamond', serif;
+      font-size:92px;
+      font-weight:500;
+      line-height:0.95;
+      margin-bottom:18px;
+      letter-spacing:1px;
+    }
+
+    .gold{
+      color:#d7ab63;
+    }
+
+    .subtitle{
+      font-size:20px;
+      color:rgba(255,255,255,.78);
+      margin-bottom:20px;
+    }
+
+    .description{
+      max-width:700px;
+      margin:auto;
+      line-height:1.7;
+      color:rgba(255,255,255,.65);
+      margin-bottom:40px;
+    }
+
+    .flags{
+      display:flex;
+      justify-content:center;
+      flex-wrap:wrap;
+      gap:16px;
+      margin-bottom:70px;
+    }
+
+    .flag{
+      width:70px;
+      height:70px;
+      border-radius:20px;
+      background:rgba(255,255,255,.08);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.08);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:.3s;
+      cursor:pointer;
+    }
+
+    .flag:hover{
+      transform:translateY(-4px);
+      background:rgba(255,255,255,.12);
+    }
+
+    .flag img{
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      object-fit:cover;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:24px;
+    }
+
+    .card{
+      min-height:520px;
+      border-radius:32px;
+      overflow:hidden;
+      position:relative;
+      display:flex;
+      align-items:flex-end;
+      padding:36px;
+      background-size:cover;
+      background-position:center;
+      isolation:isolate;
+    }
+
+    .card::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(to top,
+      rgba(0,0,0,.88),
+      rgba(0,0,0,.28),
+      rgba(0,0,0,.10));
+      z-index:-1;
+    }
+
+    .card-content h2{
+      font-family:'Cormorant Garamond', serif;
+      font-size:44px;
+      line-height:1;
+      margin-bottom:18px;
+    }
+
+    .card-content p{
+      color:rgba(255,255,255,.76);
+      line-height:1.7;
+      margin-bottom:28px;
+      max-width:320px;
+    }
+
+    .card-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:16px 28px;
+      border-radius:999px;
+      text-decoration:none;
+      color:#f2d18b;
+      border:1px solid rgba(255,215,120,.28);
+      background:rgba(255,255,255,.04);
+      backdrop-filter:blur(10px);
+      transition:.3s;
+    }
+
+    .card-btn:hover{
+      background:rgba(255,215,120,.12);
+    }
+
+    .estrategias{
+      background-image:url('./imagens/estrategias.webp');
+    }
+
+    .mobilidade{
+      background-image:url('./imagens/mobilidade.webp');
+    }
+
+    .imoveis{
+      background-image:url('./imagens/imoveis.webp');
+    }
+
+    @media(max-width:1100px){
+
+      h1{
+        font-size:72px;
+      }
+
+      .cards{
+        grid-template-columns:1fr;
+      }
+
+      .card{
+        min-height:460px;
+      }
+
+    }
+
+    @media(max-width:768px){
+
+      .hero{
+        padding-top:24px;
+      }
+
+      .logo{
+        width:58px;
+      }
+
+      .top-btn{
+        display:none;
+      }
+
+      h1{
+        font-size:54px;
+      }
+
+      .subtitle{
+        font-size:18px;
+      }
+
+      .description{
+        font-size:15px;
+      }
+
+      .flags{
+        gap:12px;
+      }
+
+      .flag{
+        width:58px;
+        height:58px;
+        border-radius:16px;
+      }
+
+      .flag img{
+        width:32px;
+        height:32px;
+      }
+
+      .card{
+        min-height:400px;
+        padding:28px;
+        border-radius:26px;
+      }
+
+      .card-content h2{
+        font-size:34px;
+      }
+
+    }
+
+  </style>
 </head>
+
 <body>
-  <p>Redirecionando...</p>
+
+<section class="hero">
+
+  <div class="container">
+
+    <div class="top">
+
+      <img src="./imagens/logo.png" class="logo" alt="Logo">
+
+      <a href="#" class="top-btn">
+        Falar com especialista
+      </a>
+
+    </div>
+
+    <div class="hero-content">
+
+      <h1>
+        LUAN <span class="gold">ESPECIALISTA</span>
+      </h1>
+
+      <div class="subtitle">
+        Estratégias patrimoniais inteligentes
+      </div>
+
+      <p class="description">
+        Brasil e exterior conectados através de oportunidades estratégicas.
+      </p>
+
+      <div class="flags">
+
+        <div class="flag"><img src="https://flagcdn.com/w80/br.png"></div>
+        <div class="flag"><img src="https://flagcdn.com/w80/us.png"></div>
+        <div class="flag"><img src="https://flagcdn.com/w80/pt.png"></div>
+        <div class="flag"><img src="https://flagcdn.com/w80/es.png"></div>
+        <div class="flag"><img src="https://flagcdn.com/w80/ie.png"></div>
+        <div class="flag"><img src="https://flagcdn.com/w80/ca.png"></div>
+        <div class="flag"><img src="https://flagcdn.com/w80/au.png"></div>
+
+      </div>
+
+    </div>
+
+    <div class="cards">
+
+      <div class="card estrategias">
+
+        <div class="card-content">
+
+          <h2>Estratégias Patrimoniais</h2>
+
+          <p>
+            Soluções estratégicas para construir, proteger e multiplicar patrimônio no Brasil e exterior.
+          </p>
+
+          <a href="#" class="card-btn">
+            Conhecer estratégia
+          </a>
+
+        </div>
+
+      </div>
+
+      <div class="card mobilidade">
+
+        <div class="card-content">
+
+          <h2>Mobilidade & Experiências</h2>
+
+          <p>
+            Frotas, lazer e operações comerciais transformadas em possibilidades reais.
+          </p>
+
+          <a href="#" class="card-btn">
+            Explorar possibilidades
+          </a>
+
+        </div>
+
+      </div>
+
+      <div class="card imoveis">
+
+        <div class="card-content">
+
+          <h2>Imóveis</h2>
+
+          <p>
+            Oportunidades selecionadas no litoral de Santa Catarina para morar, investir e diversificar.
+          </p>
+
+          <a href="#" class="card-btn">
+            Ver oportunidades
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
 </body>
 </html>
