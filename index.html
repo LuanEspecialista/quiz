@@ -26,8 +26,8 @@
       display:flex;
       align-items:center;
       background:
-        radial-gradient(circle at 50% 20%, rgba(215,171,99,.12), transparent 30%),
-        linear-gradient(to bottom, rgba(0,0,0,.70), rgba(0,0,0,.90)),
+        radial-gradient(circle at center 18%, rgba(215,171,99,.13), transparent 32%),
+        linear-gradient(to bottom, rgba(0,0,0,.70), rgba(0,0,0,.91)),
         url('./imagens/hero-bg.webp') center/cover no-repeat;
       padding:14px 22px;
     }
@@ -107,7 +107,7 @@
       align-items:center;
       justify-content:center;
       text-decoration:none;
-      transition:.25s;
+      transition:.25s ease;
     }
 
     .flag:hover{
@@ -130,14 +130,17 @@
     }
 
     .card{
-      min-height:210px;
-      border-radius:24px;
-      padding:24px;
-      background:linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.025));
+      min-height:230px;
+      border-radius:26px;
+      padding:24px 22px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.025));
       border:1px solid rgba(255,255,255,.12);
       backdrop-filter:blur(18px);
       display:flex;
       flex-direction:column;
+      align-items:center;
+      text-align:center;
       justify-content:space-between;
       position:relative;
       overflow:hidden;
@@ -147,24 +150,54 @@
       content:"";
       position:absolute;
       inset:0;
-      background:radial-gradient(circle at top right, rgba(215,171,99,.16), transparent 38%);
+      background:radial-gradient(circle at top right, rgba(215,171,99,.16), transparent 40%);
       pointer-events:none;
     }
 
-    .icon-row{
+    .main-icon{
+      width:64px;
+      height:64px;
+      border-radius:50%;
       display:flex;
-      gap:12px;
-      margin-bottom:16px;
+      align-items:center;
+      justify-content:center;
+      border:1px solid rgba(215,171,99,.48);
+      background:
+        radial-gradient(circle, rgba(215,171,99,.16), rgba(255,255,255,.025));
+      box-shadow:0 0 28px rgba(215,171,99,.18);
+      margin-bottom:12px;
       position:relative;
       z-index:1;
     }
 
-    .icon-row svg{
-      width:19px;
-      height:19px;
+    .main-icon svg{
+      width:34px;
+      height:34px;
       stroke:#d7ab63;
-      stroke-width:1.7;
+      stroke-width:1.55;
       fill:none;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+
+    .mini-icons{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:13px;
+      margin-bottom:12px;
+      position:relative;
+      z-index:1;
+    }
+
+    .mini-icons svg{
+      width:21px;
+      height:21px;
+      stroke:#d7ab63;
+      stroke-width:1.55;
+      fill:none;
+      stroke-linecap:round;
+      stroke-linejoin:round;
       opacity:.95;
     }
 
@@ -172,7 +205,7 @@
       font-family:'Cormorant Garamond',serif;
       font-size:30px;
       line-height:1;
-      margin-bottom:10px;
+      margin-bottom:9px;
       font-weight:600;
       position:relative;
       z-index:1;
@@ -180,10 +213,10 @@
 
     .card p{
       font-size:13px;
-      line-height:1.5;
+      line-height:1.45;
       color:rgba(255,255,255,.74);
-      margin-bottom:18px;
-      max-width:310px;
+      margin:0 auto 16px;
+      max-width:320px;
       position:relative;
       z-index:1;
     }
@@ -240,8 +273,18 @@
       }
 
       .card{
-        min-height:190px;
-        padding:22px;
+        min-height:220px;
+        padding:24px 20px;
+      }
+
+      .main-icon{
+        width:60px;
+        height:60px;
+      }
+
+      .main-icon svg{
+        width:32px;
+        height:32px;
       }
 
       .mini-footer{
@@ -263,6 +306,7 @@
       }
 
       .subtitle{font-size:13px}
+
       .description{
         font-size:12px;
         margin-bottom:13px;
@@ -282,29 +326,40 @@
       .cards{gap:14px}
 
       .card{
-        min-height:178px;
+        min-height:195px;
         padding:18px;
       }
 
-      .icon-row{
-        gap:10px;
-        margin-bottom:10px;
+      .main-icon{
+        width:50px;
+        height:50px;
+        margin-bottom:8px;
       }
 
-      .icon-row svg{
+      .main-icon svg{
+        width:27px;
+        height:27px;
+      }
+
+      .mini-icons{
+        gap:10px;
+        margin-bottom:8px;
+      }
+
+      .mini-icons svg{
         width:17px;
         height:17px;
       }
 
       .card h2{
         font-size:26px;
-        margin-bottom:8px;
+        margin-bottom:7px;
       }
 
       .card p{
         font-size:12px;
         line-height:1.35;
-        margin-bottom:12px;
+        margin-bottom:10px;
       }
 
       .card-btn{
@@ -345,11 +400,18 @@
 
         <article class="card">
           <div>
-            <div class="icon-row">
-              <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-5h5v5"/></svg>
-              <svg viewBox="0 0 24 24"><path d="M4 13h16"/><path d="M6 17h12"/><path d="M8 21h8"/><path d="M12 3l7 10H5L12 3z"/></svg>
-              <svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 5-3 8-7 9-4-1-7-4-7-9V7l7-4z"/><path d="M9.5 12.5l1.8 1.8 3.4-4"/></svg>
+            <div class="main-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 11.5 12 4l9 7.5"/>
+                <path d="M5.5 10.5V20h13v-9.5"/>
+                <path d="M9.5 20v-5h5v5"/>
+              </svg>
+            </div>
+
+            <div class="mini-icons">
+              <svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 5-3 8-7 9-4-1-7-4-7-9V7l7-4z"/></svg>
               <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-9"/></svg>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16"/><path d="M12 4c2 2.4 3 5 3 8s-1 5.6-3 8"/><path d="M12 4c-2 2.4-3 5-3 8s1 5.6 3 8"/></svg>
             </div>
 
             <h2>Estratégias Patrimoniais</h2>
@@ -361,11 +423,20 @@
 
         <article class="card">
           <div>
-            <div class="icon-row">
+            <div class="main-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 16c4 2 12 2 16 0"/>
+                <path d="M7 15l3-6h5l3 6"/>
+                <path d="M10 9l2-3h3"/>
+              </svg>
+            </div>
+
+            <div class="mini-icons">
               <svg viewBox="0 0 24 24"><path d="M6 17h10l3-5h-5l-2-4H8l-2 4H3l3 5z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
               <svg viewBox="0 0 24 24"><path d="M4 16l2-5h12l2 5"/><path d="M6 16h12"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/></svg>
-              <svg viewBox="0 0 24 24"><path d="M4 16c4 2 12 2 16 0"/><path d="M7 15l3-6h5l3 6"/><path d="M10 9l2-3h3"/></svg>
               <svg viewBox="0 0 24 24"><path d="M3 15h14l4-5h-8l-2-3H8l-2 5"/><path d="M5 18c4 2 10 2 14 0"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M5 17h14"/><path d="M8 17l2-7h6l2 7"/><path d="M10 10l2-3h3"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M4 15h16"/><path d="M7 15l2-5h6l2 5"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/></svg>
             </div>
 
             <h2>Mobilidade & Experiências</h2>
@@ -377,8 +448,15 @@
 
         <article class="card">
           <div>
-            <div class="icon-row">
-              <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M6 21V7l6-4 6 4v14"/><path d="M9 21v-6h6v6"/></svg>
+            <div class="main-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 21h18"/>
+                <path d="M6 21V7l6-4 6 4v14"/>
+                <path d="M9 21v-6h6v6"/>
+              </svg>
+            </div>
+
+            <div class="mini-icons">
               <svg viewBox="0 0 24 24"><path d="M4 21V5h16v16"/><path d="M8 9h2"/><path d="M14 9h2"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M10 21v-4h4v4"/></svg>
               <svg viewBox="0 0 24 24"><path d="M12 21s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
               <svg viewBox="0 0 24 24"><path d="M8 11l4-4 4 4"/><path d="M5 14h14"/><path d="M7 18h10"/></svg>
