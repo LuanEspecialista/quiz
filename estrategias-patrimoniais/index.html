@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estratégias Patrimoniais | Luan Especialista</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      background:#050505;
+      color:#fff;
+      font-family:'Inter',sans-serif;
+      overflow-x:hidden;
+    }
+
+    a{
+      text-decoration:none;
+      color:inherit;
+    }
+
+    img{
+      max-width:100%;
+      display:block;
+    }
+
+    :root{
+      --gold:#d4a24c;
+      --border:rgba(212,162,76,.25);
+      --glass:rgba(255,255,255,.03);
+    }
+
+    .container{
+      width:100%;
+      max-width:1280px;
+      margin:auto;
+      padding:0 24px;
+    }
+
+    /* HEADER */
+
+    header{
+      position:fixed;
+      top:0;
+      left:0;
+      width:100%;
+      z-index:999;
+      backdrop-filter:blur(12px);
+      background:rgba(0,0,0,.45);
+      border-bottom:1px solid rgba(255,255,255,.04);
+    }
+
+    .header-content{
+      height:84px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .logo img{
+      width:42px;
+    }
+
+    .logo span{
+      font-family:'Cormorant Garamond',serif;
+      font-size:30px;
+      letter-spacing:.5px;
+    }
+
+    .logo span strong{
+      color:var(--gold);
+      font-weight:600;
+    }
+
+    .cta-top{
+      border:1px solid var(--gold);
+      color:var(--gold);
+      padding:14px 28px;
+      border-radius:999px;
+      font-size:14px;
+      transition:.3s;
+    }
+
+    .cta-top:hover{
+      background:var(--gold);
+      color:#000;
+    }
+
+    /* HERO */
+
+    .hero{
+      position:relative;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      overflow:hidden;
+    }
+
+    .hero-bg{
+      position:absolute;
+      inset:0;
+      background:
+      linear-gradient(to right, rgba(0,0,0,.88), rgba(0,0,0,.45)),
+      url('estrategias-patrimoniais/1.webp') center/cover no-repeat;
+    }
+
+    .hero-overlay{
+      position:absolute;
+      inset:0;
+      background:linear-gradient(to bottom, rgba(0,0,0,.2), #050505);
+    }
+
+    .hero-content{
+      position:relative;
+      z-index:2;
+      width:100%;
+      display:grid;
+      grid-template-columns:1.1fr .7fr;
+      gap:70px;
+      align-items:center;
+      padding-top:90px;
+    }
+
+    .hero-text h1{
+      font-family:'Cormorant Garamond',serif;
+      font-size:82px;
+      line-height:.95;
+      font-weight:500;
+      margin-bottom:28px;
+      max-width:760px;
+    }
+
+    .hero-text h1 span{
+      color:var(--gold);
+    }
+
+    .hero-text p{
+      max-width:560px;
+      font-size:18px;
+      line-height:1.8;
+      color:rgba(255,255,255,.75);
+      margin-bottom:42px;
+    }
+
+    .hero-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--gold);
+      color:var(--gold);
+      padding:16px 34px;
+      border-radius:999px;
+      transition:.3s;
+      font-size:15px;
+    }
+
+    .hero-btn:hover{
+      background:var(--gold);
+      color:#000;
+    }
+
+    /* BOX */
+
+    .goal-box{
+      background:rgba(15,15,15,.75);
+      border:1px solid var(--border);
+      backdrop-filter:blur(12px);
+      border-radius:34px;
+      padding:36px;
+    }
+
+    .goal-box h3{
+      font-size:22px;
+      margin-bottom:28px;
+      font-weight:500;
+    }
+
+    .goal-list{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .goal-item{
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.02);
+      padding:18px 22px;
+      border-radius:18px;
+      transition:.3s;
+      font-size:15px;
+    }
+
+    .goal-item:hover{
+      border-color:var(--gold);
+      transform:translateY(-2px);
+    }
+
+    /* SECTION */
+
+    section{
+      padding:110px 0;
+    }
+
+    .section-title{
+      text-align:center;
+      margin-bottom:70px;
+    }
+
+    .section-title h2{
+      font-family:'Cormorant Garamond',serif;
+      font-size:58px;
+      font-weight:500;
+      margin-bottom:14px;
+    }
+
+    .section-title p{
+      color:rgba(255,255,255,.65);
+      font-size:17px;
+    }
+
+    /* GRID INFO */
+
+    .info-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:28px;
+    }
+
+    .info-card{
+      border:1px solid var(--border);
+      background:var(--glass);
+      border-radius:30px;
+      padding:40px;
+    }
+
+    .info-card h3{
+      font-family:'Cormorant Garamond',serif;
+      font-size:36px;
+      line-height:1;
+      margin-bottom:22px;
+    }
+
+    .info-card p{
+      color:rgba(255,255,255,.72);
+      line-height:1.8;
+      font-size:15px;
+    }
+
+    .info-card strong{
+      color:var(--gold);
+      font-weight:500;
+    }
+
+    /* POSSIBILIDADES */
+
+    .possibilidades{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:24px;
+    }
+
+    .poss-card{
+      position:relative;
+      overflow:hidden;
+      border-radius:28px;
+      border:1px solid var(--border);
+      background:#0c0c0c;
+    }
+
+    .poss-card img{
+      height:270px;
+      width:100%;
+      object-fit:cover;
+    }
+
+    .poss-content{
+      padding:26px;
+    }
+
+    .poss-content h3{
+      font-family:'Cormorant Garamond',serif;
+      font-size:34px;
+      margin-bottom:14px;
+      font-weight:500;
+    }
+
+    .poss-content p{
+      color:rgba(255,255,255,.72);
+      line-height:1.7;
+      font-size:14px;
+    }
+
+    /* VISUAL FINAL */
+
+    .final-visual{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:30px;
+      align-items:center;
+    }
+
+    .final-visual img{
+      border-radius:32px;
+      height:620px;
+      width:100%;
+      object-fit:cover;
+    }
+
+    .final-text h2{
+      font-family:'Cormorant Garamond',serif;
+      font-size:74px;
+      line-height:.95;
+      font-weight:500;
+      margin-bottom:26px;
+    }
+
+    .final-text h2 span{
+      color:var(--gold);
+    }
+
+    .final-text p{
+      color:rgba(255,255,255,.72);
+      line-height:1.9;
+      max-width:520px;
+      margin-bottom:38px;
+      font-size:17px;
+    }
+
+    /* FOOTER */
+
+    footer{
+      border-top:1px solid rgba(255,255,255,.05);
+      padding:42px 0;
+      text-align:center;
+    }
+
+    footer p{
+      color:rgba(255,255,255,.45);
+      font-size:14px;
+      letter-spacing:3px;
+      text-transform:uppercase;
+    }
+
+    /* RESPONSIVO */
+
+    @media(max-width:1100px){
+
+      .hero-content,
+      .info-grid,
+      .possibilidades,
+      .final-visual{
+        grid-template-columns:1fr;
+      }
+
+      .hero-text h1{
+        font-size:58px;
+      }
+
+      .section-title h2{
+        font-size:46px;
+      }
+
+      .final-text h2{
+        font-size:52px;
+      }
+
+      .poss-card img{
+        height:340px;
+      }
+
+      .final-visual img{
+        height:420px;
+      }
+
+    }
+
+    @media(max-width:768px){
+
+      .header-content{
+        height:74px;
+      }
+
+      .logo span{
+        font-size:24px;
+      }
+
+      .hero{
+        min-height:auto;
+        padding:140px 0 80px;
+      }
+
+      .hero-text h1{
+        font-size:44px;
+      }
+
+      .hero-text p{
+        font-size:16px;
+      }
+
+      .goal-box{
+        padding:28px;
+      }
+
+      .section-title h2{
+        font-size:38px;
+      }
+
+      .info-card,
+      .poss-content{
+        padding:28px;
+      }
+
+      .final-text h2{
+        font-size:42px;
+      }
+
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+
+  <header>
+    <div class="container header-content">
+
+      <div class="logo">
+        <img src="../imagens/logo.webp" alt="">
+        <span>LUAN <strong>ESPECIALISTA</strong></span>
+      </div>
+
+      <a href="https://wa.me/5547992120915" class="cta-top">
+        Falar com especialista
+      </a>
+
+    </div>
+  </header>
+
+  <!-- HERO -->
+
+  <section class="hero">
+
+    <div class="hero-bg"></div>
+    <div class="hero-overlay"></div>
+
+    <div class="container hero-content">
+
+      <div class="hero-text">
+
+        <h1>
+          Patrimônio não se constrói apenas com <span>dinheiro.</span>
+        </h1>
+
+        <p>
+          As melhores estruturas patrimoniais normalmente começam com estratégia,
+          planejamento e acesso inteligente a oportunidades.
+        </p>
+
+        <a href="https://wa.me/5547992120915" class="hero-btn">
+          Falar com especialista
+        </a>
+
+      </div>
+
+      <div class="goal-box">
+
+        <h3>Selecione seu objetivo</h3>
+
+        <div class="goal-list">
+
+          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20moradia" class="goal-item">
+            Moradia
+          </a>
+
+          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20investimento" class="goal-item">
+            Investimento
+          </a>
+
+          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20construção" class="goal-item">
+            Construção
+          </a>
+
+          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20reforma%20e%20valorização" class="goal-item">
+            Reforma e valorização
+          </a>
+
+          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20expansão%20patrimonial" class="goal-item">
+            Expansão patrimonial
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- INFO -->
+
+  <section>
+
+    <div class="container">
+
+      <div class="info-grid">
+
+        <div class="info-card">
+
+          <h3>Dinheiro sem direção costuma desaparecer.</h3>
+
+          <p>
+            Muitas pessoas possuem renda. Poucas conseguem transformar isso em patrimônio real.
+            <br><br>
+            <strong>
+              Construção patrimonial exige organização, visão e estratégia.
+            </strong>
+          </p>
+
+        </div>
+
+        <div class="info-card">
+
+          <h3>Existem formas mais inteligentes de crescer.</h3>
+
+          <p>
+            Nem todo avanço depende de capital imediato.
+            <br><br>
+            Quando existe estrutura:
+            <br><br>
+            • oportunidades aparecem
+            <br>
+            • negociações melhoram
+            <br>
+            • decisões ficam mais estratégicas
+            <br>
+            • patrimônio começa a acelerar
+          </p>
+
+        </div>
+
+        <div class="info-card">
+
+          <h3>Estratégia protege. Estrutura multiplica.</h3>
+
+          <p>
+            Você não precisa apenas ganhar mais.
+            Precisa estruturar melhor o que já possui.
+            <br><br>
+            <strong>
+              Patrimônio é construído com inteligência, não com pressa.
+            </strong>
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- POSSIBILIDADES -->
+
+  <section>
+
+    <div class="container">
+
+      <div class="section-title">
+
+        <h2>Possibilidades para construir o que realmente importa</h2>
+
+        <p>
+          Estratégias voltadas para crescimento patrimonial inteligente.
+        </p>
+
+      </div>
+
+      <div class="possibilidades">
+
+        <div class="poss-card">
+
+          <img src="estrategias-patrimoniais/4.webp" alt="">
+
+          <div class="poss-content">
+
+            <h3>Aquisição imobiliária</h3>
+
+            <p>
+              Casas, apartamentos, terrenos e imóveis estratégicos para morar,
+              investir ou diversificar.
+            </p>
+
+          </div>
+
+        </div>
+
+        <div class="poss-card">
+
+          <img src="estrategias-patrimoniais/7.webp" alt="">
+
+          <div class="poss-content">
+
+            <h3>Construção patrimonial</h3>
+
+            <p>
+              Estruturas voltadas para crescimento consistente no médio e longo prazo.
+            </p>
+
+          </div>
+
+        </div>
+
+        <div class="poss-card">
+
+          <img src="estrategias-patrimoniais/3.webp" alt="">
+
+          <div class="poss-content">
+
+            <h3>Valorização</h3>
+
+            <p>
+              Reformas, melhorias e planejamento voltados para aumento patrimonial.
+            </p>
+
+          </div>
+
+        </div>
+
+        <div class="poss-card">
+
+          <img src="estrategias-patrimoniais/6.webp" alt="">
+
+          <div class="poss-content">
+
+            <h3>Expansão</h3>
+
+            <p>
+              Estratégias para ampliar possibilidades sem comprometer toda a liquidez.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- FINAL -->
+
+  <section>
+
+    <div class="container">
+
+      <div class="final-visual">
+
+        <img src="estrategias-patrimoniais/5.webp" alt="">
+
+        <div class="final-text">
+
+          <h2>
+            Patrimônio não é sobre aparência.
+            <span>É sobre estrutura.</span>
+          </h2>
+
+          <p>
+            O futuro financeiro que você deseja começa com as decisões
+            que você toma hoje.
+          </p>
+
+          <a href="https://wa.me/5547992120915" class="hero-btn">
+            Falar com especialista
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- FOOTER -->
+
+  <footer>
+    <div class="container">
+      <p>
+        Estratégia • Planejamento • Patrimônio • Oportunidades
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
