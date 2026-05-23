@@ -21,13 +21,27 @@
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;line-height:1.4;overflow-x:hidden}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,Arial,sans-serif;
+  line-height:1.35;
+  overflow-x:hidden;
+}
+
 a{text-decoration:none;color:inherit}
-.wrap{width:min(92%,var(--max));margin:auto}
+
+.wrap{
+  width:min(92%,var(--max));
+  margin:auto;
+}
+
+/* HEADER */
 
 header{
-  height:66px;
-  background:rgba(0,0,0,.86);
+  height:64px;
+  background:rgba(0,0,0,.88);
   border-bottom:1px solid var(--line);
   position:sticky;
   top:0;
@@ -43,144 +57,190 @@ header{
   gap:18px;
 }
 
-.brand img{height:42px;width:auto;display:block}
-
-.top-title{
-  font-size:13px;
-  font-weight:900;
-  text-transform:uppercase;
-  text-align:center;
+.brand img{
+  height:40px;
+  width:auto;
+  display:block;
 }
 
-.top-title span{color:var(--gold2)}
+.header-text{
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  color:var(--muted);
+}
 
+.header-text span{color:var(--gold2)}
+
+.header-btn,
 .btn{
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  border-radius:999px;
   background:linear-gradient(135deg,var(--gold2),#a87522);
   color:#050505;
   font-weight:900;
-  border-radius:999px;
-  padding:13px 22px;
-  font-size:14px;
-  min-height:46px;
+  font-size:13px;
+  min-height:42px;
+  padding:11px 18px;
   border:0;
   cursor:pointer;
 }
 
-.btn-outline{
-  border:1px solid var(--line);
-  color:var(--gold2);
-  background:rgba(0,0,0,.34);
-  border-radius:999px;
-  padding:12px 20px;
-  font-weight:800;
-  font-size:14px;
-}
+/* HERO */
 
 .hero{
-  min-height:620px;
+  min-height:520px;
   display:flex;
   align-items:center;
   background:
-    linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(3,9,10,.78) 43%,rgba(0,0,0,.16) 100%),
+    linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(3,8,9,.78) 45%,rgba(0,0,0,.20) 100%),
     url("/imagens/irlanda-hero.webp") center/cover no-repeat;
   border-bottom:1px solid var(--line);
 }
 
-.hero-content{
-  max-width:650px;
-  padding:52px 0;
+.hero-grid{
+  display:grid;
+  grid-template-columns:.92fr 1.08fr;
+  gap:34px;
+  align-items:center;
+  padding:34px 0;
 }
 
 .tag{
   display:inline-flex;
   color:var(--gold2);
   border:1px solid var(--line);
-  background:rgba(0,0,0,.42);
-  padding:8px 14px;
+  background:rgba(0,0,0,.40);
+  padding:7px 13px;
   border-radius:999px;
-  font-size:12px;
+  font-size:11px;
   font-weight:900;
   text-transform:uppercase;
-  margin-bottom:18px;
+  margin-bottom:14px;
 }
 
 h1{
   font-family:Cinzel,serif;
-  font-size:clamp(32px,4vw,52px);
-  line-height:1.05;
+  font-size:clamp(28px,3.2vw,38px);
+  line-height:1.08;
   font-weight:600;
-  margin-bottom:16px;
+  margin-bottom:14px;
+  max-width:540px;
 }
 
-h1 span,h2 span,.gold{color:var(--gold2)}
+h1 span,
+h2 span{
+  color:var(--gold2);
+}
 
 .lead{
-  color:#eef2f2;
-  font-size:17px;
-  max-width:590px;
-  margin-bottom:22px;
+  color:#edf2f2;
+  font-size:15px;
+  max-width:500px;
+  margin-bottom:18px;
 }
 
-.simulator{
-  max-width:600px;
+.btn-secondary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   border:1px solid var(--line);
-  background:rgba(3,8,9,.78);
+  color:var(--gold2);
+  background:rgba(0,0,0,.34);
+  border-radius:999px;
+  padding:11px 18px;
+  font-weight:800;
+  font-size:13px;
+  min-height:42px;
+}
+
+/* SIMULADOR */
+
+.simulator{
+  border:1px solid var(--line);
+  background:rgba(3,8,9,.82);
   border-radius:22px;
-  padding:20px;
-  backdrop-filter:blur(7px);
+  padding:22px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
 }
 
 .simulator h2{
   font-family:Cinzel,serif;
-  font-size:23px;
+  font-size:26px;
   line-height:1.1;
-  margin-bottom:8px;
+  margin-bottom:6px;
 }
 
-.simulator p{
+.simulator .intro{
   color:var(--muted);
   font-size:14px;
   margin-bottom:16px;
 }
 
-.sim-buttons{
+.select-label{
+  display:block;
+  color:var(--gold2);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+
+.invest-options{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(4,1fr);
   gap:10px;
   margin-bottom:16px;
 }
 
-.sim-buttons button{
+.invest-options button,
+.invest-options a{
+  min-height:58px;
   border:1px solid var(--line);
-  background:rgba(0,0,0,.35);
+  background:rgba(0,0,0,.32);
   color:#fff;
-  border-radius:16px;
-  padding:15px;
+  border-radius:18px;
   cursor:pointer;
-  transition:.2s;
   font-weight:900;
-  font-size:24px;
+  font-size:22px;
+  transition:.2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
 }
 
-.sim-buttons button:hover,
-.sim-buttons button.active{
+.invest-options a{
+  font-size:14px;
+  color:var(--gold2);
+  padding:0 10px;
+}
+
+.invest-options button:hover,
+.invest-options button.active,
+.invest-options a:hover{
   border-color:rgba(243,210,123,.85);
-  background:rgba(214,168,79,.10);
+  background:rgba(214,168,79,.12);
   transform:translateY(-2px);
 }
 
 .result{
-  border:1px solid rgba(243,210,123,.42);
-  background:rgba(0,0,0,.32);
-  border-radius:18px;
+  display:none;
+  border:1px solid rgba(243,210,123,.46);
+  background:rgba(0,0,0,.36);
+  border-radius:20px;
   padding:18px;
-  display:grid;
   grid-template-columns:1fr auto;
   gap:18px;
   align-items:center;
+}
+
+.result.show{
+  display:grid;
 }
 
 .result small{
@@ -195,171 +255,87 @@ h1 span,h2 span,.gold{color:var(--gold2)}
 .result strong{
   display:block;
   font-family:Cinzel,serif;
-  font-size:32px;
+  font-size:34px;
   line-height:1;
+  margin-bottom:6px;
 }
 
 .result p{
-  margin:7px 0 0;
+  color:var(--muted);
   font-size:13px;
 }
 
 .safe{
   color:var(--muted);
-  font-size:12px;
+  font-size:11px;
   margin-top:10px;
 }
 
-section{padding:42px 0}
+/* SEÇÕES COMPACTAS */
 
-.section-title{
-  max-width:760px;
-  margin:0 auto 24px;
-  text-align:center;
+section{
+  padding:38px 0;
 }
 
-h2{
-  font-family:Cinzel,serif;
-  font-size:clamp(25px,3vw,38px);
-  line-height:1.1;
-  font-weight:600;
-  margin-bottom:10px;
-}
-
-.section-title p{
-  color:var(--muted);
-  font-size:15px;
-}
-
-.vs{
+.quick-grid{
   display:grid;
-  grid-template-columns:1fr auto 1fr;
+  grid-template-columns:1fr 1fr;
   gap:16px;
-  align-items:stretch;
 }
 
-.vs-card{
+.info-card{
   border:1px solid var(--line);
   background:linear-gradient(180deg,rgba(12,18,19,.92),rgba(3,7,8,.98));
   border-radius:20px;
   padding:22px;
 }
 
-.vs-card.danger{border-color:rgba(255,90,90,.26)}
-.vs-card.success{border-color:rgba(214,168,79,.50)}
-
-.vs-card small{
+.info-card small{
   display:block;
-  font-size:12px;
+  font-size:11px;
   font-weight:900;
   text-transform:uppercase;
-  margin-bottom:9px;
+  margin-bottom:8px;
 }
 
-.danger small{color:#ff7474}
-.success small{color:var(--gold2)}
+.info-card.danger small{color:#ff7474}
+.info-card.success small{color:var(--gold2)}
 
-.vs-card h3{
-  font-size:27px;
-  margin-bottom:13px;
+.info-card h3{
+  font-size:24px;
+  margin-bottom:10px;
 }
 
-.vs-card ul{
-  list-style:none;
-  display:grid;
-  gap:9px;
+.info-card p{
   color:var(--muted);
   font-size:15px;
 }
 
-.vs-card li::before{
-  content:"• ";
-  color:var(--gold2);
-}
-
-.vs-center{
-  width:52px;
-  height:52px;
-  align-self:center;
-  border:1px solid var(--line);
-  border-radius:50%;
-  color:var(--gold2);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  background:#050505;
-}
-
-.grid-3{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:15px;
-}
-
-.card{
-  border:1px solid var(--line);
-  background:linear-gradient(180deg,#101819,#050708);
-  border-radius:20px;
-  padding:21px;
-}
-
-.card.featured{
-  border-color:rgba(243,210,123,.72);
-  box-shadow:0 0 28px rgba(214,168,79,.10);
-}
-
-.card small{
-  color:var(--muted);
-  font-size:11px;
-  font-weight:900;
-  text-transform:uppercase;
-}
-
-.card h3{
-  font-size:28px;
-  margin:10px 0 12px;
-}
-
-.card h3 span{color:var(--gold2)}
-
-.euro{
-  color:var(--gold2);
-  font-size:36px;
-  font-weight:900;
-  line-height:1;
-  margin-bottom:10px;
-}
-
-.euro span{font-size:14px}
-
-.card p{
-  color:var(--muted);
-  font-size:14px;
-}
-
-.note{
-  color:var(--muted);
-  font-size:12px;
-  text-align:center;
-  margin-top:14px;
-}
-
 .cta{
+  margin-top:18px;
   border:1px solid var(--line);
-  border-radius:24px;
-  padding:26px;
+  border-radius:22px;
+  padding:22px;
   background:linear-gradient(90deg,rgba(214,168,79,.13),rgba(0,0,0,.76));
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:24px;
+  display:flex;
+  justify-content:space-between;
   align-items:center;
+  gap:18px;
+}
+
+.cta h2{
+  font-family:Cinzel,serif;
+  font-size:26px;
+  line-height:1.12;
 }
 
 .cta p{
   color:var(--muted);
-  font-size:15px;
+  font-size:14px;
+  margin-top:4px;
 }
+
+/* MOBILE */
 
 @media(max-width:900px){
   header{
@@ -371,50 +347,57 @@ h2{
     flex-direction:column;
   }
 
-  .top-title{display:none}
-  .brand img{height:40px}
+  .header-text{
+    display:none;
+  }
 
-  .btn,.btn-outline{width:100%}
+  .brand img{
+    height:38px;
+  }
+
+  .header-btn,
+  .btn,
+  .btn-secondary{
+    width:100%;
+  }
 
   .hero{
     min-height:auto;
     background:
-      linear-gradient(180deg,rgba(0,0,0,.20),rgba(2,8,9,.76) 38%,rgba(0,0,0,.98)),
+      linear-gradient(180deg,rgba(0,0,0,.18),rgba(2,8,9,.78) 36%,rgba(0,0,0,.98)),
       url("/imagens/irlanda-hero.webp") center/cover no-repeat;
   }
 
-  .hero-content{
-    padding:82px 0 38px;
+  .hero-grid{
+    grid-template-columns:1fr;
+    gap:22px;
+    padding:58px 0 30px;
   }
 
   h1{
-    font-size:32px;
+    font-size:30px;
   }
 
   .lead{
-    font-size:16px;
+    font-size:15px;
   }
 
-  .sim-buttons{
-    grid-template-columns:1fr;
+  .invest-options{
+    grid-template-columns:1fr 1fr;
   }
 
   .result,
+  .quick-grid{
+    grid-template-columns:1fr;
+  }
+
   .cta{
-    grid-template-columns:1fr;
-  }
-
-  .vs,
-  .grid-3{
-    grid-template-columns:1fr;
-  }
-
-  .vs-center{
-    margin:auto;
+    flex-direction:column;
+    text-align:center;
   }
 
   section{
-    padding:38px 0;
+    padding:32px 0;
   }
 }
 </style>
@@ -425,183 +408,143 @@ h2{
 <header>
   <div class="wrap header-inner">
     <a class="brand" href="/">
-      <img src="/imagens/logo.png" alt="Luan Especialista">
+      <img src="/logo.png" alt="Luan Especialista">
     </a>
 
-    <div class="top-title">
-      <span>Renda passiva no Brasil</span> para brasileiros na Irlanda
+    <div class="header-text">
+      <span>Estratégia patrimonial</span> para brasileiros na Irlanda
     </div>
 
-    <a class="btn-outline" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20entender%20essa%20estrat%C3%A9gia." target="_blank">
-      Falar com especialista
+    <a class="header-btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20entender%20essa%20estrat%C3%A9gia." target="_blank">
+      Falar no WhatsApp
     </a>
   </div>
 </header>
 
 <main class="hero">
-  <div class="wrap">
-    <div class="hero-content">
-      <div class="tag">🇮🇪 Para brasileiros que moram na Irlanda</div>
+  <div class="wrap hero-grid">
+
+    <div>
+      <div class="tag">🇮🇪 Brasileiros na Irlanda</div>
 
       <h1>
-        Enquanto muitos usam o euro para sobreviver na Irlanda,
-        <span>outros usam para construir patrimônio no Brasil.</span>
+        Use parte do euro que você ganha na Irlanda para construir
+        <span>patrimônio no Brasil.</span>
       </h1>
 
       <p class="lead">
-        Escolha quanto você consegue investir por mês e veja uma possibilidade aproximada de patrimônio no Brasil.
+        Em vez de deixar todo o dinheiro desaparecer no custo de vida, veja uma possibilidade aproximada de transformar renda em patrimônio.
       </p>
 
-      <div class="simulator">
-        <h2>Quanto você consegue investir?</h2>
-        <p>Toque em um valor e veja o potencial aproximado no Brasil.</p>
+      <a class="btn-secondary" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20falar%20com%20um%20especialista." target="_blank">
+        Falar com especialista
+      </a>
+    </div>
 
-        <div class="sim-buttons">
-          <button type="button" class="active" onclick="showResult(300,this)">€300</button>
-          <button type="button" onclick="showResult(500,this)">€500</button>
-          <button type="button" onclick="showResult(700,this)">€700</button>
-        </div>
+    <div class="simulator">
+      <h2>Quanto você consegue investir?</h2>
+      <p class="intro">Selecione um valor mensal em euro.</p>
 
-        <div id="result" class="result">
-          <div>
-            <small>Patrimônio aproximado no Brasil</small>
-            <strong>R$ 400 mil</strong>
-            <p>Com €300 por mês, você já pode iniciar uma estratégia patrimonial.</p>
-          </div>
+      <span class="select-label">Selecione</span>
 
-          <a class="btn" href="https://wa.me/5547992120915?text=Quero%20investir%20300%20Euros%20por%20m%C3%AAs%20morando%20na%20Irlanda." target="_blank">
-            Quero investir €300
-          </a>
-        </div>
+      <div class="invest-options">
+        <button type="button" onclick="selectInvestment(300,this)">€300</button>
+        <button type="button" onclick="selectInvestment(500,this)">€500</button>
+        <button type="button" onclick="selectInvestment(700,this)">€700</button>
+
+        <a href="https://wa.me/5547992120915?text=Quero%20investir%20mais%20-%20Irlanda" target="_blank">
+          Outro valor
+        </a>
       </div>
 
-      <div class="safe">Valores aproximados. Atendimento personalizado e análise conforme perfil.</div>
+      <div id="result" class="result">
+        <div>
+          <small>Patrimônio aproximado no Brasil</small>
+          <strong id="result-credit">R$ 400 mil</strong>
+          <p id="result-text">Com €300 por mês, você pode mirar uma estratégia próxima de R$ 400 mil.</p>
+        </div>
+
+        <a id="result-whatsapp" class="btn" href="#" target="_blank">
+          Quero investir €300
+        </a>
+      </div>
+
+      <div class="safe">
+        Valores aproximados. Sujeito à análise de perfil, crédito e condições vigentes.
+      </div>
     </div>
+
   </div>
 </main>
 
 <section>
   <div class="wrap">
-    <div class="section-title">
-      <h2>O destino do seu euro é uma <span>escolha.</span></h2>
-      <p>A mesma renda pode desaparecer na rotina ou entrar em uma estratégia de patrimônio.</p>
-    </div>
-
-    <div class="vs">
-      <div class="vs-card danger">
+    <div class="quick-grid">
+      <div class="info-card danger">
         <small>Sem estratégia</small>
-        <h3>O euro desaparece</h3>
-        <ul>
-          <li>Aluguel alto</li>
-          <li>Mercado, contas e transporte</li>
-          <li>Rotina pesada e pouco sobra</li>
-          <li>Anos passam sem construir nada próprio</li>
-        </ul>
+        <h3>O euro desaparece.</h3>
+        <p>Aluguel, mercado, contas e rotina consomem sua renda mês após mês.</p>
       </div>
 
-      <div class="vs-center">VS</div>
-
-      <div class="vs-card success">
+      <div class="info-card success">
         <small>Com estratégia</small>
-        <h3>O euro constrói</h3>
-        <ul>
-          <li>Patrimônio no Brasil</li>
-          <li>Imóvel que pode gerar renda</li>
-          <li>Segurança para sua família</li>
-          <li>Mais liberdade financeira no futuro</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="section-title">
-      <h2>Referências rápidas para visualizar a oportunidade</h2>
-      <p>Valores aproximados usando o euro como vantagem estratégica.</p>
-    </div>
-
-    <div class="grid-3">
-      <div class="card">
-        <small>Investindo por mês</small>
-        <h3>€300</h3>
-        <div class="euro">R$ 400 <span>mil</span></div>
-        <p>Primeiro passo para construir patrimônio no Brasil.</p>
-      </div>
-
-      <div class="card featured">
-        <small>Investindo por mês</small>
-        <h3>€500</h3>
-        <div class="euro">R$ 700 <span>mil</span></div>
-        <p>Equilíbrio entre parcela, patrimônio e oportunidade.</p>
-      </div>
-
-      <div class="card">
-        <small>Investindo por mês</small>
-        <h3>€700</h3>
-        <div class="euro">R$ 1 <span>milhão</span></div>
-        <p>Estrutura patrimonial mais robusta para o futuro.</p>
+        <h3>O euro constrói.</h3>
+        <p>Parte da sua renda pode ser direcionada para patrimônio, imóvel e renda futura no Brasil.</p>
       </div>
     </div>
 
-    <div class="note">
-      Estimativas aproximadas. Sujeito à análise de crédito, perfil e condições vigentes.
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
     <div class="cta">
       <div>
-        <h2>Você não precisa mudar sua vida na Irlanda. Apenas suas <span>decisões financeiras.</span></h2>
-        <p>Me chame no WhatsApp e veja qual estratégia faz sentido para seu momento.</p>
+        <h2>Você não precisa mudar sua vida na Irlanda.</h2>
+        <p>Precisa apenas usar melhor parte do que já ganha em euro.</p>
       </div>
 
-      <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20entender%20qual%20estrat%C3%A9gia%20faz%20sentido%20para%20meu%20perfil." target="_blank">
-        Falar com Luan agora
+      <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20analisar%20meu%20perfil%20para%20investir%20no%20Brasil." target="_blank">
+        Analisar meu perfil
       </a>
     </div>
   </div>
 </section>
 
 <script>
-function showResult(value, button){
-  const data = {
+function selectInvestment(value, button){
+  const options = {
     300: {
       credit: 'R$ 400 mil',
-      text: 'Com €300 por mês, você já pode iniciar uma estratégia patrimonial.',
-      msg: 'Quero%20investir%20300%20Euros%20por%20m%C3%AAs%20morando%20na%20Irlanda.'
+      text: 'Com €300 por mês, você pode mirar uma estratégia próxima de R$ 400 mil.',
+      whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20300%20Euros%20-%20Irlanda',
+      label: 'Quero investir €300'
     },
     500: {
       credit: 'R$ 700 mil',
-      text: 'Com €500 por mês, você pode mirar uma estratégia de aproximadamente R$ 700 mil.',
-      msg: 'Quero%20investir%20500%20Euros%20por%20m%C3%AAs%20morando%20na%20Irlanda.'
+      text: 'Com €500 por mês, você pode mirar uma estratégia próxima de R$ 700 mil.',
+      whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20500%20Euros%20-%20Irlanda',
+      label: 'Quero investir €500'
     },
     700: {
       credit: 'R$ 1 milhão',
-      text: 'Com €700 por mês, você pode mirar uma estrutura patrimonial mais robusta.',
-      msg: 'Quero%20investir%20700%20Euros%20por%20m%C3%AAs%20morando%20na%20Irlanda.'
+      text: 'Com €700 por mês, você pode mirar uma estratégia próxima de R$ 1 milhão.',
+      whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20700%20Euros%20-%20Irlanda',
+      label: 'Quero investir €700'
     }
   };
 
-  document.querySelectorAll('.sim-buttons button').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.invest-options button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
   button.classList.add('active');
 
-  const item = data[value];
+  const item = options[value];
 
-  document.getElementById('result').innerHTML = `
-    <div>
-      <small>Patrimônio aproximado no Brasil</small>
-      <strong>${item.credit}</strong>
-      <p>${item.text}</p>
-    </div>
+  document.getElementById('result-credit').textContent = item.credit;
+  document.getElementById('result-text').textContent = item.text;
 
-    <a class="btn" href="https://wa.me/5547992120915?text=${item.msg}" target="_blank">
-      Quero investir €${value}
-    </a>
-  `;
+  const whatsappBtn = document.getElementById('result-whatsapp');
+  whatsappBtn.href = item.whatsapp;
+  whatsappBtn.textContent = item.label;
+
+  document.getElementById('result').classList.add('show');
 }
 </script>
 
