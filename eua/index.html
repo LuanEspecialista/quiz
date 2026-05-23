@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Luan Especialista | EUA</title>
 
@@ -27,7 +27,7 @@ overflow-x:hidden;
 .hero{
 position:relative;
 min-height:100vh;
-padding:32px 6%;
+padding:34px 6%;
 display:flex;
 flex-direction:column;
 justify-content:space-between;
@@ -38,14 +38,16 @@ overflow:hidden;
 content:'';
 position:absolute;
 inset:0;
+
 background:
 linear-gradient(
 90deg,
-rgba(0,0,0,.88) 0%,
-rgba(0,0,0,.68) 38%,
-rgba(0,0,0,.45) 100%
+rgba(0,0,0,.90) 0%,
+rgba(0,0,0,.74) 34%,
+rgba(0,0,0,.48) 100%
 ),
 url('../imagens/hero-eua.webp');
+
 background-size:cover;
 background-position:center right;
 z-index:-2;
@@ -56,7 +58,7 @@ content:'';
 position:absolute;
 inset:0;
 background:
-radial-gradient(circle at top left, rgba(214,180,106,.10), transparent 35%);
+radial-gradient(circle at left top, rgba(214,180,106,.12), transparent 30%);
 z-index:-1;
 }
 
@@ -67,22 +69,24 @@ justify-content:space-between;
 }
 
 .logo{
-width:132px;
+width:148px;
 height:auto;
 }
 
 .btn-topo{
-display:inline-flex;
+height:52px;
+padding:0 28px;
+border-radius:999px;
+display:flex;
 align-items:center;
 justify-content:center;
-padding:14px 26px;
 border:1px solid rgba(214,180,106,.45);
-border-radius:999px;
+background:rgba(0,0,0,.18);
+backdrop-filter:blur(12px);
+color:#e4be72;
 text-decoration:none;
-color:#e8c278;
-font-size:14px;
+font-size:15px;
 font-weight:600;
-backdrop-filter:blur(10px);
 transition:.2s;
 }
 
@@ -93,107 +97,220 @@ transform:translateY(-1px);
 
 .center{
 width:100%;
-max-width:1240px;
+max-width:1320px;
 margin:auto;
 display:grid;
-grid-template-columns:1fr 430px;
+grid-template-columns:1fr 450px;
 gap:70px;
 align-items:center;
 }
 
 .left small{
 display:block;
-color:#d6b46a;
 font-size:13px;
-letter-spacing:1.5px;
-margin-bottom:20px;
 font-weight:600;
+letter-spacing:2px;
+color:#d6b46a;
+margin-bottom:20px;
 }
 
 .left h1{
-font-size:clamp(44px,6vw,82px);
-line-height:.96;
+font-size:clamp(52px,7vw,92px);
+line-height:.92;
 font-weight:800;
+letter-spacing:-4px;
 max-width:720px;
-margin-bottom:24px;
-letter-spacing:-3px;
+margin-bottom:28px;
+}
+
+.gold{
+color:#d6b46a;
 }
 
 .left p{
-font-size:18px;
+font-size:19px;
 line-height:1.7;
-color:#d9d9d9;
-max-width:560px;
+color:#e0e0e0;
+max-width:620px;
+margin-bottom:42px;
+}
+
+.beneficios{
+display:grid;
+grid-template-columns:repeat(2, minmax(180px,1fr));
+gap:22px;
+max-width:640px;
+}
+
+.item{
+background:rgba(15,15,15,.48);
+border:1px solid rgba(214,180,106,.14);
+backdrop-filter:blur(10px);
+border-radius:22px;
+padding:22px;
+}
+
+.item h3{
+font-size:15px;
+margin-bottom:8px;
+color:#f5f5f5;
+}
+
+.item p{
+font-size:14px;
+line-height:1.6;
+color:#bfbfbf;
+margin:0;
 }
 
 .flags{
 display:flex;
-gap:10px;
-margin-top:34px;
+gap:12px;
+margin-top:32px;
 }
 
 .flag{
-width:52px;
-height:52px;
-border-radius:16px;
-background:rgba(255,255,255,.08);
-border:1px solid rgba(255,255,255,.08);
+width:58px;
+height:58px;
+border-radius:18px;
+background:rgba(15,15,15,.62);
+border:1px solid rgba(255,255,255,.06);
+backdrop-filter:blur(10px);
 display:flex;
 align-items:center;
 justify-content:center;
-font-size:24px;
-backdrop-filter:blur(10px);
+font-size:27px;
 }
 
 .card{
-background:rgba(17,17,17,.58);
+background:rgba(12,12,12,.60);
+border:1px solid rgba(214,180,106,.16);
 backdrop-filter:blur(18px);
-border:1px solid rgba(214,180,106,.20);
-border-radius:30px;
-padding:32px;
+border-radius:34px;
+padding:34px;
 box-shadow:
 0 10px 40px rgba(0,0,0,.45),
 inset 0 1px 0 rgba(255,255,255,.04);
 }
 
-.card h3{
+.card-top{
+width:64px;
+height:64px;
+border-radius:20px;
+margin:auto;
+margin-bottom:20px;
+border:1px solid rgba(214,180,106,.28);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:28px;
+color:#d6b46a;
+background:rgba(214,180,106,.05);
+}
+
+.card h2{
 font-size:18px;
-font-weight:600;
-margin-bottom:18px;
-color:#f2f2f2;
+line-height:1.5;
+text-align:center;
+margin-bottom:26px;
+font-weight:700;
 }
 
 .select{
 width:100%;
-height:62px;
-padding:0 18px;
-border-radius:16px;
-background:#0b0b0b;
-border:1px solid rgba(214,180,106,.25);
+height:64px;
+padding:0 20px;
+border-radius:18px;
+background:#090909;
+border:1px solid rgba(214,180,106,.22);
 color:#fff;
 font-size:16px;
 outline:none;
-margin-bottom:22px;
+margin-bottom:24px;
 }
 
 .resultado{
-min-height:62px;
+display:none;
+animation:fade .35s ease;
+}
+
+.resultado.active{
+display:block;
+}
+
+@keyframes fade{
+from{
+opacity:0;
+transform:translateY(8px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+.linha{
+width:100%;
+height:1px;
+background:rgba(255,255,255,.06);
+margin:24px 0;
+}
+
+.resultado small{
+display:block;
+font-size:13px;
+letter-spacing:1px;
+color:#d6b46a;
+margin-bottom:10px;
+font-weight:600;
+}
+
+.valor{
+font-size:42px;
+font-weight:800;
+line-height:1;
+margin-bottom:16px;
+letter-spacing:-2px;
+}
+
+.texto{
+font-size:15px;
+line-height:1.7;
+color:#d3d3d3;
+margin-bottom:22px;
+}
+
+.lista{
+display:flex;
+flex-direction:column;
+gap:12px;
+margin-bottom:28px;
+}
+
+.lista span{
+font-size:14px;
+color:#e5e5e5;
 display:flex;
 align-items:center;
-font-size:22px;
-font-weight:700;
-color:#e3bf74;
-margin-bottom:22px;
-line-height:1.3;
+gap:10px;
+}
+
+.lista span::before{
+content:'';
+width:7px;
+height:7px;
+border-radius:999px;
+background:#d6b46a;
+display:block;
 }
 
 .cta{
 width:100%;
-height:60px;
-border-radius:18px;
+height:62px;
 border:none;
+border-radius:18px;
 background:#d6b46a;
-color:#080808;
+color:#090909;
 font-size:16px;
 font-weight:800;
 cursor:pointer;
@@ -208,19 +325,29 @@ filter:brightness(1.04);
 .footer{
 display:flex;
 justify-content:center;
-gap:24px;
+align-items:center;
+gap:26px;
 flex-wrap:wrap;
-padding-top:40px;
+padding-top:42px;
 font-size:13px;
-color:#bbbbbb;
+color:#d0d0d0;
 }
 
 .footer a{
-color:#bbbbbb;
 text-decoration:none;
+color:#d0d0d0;
 }
 
-@media(max-width:980px){
+.site{
+width:100%;
+text-align:center;
+padding-top:14px;
+font-size:15px;
+letter-spacing:6px;
+color:#d6b46a;
+}
+
+@media(max-width:1080px){
 
 .hero{
 padding:24px;
@@ -228,54 +355,61 @@ padding:24px;
 
 .center{
 grid-template-columns:1fr;
-gap:50px;
+gap:60px;
 padding-top:40px;
 }
 
 .left h1{
+font-size:62px;
 max-width:100%;
-font-size:58px;
 }
 
 .left p{
 font-size:16px;
 }
 
+.beneficios{
+grid-template-columns:1fr;
+}
+
 .card{
 max-width:100%;
-}
-
-.topo{
-align-items:flex-start;
-}
-
-.logo{
-width:112px;
-}
-
-.btn-topo{
-padding:12px 18px;
-font-size:13px;
 }
 
 .hero::before{
 background:
 linear-gradient(
 180deg,
-rgba(0,0,0,.82) 0%,
-rgba(0,0,0,.70) 40%,
+rgba(0,0,0,.84) 0%,
+rgba(0,0,0,.72) 42%,
 rgba(0,0,0,.84) 100%
 ),
 url('../imagens/hero-eua.webp');
+
 background-size:cover;
 background-position:center;
 }
 
+.logo{
+width:122px;
+}
+
+.btn-topo{
+height:46px;
+padding:0 18px;
+font-size:13px;
+}
+
 .footer{
 justify-content:flex-start;
-gap:10px;
+gap:12px;
 font-size:12px;
-padding-bottom:10px;
+}
+
+.site{
+text-align:left;
+font-size:13px;
+letter-spacing:4px;
 }
 
 }
@@ -290,12 +424,12 @@ padding-bottom:10px;
 <div class="topo">
 
 <a href="https://luan-especialista.pro">
-<img src="../imagens/logo.png" class="logo" alt="Luan Especialista">
+<img src="../imagens/logo.png" class="logo">
 </a>
 
 <a
 class="btn-topo"
-href="https://wa.me/5547992120915?text=Olá,%20Luan.%20Moro%20nos%20EUA%20e%20quero%20entender%20as%20estratégias%20patrimoniais."
+href="https://wa.me/5547992120915?text=Olá,%20Luan.%20Moro%20nos%20EUA%20e%20quero%20entender%20as%20estratégias."
 target="_blank">
 Falar com especialista
 </a>
@@ -306,20 +440,61 @@ Falar com especialista
 
 <div class="left">
 
-<small>BRASILEIROS NOS ESTADOS UNIDOS</small>
+<small>
+BRASILEIROS NOS ESTADOS UNIDOS
+</small>
 
 <h1>
 Invista no Brasil<br>
-ganhando em dólar.
+<span class="gold">ganhando em dólar.</span>
 </h1>
 
 <p>
 Brasileiros nos EUA estão utilizando o poder do dólar para construir patrimônio no Brasil através de estratégias patrimoniais inteligentes.
 </p>
 
+<div class="beneficios">
+
+<div class="item">
+<h3>Patrimônio</h3>
+<p>
+Estratégias para construção patrimonial de longo prazo no Brasil.
+</p>
+</div>
+
+<div class="item">
+<h3>Imóveis</h3>
+<p>
+Possibilidades imobiliárias acessíveis para brasileiros no exterior.
+</p>
+</div>
+
+<div class="item">
+<h3>Proteção</h3>
+<p>
+Estrutura financeira inteligente para você e sua família.
+</p>
+</div>
+
+<div class="item">
+<h3>Planejamento</h3>
+<p>
+Organização patrimonial para quem ganha em moeda forte.
+</p>
+</div>
+
+</div>
+
 <div class="flags">
-<div class="flag">🇺🇸</div>
-<div class="flag">🇧🇷</div>
+
+<div class="flag">
+🇺🇸
+</div>
+
+<div class="flag">
+🇧🇷
+</div>
+
 </div>
 
 </div>
@@ -328,11 +503,19 @@ Brasileiros nos EUA estão utilizando o poder do dólar para construir patrimôn
 
 <div class="card">
 
-<h3>Quanto você consegue investir por mês?</h3>
+<div class="card-top">
+$
+</div>
 
-<select id="valor" class="select">
+<h2>
+Quanto você consegue investir por mês?
+</h2>
 
-<option value="">Selecionar</option>
+<select class="select" id="valor">
+
+<option value="">
+Selecionar
+</option>
 
 <option value="400">
 $350/mês
@@ -353,7 +536,25 @@ Outro valor
 </select>
 
 <div class="resultado" id="resultado">
-Selecione uma opção
+
+<div class="linha"></div>
+
+<small>
+POTENCIAL ESTIMADO NO BRASIL
+</small>
+
+<div class="valor" id="valorTexto">
+R$ 400.000,00
+</div>
+
+<div class="texto">
+Estratégias patrimoniais inteligentes para brasileiros que vivem nos Estados Unidos.
+</div>
+
+<div class="lista">
+<span>Construção patrimonial</span>
+<span>Estratégias imobiliárias</span>
+<span>Planejamento de longo prazo</span>
 </div>
 
 <button class="cta" id="cta">
@@ -365,6 +566,10 @@ Falar com especialista
 </div>
 
 </div>
+
+</div>
+
+<div>
 
 <div class="footer">
 
@@ -382,34 +587,41 @@ contato@luan-especialista.pro
 
 </div>
 
+<div class="site">
+luan-especialista.pro
+</div>
+
+</div>
+
 </section>
 
 <script>
 
 const select = document.getElementById('valor');
 const resultado = document.getElementById('resultado');
+const valorTexto = document.getElementById('valorTexto');
 const cta = document.getElementById('cta');
 
 const dados = {
 
-400: {
-texto:'Até R$ 400.000,00',
+400:{
+valor:'R$ 400.000,00',
 msg:'Olá, Luan. Moro nos EUA e quero entender a estratégia para acessar até R$ 400.000,00 no Brasil.'
 },
 
-700: {
-texto:'Até R$ 700.000,00',
+700:{
+valor:'R$ 700.000,00',
 msg:'Olá, Luan. Moro nos EUA e quero entender a estratégia para acessar até R$ 700.000,00 no Brasil.'
 },
 
-1000: {
-texto:'Até R$ 1.000.000,00',
+1000:{
+valor:'R$ 1.000.000,00',
 msg:'Olá, Luan. Moro nos EUA e quero entender a estratégia para acessar até R$ 1.000.000,00 no Brasil.'
 },
 
-outro: {
-texto:'Estratégia personalizada',
-msg:'Olá, Luan. Moro nos EUA e quero entender uma estratégia personalizada para investir no Brasil.'
+outro:{
+valor:'Estratégia personalizada',
+msg:'Olá, Luan. Moro nos EUA e quero entender uma estratégia personalizada.'
 }
 
 };
@@ -420,25 +632,23 @@ const valor = select.value;
 
 if(!valor){
 
-resultado.innerHTML = 'Selecione uma opção';
-
-cta.onclick = () => {
-window.open(
-'https://wa.me/5547992120915?text=Olá,%20Luan.%20Moro%20nos%20EUA%20e%20quero%20entender%20como%20investir%20no%20Brasil.',
-'_blank'
-);
-};
+resultado.classList.remove('active');
 
 return;
+
 }
 
-resultado.innerHTML = dados[valor].texto;
+resultado.classList.add('active');
+
+valorTexto.innerHTML = dados[valor].valor;
 
 cta.onclick = () => {
+
 window.open(
 'https://wa.me/5547992120915?text=' + encodeURIComponent(dados[valor].msg),
 '_blank'
 );
+
 };
 
 }
