@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luan Especialista | Brasil + EUA</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #070707;
+      color: #fff;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.95), rgba(0,0,0,.68)),
+        url("imagens/hero-eua.webp") center right / cover no-repeat;
+      padding: 28px 6%;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      width: 118px;
+      height: auto;
+    }
+
+    .flags {
+      font-size: 14px;
+      color: #d6b46a;
+      letter-spacing: .5px;
+    }
+
+    main {
+      max-width: 520px;
+      margin-top: 40px;
+    }
+
+    .tag {
+      display: inline-block;
+      color: #d6b46a;
+      font-size: 13px;
+      margin-bottom: 14px;
+      letter-spacing: .5px;
+    }
+
+    h1 {
+      font-size: clamp(30px, 5vw, 54px);
+      line-height: 1.02;
+      margin-bottom: 16px;
+      font-weight: 800;
+    }
+
+    p {
+      color: #d8d8d8;
+      font-size: 16px;
+      line-height: 1.5;
+      margin-bottom: 26px;
+      max-width: 430px;
+    }
+
+    .box {
+      background: rgba(15,15,15,.82);
+      border: 1px solid rgba(214,180,106,.35);
+      border-radius: 18px;
+      padding: 20px;
+      max-width: 390px;
+      backdrop-filter: blur(8px);
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: #f2f2f2;
+    }
+
+    select {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: 1px solid rgba(214,180,106,.45);
+      background: #0b0b0b;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      margin-bottom: 14px;
+    }
+
+    .result {
+      color: #d6b46a;
+      font-size: 17px;
+      font-weight: 700;
+      min-height: 28px;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      background: #d6b46a;
+      color: #080808;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 15px;
+      transition: .2s;
+    }
+
+    .btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    footer {
+      font-size: 13px;
+      color: #bdbdbd;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-top: 40px;
+    }
+
+    footer span {
+      white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+      .page {
+        background:
+          linear-gradient(180deg, rgba(0,0,0,.90), rgba(0,0,0,.74)),
+          url("imagens/hero-eua.webp") center top / cover no-repeat;
+        padding: 22px;
+      }
+
+      header {
+        align-items: flex-start;
+      }
+
+      .logo {
+        width: 104px;
+      }
+
+      main {
+        margin-top: 70px;
+      }
+
+      h1 {
+        max-width: 360px;
+      }
+
+      .box {
+        margin-top: 20px;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 8px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header>
+      <img src="imagens/logo.png" alt="Luan Especialista" class="logo">
+      <div class="flags">🇺🇸 EUA → 🇧🇷 Brasil</div>
+    </header>
+
+    <main>
+      <span class="tag">BRASILEIROS NOS ESTADOS UNIDOS</span>
+
+      <h1>Invista no Brasil ganhando em dólar.</h1>
+
+      <p>
+        Transforme parte da sua renda nos EUA em uma estratégia patrimonial no Brasil,
+        com potencial para acessar créditos de alto valor.
+      </p>
+
+      <div class="box">
+        <label for="investimento">Quanto você consegue investir por mês?</label>
+
+        <select id="investimento">
+          <option value="">Selecionar</option>
+          <option value="400">$350/mês</option>
+          <option value="700">$550/mês</option>
+          <option value="1000">$800/mês</option>
+          <option value="outro">Outro valor</option>
+        </select>
+
+        <div class="result" id="resultado">
+          Selecione uma opção
+        </div>
+
+        <a id="whatsapp" class="btn" href="#" target="_blank">
+          Falar com especialista
+        </a>
+      </div>
+    </main>
+
+    <footer>
+      <span>contato@luan-especialista.pro</span>
+      <span>47 99212-0915</span>
+      <span>Instagram: @luan.especialista</span>
+    </footer>
+  </div>
+
+  <script>
+    const select = document.getElementById("investimento");
+    const resultado = document.getElementById("resultado");
+    const whatsapp = document.getElementById("whatsapp");
+
+    const telefone = "5547992120915";
+
+    const dados = {
+      "400": {
+        texto: "$350/mês → até R$ 400.000,00",
+        msg: "Olá, Luan. Moro nos EUA e quero entender a estratégia para investir cerca de $350/mês e acessar até R$ 400.000,00 no Brasil."
+      },
+      "700": {
+        texto: "$550/mês → até R$ 700.000,00",
+        msg: "Olá, Luan. Moro nos EUA e quero entender a estratégia para investir cerca de $550/mês e acessar até R$ 700.000,00 no Brasil."
+      },
+      "1000": {
+        texto: "$800/mês → até R$ 1.000.000,00",
+        msg: "Olá, Luan. Moro nos EUA e quero entender a estratégia para investir cerca de $800/mês e acessar até R$ 1.000.000,00 no Brasil."
+      },
+      "outro": {
+        texto: "Vamos calcular uma estratégia personalizada.",
+        msg: "Olá, Luan. Moro nos EUA e quero calcular uma estratégia personalizada para investir no Brasil ganhando em dólar."
+      }
+    };
+
+    function atualizar() {
+      const valor = select.value;
+
+      if (!valor) {
+        resultado.textContent = "Selecione uma opção";
+        whatsapp.href = `https://wa.me/${telefone}?text=${encodeURIComponent("Olá, Luan. Moro nos EUA e quero entender como investir no Brasil ganhando em dólar.")}`;
+        return;
+      }
+
+      resultado.textContent = dados[valor].texto;
+      whatsapp.href = `https://wa.me/${telefone}?text=${encodeURIComponent(dados[valor].msg)}`;
+    }
+
+    select.addEventListener("change", atualizar);
+    atualizar();
+  </script>
+</body>
+</html>
