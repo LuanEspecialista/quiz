@@ -3,34 +3,44 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Brasileiros na Irlanda | Luan Especialista</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
+
 :root{
   --bg:#030607;
   --gold:#d6a84f;
   --gold2:#f3d27b;
-  --text:#fff;
+  --text:#ffffff;
   --muted:#b8c2c4;
-  --line:rgba(214,168,79,.30);
+  --line:rgba(214,168,79,.28);
   --max:1180px;
 }
 
-*{margin:0;padding:0;box-sizing:border-box}
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
 
 body{
   background:var(--bg);
   color:var(--text);
   font-family:Inter,Arial,sans-serif;
-  line-height:1.35;
   overflow-x:hidden;
+  line-height:1.35;
 }
 
-a{text-decoration:none;color:inherit}
+a{
+  text-decoration:none;
+  color:inherit;
+}
 
 .wrap{
   width:min(92%,var(--max));
@@ -40,7 +50,7 @@ a{text-decoration:none;color:inherit}
 /* HEADER */
 
 header{
-  height:64px;
+  height:62px;
   background:rgba(0,0,0,.88);
   border-bottom:1px solid var(--line);
   position:sticky;
@@ -58,65 +68,79 @@ header{
 }
 
 .brand img{
-  height:40px;
+  height:38px;
   width:auto;
   display:block;
 }
 
 .header-text{
-  font-size:12px;
+  font-size:11px;
   font-weight:900;
   text-transform:uppercase;
-  letter-spacing:.4px;
+  letter-spacing:.5px;
   color:var(--muted);
 }
 
-.header-text span{color:var(--gold2)}
+.header-text span{
+  color:var(--gold2);
+}
 
-.header-btn,
 .btn{
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  min-height:40px;
+  padding:10px 18px;
   border-radius:999px;
-  background:linear-gradient(135deg,var(--gold2),#a87522);
-  color:#050505;
-  font-weight:900;
-  font-size:13px;
-  min-height:42px;
-  padding:11px 18px;
   border:0;
   cursor:pointer;
+  font-size:13px;
+  font-weight:900;
+  background:linear-gradient(135deg,var(--gold2),#a87522);
+  color:#050505;
+}
+
+.btn-outline{
+  border:1px solid var(--line);
+  background:rgba(0,0,0,.30);
+  color:var(--gold2);
 }
 
 /* HERO */
 
 .hero{
-  min-height:520px;
+  min-height:460px;
   display:flex;
   align-items:center;
   background:
-    linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(3,8,9,.78) 45%,rgba(0,0,0,.20) 100%),
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,.90) 0%,
+      rgba(3,8,9,.72) 42%,
+      rgba(0,0,0,.18) 100%
+    ),
     url("/imagens/irlanda-hero.webp") center/cover no-repeat;
+
   border-bottom:1px solid var(--line);
 }
 
 .hero-grid{
   display:grid;
-  grid-template-columns:.92fr 1.08fr;
-  gap:34px;
+  grid-template-columns:.95fr 1.05fr;
+  gap:26px;
   align-items:center;
-  padding:34px 0;
+  padding:26px 0;
 }
 
 .tag{
   display:inline-flex;
+  align-items:center;
   color:var(--gold2);
   border:1px solid var(--line);
-  background:rgba(0,0,0,.40);
-  padding:7px 13px;
+  background:rgba(0,0,0,.35);
+  padding:7px 12px;
   border-radius:999px;
-  font-size:11px;
+  font-size:10px;
   font-weight:900;
   text-transform:uppercase;
   margin-bottom:14px;
@@ -124,118 +148,111 @@ header{
 
 h1{
   font-family:Cinzel,serif;
-  font-size:clamp(28px,3.2vw,38px);
+  font-size:clamp(26px,2.8vw,34px);
   line-height:1.08;
   font-weight:600;
+  max-width:500px;
   margin-bottom:14px;
-  max-width:540px;
 }
 
-h1 span,
-h2 span{
+h1 span{
   color:var(--gold2);
 }
 
 .lead{
   color:#edf2f2;
-  font-size:15px;
-  max-width:500px;
-  margin-bottom:18px;
+  font-size:14px;
+  max-width:470px;
+  margin-bottom:16px;
 }
 
-.btn-secondary{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border:1px solid var(--line);
-  color:var(--gold2);
-  background:rgba(0,0,0,.34);
-  border-radius:999px;
-  padding:11px 18px;
-  font-weight:800;
-  font-size:13px;
-  min-height:42px;
+.left-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
 /* SIMULADOR */
 
 .simulator{
+  max-width:520px;
   border:1px solid var(--line);
-  background:rgba(3,8,9,.82);
-  border-radius:22px;
-  padding:22px;
+  background:rgba(3,8,9,.78);
+  border-radius:18px;
+  padding:16px;
   backdrop-filter:blur(8px);
-  box-shadow:0 18px 50px rgba(0,0,0,.35);
 }
 
 .simulator h2{
   font-family:Cinzel,serif;
-  font-size:26px;
+  font-size:21px;
   line-height:1.1;
-  margin-bottom:6px;
+  margin-bottom:4px;
 }
 
 .simulator .intro{
   color:var(--muted);
-  font-size:14px;
-  margin-bottom:16px;
+  font-size:13px;
+  margin-bottom:12px;
 }
 
 .select-label{
   display:block;
   color:var(--gold2);
-  font-size:11px;
+  font-size:10px;
   font-weight:900;
   text-transform:uppercase;
-  margin-bottom:10px;
+  margin-bottom:8px;
 }
 
 .invest-options{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:10px;
-  margin-bottom:16px;
+  gap:8px;
+  margin-bottom:12px;
 }
 
 .invest-options button,
 .invest-options a{
-  min-height:58px;
+  min-height:44px;
+  border-radius:13px;
   border:1px solid var(--line);
-  background:rgba(0,0,0,.32);
+  background:rgba(0,0,0,.28);
   color:#fff;
-  border-radius:18px;
   cursor:pointer;
-  font-weight:900;
-  font-size:22px;
   transition:.2s;
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
+  font-weight:900;
+}
+
+.invest-options button{
+  font-size:18px;
 }
 
 .invest-options a{
-  font-size:14px;
+  font-size:12px;
   color:var(--gold2);
-  padding:0 10px;
+  padding:0 8px;
 }
 
 .invest-options button:hover,
 .invest-options button.active,
 .invest-options a:hover{
   border-color:rgba(243,210,123,.85);
-  background:rgba(214,168,79,.12);
-  transform:translateY(-2px);
+  background:rgba(214,168,79,.10);
 }
 
 .result{
   display:none;
-  border:1px solid rgba(243,210,123,.46);
-  background:rgba(0,0,0,.36);
-  border-radius:20px;
-  padding:18px;
+  border:1px solid rgba(243,210,123,.42);
+  background:rgba(0,0,0,.32);
+  border-radius:15px;
+  padding:14px;
   grid-template-columns:1fr auto;
-  gap:18px;
+  gap:12px;
   align-items:center;
 }
 
@@ -246,101 +263,128 @@ h2 span{
 .result small{
   display:block;
   color:var(--gold2);
-  font-size:11px;
+  font-size:10px;
   font-weight:900;
   text-transform:uppercase;
-  margin-bottom:6px;
+  margin-bottom:4px;
 }
 
 .result strong{
   display:block;
   font-family:Cinzel,serif;
-  font-size:34px;
+  font-size:26px;
   line-height:1;
-  margin-bottom:6px;
+  margin-bottom:4px;
 }
 
 .result p{
   color:var(--muted);
+  font-size:12px;
+}
+
+.result .btn{
+  min-height:40px;
+  padding:10px 16px;
   font-size:13px;
 }
 
 .safe{
   color:var(--muted);
-  font-size:11px;
-  margin-top:10px;
+  font-size:10px;
+  margin-top:8px;
 }
 
-/* SEÇÕES COMPACTAS */
+/* BOTTOM */
 
 section{
-  padding:38px 0;
+  padding:30px 0;
 }
 
 .quick-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:16px;
+  gap:14px;
 }
 
 .info-card{
   border:1px solid var(--line);
-  background:linear-gradient(180deg,rgba(12,18,19,.92),rgba(3,7,8,.98));
-  border-radius:20px;
-  padding:22px;
+  background:linear-gradient(
+    180deg,
+    rgba(12,18,19,.92),
+    rgba(3,7,8,.98)
+  );
+
+  border-radius:18px;
+  padding:18px;
 }
 
 .info-card small{
   display:block;
-  font-size:11px;
+  font-size:10px;
   font-weight:900;
   text-transform:uppercase;
-  margin-bottom:8px;
+  margin-bottom:6px;
 }
 
-.info-card.danger small{color:#ff7474}
-.info-card.success small{color:var(--gold2)}
+.info-card.danger small{
+  color:#ff7272;
+}
+
+.info-card.success small{
+  color:var(--gold2);
+}
 
 .info-card h3{
-  font-size:24px;
-  margin-bottom:10px;
+  font-size:20px;
+  margin-bottom:8px;
 }
 
 .info-card p{
   color:var(--muted);
-  font-size:15px;
+  font-size:14px;
 }
 
 .cta{
-  margin-top:18px;
+  margin-top:14px;
   border:1px solid var(--line);
-  border-radius:22px;
-  padding:22px;
-  background:linear-gradient(90deg,rgba(214,168,79,.13),rgba(0,0,0,.76));
+  border-radius:18px;
+  padding:18px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(214,168,79,.10),
+      rgba(0,0,0,.72)
+    );
+
   display:flex;
-  justify-content:space-between;
   align-items:center;
+  justify-content:space-between;
   gap:18px;
 }
 
 .cta h2{
   font-family:Cinzel,serif;
-  font-size:26px;
-  line-height:1.12;
+  font-size:24px;
+  line-height:1.1;
+  margin-bottom:4px;
+}
+
+.cta h2 span{
+  color:var(--gold2);
 }
 
 .cta p{
   color:var(--muted);
-  font-size:14px;
-  margin-top:4px;
+  font-size:13px;
 }
 
 /* MOBILE */
 
 @media(max-width:900px){
+
   header{
     height:auto;
-    padding:12px 0;
+    padding:10px 0;
   }
 
   .header-inner{
@@ -351,35 +395,37 @@ section{
     display:none;
   }
 
-  .brand img{
-    height:38px;
-  }
-
-  .header-btn,
   .btn,
-  .btn-secondary{
+  .btn-outline{
     width:100%;
   }
 
   .hero{
     min-height:auto;
+
     background:
-      linear-gradient(180deg,rgba(0,0,0,.18),rgba(2,8,9,.78) 36%,rgba(0,0,0,.98)),
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.16),
+        rgba(2,8,9,.78) 36%,
+        rgba(0,0,0,.98)
+      ),
+
       url("/imagens/irlanda-hero.webp") center/cover no-repeat;
   }
 
   .hero-grid{
     grid-template-columns:1fr;
-    gap:22px;
-    padding:58px 0 30px;
+    gap:18px;
+    padding:50px 0 26px;
   }
 
   h1{
-    font-size:30px;
+    font-size:28px;
   }
 
   .lead{
-    font-size:15px;
+    font-size:14px;
   }
 
   .invest-options{
@@ -397,9 +443,11 @@ section{
   }
 
   section{
-    padding:32px 0;
+    padding:24px 0;
   }
+
 }
+
 </style>
 </head>
 
@@ -407,6 +455,7 @@ section{
 
 <header>
   <div class="wrap header-inner">
+
     <a class="brand" href="/">
       <img src="/logo.png" alt="Luan Especialista">
     </a>
@@ -415,118 +464,234 @@ section{
       <span>Estratégia patrimonial</span> para brasileiros na Irlanda
     </div>
 
-    <a class="header-btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20entender%20essa%20estrat%C3%A9gia." target="_blank">
+    <a
+      class="btn btn-outline"
+      href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20entender%20essa%20estrat%C3%A9gia."
+      target="_blank">
+
       Falar no WhatsApp
     </a>
+
   </div>
 </header>
 
 <main class="hero">
+
   <div class="wrap hero-grid">
 
+    <!-- ESQUERDA -->
+
     <div>
-      <div class="tag">🇮🇪 Brasileiros na Irlanda</div>
+
+      <div class="tag">
+        🇮🇪 Brasileiros na Irlanda
+      </div>
 
       <h1>
-        Use parte do euro que você ganha na Irlanda para construir
+        Transforme parte do euro que você ganha na Irlanda em
         <span>patrimônio no Brasil.</span>
       </h1>
 
       <p class="lead">
-        Em vez de deixar todo o dinheiro desaparecer no custo de vida, veja uma possibilidade aproximada de transformar renda em patrimônio.
+        Em vez de deixar todo o dinheiro desaparecer no custo de vida europeu,
+        veja uma possibilidade aproximada de patrimônio no Brasil.
       </p>
 
-      <a class="btn-secondary" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20falar%20com%20um%20especialista." target="_blank">
-        Falar com especialista
-      </a>
+      <div class="left-actions">
+
+        <a
+          class="btn"
+          href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20falar%20com%20um%20especialista."
+          target="_blank">
+
+          Falar com especialista
+        </a>
+
+      </div>
+
     </div>
 
-    <div class="simulator">
-      <h2>Quanto você consegue investir?</h2>
-      <p class="intro">Selecione um valor mensal em euro.</p>
+    <!-- DIREITA -->
 
-      <span class="select-label">Selecione</span>
+    <div class="simulator">
+
+      <h2>Quanto você consegue investir?</h2>
+
+      <p class="intro">
+        Selecione um valor mensal em euro.
+      </p>
+
+      <span class="select-label">
+        Selecione
+      </span>
 
       <div class="invest-options">
-        <button type="button" onclick="selectInvestment(300,this)">€300</button>
-        <button type="button" onclick="selectInvestment(500,this)">€500</button>
-        <button type="button" onclick="selectInvestment(700,this)">€700</button>
 
-        <a href="https://wa.me/5547992120915?text=Quero%20investir%20mais%20-%20Irlanda" target="_blank">
-          Outro valor
+        <button
+          type="button"
+          onclick="selectInvestment(300,this)">
+
+          €300
+        </button>
+
+        <button
+          type="button"
+          onclick="selectInvestment(500,this)">
+
+          €500
+        </button>
+
+        <button
+          type="button"
+          onclick="selectInvestment(700,this)">
+
+          €700
+        </button>
+
+        <a
+          href="https://wa.me/5547992120915?text=Quero%20investir%20mais%20-%20Irlanda"
+          target="_blank">
+
+          Outro
         </a>
+
       </div>
 
       <div id="result" class="result">
+
         <div>
-          <small>Patrimônio aproximado no Brasil</small>
-          <strong id="result-credit">R$ 400 mil</strong>
-          <p id="result-text">Com €300 por mês, você pode mirar uma estratégia próxima de R$ 400 mil.</p>
+
+          <small>
+            Patrimônio aproximado no Brasil
+          </small>
+
+          <strong id="result-credit">
+            R$ 400 mil
+          </strong>
+
+          <p id="result-text">
+            Possibilidade aproximada para quem deseja investir €300 por mês.
+          </p>
+
         </div>
 
-        <a id="result-whatsapp" class="btn" href="#" target="_blank">
+        <a
+          id="result-whatsapp"
+          class="btn"
+          href="#"
+          target="_blank">
+
           Quero investir €300
         </a>
+
       </div>
 
       <div class="safe">
-        Valores aproximados. Sujeito à análise de perfil, crédito e condições vigentes.
+        Valores aproximados sujeitos à análise de perfil e crédito.
       </div>
+
     </div>
 
   </div>
+
 </main>
 
 <section>
+
   <div class="wrap">
+
     <div class="quick-grid">
+
       <div class="info-card danger">
-        <small>Sem estratégia</small>
-        <h3>O euro desaparece.</h3>
-        <p>Aluguel, mercado, contas e rotina consomem sua renda mês após mês.</p>
+
+        <small>
+          Sem estratégia
+        </small>
+
+        <h3>
+          O euro desaparece.
+        </h3>
+
+        <p>
+          Aluguel, contas e rotina acabam consumindo grande parte da renda.
+        </p>
+
       </div>
 
       <div class="info-card success">
-        <small>Com estratégia</small>
-        <h3>O euro constrói.</h3>
-        <p>Parte da sua renda pode ser direcionada para patrimônio, imóvel e renda futura no Brasil.</p>
+
+        <small>
+          Com estratégia
+        </small>
+
+        <h3>
+          O euro constrói.
+        </h3>
+
+        <p>
+          Parte da sua renda pode virar patrimônio e renda futura no Brasil.
+        </p>
+
       </div>
+
     </div>
 
     <div class="cta">
+
       <div>
-        <h2>Você não precisa mudar sua vida na Irlanda.</h2>
-        <p>Precisa apenas usar melhor parte do que já ganha em euro.</p>
+
+        <h2>
+          Você não precisa mudar sua vida na Irlanda.
+          Apenas suas <span>decisões financeiras.</span>
+        </h2>
+
+        <p>
+          Descubra uma possibilidade alinhada ao seu momento atual.
+        </p>
+
       </div>
 
-      <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20analisar%20meu%20perfil%20para%20investir%20no%20Brasil." target="_blank">
+      <a
+        class="btn"
+        href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20na%20Irlanda%20e%20quero%20analisar%20meu%20perfil."
+        target="_blank">
+
         Analisar meu perfil
       </a>
+
     </div>
+
   </div>
+
 </section>
 
 <script>
+
 function selectInvestment(value, button){
+
   const options = {
+
     300: {
       credit: 'R$ 400 mil',
-      text: 'Com €300 por mês, você pode mirar uma estratégia próxima de R$ 400 mil.',
+      text: 'Possibilidade aproximada para quem deseja investir €300 por mês.',
       whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20300%20Euros%20-%20Irlanda',
       label: 'Quero investir €300'
     },
+
     500: {
       credit: 'R$ 700 mil',
-      text: 'Com €500 por mês, você pode mirar uma estratégia próxima de R$ 700 mil.',
+      text: 'Possibilidade aproximada para quem deseja investir €500 por mês.',
       whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20500%20Euros%20-%20Irlanda',
       label: 'Quero investir €500'
     },
+
     700: {
       credit: 'R$ 1 milhão',
-      text: 'Com €700 por mês, você pode mirar uma estratégia próxima de R$ 1 milhão.',
+      text: 'Possibilidade aproximada para quem deseja investir €700 por mês.',
       whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20700%20Euros%20-%20Irlanda',
       label: 'Quero investir €700'
     }
+
   };
 
   document.querySelectorAll('.invest-options button').forEach(btn => {
@@ -538,14 +703,19 @@ function selectInvestment(value, button){
   const item = options[value];
 
   document.getElementById('result-credit').textContent = item.credit;
+
   document.getElementById('result-text').textContent = item.text;
 
   const whatsappBtn = document.getElementById('result-whatsapp');
+
   whatsappBtn.href = item.whatsapp;
+
   whatsappBtn.textContent = item.label;
 
   document.getElementById('result').classList.add('show');
+
 }
+
 </script>
 
 </body>
