@@ -1,265 +1,451 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Luan Especialista | Brasil + EUA</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+<title>Luan Especialista | EUA</title>
 
-    body {
-      font-family: Arial, sans-serif;
-      background: #070707;
-      color: #fff;
-    }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    .page {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      background:
-        linear-gradient(90deg, rgba(0,0,0,.95), rgba(0,0,0,.68)),
-        url("imagens/hero-eua.webp") center right / cover no-repeat;
-      padding: 28px 6%;
-    }
+<style>
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
 
-    .logo {
-      width: 118px;
-      height: auto;
-    }
+body{
+font-family:'Inter',sans-serif;
+background:#050505;
+color:#fff;
+overflow-x:hidden;
+}
 
-    .flags {
-      font-size: 14px;
-      color: #d6b46a;
-      letter-spacing: .5px;
-    }
+.hero{
+position:relative;
+min-height:100vh;
+padding:32px 6%;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+overflow:hidden;
+}
 
-    main {
-      max-width: 520px;
-      margin-top: 40px;
-    }
+.hero::before{
+content:'';
+position:absolute;
+inset:0;
+background:
+linear-gradient(
+90deg,
+rgba(0,0,0,.88) 0%,
+rgba(0,0,0,.68) 38%,
+rgba(0,0,0,.45) 100%
+),
+url('../imagens/hero-eua.webp');
+background-size:cover;
+background-position:center right;
+z-index:-2;
+}
 
-    .tag {
-      display: inline-block;
-      color: #d6b46a;
-      font-size: 13px;
-      margin-bottom: 14px;
-      letter-spacing: .5px;
-    }
+.hero::after{
+content:'';
+position:absolute;
+inset:0;
+background:
+radial-gradient(circle at top left, rgba(214,180,106,.10), transparent 35%);
+z-index:-1;
+}
 
-    h1 {
-      font-size: clamp(30px, 5vw, 54px);
-      line-height: 1.02;
-      margin-bottom: 16px;
-      font-weight: 800;
-    }
+.topo{
+display:flex;
+align-items:center;
+justify-content:space-between;
+}
 
-    p {
-      color: #d8d8d8;
-      font-size: 16px;
-      line-height: 1.5;
-      margin-bottom: 26px;
-      max-width: 430px;
-    }
+.logo{
+width:132px;
+height:auto;
+}
 
-    .box {
-      background: rgba(15,15,15,.82);
-      border: 1px solid rgba(214,180,106,.35);
-      border-radius: 18px;
-      padding: 20px;
-      max-width: 390px;
-      backdrop-filter: blur(8px);
-    }
+.btn-topo{
+display:inline-flex;
+align-items:center;
+justify-content:center;
+padding:14px 26px;
+border:1px solid rgba(214,180,106,.45);
+border-radius:999px;
+text-decoration:none;
+color:#e8c278;
+font-size:14px;
+font-weight:600;
+backdrop-filter:blur(10px);
+transition:.2s;
+}
 
-    label {
-      display: block;
-      font-size: 14px;
-      margin-bottom: 10px;
-      color: #f2f2f2;
-    }
+.btn-topo:hover{
+background:rgba(214,180,106,.08);
+transform:translateY(-1px);
+}
 
-    select {
-      width: 100%;
-      padding: 13px;
-      border-radius: 12px;
-      border: 1px solid rgba(214,180,106,.45);
-      background: #0b0b0b;
-      color: #fff;
-      font-size: 15px;
-      outline: none;
-      margin-bottom: 14px;
-    }
+.center{
+width:100%;
+max-width:1240px;
+margin:auto;
+display:grid;
+grid-template-columns:1fr 430px;
+gap:70px;
+align-items:center;
+}
 
-    .result {
-      color: #d6b46a;
-      font-size: 17px;
-      font-weight: 700;
-      min-height: 28px;
-      margin-bottom: 16px;
-    }
+.left small{
+display:block;
+color:#d6b46a;
+font-size:13px;
+letter-spacing:1.5px;
+margin-bottom:20px;
+font-weight:600;
+}
 
-    .btn {
-      display: block;
-      text-align: center;
-      text-decoration: none;
-      background: #d6b46a;
-      color: #080808;
-      padding: 14px;
-      border-radius: 12px;
-      font-weight: 800;
-      font-size: 15px;
-      transition: .2s;
-    }
+.left h1{
+font-size:clamp(44px,6vw,82px);
+line-height:.96;
+font-weight:800;
+max-width:720px;
+margin-bottom:24px;
+letter-spacing:-3px;
+}
 
-    .btn:hover {
-      filter: brightness(1.08);
-      transform: translateY(-1px);
-    }
+.left p{
+font-size:18px;
+line-height:1.7;
+color:#d9d9d9;
+max-width:560px;
+}
 
-    footer {
-      font-size: 13px;
-      color: #bdbdbd;
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      margin-top: 40px;
-    }
+.flags{
+display:flex;
+gap:10px;
+margin-top:34px;
+}
 
-    footer span {
-      white-space: nowrap;
-    }
+.flag{
+width:52px;
+height:52px;
+border-radius:16px;
+background:rgba(255,255,255,.08);
+border:1px solid rgba(255,255,255,.08);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:24px;
+backdrop-filter:blur(10px);
+}
 
-    @media (max-width: 768px) {
-      .page {
-        background:
-          linear-gradient(180deg, rgba(0,0,0,.90), rgba(0,0,0,.74)),
-          url("imagens/hero-eua.webp") center top / cover no-repeat;
-        padding: 22px;
-      }
+.card{
+background:rgba(17,17,17,.58);
+backdrop-filter:blur(18px);
+border:1px solid rgba(214,180,106,.20);
+border-radius:30px;
+padding:32px;
+box-shadow:
+0 10px 40px rgba(0,0,0,.45),
+inset 0 1px 0 rgba(255,255,255,.04);
+}
 
-      header {
-        align-items: flex-start;
-      }
+.card h3{
+font-size:18px;
+font-weight:600;
+margin-bottom:18px;
+color:#f2f2f2;
+}
 
-      .logo {
-        width: 104px;
-      }
+.select{
+width:100%;
+height:62px;
+padding:0 18px;
+border-radius:16px;
+background:#0b0b0b;
+border:1px solid rgba(214,180,106,.25);
+color:#fff;
+font-size:16px;
+outline:none;
+margin-bottom:22px;
+}
 
-      main {
-        margin-top: 70px;
-      }
+.resultado{
+min-height:62px;
+display:flex;
+align-items:center;
+font-size:22px;
+font-weight:700;
+color:#e3bf74;
+margin-bottom:22px;
+line-height:1.3;
+}
 
-      h1 {
-        max-width: 360px;
-      }
+.cta{
+width:100%;
+height:60px;
+border-radius:18px;
+border:none;
+background:#d6b46a;
+color:#080808;
+font-size:16px;
+font-weight:800;
+cursor:pointer;
+transition:.2s;
+}
 
-      .box {
-        margin-top: 20px;
-      }
+.cta:hover{
+transform:translateY(-2px);
+filter:brightness(1.04);
+}
 
-      footer {
-        flex-direction: column;
-        gap: 8px;
-        font-size: 12px;
-      }
-    }
-  </style>
+.footer{
+display:flex;
+justify-content:center;
+gap:24px;
+flex-wrap:wrap;
+padding-top:40px;
+font-size:13px;
+color:#bbbbbb;
+}
+
+.footer a{
+color:#bbbbbb;
+text-decoration:none;
+}
+
+@media(max-width:980px){
+
+.hero{
+padding:24px;
+}
+
+.center{
+grid-template-columns:1fr;
+gap:50px;
+padding-top:40px;
+}
+
+.left h1{
+max-width:100%;
+font-size:58px;
+}
+
+.left p{
+font-size:16px;
+}
+
+.card{
+max-width:100%;
+}
+
+.topo{
+align-items:flex-start;
+}
+
+.logo{
+width:112px;
+}
+
+.btn-topo{
+padding:12px 18px;
+font-size:13px;
+}
+
+.hero::before{
+background:
+linear-gradient(
+180deg,
+rgba(0,0,0,.82) 0%,
+rgba(0,0,0,.70) 40%,
+rgba(0,0,0,.84) 100%
+),
+url('../imagens/hero-eua.webp');
+background-size:cover;
+background-position:center;
+}
+
+.footer{
+justify-content:flex-start;
+gap:10px;
+font-size:12px;
+padding-bottom:10px;
+}
+
+}
+
+</style>
 </head>
 
 <body>
-  <div class="page">
-    <header>
-      <img src="imagens/logo.png" alt="Luan Especialista" class="logo">
-      <div class="flags">🇺🇸 EUA → 🇧🇷 Brasil</div>
-    </header>
 
-    <main>
-      <span class="tag">BRASILEIROS NOS ESTADOS UNIDOS</span>
+<section class="hero">
 
-      <h1>Invista no Brasil ganhando em dólar.</h1>
+<div class="topo">
 
-      <p>
-        Transforme parte da sua renda nos EUA em uma estratégia patrimonial no Brasil,
-        com potencial para acessar créditos de alto valor.
-      </p>
+<a href="https://luan-especialista.pro">
+<img src="../imagens/logo.png" class="logo" alt="Luan Especialista">
+</a>
 
-      <div class="box">
-        <label for="investimento">Quanto você consegue investir por mês?</label>
+<a
+class="btn-topo"
+href="https://wa.me/5547992120915?text=Olá,%20Luan.%20Moro%20nos%20EUA%20e%20quero%20entender%20as%20estratégias%20patrimoniais."
+target="_blank">
+Falar com especialista
+</a>
 
-        <select id="investimento">
-          <option value="">Selecionar</option>
-          <option value="400">$350/mês</option>
-          <option value="700">$550/mês</option>
-          <option value="1000">$800/mês</option>
-          <option value="outro">Outro valor</option>
-        </select>
+</div>
 
-        <div class="result" id="resultado">
-          Selecione uma opção
-        </div>
+<div class="center">
 
-        <a id="whatsapp" class="btn" href="#" target="_blank">
-          Falar com especialista
-        </a>
-      </div>
-    </main>
+<div class="left">
 
-    <footer>
-      <span>contato@luan-especialista.pro</span>
-      <span>47 99212-0915</span>
-      <span>Instagram: @luan.especialista</span>
-    </footer>
-  </div>
+<small>BRASILEIROS NOS ESTADOS UNIDOS</small>
 
-  <script>
-    const select = document.getElementById("investimento");
-    const resultado = document.getElementById("resultado");
-    const whatsapp = document.getElementById("whatsapp");
+<h1>
+Invista no Brasil<br>
+ganhando em dólar.
+</h1>
 
-    const telefone = "5547992120915";
+<p>
+Brasileiros nos EUA estão utilizando o poder do dólar para construir patrimônio no Brasil através de estratégias patrimoniais inteligentes.
+</p>
 
-    const dados = {
-      "400": {
-        texto: "$350/mês → até R$ 400.000,00",
-        msg: "Olá, Luan. Moro nos EUA e quero entender a estratégia para investir cerca de $350/mês e acessar até R$ 400.000,00 no Brasil."
-      },
-      "700": {
-        texto: "$550/mês → até R$ 700.000,00",
-        msg: "Olá, Luan. Moro nos EUA e quero entender a estratégia para investir cerca de $550/mês e acessar até R$ 700.000,00 no Brasil."
-      },
-      "1000": {
-        texto: "$800/mês → até R$ 1.000.000,00",
-        msg: "Olá, Luan. Moro nos EUA e quero entender a estratégia para investir cerca de $800/mês e acessar até R$ 1.000.000,00 no Brasil."
-      },
-      "outro": {
-        texto: "Vamos calcular uma estratégia personalizada.",
-        msg: "Olá, Luan. Moro nos EUA e quero calcular uma estratégia personalizada para investir no Brasil ganhando em dólar."
-      }
-    };
+<div class="flags">
+<div class="flag">🇺🇸</div>
+<div class="flag">🇧🇷</div>
+</div>
 
-    function atualizar() {
-      const valor = select.value;
+</div>
 
-      if (!valor) {
-        resultado.textContent = "Selecione uma opção";
-        whatsapp.href = `https://wa.me/${telefone}?text=${encodeURIComponent("Olá, Luan. Moro nos EUA e quero entender como investir no Brasil ganhando em dólar.")}`;
-        return;
-      }
+<div class="right">
 
-      resultado.textContent = dados[valor].texto;
-      whatsapp.href = `https://wa.me/${telefone}?text=${encodeURIComponent(dados[valor].msg)}`;
-    }
+<div class="card">
 
-    select.addEventListener("change", atualizar);
-    atualizar();
-  </script>
+<h3>Quanto você consegue investir por mês?</h3>
+
+<select id="valor" class="select">
+
+<option value="">Selecionar</option>
+
+<option value="400">
+$350/mês
+</option>
+
+<option value="700">
+$550/mês
+</option>
+
+<option value="1000">
+$800/mês
+</option>
+
+<option value="outro">
+Outro valor
+</option>
+
+</select>
+
+<div class="resultado" id="resultado">
+Selecione uma opção
+</div>
+
+<button class="cta" id="cta">
+Falar com especialista
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="footer">
+
+<a href="mailto:contato@luan-especialista.pro">
+contato@luan-especialista.pro
+</a>
+
+<span>
+47 99212-0915
+</span>
+
+<a href="https://instagram.com/luan.especialista" target="_blank">
+@luan.especialista
+</a>
+
+</div>
+
+</section>
+
+<script>
+
+const select = document.getElementById('valor');
+const resultado = document.getElementById('resultado');
+const cta = document.getElementById('cta');
+
+const dados = {
+
+400: {
+texto:'Até R$ 400.000,00',
+msg:'Olá, Luan. Moro nos EUA e quero entender a estratégia para acessar até R$ 400.000,00 no Brasil.'
+},
+
+700: {
+texto:'Até R$ 700.000,00',
+msg:'Olá, Luan. Moro nos EUA e quero entender a estratégia para acessar até R$ 700.000,00 no Brasil.'
+},
+
+1000: {
+texto:'Até R$ 1.000.000,00',
+msg:'Olá, Luan. Moro nos EUA e quero entender a estratégia para acessar até R$ 1.000.000,00 no Brasil.'
+},
+
+outro: {
+texto:'Estratégia personalizada',
+msg:'Olá, Luan. Moro nos EUA e quero entender uma estratégia personalizada para investir no Brasil.'
+}
+
+};
+
+function atualizar(){
+
+const valor = select.value;
+
+if(!valor){
+
+resultado.innerHTML = 'Selecione uma opção';
+
+cta.onclick = () => {
+window.open(
+'https://wa.me/5547992120915?text=Olá,%20Luan.%20Moro%20nos%20EUA%20e%20quero%20entender%20como%20investir%20no%20Brasil.',
+'_blank'
+);
+};
+
+return;
+}
+
+resultado.innerHTML = dados[valor].texto;
+
+cta.onclick = () => {
+window.open(
+'https://wa.me/5547992120915?text=' + encodeURIComponent(dados[valor].msg),
+'_blank'
+);
+};
+
+}
+
+select.addEventListener('change', atualizar);
+
+</script>
+
 </body>
 </html>
