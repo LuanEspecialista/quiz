@@ -7,708 +7,387 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
-
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-    }
-
-    body{
-      background:#050505;
-      color:#fff;
-      font-family:'Inter',sans-serif;
-      overflow-x:hidden;
-    }
-
-    a{
-      text-decoration:none;
-      color:inherit;
-    }
-
-    img{
-      max-width:100%;
-      display:block;
-    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#050505;color:#fff;font-family:Inter,sans-serif;overflow-x:hidden}
+    a{text-decoration:none;color:inherit}
+    img{display:block;width:100%}
 
     :root{
       --gold:#d4a24c;
-      --border:rgba(212,162,76,.25);
-      --glass:rgba(255,255,255,.03);
+      --line:rgba(212,162,76,.32);
+      --muted:rgba(255,255,255,.68);
     }
 
-    .container{
-      width:100%;
-      max-width:1280px;
-      margin:auto;
-      padding:0 24px;
-    }
-
-    /* HEADER */
+    .container{max-width:1200px;margin:auto;padding:0 26px}
 
     header{
-      position:fixed;
-      top:0;
-      left:0;
-      width:100%;
-      z-index:999;
-      backdrop-filter:blur(12px);
-      background:rgba(0,0,0,.45);
-      border-bottom:1px solid rgba(255,255,255,.04);
+      position:fixed;top:0;left:0;width:100%;z-index:10;
+      background:rgba(0,0,0,.72);backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(255,255,255,.06)
     }
 
-    .header-content{
-      height:84px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
+    .nav{
+      height:72px;display:flex;align-items:center;justify-content:space-between;gap:30px
     }
 
-    .logo{
-      display:flex;
-      align-items:center;
-      gap:14px;
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:38px}
+    .brand-text{line-height:1}
+    .brand-text strong{
+      font-family:"Cormorant Garamond",serif;
+      font-size:25px;font-weight:600;letter-spacing:1px
+    }
+    .brand-text span{
+      display:block;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.58);margin-top:4px
     }
 
-    .logo img{
-      width:42px;
-    }
+    nav{display:flex;gap:34px;font-size:14px}
+    nav a.active{color:var(--gold);border-bottom:1px solid var(--gold);padding-bottom:18px}
 
-    .logo span{
-      font-family:'Cormorant Garamond',serif;
-      font-size:30px;
-      letter-spacing:.5px;
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      border:1px solid var(--line);color:#f2c36b;
+      border-radius:12px;padding:13px 22px;
+      font-size:14px;font-weight:600;background:rgba(0,0,0,.25)
     }
-
-    .logo span strong{
-      color:var(--gold);
-      font-weight:600;
-    }
-
-    .cta-top{
-      border:1px solid var(--gold);
-      color:var(--gold);
-      padding:14px 28px;
-      border-radius:999px;
-      font-size:14px;
-      transition:.3s;
-    }
-
-    .cta-top:hover{
-      background:var(--gold);
-      color:#000;
-    }
-
-    /* HERO */
 
     .hero{
-      position:relative;
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      overflow:hidden;
-    }
-
-    .hero-bg{
-      position:absolute;
-      inset:0;
+      position:relative;min-height:640px;padding:120px 0 70px;overflow:hidden;
       background:
-      linear-gradient(to right, rgba(0,0,0,.88), rgba(0,0,0,.45)),
-      url('estrategias-patrimoniais/1.webp') center/cover no-repeat;
+      linear-gradient(90deg,rgba(0,0,0,.90) 0%,rgba(0,0,0,.58) 44%,rgba(0,0,0,.35) 100%),
+      url("1.png") center/cover no-repeat;
     }
 
-    .hero-overlay{
-      position:absolute;
-      inset:0;
-      background:linear-gradient(to bottom, rgba(0,0,0,.2), #050505);
+    .hero:after{
+      content:"";position:absolute;inset:0;
+      background:linear-gradient(to bottom,rgba(0,0,0,0),#050505 96%);
+      pointer-events:none;
     }
 
-    .hero-content{
-      position:relative;
-      z-index:2;
-      width:100%;
-      display:grid;
-      grid-template-columns:1.1fr .7fr;
-      gap:70px;
-      align-items:center;
-      padding-top:90px;
+    .hero-inner{
+      position:relative;z-index:1;
+      display:grid;grid-template-columns:1.1fr .72fr;
+      gap:70px;align-items:center
     }
 
-    .hero-text h1{
-      font-family:'Cormorant Garamond',serif;
-      font-size:82px;
-      line-height:.95;
-      font-weight:500;
-      margin-bottom:28px;
-      max-width:760px;
+    h1{
+      font-family:"Cormorant Garamond",serif;
+      font-size:clamp(42px,5vw,64px);
+      line-height:.98;font-weight:500;max-width:610px;margin-bottom:22px
     }
 
-    .hero-text h1 span{
-      color:var(--gold);
+    h1 span,.gold{color:var(--gold)}
+
+    .lead{
+      max-width:500px;color:rgba(255,255,255,.78);
+      font-size:16px;line-height:1.7;margin-bottom:30px
     }
 
-    .hero-text p{
-      max-width:560px;
-      font-size:18px;
-      line-height:1.8;
-      color:rgba(255,255,255,.75);
-      margin-bottom:42px;
+    .selector{
+      background:rgba(9,9,9,.76);border:1px solid var(--line);
+      border-radius:24px;padding:28px;backdrop-filter:blur(12px)
     }
 
-    .hero-btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      border:1px solid var(--gold);
-      color:var(--gold);
-      padding:16px 34px;
-      border-radius:999px;
-      transition:.3s;
-      font-size:15px;
+    .selector h3{font-size:18px;color:#f0bd63;margin-bottom:20px;font-weight:500}
+
+    .option{
+      display:flex;align-items:center;justify-content:space-between;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:13px;padding:14px 16px;margin-bottom:10px;
+      font-size:14px;background:rgba(255,255,255,.025)
     }
 
-    .hero-btn:hover{
-      background:var(--gold);
-      color:#000;
+    .option:hover{border-color:var(--gold);color:var(--gold)}
+    .selector p{font-size:13px;line-height:1.6;color:var(--muted);margin-top:20px}
+
+    section{padding:64px 0;border-top:1px solid rgba(212,162,76,.12)}
+
+    .principles{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:34px
     }
 
-    /* BOX */
-
-    .goal-box{
-      background:rgba(15,15,15,.75);
-      border:1px solid var(--border);
-      backdrop-filter:blur(12px);
-      border-radius:34px;
-      padding:36px;
+    .principle{
+      display:grid;grid-template-columns:62px 1fr;gap:22px;
+      padding-right:24px;border-right:1px solid rgba(212,162,76,.25)
     }
 
-    .goal-box h3{
-      font-size:22px;
-      margin-bottom:28px;
-      font-weight:500;
+    .principle:last-child{border-right:0}
+
+    .icon{
+      width:56px;height:56px;border:1px solid var(--gold);
+      border-radius:50%;display:flex;align-items:center;justify-content:center;
+      color:var(--gold);font-size:24px
     }
 
-    .goal-list{
-      display:flex;
-      flex-direction:column;
-      gap:14px;
+    .principle h2{
+      font-family:"Cormorant Garamond",serif;
+      font-size:27px;line-height:1.05;font-weight:500;margin-bottom:14px
     }
 
-    .goal-item{
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.02);
-      padding:18px 22px;
-      border-radius:18px;
-      transition:.3s;
-      font-size:15px;
+    .principle p{
+      color:var(--muted);font-size:14px;line-height:1.7
     }
 
-    .goal-item:hover{
-      border-color:var(--gold);
-      transform:translateY(-2px);
+    .principle strong{color:var(--gold);font-weight:500}
+
+    .center-title{text-align:center;margin-bottom:34px}
+    .center-title h2{
+      font-family:"Cormorant Garamond",serif;
+      font-size:34px;font-weight:500
     }
 
-    /* SECTION */
-
-    section{
-      padding:110px 0;
+    .center-title:after{
+      content:"";display:block;width:70px;height:1px;
+      background:var(--gold);margin:14px auto 0
     }
 
-    .section-title{
-      text-align:center;
-      margin-bottom:70px;
+    .cards{
+      display:grid;grid-template-columns:repeat(4,1fr);gap:18px
     }
 
-    .section-title h2{
-      font-family:'Cormorant Garamond',serif;
-      font-size:58px;
-      font-weight:500;
-      margin-bottom:14px;
+    .card{
+      border:1px solid var(--line);border-radius:14px;overflow:hidden;
+      background:#0b0b0b
     }
 
-    .section-title p{
-      color:rgba(255,255,255,.65);
-      font-size:17px;
+    .card img{height:170px;object-fit:cover}
+    .card-body{text-align:center;padding:22px 18px 24px}
+    .card-body h3{
+      font-family:"Cormorant Garamond",serif;
+      font-size:25px;font-weight:500;margin-bottom:10px
+    }
+    .card-body p{font-size:13px;color:var(--muted);line-height:1.6}
+
+    .final{
+      padding:0;border-top:1px solid rgba(212,162,76,.16);
+      display:grid;grid-template-columns:1fr 1fr 1fr;align-items:stretch
     }
 
-    /* GRID INFO */
-
-    .info-grid{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:28px;
-    }
-
-    .info-card{
-      border:1px solid var(--border);
-      background:var(--glass);
-      border-radius:30px;
-      padding:40px;
-    }
-
-    .info-card h3{
-      font-family:'Cormorant Garamond',serif;
-      font-size:36px;
-      line-height:1;
-      margin-bottom:22px;
-    }
-
-    .info-card p{
-      color:rgba(255,255,255,.72);
-      line-height:1.8;
-      font-size:15px;
-    }
-
-    .info-card strong{
-      color:var(--gold);
-      font-weight:500;
-    }
-
-    /* POSSIBILIDADES */
-
-    .possibilidades{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:24px;
-    }
-
-    .poss-card{
-      position:relative;
-      overflow:hidden;
-      border-radius:28px;
-      border:1px solid var(--border);
-      background:#0c0c0c;
-    }
-
-    .poss-card img{
-      height:270px;
-      width:100%;
-      object-fit:cover;
-    }
-
-    .poss-content{
-      padding:26px;
-    }
-
-    .poss-content h3{
-      font-family:'Cormorant Garamond',serif;
-      font-size:34px;
-      margin-bottom:14px;
-      font-weight:500;
-    }
-
-    .poss-content p{
-      color:rgba(255,255,255,.72);
-      line-height:1.7;
-      font-size:14px;
-    }
-
-    /* VISUAL FINAL */
-
-    .final-visual{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:30px;
-      align-items:center;
-    }
-
-    .final-visual img{
-      border-radius:32px;
-      height:620px;
-      width:100%;
-      object-fit:cover;
+    .final img{height:320px;object-fit:cover}
+    .final-text{
+      padding:44px 54px;display:flex;flex-direction:column;justify-content:center;
+      border-left:1px solid rgba(212,162,76,.16);
+      border-right:1px solid rgba(212,162,76,.16)
     }
 
     .final-text h2{
-      font-family:'Cormorant Garamond',serif;
-      font-size:74px;
-      line-height:.95;
-      font-weight:500;
-      margin-bottom:26px;
+      font-family:"Cormorant Garamond",serif;
+      font-size:38px;line-height:1.05;font-weight:500;margin-bottom:18px
     }
 
-    .final-text h2 span{
-      color:var(--gold);
-    }
-
-    .final-text p{
-      color:rgba(255,255,255,.72);
-      line-height:1.9;
-      max-width:520px;
-      margin-bottom:38px;
-      font-size:17px;
-    }
-
-    /* FOOTER */
+    .final-text p{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px}
 
     footer{
-      border-top:1px solid rgba(255,255,255,.05);
-      padding:42px 0;
-      text-align:center;
+      padding:28px 0;border-top:1px solid rgba(255,255,255,.06)
     }
 
-    footer p{
-      color:rgba(255,255,255,.45);
-      font-size:14px;
-      letter-spacing:3px;
-      text-transform:uppercase;
+    .footer-inner{
+      display:flex;align-items:center;justify-content:space-between;gap:20px
     }
 
-    /* RESPONSIVO */
+    .footer-inner p{font-size:14px;color:rgba(255,255,255,.72);text-align:center}
 
-    @media(max-width:1100px){
-
-      .hero-content,
-      .info-grid,
-      .possibilidades,
-      .final-visual{
-        grid-template-columns:1fr;
-      }
-
-      .hero-text h1{
-        font-size:58px;
-      }
-
-      .section-title h2{
-        font-size:46px;
-      }
-
-      .final-text h2{
-        font-size:52px;
-      }
-
-      .poss-card img{
-        height:340px;
-      }
-
-      .final-visual img{
-        height:420px;
-      }
-
+    @media(max-width:900px){
+      nav{display:none}
+      .hero{padding-top:110px}
+      .hero-inner,.principles,.cards,.final{grid-template-columns:1fr}
+      .principle{border-right:0;border-bottom:1px solid rgba(212,162,76,.18);padding-bottom:26px}
+      .card img{height:230px}
+      .final img{height:260px}
+      .final-text{padding:38px 26px}
+      .footer-inner{flex-direction:column}
     }
 
-    @media(max-width:768px){
-
-      .header-content{
-        height:74px;
-      }
-
-      .logo span{
-        font-size:24px;
-      }
-
-      .hero{
-        min-height:auto;
-        padding:140px 0 80px;
-      }
-
-      .hero-text h1{
-        font-size:44px;
-      }
-
-      .hero-text p{
-        font-size:16px;
-      }
-
-      .goal-box{
-        padding:28px;
-      }
-
-      .section-title h2{
-        font-size:38px;
-      }
-
-      .info-card,
-      .poss-content{
-        padding:28px;
-      }
-
-      .final-text h2{
-        font-size:42px;
-      }
-
+    @media(max-width:560px){
+      .container{padding:0 18px}
+      .brand-text strong{font-size:21px}
+      .btn{padding:11px 15px;font-size:13px}
+      .hero{min-height:auto;padding-bottom:48px}
+      h1{font-size:42px}
+      .selector{padding:22px}
+      section{padding:46px 0}
     }
-
   </style>
 </head>
+
 <body>
 
-  <!-- HEADER -->
-
-  <header>
-    <div class="container header-content">
-
-      <div class="logo">
-        <img src="../imagens/logo.webp" alt="">
-        <span>LUAN <strong>ESPECIALISTA</strong></span>
+<header>
+  <div class="container nav">
+    <a href="../index.html" class="brand">
+      <img src="../imagens/logo.png" alt="Luan Especialista">
+      <div class="brand-text">
+        <strong>LUAN <span class="gold">ESPECIALISTA</span></strong>
+        <span>ESTRATÉGIAS PATRIMONIAIS</span>
       </div>
+    </a>
 
-      <a href="https://wa.me/5547992120915" class="cta-top">
-        Falar com especialista
-      </a>
+    <nav>
+      <a href="../index.html">Início</a>
+      <a class="active" href="#">Estratégias Patrimoniais</a>
+      <a href="../mobilidade/index.html">Mobilidade & Experiências</a>
+      <a href="../imoveis/index.html">Imóveis</a>
+    </nav>
 
-    </div>
-  </header>
+    <a class="btn" href="https://wa.me/5547992120915">Falar com especialista</a>
+  </div>
+</header>
 
-  <!-- HERO -->
+<main>
 
   <section class="hero">
+    <div class="container hero-inner">
 
-    <div class="hero-bg"></div>
-    <div class="hero-overlay"></div>
-
-    <div class="container hero-content">
-
-      <div class="hero-text">
-
-        <h1>
-          Patrimônio não se constrói apenas com <span>dinheiro.</span>
-        </h1>
-
-        <p>
-          As melhores estruturas patrimoniais normalmente começam com estratégia,
+      <div>
+        <h1>Patrimônio não se constrói <span>apenas com dinheiro.</span></h1>
+        <p class="lead">
+          As melhores estruturas patrimoniais começam com estratégia,
           planejamento e acesso inteligente a oportunidades.
         </p>
-
-        <a href="https://wa.me/5547992120915" class="hero-btn">
+        <a class="btn" href="https://wa.me/5547992120915?text=Quero%20analisar%20uma%20estratégia%20patrimonial">
           Falar com especialista
         </a>
-
       </div>
 
-      <div class="goal-box">
-
+      <div class="selector">
         <h3>Selecione seu objetivo</h3>
 
-        <div class="goal-list">
+        <a class="option" href="https://wa.me/5547992120915?text=Quero%20uma%20estratégia%20patrimonial%20para%20moradia">Moradia <span>›</span></a>
+        <a class="option" href="https://wa.me/5547992120915?text=Quero%20uma%20estratégia%20patrimonial%20para%20investimento">Investimento <span>›</span></a>
+        <a class="option" href="https://wa.me/5547992120915?text=Quero%20uma%20estratégia%20para%20construção">Construção <span>›</span></a>
+        <a class="option" href="https://wa.me/5547992120915?text=Quero%20uma%20estratégia%20para%20reforma%20e%20valorização">Reforma e valorização <span>›</span></a>
+        <a class="option" href="https://wa.me/5547992120915?text=Quero%20uma%20estratégia%20para%20expansão%20patrimonial">Expansão patrimonial <span>›</span></a>
 
-          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20moradia" class="goal-item">
-            Moradia
-          </a>
-
-          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20investimento" class="goal-item">
-            Investimento
-          </a>
-
-          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20construção" class="goal-item">
-            Construção
-          </a>
-
-          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20reforma%20e%20valorização" class="goal-item">
-            Reforma e valorização
-          </a>
-
-          <a href="https://wa.me/5547992120915?text=Quero%20analisar%20estratégia%20para%20expansão%20patrimonial" class="goal-item">
-            Expansão patrimonial
-          </a>
-
-        </div>
-
+        <p>
+          Vamos entender seu objetivo e encontrar a melhor estratégia.
+        </p>
       </div>
 
     </div>
-
   </section>
 
-  <!-- INFO -->
-
   <section>
+    <div class="container principles">
 
-    <div class="container">
-
-      <div class="info-grid">
-
-        <div class="info-card">
-
-          <h3>Dinheiro sem direção costuma desaparecer.</h3>
-
+      <div class="principle">
+        <div class="icon">⌾</div>
+        <div>
+          <h2>Dinheiro sem direção costuma desaparecer.</h2>
           <p>
             Muitas pessoas possuem renda. Poucas conseguem transformar isso em patrimônio real.
             <br><br>
-            <strong>
-              Construção patrimonial exige organização, visão e estratégia.
-            </strong>
+            <strong>Construção patrimonial exige organização, visão e estratégia.</strong>
           </p>
-
         </div>
+      </div>
 
-        <div class="info-card">
-
-          <h3>Existem formas mais inteligentes de crescer.</h3>
-
+      <div class="principle">
+        <div class="icon">↗</div>
+        <div>
+          <h2>Existem formas mais inteligentes de crescer.</h2>
           <p>
             Nem todo avanço depende de capital imediato.
             <br><br>
-            Quando existe estrutura:
-            <br><br>
-            • oportunidades aparecem
-            <br>
-            • negociações melhoram
-            <br>
-            • decisões ficam mais estratégicas
-            <br>
-            • patrimônio começa a acelerar
+            <strong>Quando existe estrutura:</strong><br>
+            oportunidades aparecem, negociações melhoram e decisões ficam mais estratégicas.
           </p>
-
         </div>
+      </div>
 
-        <div class="info-card">
-
-          <h3>Estratégia protege. Estrutura multiplica.</h3>
-
+      <div class="principle">
+        <div class="icon">◇</div>
+        <div>
+          <h2>Estratégia protege. Estrutura multiplica.</h2>
           <p>
-            Você não precisa apenas ganhar mais.
-            Precisa estruturar melhor o que já possui.
+            Você não precisa apenas ganhar mais. Precisa estruturar melhor o que já tem.
             <br><br>
-            <strong>
-              Patrimônio é construído com inteligência, não com pressa.
-            </strong>
+            <strong>Patrimônio é construído com inteligência, não com pressa.</strong>
           </p>
-
         </div>
-
       </div>
 
     </div>
-
   </section>
 
-  <!-- POSSIBILIDADES -->
-
   <section>
-
     <div class="container">
 
-      <div class="section-title">
-
+      <div class="center-title">
         <h2>Possibilidades para construir o que realmente importa</h2>
-
-        <p>
-          Estratégias voltadas para crescimento patrimonial inteligente.
-        </p>
-
       </div>
 
-      <div class="possibilidades">
+      <div class="cards">
 
-        <div class="poss-card">
-
-          <img src="estrategias-patrimoniais/4.png" alt="">
-
-          <div class="poss-content">
-
+        <div class="card">
+          <img src="4.png" alt="Aquisição imobiliária">
+          <div class="card-body">
             <h3>Aquisição imobiliária</h3>
-
-            <p>
-              Casas, apartamentos, terrenos e imóveis estratégicos para morar,
-              investir ou diversificar.
-            </p>
-
+            <p>Casas, apartamentos, terrenos e imóveis estratégicos para morar, investir ou diversificar.</p>
           </div>
-
         </div>
 
-        <div class="poss-card">
-
-          <img src="estrategias-patrimoniais/7.png" alt="">
-
-          <div class="poss-content">
-
+        <div class="card">
+          <img src="7.png" alt="Construção patrimonial">
+          <div class="card-body">
             <h3>Construção patrimonial</h3>
-
-            <p>
-              Estruturas voltadas para crescimento consistente no médio e longo prazo.
-            </p>
-
+            <p>Estruturas voltadas para crescimento consistente no médio e longo prazo.</p>
           </div>
-
         </div>
 
-        <div class="poss-card">
-
-          <img src="estrategias-patrimoniais/3.png" alt="">
-
-          <div class="poss-content">
-
+        <div class="card">
+          <img src="3.png" alt="Valorização">
+          <div class="card-body">
             <h3>Valorização</h3>
-
-            <p>
-              Reformas, melhorias e planejamento voltados para aumento patrimonial.
-            </p>
-
+            <p>Reformas, melhorias e planejamento voltados para aumento patrimonial.</p>
           </div>
-
         </div>
 
-        <div class="poss-card">
-
-          <img src="estrategias-patrimoniais/6.png" alt="">
-
-          <div class="poss-content">
-
+        <div class="card">
+          <img src="6.png" alt="Expansão">
+          <div class="card-body">
             <h3>Expansão</h3>
-
-            <p>
-              Estratégias para ampliar possibilidades sem comprometer toda a liquidez.
-            </p>
-
+            <p>Estratégias para ampliar possibilidades sem comprometer toda a liquidez.</p>
           </div>
-
         </div>
 
       </div>
-
     </div>
-
   </section>
 
-  <!-- FINAL -->
-
-  <section>
-
-    <div class="container">
-
-      <div class="final-visual">
-
-        <img src="estrategias-patrimoniais/5.png" alt="">
-
-        <div class="final-text">
-
-          <h2>
-            Patrimônio não é sobre aparência.
-            <span>É sobre estrutura.</span>
-          </h2>
-
-          <p>
-            O futuro financeiro que você deseja começa com as decisões
-            que você toma hoje.
-          </p>
-
-          <a href="https://wa.me/5547992120915" class="hero-btn">
-            Falar com especialista
-          </a>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </section>
-
-  <!-- FOOTER -->
-
-  <footer>
-    <div class="container">
+  <section class="final">
+    <img src="5.png" alt="">
+    <div class="final-text">
+      <h2>Patrimônio não é sobre aparência. <span>É sobre estrutura.</span></h2>
       <p>
-        Estratégia • Planejamento • Patrimônio • Oportunidades
+        O futuro financeiro que você deseja começa com as decisões que você toma hoje.
       </p>
+      <a class="btn" href="https://wa.me/5547992120915?text=Quero%20estruturar%20meu%20próximo%20passo%20patrimonial">
+        Falar com especialista
+      </a>
     </div>
-  </footer>
+    <img src="3.png" alt="">
+  </section>
+
+</main>
+
+<footer>
+  <div class="container footer-inner">
+    <a href="../index.html" class="brand">
+      <img src="../imagens/logo.png" alt="Luan Especialista">
+      <div class="brand-text">
+        <strong>LUAN <span class="gold">ESPECIALISTA</span></strong>
+        <span>ESTRATÉGIAS PATRIMONIAIS</span>
+      </div>
+    </a>
+
+    <p>Estratégia. Planejamento. Patrimônio.</p>
+
+    <a class="btn" href="https://wa.me/5547992120915">Falar com especialista</a>
+  </div>
+</footer>
 
 </body>
 </html>
