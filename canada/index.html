@@ -10,7 +10,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
 
 body{
   font-family:'Inter',sans-serif;
@@ -22,7 +27,7 @@ body{
 .hero{
   position:relative;
   min-height:100vh;
-  padding:26px 5.5% 18px;
+  padding:24px 5.5% 16px;
   display:flex;
   flex-direction:column;
   overflow:hidden;
@@ -32,13 +37,16 @@ body{
   content:'';
   position:absolute;
   inset:0;
+
   background:
-    linear-gradient(90deg,
-      rgba(0,0,0,.86) 0%,
-      rgba(0,0,0,.66) 42%,
-      rgba(0,0,0,.34) 100%
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,.84) 0%,
+      rgba(0,0,0,.62) 42%,
+      rgba(0,0,0,.28) 100%
     ),
     url("../imagens/hero-canada.webp");
+
   background-size:cover;
   background-position:center;
   z-index:-2;
@@ -49,8 +57,8 @@ body{
   position:absolute;
   inset:0;
   background:
-    radial-gradient(circle at left top, rgba(214,180,106,.10), transparent 30%),
-    linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.42));
+    radial-gradient(circle at left top, rgba(214,180,106,.08), transparent 30%),
+    linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.40));
   z-index:-1;
 }
 
@@ -58,7 +66,7 @@ body{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  margin-bottom:22px;
+  margin-bottom:18px;
 }
 
 .logo{
@@ -68,19 +76,24 @@ body{
 }
 
 .btn-topo{
-  height:44px;
-  padding:0 24px;
+  height:42px;
+  padding:0 22px;
   border-radius:999px;
   display:flex;
   align-items:center;
   justify-content:center;
-  border:1px solid rgba(214,180,106,.48);
+  border:1px solid rgba(214,180,106,.42);
   background:rgba(0,0,0,.22);
   backdrop-filter:blur(10px);
   color:#e4be72;
   text-decoration:none;
-  font-size:14px;
+  font-size:13px;
   font-weight:700;
+  transition:.2s;
+}
+
+.btn-topo:hover{
+  background:rgba(214,180,106,.08);
 }
 
 .center{
@@ -89,117 +102,121 @@ body{
   max-width:1280px;
   margin:0 auto;
   display:grid;
-  grid-template-columns:minmax(0,1fr) 360px;
-  gap:60px;
+  grid-template-columns:minmax(0,1fr) 340px;
+  gap:52px;
   align-items:center;
 }
 
 .left small{
   display:block;
-  font-size:12px;
+  font-size:11px;
   font-weight:700;
   letter-spacing:2px;
   color:#d6b46a;
-  margin-bottom:14px;
+  margin-bottom:12px;
 }
 
 .left h1{
-  font-size:clamp(38px,5vw,66px);
-  line-height:.98;
+  font-size:clamp(28px,3.6vw,46px);
+  line-height:1.02;
   font-weight:800;
-  letter-spacing:-2.8px;
-  max-width:760px;
-  margin-bottom:20px;
+  letter-spacing:-2px;
+  max-width:700px;
+  margin-bottom:16px;
 }
 
-.gold{color:#d6b46a}
+.gold{
+  color:#d8bc84;
+}
 
 .left .sub{
-  font-size:17px;
+  font-size:16px;
   line-height:1.55;
-  color:#e6e6e6;
-  max-width:610px;
-  margin-bottom:30px;
+  color:#e5e5e5;
+  max-width:600px;
+  margin-bottom:24px;
 }
 
 .beneficios{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:18px;
-  max-width:780px;
+  gap:16px;
+  max-width:760px;
 }
 
 .item{
-  padding-left:16px;
-  border-left:1px solid rgba(214,180,106,.35);
+  padding-left:14px;
+  border-left:1px solid rgba(214,180,106,.30);
 }
 
 .item h3{
-  font-size:14px;
-  margin-bottom:7px;
+  font-size:13px;
+  margin-bottom:6px;
   color:#fff;
 }
 
 .item p{
-  font-size:13px;
+  font-size:12px;
   line-height:1.45;
-  color:#cfcfcf;
+  color:#cecece;
 }
 
 .card{
-  background:rgba(12,12,12,.62);
-  border:1px solid rgba(214,180,106,.24);
+  background:rgba(12,12,12,.60);
+  border:1px solid rgba(214,180,106,.22);
   backdrop-filter:blur(18px);
-  border-radius:28px;
-  padding:26px;
-  box-shadow:0 12px 42px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.04);
+  border-radius:26px;
+  padding:24px;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,.40),
+    inset 0 1px 0 rgba(255,255,255,.03);
 }
 
 .card-top{
-  width:48px;
-  height:48px;
-  border-radius:16px;
-  margin:0 auto 15px;
-  border:1px solid rgba(214,180,106,.35);
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  margin:0 auto 14px;
+  border:1px solid rgba(214,180,106,.32);
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:22px;
+  font-size:19px;
   color:#d6b46a;
-  background:rgba(214,180,106,.06);
+  background:rgba(214,180,106,.05);
 }
 
 .card h2{
-  font-size:18px;
+  font-size:17px;
   line-height:1.35;
   text-align:center;
-  margin-bottom:20px;
+  margin-bottom:18px;
   font-weight:800;
 }
 
 .select{
   width:100%;
-  height:54px;
-  padding:0 17px;
-  border-radius:16px;
+  height:52px;
+  padding:0 16px;
+  border-radius:15px;
   background:#090909;
-  border:1px solid rgba(214,180,106,.32);
+  border:1px solid rgba(214,180,106,.28);
   color:#fff;
-  font-size:15px;
+  font-size:14px;
   outline:none;
-  margin-bottom:17px;
+  margin-bottom:16px;
 }
 
 .info-inicial{
-  border-top:1px solid rgba(255,255,255,.07);
-  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.06);
+  padding-top:14px;
   font-size:13px;
   line-height:1.5;
   color:#d8d8d8;
   display:flex;
   gap:10px;
   align-items:flex-start;
-  margin-bottom:18px;
+  margin-bottom:16px;
 }
 
 .info-inicial span{
@@ -212,45 +229,53 @@ body{
   animation:fade .28s ease;
 }
 
-.resultado.active{display:block}
+.resultado.active{
+  display:block;
+}
 
 @keyframes fade{
-  from{opacity:0;transform:translateY(6px)}
-  to{opacity:1;transform:translateY(0)}
+  from{
+    opacity:0;
+    transform:translateY(6px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
 }
 
 .resultado small{
   display:block;
-  font-size:11px;
-  letter-spacing:1.3px;
+  font-size:10px;
+  letter-spacing:1.2px;
   color:#d6b46a;
   margin-bottom:8px;
   font-weight:700;
 }
 
 .valor{
-  font-size:31px;
+  font-size:28px;
   font-weight:800;
   line-height:1;
-  margin-bottom:12px;
-  letter-spacing:-1.2px;
+  margin-bottom:10px;
+  letter-spacing:-1px;
 }
 
 .texto{
   font-size:13px;
-  line-height:1.55;
+  line-height:1.5;
   color:#d3d3d3;
-  margin-bottom:17px;
+  margin-bottom:16px;
 }
 
 .cta{
   width:100%;
-  height:54px;
+  height:52px;
   border:none;
-  border-radius:16px;
+  border-radius:15px;
   background:#d6b46a;
   color:#090909;
-  font-size:15px;
+  font-size:14px;
   font-weight:800;
   cursor:pointer;
   transition:.2s;
@@ -258,21 +283,21 @@ body{
 
 .cta:hover{
   transform:translateY(-2px);
-  filter:brightness(1.04);
+  filter:brightness(1.03);
 }
 
 .footer{
   width:100%;
   max-width:980px;
-  margin:24px auto 0;
-  padding-top:13px;
-  border-top:1px solid rgba(214,180,106,.16);
+  margin:22px auto 0;
+  padding-top:12px;
+  border-top:1px solid rgba(214,180,106,.14);
   display:flex;
   justify-content:center;
   align-items:center;
-  gap:24px;
+  gap:22px;
   flex-wrap:wrap;
-  font-size:13px;
+  font-size:12px;
   color:#d0d0d0;
 }
 
@@ -285,15 +310,16 @@ body{
   width:100%;
   text-align:center;
   padding-top:8px;
-  font-size:15px;
-  letter-spacing:6px;
+  font-size:14px;
+  letter-spacing:5px;
   color:#d6b46a;
 }
 
 @media(max-width:1050px){
+
   .center{
-    grid-template-columns:1fr 350px;
-    gap:38px;
+    grid-template-columns:1fr 330px;
+    gap:36px;
   }
 
   .beneficios{
@@ -301,16 +327,13 @@ body{
     max-width:560px;
   }
 
-  .left h1{
-    font-size:30px;
-    line-height:1.02;
-    letter-spacing:-2px;
-}
-  }
 }
 
 @media(max-width:860px){
-  body{overflow:auto}
+
+  body{
+    overflow:auto;
+  }
 
   .hero{
     min-height:100vh;
@@ -319,19 +342,25 @@ body{
 
   .hero::before{
     background:
-      linear-gradient(180deg,
+      linear-gradient(
+        180deg,
         rgba(0,0,0,.82) 0%,
-        rgba(0,0,0,.64) 42%,
+        rgba(0,0,0,.62) 42%,
         rgba(0,0,0,.88) 100%
       ),
       url("../imagens/hero-canada.webp");
+
     background-size:cover;
     background-position:center;
   }
 
-  .topo{margin-bottom:34px}
+  .topo{
+    margin-bottom:30px;
+  }
 
-  .logo{width:72px}
+  .logo{
+    width:72px;
+  }
 
   .btn-topo{
     height:40px;
@@ -346,14 +375,12 @@ body{
   }
 
   .left h1{
-    font-size:39px;
-    letter-spacing:-1.8px;
-    margin-bottom:16px;
+    font-size:36px;
+    letter-spacing:-1.5px;
   }
 
   .left .sub{
     font-size:15px;
-    margin-bottom:22px;
   }
 
   .beneficios{
@@ -361,34 +388,34 @@ body{
     gap:14px;
   }
 
-  .item{
-    padding-left:12px;
-  }
-
-  .item h3{font-size:13px}
-  .item p{font-size:12px}
-
   .card{
-    padding:23px;
-    border-radius:25px;
+    padding:22px;
   }
 
   .footer{
-    margin-top:22px;
     gap:10px;
-    font-size:12px;
+    font-size:11px;
   }
 
   .site{
     font-size:12px;
     letter-spacing:4px;
   }
+
 }
 
 @media(max-width:520px){
-  .beneficios{grid-template-columns:1fr}
-  .btn-topo{white-space:nowrap}
+
+  .beneficios{
+    grid-template-columns:1fr;
+  }
+
+  .btn-topo{
+    white-space:nowrap;
+  }
+
 }
+
 </style>
 </head>
 
@@ -397,6 +424,7 @@ body{
 <section class="hero">
 
   <div class="topo">
+
     <a href="https://luan-especialista.pro">
       <img src="../imagens/logo.png" class="logo" alt="Luan Especialista">
     </a>
@@ -407,6 +435,7 @@ body{
       target="_blank">
       Falar com especialista
     </a>
+
   </div>
 
   <div class="center">
@@ -417,7 +446,9 @@ body{
 
       <h1>
         O Canadá trouxe estabilidade.<br>
-        <span class="gold">Agora é hora de estruturar o próximo passo.</span>
+        <span class="gold">
+          Agora é hora de estruturar o próximo passo.
+        </span>
       </h1>
 
       <p class="sub">
@@ -425,6 +456,7 @@ body{
       </p>
 
       <div class="beneficios">
+
         <div class="item">
           <h3>Família</h3>
           <p>Estratégias para proteger quem importa para você.</p>
@@ -444,6 +476,7 @@ body{
           <h3>Longo prazo</h3>
           <p>Planejamento consistente para o futuro.</p>
         </div>
+
       </div>
 
     </div>
@@ -452,31 +485,59 @@ body{
 
       <div class="card">
 
-        <div class="card-top">C$</div>
+        <div class="card-top">
+          C$
+        </div>
 
-        <h2>Quanto você consegue investir por mês?</h2>
+        <h2>
+          Quanto você consegue investir por mês?
+        </h2>
 
         <select class="select" id="valor">
-          <option value="">Selecionar</option>
-          <option value="400">C$ 500/mês</option>
-          <option value="700">C$ 800/mês</option>
-          <option value="1000">C$ 1.150/mês</option>
-          <option value="outro">Outro valor</option>
+
+          <option value="">
+            Selecionar
+          </option>
+
+          <option value="400">
+            C$ 500/mês
+          </option>
+
+          <option value="700">
+            C$ 800/mês
+          </option>
+
+          <option value="1000">
+            C$ 1.150/mês
+          </option>
+
+          <option value="outro">
+            Outro valor
+          </option>
+
         </select>
 
         <div class="info-inicial" id="infoInicial">
           <span>→</span>
-          <p>Selecione uma opção para descobrir possibilidades estimadas no Brasil.</p>
+          <p>
+            Selecione uma opção para descobrir possibilidades estimadas no Brasil.
+          </p>
         </div>
 
         <div class="resultado" id="resultado">
-          <small>POSSIBILIDADES ESTIMADAS NO BRASIL</small>
 
-          <div class="valor" id="valorTexto">R$ 400.000,00</div>
+          <small>
+            POSSIBILIDADES ESTIMADAS NO BRASIL
+          </small>
+
+          <div class="valor" id="valorTexto">
+            R$ 400.000,00
+          </div>
 
           <div class="texto">
             Estratégias imobiliárias inteligentes para brasileiros que vivem no Canadá.
           </div>
+
         </div>
 
         <button class="cta" id="cta">
@@ -490,18 +551,33 @@ body{
   </div>
 
   <div>
+
     <div class="footer">
-      <a href="mailto:contato@luan-especialista.pro">contato@luan-especialista.pro</a>
-      <a href-"https://www.wa.me/5547992120915" target-"_blank">(47) 99212-0915
-      <a href="https://instagram.com/luan.especialista" target="_blank">@luan.especialista</a>
+
+      <a href="mailto:contato@luan-especialista.pro">
+        contato@luan-especialista.pro
+      </a>
+
+      <a href="https://wa.me/5547992120915" target="_blank">
+        47 99212-0915
+      </a>
+
+      <a href="https://instagram.com/luan.especialista" target="_blank">
+        @luan.especialista
+      </a>
+
     </div>
 
-    <div class="site">luan-especialista.pro</div>
+    <div class="site">
+      luan-especialista.pro
+    </div>
+
   </div>
 
 </section>
 
 <script>
+
 const select = document.getElementById('valor');
 const resultado = document.getElementById('resultado');
 const valorTexto = document.getElementById('valorTexto');
@@ -509,36 +585,46 @@ const cta = document.getElementById('cta');
 const infoInicial = document.getElementById('infoInicial');
 
 const dados = {
+
   400:{
     valor:'R$ 400.000,00',
     msg:'Olá, Luan. Moro no Canadá e quero entender a estratégia para acessar até R$ 400.000,00 no Brasil.'
   },
+
   700:{
     valor:'R$ 700.000,00',
     msg:'Olá, Luan. Moro no Canadá e quero entender a estratégia para acessar até R$ 700.000,00 no Brasil.'
   },
+
   1000:{
     valor:'R$ 1.000.000,00',
     msg:'Olá, Luan. Moro no Canadá e quero entender a estratégia para acessar até R$ 1.000.000,00 no Brasil.'
   },
+
   outro:{
     valor:'Estratégia personalizada',
     msg:'Olá, Luan. Moro no Canadá e quero entender uma estratégia personalizada.'
   }
+
 };
 
 function abrirWhatsapp(msg){
+
   window.open(
     'https://wa.me/5547992120915?text=' + encodeURIComponent(msg),
     '_blank'
   );
+
 }
 
 function atualizar(){
+
   const valor = select.value;
 
   if(!valor){
+
     resultado.classList.remove('active');
+
     infoInicial.style.display = 'flex';
 
     cta.onclick = () => abrirWhatsapp(
@@ -546,17 +632,23 @@ function atualizar(){
     );
 
     return;
+
   }
 
   infoInicial.style.display = 'none';
+
   resultado.classList.add('active');
+
   valorTexto.innerHTML = dados[valor].valor;
 
   cta.onclick = () => abrirWhatsapp(dados[valor].msg);
+
 }
 
 select.addEventListener('change', atualizar);
+
 atualizar();
+
 </script>
 
 </body>
