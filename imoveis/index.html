@@ -10,14 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
   <style>
-    :root{
-      --bg:#030303;
-      --gold:#d99a26;
-      --gold2:#f5b84b;
-      --muted:#b8b8b8;
-      --line:rgba(217,154,38,.35);
-    }
-
+    :root{--bg:#030303;--gold:#d99a26;--gold2:#f5b84b;--muted:#b8b8b8;--line:rgba(217,154,38,.35)}
     *{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{background:var(--bg);color:#fff;font-family:Inter,sans-serif;overflow-x:hidden}
@@ -57,7 +50,6 @@
     .hero-content{max-width:560px;padding:58px 0}
     .eyebrow{display:flex;align-items:center;gap:14px;color:var(--gold2);font-size:12px;font-weight:800;letter-spacing:6px;text-transform:uppercase;margin-bottom:18px}
     .eyebrow:after{content:"";width:48px;height:1px;background:var(--gold)}
-
     h1{font-family:"Playfair Display",serif;font-size:clamp(34px,4.4vw,56px);line-height:1.02;margin-bottom:18px;max-width:560px}
     h1 span{color:var(--gold2)}
     .hero p{font-size:17px;line-height:1.55;color:#f1f1f1;max-width:390px;margin-bottom:26px}
@@ -98,7 +90,32 @@
     .card-img img{width:100%;height:100%;object-fit:cover;transition:.35s}
     .card:hover .card-img img{transform:scale(1.04)}
 
-    .tag{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.82);border:1px solid rgba(255,255,255,.12);font-size:10px;font-weight:900;padding:6px 9px;border-radius:8px;text-transform:uppercase}
+    .tag{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.82);border:1px solid rgba(255,255,255,.12);font-size:10px;font-weight:900;padding:6px 9px;border-radius:8px;text-transform:uppercase;z-index:2}
+
+    .card-arrow{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:30px;
+      height:30px;
+      border-radius:50%;
+      border:1px solid rgba(217,154,38,.75);
+      background:rgba(0,0,0,.62);
+      color:var(--gold2);
+      font-size:22px;
+      font-weight:800;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      opacity:0;
+      transition:.25s;
+      z-index:3;
+    }
+
+    .card-arrow-left{left:10px}
+    .card-arrow-right{right:10px}
+    .card:hover .card-arrow{opacity:1}
+    .card-arrow:hover{background:var(--gold);color:#111}
 
     .card-body{padding:14px}
     .card h3{font-size:16px;line-height:1.3;margin-bottom:10px}
@@ -115,8 +132,6 @@
       font-weight:800;
     }
 
-    .details span:first-child{color:#fff}
-
     .details span:last-child{
       width:30px;
       height:30px;
@@ -126,16 +141,10 @@
       place-items:center;
       color:var(--gold2);
       font-size:17px;
-      line-height:1;
       transition:.25s;
     }
 
-    .card:hover .details span:last-child{
-      background:var(--gold);
-      color:#111;
-      transform:translateX(3px);
-    }
-
+    .card:hover .details span:last-child{background:var(--gold);color:#111;transform:translateX(3px)}
     .empty-msg{color:#bbb;font-size:15px;padding:10px 0}
 
     .cta-box{margin-top:26px;border:1px solid var(--line);border-radius:16px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:18px;background:linear-gradient(90deg,rgba(217,154,38,.075),rgba(255,255,255,.018))}
@@ -170,14 +179,11 @@
       .filters{display:grid;grid-template-columns:repeat(5,92px);overflow-x:auto;justify-content:flex-start;padding-bottom:4px;gap:10px}
       .filter-btn{min-width:92px;padding:11px 10px;font-size:11px}
 
-      .grid{
-        grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
-        gap:16px;
-      }
-
+      .grid{grid-template-columns:1fr;gap:16px}
       .card-img{aspect-ratio:4/3}
-      .cta-box{flex-direction:column;align-items:flex-start;padding:18px}
+      .card-arrow{opacity:1}
 
+      .cta-box{flex-direction:column;align-items:flex-start;padding:18px}
       .footer-content{grid-template-columns:1fr;text-align:left}
       .footer-info{justify-content:flex-start;flex-direction:column;gap:12px}
       .site-url{text-align:left;letter-spacing:7px}
@@ -311,12 +317,13 @@
 
       const card = document.createElement("article");
       card.className = "card";
-      card.onclick = () => window.location.href = linkDetalhe;
 
       card.innerHTML = `
         <div class="card-img">
-          <img src="${capa}" alt="${imovel.titulo}" loading="lazy">
+          <img class="card-photo" src="${capa}" alt="${imovel.titulo}" loading="lazy" data-img="1">
           <div class="tag">${imovel.tipo}</div>
+          <button class="card-arrow card-arrow-left" type="button">‹</button>
+          <button class="card-arrow card-arrow-right" type="button">›</button>
         </div>
 
         <div class="card-body">
@@ -337,7 +344,38 @@
         </div>
       `;
 
+      card.addEventListener("click", () => {
+        window.location.href = linkDetalhe;
+      });
+
       lista.appendChild(card);
+
+      const fotoCard = card.querySelector(".card-photo");
+      const setaEsquerda = card.querySelector(".card-arrow-left");
+      const setaDireita = card.querySelector(".card-arrow-right");
+
+      const totalCard = Math.min(imovel.totalImagens || 1, 6);
+      let imagemAtual = 1;
+
+      function trocarImagemCard(novaImagem){
+        imagemAtual = novaImagem;
+
+        if(imagemAtual < 1) imagemAtual = totalCard;
+        if(imagemAtual > totalCard) imagemAtual = 1;
+
+        fotoCard.src = `imagens/${imovel.pasta}/${imagemAtual}.webp`;
+        fotoCard.dataset.img = imagemAtual;
+      }
+
+      setaEsquerda.addEventListener("click", (event) => {
+        event.stopPropagation();
+        trocarImagemCard(imagemAtual - 1);
+      });
+
+      setaDireita.addEventListener("click", (event) => {
+        event.stopPropagation();
+        trocarImagemCard(imagemAtual + 1);
+      });
     });
   }
 
