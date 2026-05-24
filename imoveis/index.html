@@ -597,7 +597,7 @@
     }
 
     filtrados.forEach(imovel => {
-      const linkDetalhe = `detalhes/detalhe.html?cod=${imovel.codigo}`;
+     const linkDetalhe = `detalhes/detalhe.html?imovel=${imovel.slug}`;
       const capa = `imagens/${imovel.pasta}/1.webp`;
 
       const card = document.createElement("article");
