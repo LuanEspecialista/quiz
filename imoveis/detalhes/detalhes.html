@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detalhes do Imóvel | Luan Especialista</title>
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#030303;color:#fff;font-family:Arial,sans-serif}
+    a{text-decoration:none;color:inherit}
+    img{display:block;max-width:100%}
+    .container{width:min(1100px,calc(100% - 28px));margin:auto}
+
+    header{
+      height:68px;
+      border-bottom:1px solid rgba(217,154,38,.35);
+      display:flex;
+      align-items:center;
+      background:#030303;
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+
+    .nav{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      width:100%;
+    }
+
+    .logo{display:flex;align-items:center;gap:10px}
+    .logo img{width:42px;height:42px;object-fit:contain}
+    .logo strong{font-size:18px}
+    .logo span{color:#f5b84b}
+    .back{
+      border:1px solid #d99a26;
+      color:#f5b84b;
+      padding:10px 14px;
+      border-radius:12px;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    main{padding:28px 0 40px}
+
+    .top{
+      display:grid;
+      grid-template-columns:1.35fr .75fr;
+      gap:24px;
+      align-items:start;
+    }
+
+    .main-photo{
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:#111;
+    }
+
+    .main-photo img{
+      width:100%;
+      height:430px;
+      object-fit:cover;
+    }
+
+    .info{
+      border:1px solid rgba(217,154,38,.35);
+      border-radius:16px;
+      padding:22px;
+      background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    }
+
+    .tag{
+      display:inline-block;
+      color:#f5b84b;
+      border:1px solid rgba(217,154,38,.5);
+      border-radius:999px;
+      padding:7px 12px;
+      font-size:12px;
+      font-weight:800;
+      margin-bottom:14px;
+    }
+
+    h1{
+      font-size:28px;
+      line-height:1.15;
+      margin-bottom:14px;
+    }
+
+    .price{
+      color:#f5b84b;
+      font-size:26px;
+      font-weight:900;
+      margin-bottom:18px;
+    }
+
+    .specs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    .spec{
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:12px;
+      padding:10px;
+      font-size:13px;
+      color:#cfcfcf;
+    }
+
+    .spec strong{
+      display:block;
+      color:#fff;
+      font-size:16px;
+      margin-top:3px;
+    }
+
+    .whats{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      width:100%;
+      padding:14px;
+      border-radius:14px;
+      background:#d99a26;
+      color:#111;
+      font-weight:900;
+      margin-top:14px;
+    }
+
+    .section{
+      margin-top:26px;
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      padding:22px;
+      background:rgba(255,255,255,.025);
+    }
+
+    .section h2{
+      font-size:22px;
+      margin-bottom:14px;
+      color:#f5b84b;
+    }
+
+    .section p{
+      color:#d7d7d7;
+      line-height:1.7;
+      font-size:15px;
+      white-space:pre-line;
+    }
+
+    .gallery{
+      margin-top:26px;
+    }
+
+    .gallery h2{
+      font-size:22px;
+      margin-bottom:14px;
+      color:#f5b84b;
+    }
+
+    .thumbs{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+      gap:12px;
+    }
+
+    .thumbs img{
+      width:100%;
+      aspect-ratio:16/10;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.1);
+      cursor:pointer;
+      transition:.2s;
+    }
+
+    .thumbs img:hover{
+      transform:scale(1.02);
+      border-color:#d99a26;
+    }
+
+    footer{
+      border-top:1px solid rgba(217,154,38,.35);
+      padding:24px 0;
+      color:#aaa;
+      font-size:13px;
+    }
+
+    @media(max-width:850px){
+      header{height:64px}
+      .top{grid-template-columns:1fr}
+      main{padding-top:20px}
+      .main-photo img{height:300px}
+      h1{font-size:24px}
+      .price{font-size:23px}
+      .info{padding:18px}
+      .section{padding:18px}
+      .thumbs{grid-template-columns:repeat(2,1fr)}
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="container nav">
+    <a href="../index.html" class="logo">
+      <img src="../../imagens/logo.png" alt="Luan Especialista">
+      <strong>LUAN <span>ESPECIALISTA</span></strong>
+    </a>
+
+    <a href="../index.html" class="back">← Voltar</a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="top">
+    <div class="main-photo">
+      <img id="fotoPrincipal" src="" alt="">
+    </div>
+
+    <aside class="info">
+      <span class="tag" id="status"></span>
+      <h1 id="titulo"></h1>
+      <div class="price" id="valor"></div>
+
+      <div class="specs">
+        <div class="spec">Área útil<strong id="areaUtil"></strong></div>
+        <div class="spec">Área total<strong id="areaTotal"></strong></div>
+        <div class="spec">Dormitórios<strong id="dormitorios"></strong></div>
+        <div class="spec">Banheiros<strong id="banheiros"></strong></div>
+        <div class="spec">Vagas<strong id="vagas"></strong></div>
+        <div class="spec">Entrega<strong id="entrega"></strong></div>
+      </div>
+
+      <a id="whatsapp" class="whats" target="_blank">Tenho interesse</a>
+    </aside>
+  </div>
+
+  <section class="section">
+    <h2>Descrição do imóvel</h2>
+    <p id="descricao"></p>
+  </section>
+
+  <section class="section">
+    <h2>Localização</h2>
+    <p id="localizacao"></p>
+  </section>
+
+  <section class="gallery">
+    <h2>Galeria</h2>
+    <div class="thumbs" id="galeria"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    luan-especialista.pro
+  </div>
+</footer>
+
+<script>
+  window.IMOVEIS = [];
+</script>
+
+<script src="../imoveis-dados/apartamento-penha-4361.js"></script>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get("imovel");
+
+  const imovel = window.IMOVEIS.find(item => item.slug === slug) || window.IMOVEIS[0];
+
+  const caminhoBase = `../imagens/${imovel.pasta}/`;
+
+  document.title = `${imovel.titulo} | Luan Especialista`;
+
+  document.getElementById("fotoPrincipal").src = `${caminhoBase}1.webp`;
+  document.getElementById("fotoPrincipal").alt = imovel.titulo;
+
+  document.getElementById("status").textContent = imovel.status || "Disponível";
+  document.getElementById("titulo").textContent = imovel.titulo;
+  document.getElementById("valor").textContent = imovel.valor;
+  document.getElementById("areaUtil").textContent = imovel.areaUtil || "-";
+  document.getElementById("areaTotal").textContent = imovel.areaTotal || "-";
+  document.getElementById("dormitorios").textContent = imovel.dormitorios || "-";
+  document.getElementById("banheiros").textContent = imovel.banheiros || "-";
+  document.getElementById("vagas").textContent = imovel.vagas || "-";
+  document.getElementById("entrega").textContent = imovel.entrega || "-";
+  document.getElementById("descricao").textContent = imovel.descricao || imovel.descricaoCurta || "";
+  document.getElementById("localizacao").textContent = imovel.endereco || imovel.cidade || "";
+
+  const mensagem = encodeURIComponent(
+    `Olá, tenho interesse no imóvel ${imovel.codigo} - ${imovel.titulo}. Pode me passar mais informações?`
+  );
+
+  document.getElementById("whatsapp").href = `https://wa.me/5547992120915?text=${mensagem}`;
+
+  const galeria = document.getElementById("galeria");
+
+  for(let i = 1; i <= imovel.totalImagens; i++){
+    const img = document.createElement("img");
+    img.src = `${caminhoBase}${i}.webp`;
+    img.alt = `${imovel.titulo} - imagem ${i}`;
+    img.loading = "lazy";
+    img.onclick = () => {
+      document.getElementById("fotoPrincipal").src = img.src;
+      window.scrollTo({top:0, behavior:"smooth"});
+    };
+    galeria.appendChild(img);
+  }
+</script>
+
+</body>
+</html>
