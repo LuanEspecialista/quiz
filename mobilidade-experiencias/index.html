@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mobilidade & Experiências | Luan Especialista</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    :root{
+      --gold:#d4a24c;
+      --gold-soft:#9f7740;
+      --black:#050505;
+      --black-2:#0b0b0b;
+      --border:rgba(212,162,76,.18);
+      --text:#f4f4f4;
+      --muted:#a4a4a4;
+    }
+
+    body{
+      background:#000;
+      color:var(--text);
+      font-family:'Inter',sans-serif;
+      overflow-x:hidden;
+    }
+
+    img{
+      width:100%;
+      display:block;
+    }
+
+    a{
+      text-decoration:none;
+    }
+
+    .container{
+      width:100%;
+      max-width:1280px;
+      margin:auto;
+      padding:0 24px;
+    }
+
+    /* HEADER */
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:999;
+      background:rgba(0,0,0,.88);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(255,255,255,.04);
+    }
+
+    .header-wrap{
+      height:86px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:30px;
+    }
+
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+
+    .logo img{
+      width:44px;
+    }
+
+    .logo-text h1{
+      font-family:'Cormorant Garamond',serif;
+      font-size:38px;
+      line-height:32px;
+      font-weight:600;
+      color:#fff;
+    }
+
+    .logo-text h1 span{
+      color:var(--gold);
+    }
+
+    .logo-text p{
+      font-size:10px;
+      letter-spacing:4px;
+      color:#a7a7a7;
+      margin-top:4px;
+    }
+
+    nav{
+      display:flex;
+      align-items:center;
+      gap:34px;
+    }
+
+    nav a{
+      color:#fff;
+      font-size:15px;
+      transition:.3s;
+    }
+
+    nav a:hover,
+    nav a.active{
+      color:var(--gold);
+    }
+
+    .btn-header{
+      border:1px solid rgba(212,162,76,.35);
+      padding:14px 24px;
+      border-radius:999px;
+      color:var(--gold);
+      font-size:14px;
+      transition:.3s;
+    }
+
+    .btn-header:hover{
+      background:var(--gold);
+      color:#000;
+    }
+
+    /* HERO */
+
+    .hero{
+      position:relative;
+      min-height:95vh;
+      display:flex;
+      align-items:center;
+      overflow:hidden;
+    }
+
+    .hero-bg{
+      position:absolute;
+      inset:0;
+      background:
+      linear-gradient(to right, rgba(0,0,0,.95) 10%, rgba(0,0,0,.55) 45%, rgba(0,0,0,.15) 100%),
+      url('1.png') center center/cover no-repeat;
+    }
+
+    .hero-content{
+      position:relative;
+      z-index:2;
+      max-width:620px;
+      padding:100px 0;
+    }
+
+    .hero-content h2{
+      font-family:'Cormorant Garamond',serif;
+      font-size:84px;
+      line-height:84px;
+      font-weight:500;
+      margin-bottom:24px;
+    }
+
+    .hero-content h2 span{
+      color:var(--gold);
+    }
+
+    .hero-content p{
+      font-size:20px;
+      line-height:34px;
+      color:#d1d1d1;
+      max-width:540px;
+      margin-bottom:42px;
+    }
+
+    .hero-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid rgba(212,162,76,.4);
+      color:var(--gold);
+      padding:18px 34px;
+      border-radius:999px;
+      transition:.3s;
+      font-size:15px;
+    }
+
+    .hero-btn:hover{
+      background:var(--gold);
+      color:#000;
+    }
+
+    /* SECTION TITLE */
+
+    .section-title{
+      text-align:center;
+      padding:100px 0 60px;
+    }
+
+    .section-title small{
+      color:var(--gold);
+      letter-spacing:4px;
+      font-size:12px;
+    }
+
+    .section-title h3{
+      font-family:'Cormorant Garamond',serif;
+      font-size:56px;
+      margin-top:18px;
+      font-weight:500;
+    }
+
+    /* GRID */
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:26px;
+      margin-bottom:80px;
+    }
+
+    .card{
+      background:#080808;
+      border:1px solid var(--border);
+      border-radius:26px;
+      overflow:hidden;
+      transition:.3s;
+    }
+
+    .card:hover{
+      transform:translateY(-6px);
+      border-color:rgba(212,162,76,.35);
+    }
+
+    .card-image{
+      height:320px;
+      overflow:hidden;
+    }
+
+    .card-image img{
+      height:100%;
+      object-fit:cover;
+    }
+
+    .card-content{
+      padding:34px;
+    }
+
+    .card-content span{
+      color:var(--gold);
+      font-size:12px;
+      letter-spacing:3px;
+    }
+
+    .card-content h4{
+      font-family:'Cormorant Garamond',serif;
+      font-size:44px;
+      line-height:44px;
+      font-weight:500;
+      margin:18px 0;
+    }
+
+    .card-content p{
+      color:#b8b8b8;
+      line-height:30px;
+      font-size:16px;
+    }
+
+    /* STRATEGY */
+
+    .strategy{
+      margin-bottom:90px;
+    }
+
+    .strategy-box{
+      position:relative;
+      overflow:hidden;
+      border-radius:30px;
+      border:1px solid var(--border);
+      min-height:520px;
+      display:flex;
+      align-items:center;
+      padding:70px;
+      background:#060606;
+    }
+
+    .strategy-bg{
+      position:absolute;
+      inset:0;
+      background:
+      linear-gradient(to right, rgba(0,0,0,.95) 20%, rgba(0,0,0,.4) 65%, rgba(0,0,0,.1)),
+      url('5.png') center center/cover no-repeat;
+    }
+
+    .strategy-content{
+      position:relative;
+      z-index:2;
+      max-width:520px;
+    }
+
+    .strategy-content span{
+      color:var(--gold);
+      letter-spacing:4px;
+      font-size:12px;
+    }
+
+    .strategy-content h4{
+      font-family:'Cormorant Garamond',serif;
+      font-size:64px;
+      line-height:66px;
+      margin:20px 0;
+      font-weight:500;
+    }
+
+    .strategy-content p{
+      color:#d0d0d0;
+      line-height:32px;
+      font-size:18px;
+    }
+
+    /* CTA */
+
+    .cta{
+      margin-bottom:90px;
+    }
+
+    .cta-box{
+      position:relative;
+      overflow:hidden;
+      border-radius:30px;
+      border:1px solid var(--border);
+      min-height:420px;
+      display:flex;
+      align-items:center;
+      padding:70px;
+    }
+
+    .cta-bg{
+      position:absolute;
+      inset:0;
+      background:
+      linear-gradient(to right, rgba(0,0,0,.92) 15%, rgba(0,0,0,.45) 55%, rgba(0,0,0,.1)),
+      url('6.png') center center/cover no-repeat;
+    }
+
+    .cta-content{
+      position:relative;
+      z-index:2;
+      max-width:560px;
+    }
+
+    .cta-content h5{
+      font-family:'Cormorant Garamond',serif;
+      font-size:70px;
+      line-height:72px;
+      font-weight:500;
+      margin-bottom:22px;
+    }
+
+    .cta-content p{
+      color:#c7c7c7;
+      line-height:32px;
+      font-size:18px;
+      margin-bottom:34px;
+    }
+
+    /* FOOTER */
+
+    footer{
+      border-top:1px solid rgba(255,255,255,.06);
+      padding:50px 0 30px;
+      text-align:center;
+    }
+
+    .footer-links{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:40px;
+      flex-wrap:wrap;
+      margin-bottom:26px;
+    }
+
+    .footer-links a{
+      color:#d4d4d4;
+      font-size:15px;
+    }
+
+    .domain{
+      letter-spacing:10px;
+      color:var(--gold);
+      font-size:14px;
+    }
+
+    /* RESPONSIVE */
+
+    @media(max-width:1100px){
+
+      .cards{
+        grid-template-columns:1fr;
+      }
+
+      .hero-content h2{
+        font-size:64px;
+        line-height:64px;
+      }
+
+      .section-title h3{
+        font-size:42px;
+      }
+
+      .strategy-content h4,
+      .cta-content h5{
+        font-size:48px;
+        line-height:52px;
+      }
+
+    }
+
+    @media(max-width:860px){
+
+      nav{
+        display:none;
+      }
+
+      .hero{
+        min-height:auto;
+      }
+
+      .hero-content{
+        padding:120px 0 90px;
+      }
+
+      .hero-content h2{
+        font-size:52px;
+        line-height:54px;
+      }
+
+      .hero-content p{
+        font-size:17px;
+        line-height:30px;
+      }
+
+      .section-title{
+        padding:70px 0 50px;
+      }
+
+      .section-title h3{
+        font-size:36px;
+      }
+
+      .card-image{
+        height:240px;
+      }
+
+      .card-content{
+        padding:28px;
+      }
+
+      .card-content h4{
+        font-size:36px;
+        line-height:38px;
+      }
+
+      .strategy-box,
+      .cta-box{
+        padding:40px 28px;
+        min-height:auto;
+      }
+
+      .strategy-content h4,
+      .cta-content h5{
+        font-size:42px;
+        line-height:46px;
+      }
+
+      .footer-links{
+        flex-direction:column;
+        gap:18px;
+      }
+
+      .domain{
+        letter-spacing:5px;
+        font-size:12px;
+      }
+
+    }
+
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container header-wrap">
+
+    <div class="logo">
+
+      <img src="../imagens/logo.png" alt="Luan Especialista">
+
+      <div class="logo-text">
+        <h1>LUAN <span>ESPECIALISTA</span></h1>
+        <p>ESTRATÉGIAS PATRIMONIAIS</p>
+      </div>
+
+    </div>
+
+    <nav>
+      <a href="../index.html">Início</a>
+      <a href="#">Estratégias Patrimoniais</a>
+      <a href="#" class="active">Mobilidade & Experiências</a>
+      <a href="#">Imóveis</a>
+    </nav>
+
+    <a href="https://wa.me/5547992120915" class="btn-header">
+      Falar com especialista
+    </a>
+
+  </div>
+</header>
+
+<section class="hero">
+
+  <div class="hero-bg"></div>
+
+  <div class="container">
+
+    <div class="hero-content">
+
+      <h2>
+        Mobilidade para quem pensa <span>expansão.</span>
+      </h2>
+
+      <p>
+        Estruturas inteligentes para acessar ativos, expandir operações e transformar oportunidades em crescimento real.
+      </p>
+
+      <a href="https://wa.me/5547992120915" class="hero-btn">
+        Falar com especialista
+      </a>
+
+    </div>
+
+  </div>
+
+</section>
+
+<section class="container">
+
+  <div class="section-title">
+
+    <small>SOLUÇÕES QUE GERAM MOVIMENTO</small>
+
+    <h3>
+      Diferentes caminhos. Um mesmo objetivo: crescimento.
+    </h3>
+
+  </div>
+
+  <div class="cards">
+
+    <div class="card">
+
+      <div class="card-image">
+        <img src="2.png" alt="">
+      </div>
+
+      <div class="card-content">
+
+        <span>EXPANSÃO OPERACIONAL</span>
+
+        <h4>
+          Sua operação não pode parar.
+        </h4>
+
+        <p>
+          Estruturas para frotas, caminhões e veículos comerciais que acompanham o crescimento da sua operação.
+        </p>
+
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="card-image">
+        <img src="3.png" alt="">
+      </div>
+
+      <div class="card-content">
+
+        <span>MOBILIDADE PREMIUM</span>
+
+        <h4>
+          Posicionamento que acompanha sua visão.
+        </h4>
+
+        <p>
+          Carros e motos que representam presença, liberdade e novas possibilidades para seu momento.
+        </p>
+
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="card-image">
+        <img src="4.png" alt="">
+      </div>
+
+      <div class="card-content">
+
+        <span>TURISMO & EXPERIÊNCIAS</span>
+
+        <h4>
+          O litoral também movimenta negócios.
+        </h4>
+
+        <p>
+          Buggys, jet skis, lanchas e experiências que transformam mobilidade em oportunidade.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<section class="strategy container">
+
+  <div class="strategy-box">
+
+    <div class="strategy-bg"></div>
+
+    <div class="strategy-content">
+
+      <span>ESTRATÉGIA INTELIGENTE</span>
+
+      <h4>
+        Nem todo crescimento exige capital imediato.
+      </h4>
+
+      <p>
+        Existem formas inteligentes de estruturar acesso a ativos sem comprometer totalmente sua operação.
+      </p>
+
+    </div>
+
+  </div>
+
+</section>
+
+<section class="cta container">
+
+  <div class="cta-box">
+
+    <div class="cta-bg"></div>
+
+    <div class="cta-content">
+
+      <h5>
+        Seu próximo ativo começa com uma decisão estratégica.
+      </h5>
+
+      <p>
+        Fale com um especialista e descubra possibilidades alinhadas ao seu momento e objetivo.
+      </p>
+
+      <a href="https://wa.me/5547992120915" class="hero-btn">
+        Falar com especialista
+      </a>
+
+    </div>
+
+  </div>
+
+</section>
+
+<footer>
+
+  <div class="footer-links">
+
+    <a href="mailto:contato@luan-especialista.pro">
+      contato@luan-especialista.pro
+    </a>
+
+    <a href="tel:+5547992120915">
+      47 99212-0915
+    </a>
+
+    <a href="https://instagram.com/luan.especialista">
+      @luan.especialista
+    </a>
+
+  </div>
+
+  <div class="domain">
+    luan-especialista.pro
+  </div>
+
+</footer>
+
+</body>
+</html>
