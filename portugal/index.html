@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Brasileiros em Portugal | Luan Especialista</title>
+<meta name="description" content="Mora em Portugal? Use parte do que ganha em euro para construir patrimônio no Brasil com estratégia.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
 :root{
@@ -21,17 +23,30 @@
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;line-height:1.4}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,Arial,sans-serif;
+  line-height:1.35;
+  overflow-x:hidden;
+}
+
 a{text-decoration:none;color:inherit}
-.wrap{width:min(92%,var(--max));margin:auto}
+
+.wrap{
+  width:min(92%,var(--max));
+  margin:auto;
+}
 
 header{
-  height:64px;
-  background:#030303;
+  height:62px;
+  background:rgba(0,0,0,.88);
   border-bottom:1px solid var(--line);
   position:sticky;
   top:0;
-  z-index:20;
+  z-index:50;
+  backdrop-filter:blur(10px);
 }
 
 .header-inner{
@@ -39,283 +54,354 @@ header{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:20px;
+  gap:18px;
 }
 
 .brand img{
-  height:42px;
+  height:38px;
   width:auto;
   display:block;
 }
 
-.top-title{
-  font-size:13px;
+.header-text{
+  font-size:11px;
   font-weight:900;
   text-transform:uppercase;
-  text-align:center;
+  letter-spacing:.5px;
+  color:var(--muted);
 }
 
-.top-title span{color:var(--gold2)}
+.header-text span{color:var(--gold2)}
 
 .btn{
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  min-height:40px;
+  padding:10px 18px;
+  border-radius:999px;
+  border:0;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:900;
   background:linear-gradient(135deg,var(--gold2),#a87522);
   color:#050505;
-  font-weight:900;
-  border-radius:10px;
-  padding:12px 20px;
-  font-size:14px;
-  min-height:44px;
+}
+
+.btn-outline{
+  border:1px solid var(--line);
+  background:rgba(0,0,0,.30);
+  color:var(--gold2);
 }
 
 .hero{
-  min-height:520px;
-  background:
-    linear-gradient(90deg,rgba(0,0,0,.95) 0%,rgba(0,0,0,.82) 42%,rgba(0,0,0,.35) 100%),
-    url("/imagens/portugal-hero.webp.jpg") center/cover no-repeat;
-  border-bottom:1px solid var(--line);
+  min-height:460px;
   display:flex;
   align-items:center;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.90) 0%,rgba(0,0,0,.74) 42%,rgba(0,0,0,.22) 100%),
+    url("/imagens/portugal-hero.webp") center/cover no-repeat;
+  border-bottom:1px solid var(--line);
 }
 
 .hero-grid{
   display:grid;
-  grid-template-columns:1.05fr .95fr;
-  gap:30px;
+  grid-template-columns:.95fr 1.05fr;
+  gap:26px;
   align-items:center;
-  padding:34px 0;
+  padding:26px 0;
 }
 
 .tag{
   display:inline-flex;
+  align-items:center;
   color:var(--gold2);
   border:1px solid var(--line);
+  background:rgba(0,0,0,.35);
+  padding:7px 12px;
   border-radius:999px;
-  padding:7px 13px;
-  font-size:12px;
+  font-size:10px;
   font-weight:900;
   text-transform:uppercase;
   margin-bottom:14px;
-  background:rgba(0,0,0,.45);
 }
 
 h1{
   font-family:Cinzel,serif;
-  font-size:clamp(32px,3.4vw,44px);
-  line-height:1.06;
+  font-size:clamp(26px,2.8vw,34px);
+  line-height:1.08;
   font-weight:600;
-  max-width:610px;
+  max-width:500px;
   margin-bottom:14px;
 }
 
-h1 span,h2 span{color:var(--gold2)}
+h1 span,
+.cta h2 span{
+  color:var(--gold2);
+}
 
 .lead{
-  color:#e3e3e3;
-  font-size:16px;
-  max-width:560px;
-  margin-bottom:18px;
+  color:#f0f0f0;
+  font-size:14px;
+  max-width:470px;
+  margin-bottom:16px;
 }
 
-.offer{
+.left-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.simulator{
+  max-width:520px;
+  margin-top:42px;
   border:1px solid var(--line);
-  background:rgba(7,7,7,.86);
-  border-radius:16px;
-  padding:18px;
+  background:rgba(7,7,7,.78);
+  border-radius:18px;
+  padding:16px;
+  backdrop-filter:blur(8px);
 }
 
-.offer small{
+.simulator h2{
+  font-family:Cinzel,serif;
+  font-size:21px;
+  line-height:1.1;
+  margin-bottom:4px;
+}
+
+.simulator .intro{
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:12px;
+}
+
+.select-label{
+  display:block;
   color:var(--gold2);
-  font-size:11px;
+  font-size:10px;
   font-weight:900;
   text-transform:uppercase;
+  margin-bottom:8px;
 }
 
-.offer-main{
+.invest-options{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-bottom:12px;
+}
+
+.invest-options button,
+.invest-options a{
+  min-height:44px;
+  border-radius:13px;
+  border:1px solid var(--line);
+  background:rgba(0,0,0,.28);
+  color:#fff;
+  cursor:pointer;
+  transition:.2s;
   display:flex;
-  align-items:end;
-  justify-content:space-between;
-  gap:16px;
-  margin-top:6px;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-weight:900;
 }
 
-.offer-main strong{
-  font-size:24px;
-  line-height:1.05;
+.invest-options button{
+  font-size:18px;
 }
 
-.offer-main b{
+.invest-options a{
+  font-size:12px;
   color:var(--gold2);
-  font-size:36px;
+  padding:0 8px;
+}
+
+.invest-options button:hover,
+.invest-options button.active,
+.invest-options a:hover{
+  border-color:rgba(243,210,123,.85);
+  background:rgba(214,168,79,.10);
+}
+
+.result{
+  display:none;
+  border:1px solid rgba(243,210,123,.42);
+  background:rgba(0,0,0,.32);
+  border-radius:15px;
+  padding:14px;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  align-items:center;
+}
+
+.result.show{
+  display:grid;
+}
+
+.result small{
+  display:block;
+  color:var(--gold2);
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+
+.result strong{
+  display:block;
+  font-family:Cinzel,serif;
+  font-size:26px;
   line-height:1;
+  margin-bottom:4px;
 }
 
-.offer-main b span{
-  font-size:15px;
+.result p{
+  color:var(--muted);
+  font-size:12px;
 }
 
-.hero-actions{
-  margin-top:16px;
+.result .btn{
+  min-height:40px;
+  padding:10px 16px;
+  font-size:13px;
 }
 
 .safe{
   color:var(--muted);
-  font-size:12px;
+  font-size:10px;
   margin-top:8px;
 }
 
-.panel{
-  background:rgba(5,5,5,.82);
+section{
+  padding:30px 0;
+}
+
+.quick-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.info-card{
   border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(16,16,16,.92),rgba(5,5,5,.98));
   border-radius:18px;
   padding:18px;
-  backdrop-filter:blur(5px);
 }
 
-.panel h2{
-  font-family:Cinzel,serif;
-  font-size:24px;
-  line-height:1.12;
-  margin-bottom:14px;
-}
-
-.cards{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-}
-
-.card{
-  background:linear-gradient(180deg,#111,#070707);
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:14px;
-  min-height:150px;
-}
-
-.card.featured{
-  border-color:rgba(243,210,123,.75);
-  box-shadow:0 0 26px rgba(214,168,79,.12);
-}
-
-.card small{
+.info-card small{
   display:block;
-  color:var(--muted);
   font-size:10px;
   font-weight:900;
   text-transform:uppercase;
   margin-bottom:6px;
 }
 
-.card h3{
-  font-size:22px;
-  margin-bottom:10px;
-}
+.info-card.danger small{color:#ff7272}
+.info-card.success small{color:var(--gold2)}
 
-.card h3 span{color:var(--gold2)}
-
-.euro{
-  color:var(--gold2);
-  font-size:30px;
-  font-weight:900;
-  line-height:1;
+.info-card h3{
+  font-size:20px;
   margin-bottom:8px;
 }
 
-.euro span{font-size:13px}
-
-.card p{
+.info-card p{
   color:var(--muted);
-  font-size:12px;
-}
-
-.note{
-  color:var(--muted);
-  font-size:11px;
-  margin-top:12px;
-}
-
-section{
-  padding:38px 0;
-}
-
-.bottom{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:18px;
-}
-
-.info{
-  border:1px solid var(--line);
-  background:#090909;
-  border-radius:16px;
-  padding:20px;
-}
-
-.info h3{
-  color:var(--gold2);
-  font-size:18px;
-  margin-bottom:10px;
-}
-
-.info p,.info li{
-  color:var(--muted);
-  font-size:15px;
-}
-
-.info ul{
-  list-style:none;
-  display:grid;
-  gap:10px;
-}
-
-.info li::before{
-  content:"✓ ";
-  color:var(--gold2);
-  font-weight:900;
+  font-size:14px;
 }
 
 .cta{
-  margin-top:20px;
+  margin-top:14px;
   border:1px solid var(--line);
-  border-radius:16px;
-  padding:20px;
-  background:linear-gradient(90deg,rgba(214,168,79,.12),rgba(0,0,0,.75));
+  border-radius:18px;
+  padding:18px;
+  background:linear-gradient(90deg,rgba(214,168,79,.10),rgba(0,0,0,.72));
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:18px;
 }
 
-.cta h3{font-size:23px}
-.cta p{color:var(--muted);font-size:15px}
+.cta h2{
+  font-family:Cinzel,serif;
+  font-size:24px;
+  line-height:1.1;
+  margin-bottom:4px;
+}
+
+.cta p{
+  color:var(--muted);
+  font-size:13px;
+}
 
 @media(max-width:900px){
-  header{height:auto;padding:12px 0}
-  .header-inner{flex-direction:column}
-  .top-title{display:none}
-  .brand img{height:40px}
-  .btn{width:100%}
+  header{
+    height:auto;
+    padding:10px 0;
+  }
+
+  .header-inner{
+    flex-direction:column;
+  }
+
+  .header-text{
+    display:none;
+  }
+
+  .brand img{
+    height:38px;
+  }
+
+  .btn,
+  .btn-outline{
+    width:100%;
+  }
 
   .hero{
     min-height:auto;
     background:
-      linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.78) 42%,rgba(0,0,0,.98)),
+      linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.76) 36%,rgba(0,0,0,.98)),
       url("/imagens/portugal-hero.webp.jpg") center/cover no-repeat;
   }
 
   .hero-grid{
     grid-template-columns:1fr;
-    padding:70px 0 32px;
+    gap:18px;
+    padding:50px 0 26px;
   }
 
-  h1{font-size:32px}
-  .offer-main{display:block}
-  .offer-main b{display:block;margin-top:10px}
-  .cards,.bottom{grid-template-columns:1fr}
-  .cta{flex-direction:column;text-align:center}
+  h1{
+    font-size:28px;
+  }
+
+  .lead{
+    font-size:14px;
+  }
+
+  .simulator{
+    margin-top:0;
+    max-width:100%;
+  }
+
+  .invest-options{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .result,
+  .quick-grid{
+    grid-template-columns:1fr;
+  }
+
+  .cta{
+    flex-direction:column;
+    text-align:center;
+  }
+
+  section{
+    padding:24px 0;
+  }
 }
 </style>
 </head>
@@ -325,14 +411,14 @@ section{
 <header>
   <div class="wrap header-inner">
     <a class="brand" href="/">
-      <img src="/imagens/logo.png" alt="Luan Especialista">
+      <img src="/logo.png" alt="Luan Especialista">
     </a>
 
-    <div class="top-title">
-      <span>Estratégia patrimonial</span> para brasileiros na Europa
+    <div class="header-text">
+      <span>Estratégia patrimonial</span> para brasileiros em Portugal
     </div>
 
-    <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20entender%20essa%20estrat%C3%A9gia." target="_blank">
+    <a class="btn btn-outline" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20entender%20essa%20estrat%C3%A9gia." target="_blank">
       Falar no WhatsApp
     </a>
   </div>
@@ -342,61 +428,54 @@ section{
   <div class="wrap hero-grid">
 
     <div>
-      <div class="tag">🇵🇹 Para brasileiros que moram em Portugal</div>
+      <div class="tag">🇵🇹 Brasileiros em Portugal</div>
 
       <h1>
-        Você mora em Portugal. Mas o euro pode construir seu
+        Use parte do euro que você ganha em Portugal para construir
         <span>patrimônio no Brasil.</span>
       </h1>
 
       <p class="lead">
-        Enquanto muitos usam o salário apenas para sobreviver fora, alguns brasileiros estão usando parte da renda em euro para criar imóvel, renda futura e segurança familiar no Brasil.
+        Em vez de deixar todo o dinheiro desaparecer no custo de vida europeu, veja uma possibilidade aproximada de patrimônio no Brasil.
       </p>
 
-      <div class="offer">
-        <small>Exemplo de possibilidade</small>
-        <div class="offer-main">
-          <strong>Imóvel de R$ 700.000</strong>
-          <b>≈ €482<span>/mês</span></b>
-        </div>
-      </div>
-
-      <div class="hero-actions">
-        <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20entender%20a%20estrat%C3%A9gia%20do%20cr%C3%A9dito%20de%20R%24%20700.000%20pagando%20aproximadamente%20%E2%82%AC482%20por%20m%C3%AAs." target="_blank">
-          Quero entender essa estratégia
+      <div class="left-actions">
+        <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20falar%20com%20um%20especialista." target="_blank">
+          Falar com especialista
         </a>
-        <div class="safe">Atendimento personalizado e análise conforme perfil.</div>
       </div>
     </div>
 
-    <div class="panel">
-      <h2>Compare o poder do <span>euro</span></h2>
+    <div class="simulator">
+      <h2>Quanto você consegue investir?</h2>
+      <p class="intro">Selecione um valor mensal em euro.</p>
 
-      <div class="cards">
-        <div class="card">
-          <small>Crédito no Brasil</small>
-          <h3>R$ 400 <span>mil</span></h3>
-          <div class="euro">≈ €275<span>/mês</span></div>
-          <p>Começo acessível para construir patrimônio.</p>
-        </div>
+      <span class="select-label">Selecione</span>
 
-        <div class="card featured">
-          <small>Mais procurado</small>
-          <h3>R$ 700 <span>mil</span></h3>
-          <div class="euro">≈ €482<span>/mês</span></div>
-          <p>Equilíbrio entre parcela e oportunidade.</p>
-        </div>
+      <div class="invest-options">
+        <button type="button" onclick="selectInvestment(300,this)">€300</button>
+        <button type="button" onclick="selectInvestment(500,this)">€500</button>
+        <button type="button" onclick="selectInvestment(700,this)">€700</button>
 
-        <div class="card">
-          <small>Crédito no Brasil</small>
-          <h3>R$ 1 <span>milhão</span></h3>
-          <div class="euro">≈ €688<span>/mês</span></div>
-          <p>Para construir mais e deixar legado.</p>
-        </div>
+        <a href="https://wa.me/5547992120915?text=Quero%20investir%20mais%20-%20Portugal" target="_blank">
+          Outro
+        </a>
       </div>
 
-      <div class="note">
-        Câmbio aproximado utilizado: EUR 5,84. Valores sujeitos à análise.
+      <div id="result" class="result">
+        <div>
+          <small>Patrimônio aproximado no Brasil</small>
+          <strong id="result-credit">R$ 400 mil</strong>
+          <p id="result-text">Possibilidade aproximada para quem deseja investir €300 por mês.</p>
+        </div>
+
+        <a id="result-whatsapp" class="btn" href="#" target="_blank">
+          Quero investir €300
+        </a>
+      </div>
+
+      <div class="safe">
+        Valores aproximados sujeitos à análise de perfil e crédito.
       </div>
     </div>
 
@@ -405,37 +484,85 @@ section{
 
 <section>
   <div class="wrap">
-    <div class="bottom">
-      <div class="info">
-        <h3>Por que isso chama atenção?</h3>
-        <p>
-          Em Portugal, €482 podem desaparecer no custo de vida. No Brasil, esse mesmo valor pode fazer parte de uma estratégia para acessar um patrimônio de R$ 700 mil.
-        </p>
+    <div class="quick-grid">
+
+      <div class="info-card danger">
+        <small>Sem estratégia</small>
+        <h3>O euro desaparece.</h3>
+        <p>Aluguel, contas e rotina acabam consumindo grande parte da renda.</p>
       </div>
 
-      <div class="info">
-        <h3>Essa estratégia é para quem:</h3>
-        <ul>
-          <li>Mora em Portugal e recebe em euro</li>
-          <li>Quer investir no Brasil sem voltar agora</li>
-          <li>Quer ajudar a família ou gerar renda futura</li>
-          <li>Busca planejamento, não decisão no impulso</li>
-        </ul>
+      <div class="info-card success">
+        <small>Com estratégia</small>
+        <h3>O euro constrói.</h3>
+        <p>Parte da sua renda pode virar patrimônio e renda futura no Brasil.</p>
       </div>
+
     </div>
 
     <div class="cta">
       <div>
-        <h3>Vamos analisar seu objetivo?</h3>
-        <p>Me chame no WhatsApp e veja qual valor faz sentido para o seu perfil.</p>
+        <h2>
+          Você não precisa voltar ao Brasil para começar a construir nele.
+          Precisa de <span>estratégia.</span>
+        </h2>
+
+        <p>
+          Descubra uma possibilidade alinhada ao seu momento atual.
+        </p>
       </div>
 
-      <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20comparar%20os%20valores%20para%20construir%20patrim%C3%B4nio%20no%20Brasil." target="_blank">
-        Falar com Luan agora
+      <a class="btn" href="https://wa.me/5547992120915?text=Ol%C3%A1%2C%20moro%20em%20Portugal%20e%20quero%20analisar%20meu%20perfil." target="_blank">
+        Analisar meu perfil
       </a>
     </div>
   </div>
 </section>
+
+<script>
+function selectInvestment(value, button){
+
+  const options = {
+    300: {
+      credit: 'R$ 400 mil',
+      text: 'Possibilidade aproximada para quem deseja investir €300 por mês.',
+      whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20300%20Euros%20-%20Portugal',
+      label: 'Quero investir €300'
+    },
+
+    500: {
+      credit: 'R$ 700 mil',
+      text: 'Possibilidade aproximada para quem deseja investir €500 por mês.',
+      whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20500%20Euros%20-%20Portugal',
+      label: 'Quero investir €500'
+    },
+
+    700: {
+      credit: 'R$ 1 milhão',
+      text: 'Possibilidade aproximada para quem deseja investir €700 por mês.',
+      whatsapp: 'https://wa.me/5547992120915?text=Quero%20investir%20700%20Euros%20-%20Portugal',
+      label: 'Quero investir €700'
+    }
+  };
+
+  document.querySelectorAll('.invest-options button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  button.classList.add('active');
+
+  const item = options[value];
+
+  document.getElementById('result-credit').textContent = item.credit;
+  document.getElementById('result-text').textContent = item.text;
+
+  const whatsappBtn = document.getElementById('result-whatsapp');
+  whatsappBtn.href = item.whatsapp;
+  whatsappBtn.textContent = item.label;
+
+  document.getElementById('result').classList.add('show');
+}
+</script>
 
 </body>
 </html>
