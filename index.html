@@ -7,418 +7,743 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    *{margin:0;padding:0;box-sizing:border-box}
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
 
     html,body{
       width:100%;
-      background:#020304;
+      min-height:100%;
+      background:#050505;
       color:#fff;
       font-family:'Inter',sans-serif;
       overflow-x:hidden;
     }
 
-    .page{
+    .hero{
       min-height:100vh;
+
+      display:flex;
+      align-items:center;
+
       background:
-        linear-gradient(to bottom,rgba(0,0,0,.62),rgba(0,0,0,.88)),
-        url("./imagens/map-overlay.webp") top center/100% auto no-repeat,
-        url("./imagens/hero-bg.webp") center/cover no-repeat;
-      padding:18px 18px 24px;
+      linear-gradient(to bottom,rgba(0,0,0,.70),rgba(0,0,0,.91)),
+      url("./imagens/hero-bg.webp") center/cover no-repeat;
+
+      padding:14px 22px;
     }
 
     .container{
       width:100%;
-      max-width:1080px;
+      max-width:1160px;
       margin:0 auto;
     }
 
+    /* TOPO */
+
     .top{
       display:flex;
-      align-items:center;
       justify-content:space-between;
+      align-items:center;
+
       margin-bottom:18px;
     }
 
     .logo{
-      width:44px;
+      width:46px;
     }
 
     .top-btn{
-      color:#f0c36c;
+      color:#e9c47d;
       text-decoration:none;
-      border:1px solid rgba(240,195,108,.55);
+
+      border:1px solid rgba(233,196,125,.42);
+
       border-radius:999px;
-      padding:9px 18px;
-      font-size:12px;
-      font-weight:700;
-      background:rgba(0,0,0,.25);
+
+      padding:9px 20px;
+
+      font-size:13px;
+      font-weight:600;
+
+      background:rgba(255,255,255,.035);
     }
 
-    .hero{
+    /* HERO */
+
+    .hero-content{
       text-align:center;
-      margin-bottom:18px;
+      margin-bottom:24px;
     }
 
     h1{
       font-family:'Cormorant Garamond',serif;
-      font-size:clamp(38px,4.2vw,56px);
+
+      font-size:clamp(44px,5vw,68px);
+
       font-weight:500;
-      line-height:.92;
-      margin-bottom:8px;
+
+      line-height:.9;
+
+      margin-bottom:10px;
+
       letter-spacing:1px;
     }
 
-    .gold{color:#d7ab63}
+    .gold{
+      color:#d7ab63;
+    }
 
     .subtitle{
-      font-size:14px;
-      font-weight:600;
-      margin-bottom:6px;
+      font-size:15px;
+      color:rgba(255,255,255,.86);
+
+      margin-bottom:8px;
+
+      font-weight:500;
     }
 
     .description{
-      font-size:12px;
-      color:rgba(255,255,255,.70);
-      margin-bottom:14px;
+      font-size:13px;
+      color:rgba(255,255,255,.66);
+
+      margin-bottom:18px;
     }
 
-    .country-label{
-      font-size:11px;
-      letter-spacing:2px;
-      text-transform:uppercase;
-      color:#f0c36c;
-      margin-bottom:12px;
-    }
+    /* FLAGS */
 
     .flags{
       display:flex;
       justify-content:center;
       flex-wrap:wrap;
-      gap:10px;
-      margin-bottom:18px;
-    }
 
-    .flag-wrap{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:5px;
+      gap:10px;
     }
 
     .flag{
-      width:46px;
-      height:46px;
-      border-radius:13px;
+      width:48px;
+      height:48px;
+
+      border-radius:15px;
+
       background:rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.15);
+
+      border:1px solid rgba(255,255,255,.11);
+
       display:flex;
       align-items:center;
       justify-content:center;
+
+      text-decoration:none;
+
+      transition:.2s ease;
+    }
+
+    .flag:hover{
+      transform:translateY(-2px);
+
+      border-color:rgba(215,171,99,.35);
     }
 
     .flag img{
-      width:30px;
-      height:30px;
+      width:28px;
+      height:28px;
+
       border-radius:50%;
+
       object-fit:cover;
     }
 
-    .flag-wrap span{
-      font-size:8px;
-      font-weight:700;
-      text-transform:uppercase;
-    }
+    /* CARDS */
 
     .cards{
       display:grid;
       grid-template-columns:repeat(3,1fr);
+
       gap:16px;
+
       margin-bottom:18px;
     }
 
     .card{
-      min-height:310px;
-      border-radius:20px;
-      overflow:hidden;
+      min-height:210px;
+
+      border-radius:24px;
+
+      padding:24px;
+
+      background:
+      linear-gradient(145deg,
+      rgba(255,255,255,.10),
+      rgba(255,255,255,.025));
+
+      border:1px solid rgba(255,255,255,.12);
+
+      backdrop-filter:blur(18px);
+
       position:relative;
-      padding:20px;
-      display:flex;
-      align-items:flex-end;
-      text-align:center;
-      background-size:cover;
-      background-position:center;
-      border:1px solid rgba(255,255,255,.16);
+
+      overflow:hidden;
     }
 
     .card::before{
       content:"";
+
       position:absolute;
       inset:0;
-      background:linear-gradient(to bottom,rgba(0,0,0,.12),rgba(0,0,0,.52),rgba(0,0,0,.90));
-      z-index:0;
+
+      background:
+      radial-gradient(circle at top right,
+      rgba(215,171,99,.16),
+      transparent 40%);
+
+      pointer-events:none;
     }
 
     .card-inner{
       position:relative;
       z-index:2;
-      width:100%;
     }
 
-    .card-patrimonio{background-image:url("./imagens/card-patrimonio.webp")}
-    .card-mobilidade{background-image:url("./imagens/card-mobilidade.webp")}
-    .card-imoveis{background-image:url("./imagens/card-imoveis.webp")}
+    /* ICONES */
 
-    .icons{
+    .icon-row{
       display:flex;
-      justify-content:center;
+      align-items:center;
+
       gap:12px;
-      margin-bottom:12px;
+
+      margin-bottom:16px;
     }
 
-    .icons svg{
-      width:19px;
-      height:19px;
-      stroke:#f0c36c;
-      stroke-width:1.55;
+    .icon-row svg{
+      width:20px;
+      height:20px;
+
+      stroke:#d7ab63;
+      stroke-width:1.45;
+
       fill:none;
+
       stroke-linecap:round;
       stroke-linejoin:round;
+
+      opacity:.98;
     }
+
+    /* TITULOS */
 
     .card h2{
       font-family:'Cormorant Garamond',serif;
-      font-size:28px;
+
+      font-size:30px;
+
       line-height:1;
+
       margin-bottom:10px;
+
       font-weight:600;
     }
 
-    .small-line{
-      width:42px;
-      height:1px;
-      background:#d7ab63;
-      margin:0 auto 14px;
-    }
-
     .card p{
-      font-size:12px;
-      line-height:1.45;
-      max-width:250px;
-      margin:0 auto 18px;
-      color:rgba(255,255,255,.86);
+      font-size:13px;
+
+      line-height:1.5;
+
+      color:rgba(255,255,255,.74);
+
+      margin-bottom:18px;
+
+      max-width:310px;
     }
 
     .card-btn{
       display:inline-flex;
+
+      color:#f0cc82;
+
       text-decoration:none;
-      color:#f0c36c;
-      border:1px solid rgba(240,195,108,.58);
+
+      font-size:11px;
+      font-weight:700;
+
+      border:1px solid rgba(240,204,130,.35);
+
       border-radius:999px;
-      padding:9px 17px;
-      font-size:11px;
-      font-weight:700;
-      background:rgba(0,0,0,.25);
+
+      padding:9px 16px;
+
+      background:rgba(255,255,255,.035);
+
+      transition:.2s ease;
     }
 
-    .brand-strip{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:16px;
-      overflow:hidden;
-      background:rgba(0,0,0,.30);
-      margin-bottom:18px;
+    .card-btn:hover{
+      border-color:rgba(240,204,130,.6);
     }
 
-    .brand-item{
-      padding:18px 12px;
-      text-align:center;
-      font-size:11px;
-      font-weight:700;
-      border-right:1px solid rgba(255,255,255,.08);
-    }
+    /* FOOTER */
 
-    .brand-item:last-child{
-      border-right:0;
-    }
+    .mini-footer{
 
-    .footer{
-      border:1px solid rgba(215,171,99,.18);
-      border-radius:18px;
-      background:rgba(0,0,0,.36);
-      padding:22px 20px 18px;
+      margin-top:18px;
+
+      padding-top:18px;
+
+      border-top:1px solid rgba(255,255,255,.08);
+
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+
+      gap:10px;
+
       text-align:center;
     }
 
-    .footer-top{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:14px;
-      margin-bottom:18px;
+    .mini-links{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      flex-wrap:wrap;
+
+      gap:10px;
+
+      color:rgba(255,255,255,.58);
+
+      font-size:10px;
+
+      letter-spacing:2px;
+
+      text-transform:uppercase;
     }
 
     .footer-contact{
-      font-size:13px;
-    }
+      color:rgba(255,255,255,.68);
 
-    .domain{
-      color:#d7ab63;
-      letter-spacing:6px;
-      font-size:13px;
-      margin-bottom:14px;
-    }
-
-    .copyright{
       font-size:11px;
-      color:rgba(255,255,255,.56);
+
+      line-height:1.5;
     }
+
+    .footer-copy{
+      color:rgba(255,255,255,.42);
+
+      font-size:10px;
+    }
+
+    .dot{
+      color:#d7ab63;
+    }
+
+    /* MOBILE */
 
     @media(max-width:900px){
-      .page{
-        padding:18px 14px 24px;
-        background:
-          linear-gradient(to bottom,rgba(0,0,0,.66),rgba(0,0,0,.90)),
-          url("./imagens/map-overlay.webp") top center/170% auto no-repeat,
-          url("./imagens/hero-bg.webp") center/cover no-repeat;
+
+      .hero{
+        align-items:flex-start;
+
+        padding:18px 14px 36px;
       }
 
-      .top-btn{display:none}
-      .logo{width:44px}
+      .top{
+        margin-bottom:28px;
+      }
+
+      .logo{
+        width:50px;
+      }
+
+      .top-btn{
+        display:none;
+      }
+
+      .hero-content{
+        margin-bottom:26px;
+      }
 
       h1{
-        font-size:40px;
+        font-size:42px;
+      }
+
+      .description{
+        max-width:320px;
+
+        margin:0 auto 20px;
+
+        line-height:1.45;
       }
 
       .cards{
         grid-template-columns:1fr;
+
+        gap:15px;
       }
 
       .card{
-        min-height:300px;
+        min-height:190px;
+
+        padding:22px;
       }
 
-      .brand-strip{
-        grid-template-columns:1fr;
+      .mini-links{
+        gap:8px;
       }
 
-      .brand-item{
-        border-right:0;
-        border-bottom:1px solid rgba(255,255,255,.08);
+      .footer-contact{
+        font-size:10px;
       }
 
-      .footer-top{
-        grid-template-columns:1fr;
-      }
-
-      .domain{
-        letter-spacing:4px;
-        word-break:break-word;
-      }
     }
+
+    /* NOTEBOOKS */
+
+    @media(max-height:760px) and (min-width:901px){
+
+      .hero{
+        padding:10px 22px;
+      }
+
+      .top{
+        margin-bottom:8px;
+      }
+
+      .logo{
+        width:42px;
+      }
+
+      .hero-content{
+        margin-bottom:14px;
+      }
+
+      h1{
+        font-size:54px;
+
+        margin-bottom:7px;
+      }
+
+      .subtitle{
+        font-size:13px;
+      }
+
+      .description{
+        font-size:12px;
+
+        margin-bottom:13px;
+      }
+
+      .flag{
+        width:42px;
+        height:42px;
+
+        border-radius:13px;
+      }
+
+      .flag img{
+        width:25px;
+        height:25px;
+      }
+
+      .cards{
+        gap:14px;
+      }
+
+      .card{
+        min-height:178px;
+
+        padding:18px;
+      }
+
+      .icon-row{
+        gap:10px;
+
+        margin-bottom:12px;
+      }
+
+      .icon-row svg{
+        width:17px;
+        height:17px;
+      }
+
+      .card h2{
+        font-size:26px;
+
+        margin-bottom:8px;
+      }
+
+      .card p{
+        font-size:12px;
+
+        line-height:1.35;
+
+        margin-bottom:12px;
+      }
+
+      .card-btn{
+        font-size:10px;
+
+        padding:7px 13px;
+      }
+
+    }
+
   </style>
 </head>
 
 <body>
 
-<main class="page">
+<main class="hero">
+
   <div class="container">
 
     <header class="top">
+
       <img class="logo" src="./imagens/logo.png" alt="Luan Especialista">
-      <a class="top-btn" href="https://wa.me/5547992120915">Falar com especialista</a>
+
+      <a class="top-btn" href="https://wa.me/5547992120915">
+        Falar com especialista
+      </a>
+
     </header>
 
-    <section class="hero">
-      <h1>LUAN <span class="gold">ESPECIALISTA</span></h1>
-      <div class="subtitle">Estratégias patrimoniais inteligentes</div>
-      <p class="description">Brasil e exterior conectados através de oportunidades estratégicas.</p>
+    <section class="hero-content">
 
-      <div class="country-label">Escolha seu país</div>
+      <h1>
+        LUAN <span class="gold">ESPECIALISTA</span>
+      </h1>
+
+      <div class="subtitle">
+        Estratégias patrimoniais inteligentes
+      </div>
+
+      <p class="description">
+        Brasil e exterior conectados através de oportunidades estratégicas.
+      </p>
 
       <div class="flags">
-        <div class="flag-wrap"><a class="flag" href="#"><img src="https://flagcdn.com/w80/br.png"></a><span>Brasil</span></div>
-        <div class="flag-wrap"><a class="flag" href="#"><img src="https://flagcdn.com/w80/us.png"></a><span>EUA</span></div>
-        <div class="flag-wrap"><a class="flag" href="#"><img src="https://flagcdn.com/w80/pt.png"></a><span>Portugal</span></div>
-        <div class="flag-wrap"><a class="flag" href="#"><img src="https://flagcdn.com/w80/es.png"></a><span>Espanha</span></div>
-        <div class="flag-wrap"><a class="flag" href="#"><img src="https://flagcdn.com/w80/ie.png"></a><span>Irlanda</span></div>
-        <div class="flag-wrap"><a class="flag" href="#"><img src="https://flagcdn.com/w80/ca.png"></a><span>Canadá</span></div>
-        <div class="flag-wrap"><a class="flag" href="#"><img src="https://flagcdn.com/w80/au.png"></a><span>Austrália</span></div>
+
+        <a class="flag" href="./brasil/">
+          <img src="https://flagcdn.com/w80/br.png" alt="Brasil">
+        </a>
+
+        <a class="flag" href="./eua/">
+          <img src="https://flagcdn.com/w80/us.png" alt="Estados Unidos">
+        </a>
+
+        <a class="flag" href="./portugal/">
+          <img src="https://flagcdn.com/w80/pt.png" alt="Portugal">
+        </a>
+
+        <a class="flag" href="./espanha/">
+          <img src="https://flagcdn.com/w80/es.png" alt="Espanha">
+        </a>
+
+        <a class="flag" href="./irlanda/">
+          <img src="https://flagcdn.com/w80/ie.png" alt="Irlanda">
+        </a>
+
+        <a class="flag" href="./canada/">
+          <img src="https://flagcdn.com/w80/ca.png" alt="Canadá">
+        </a>
+
+        <a class="flag" href="./australia/">
+          <img src="https://flagcdn.com/w80/au.png" alt="Austrália">
+        </a>
+
       </div>
+
     </section>
 
     <section class="cards">
 
-      <article class="card card-patrimonio">
+      <!-- CARD 1 -->
+
+      <article class="card">
+
         <div class="card-inner">
-          <div class="icons">
-            <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg>
-            <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/></svg>
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16"/></svg>
+
+          <div class="icon-row">
+
+            <svg viewBox="0 0 24 24">
+              <path d="M3 11.5 12 4l9 7.5"/>
+              <path d="M5.5 10.5V20h13v-9.5"/>
+              <path d="M9.5 20v-5h5v5"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19V5"/>
+              <path d="M4 19h16"/>
+              <path d="M8 16v-5"/>
+              <path d="M12 16V8"/>
+              <path d="M16 16v-9"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="8"/>
+              <path d="M4 12h16"/>
+            </svg>
+
           </div>
-          <h2>Estratégias<br>Patrimoniais</h2>
-          <div class="small-line"></div>
-          <p>Soluções para construir, proteger e multiplicar patrimônio no Brasil.</p>
-          <a class="card-btn" href="#">Conhecer estratégia →</a>
+
+          <h2>Estratégias Patrimoniais</h2>
+
+          <p>
+            Soluções para construir, proteger e multiplicar patrimônio no Brasil.
+          </p>
+
+          <a class="card-btn" href="./estrategias-patrimoniais">
+            Conhecer estratégia →
+          </a>
+
         </div>
+
       </article>
 
-      <article class="card card-mobilidade">
+      <!-- CARD 2 -->
+
+      <article class="card">
+
         <div class="card-inner">
-          <div class="icons">
-            <svg viewBox="0 0 24 24"><path d="M5 15h10l3-4"/><circle cx="7" cy="17" r="1.7"/><circle cx="16" cy="17" r="1.7"/></svg>
-            <svg viewBox="0 0 24 24"><path d="M5 15l2-5h10l2 5"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg>
-            <svg viewBox="0 0 24 24"><path d="M4 16c4 2 12 2 16 0"/></svg>
-            <svg viewBox="0 0 24 24"><path d="M3 15h14l4-5"/></svg>
-            <svg viewBox="0 0 24 24"><path d="M6 16h4l3-5h3"/><circle cx="6" cy="17" r="2"/></svg>
+
+          <div class="icon-row">
+
+            <svg viewBox="0 0 24 24">
+              <path d="M5 15h10l3-4h-4l-2-3H8l-2 3H4l1 4z"/>
+              <circle cx="7" cy="17" r="1.7"/>
+              <circle cx="16" cy="17" r="1.7"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M5 15l2-5h10l2 5"/>
+              <path d="M6 15h12"/>
+              <circle cx="8" cy="17" r="1.6"/>
+              <circle cx="16" cy="17" r="1.6"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M4 16c4 2 12 2 16 0"/>
+              <path d="M7 15l3-5h5l3 5"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M3 15h14l4-5h-8"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M6 16h4l3-5h3"/>
+              <circle cx="6" cy="17" r="2"/>
+            </svg>
+
           </div>
-          <h2>Mobilidade &<br>Experiências</h2>
-          <div class="small-line"></div>
-          <p>Frotas, lazer e operações comerciais transformadas em possibilidades reais.</p>
-          <a class="card-btn" href="#">Explorar possibilidades →</a>
+
+          <h2>Mobilidade & Experiências</h2>
+
+          <p>
+            Frotas, lazer e operações comerciais transformadas em possibilidades reais.
+          </p>
+
+          <a class="card-btn" href="./mobilidade-experiencias">
+            Explorar possibilidades →
+          </a>
+
         </div>
+
       </article>
 
-      <article class="card card-imoveis">
+      <!-- CARD 3 -->
+
+      <article class="card">
+
         <div class="card-inner">
-          <div class="icons">
-            <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M6 21V7l6-4 6 4v14"/></svg>
-            <svg viewBox="0 0 24 24"><path d="M4 21V5h16v16"/></svg>
-            <svg viewBox="0 0 24 24"><path d="M12 21s7-5.2 7-12"/></svg>
+
+          <div class="icon-row">
+
+            <svg viewBox="0 0 24 24">
+              <path d="M3 21h18"/>
+              <path d="M6 21V7l6-4 6 4v14"/>
+              <path d="M9 21v-6h5v6"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M4 21V5h16v16"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M12 21s7-5.2 7-12"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M8 11l4-4 4 4"/>
+            </svg>
+
           </div>
+
           <h2>Imóveis</h2>
-          <div class="small-line"></div>
-          <p>Oportunidades selecionadas no litoral de Santa Catarina para morar e investir.</p>
-          <a class="card-btn" href="#">Ver oportunidades →</a>
+
+          <p>
+            Oportunidades selecionadas no litoral de Santa Catarina para morar e investir.
+          </p>
+
+          <a class="card-btn" href="./imoveis">
+            Ver oportunidades →
+          </a>
+
         </div>
+
       </article>
 
     </section>
 
-    <section class="brand-strip">
-      <div class="brand-item">Estratégia Inteligente</div>
-      <div class="brand-item">Planejamento Personalizado</div>
-      <div class="brand-item">Atendimento Humano</div>
-      <div class="brand-item">Confiança e Transparência</div>
-    </section>
+    <footer class="mini-footer">
 
-    <footer class="footer">
-      <div class="footer-top">
-        <div class="footer-contact">contato@luan-especialista.pro</div>
-        <div class="footer-contact">47 99212-0915</div>
-        <div class="footer-contact">@luan.especialista</div>
+      <div class="mini-links">
+
+        <span>Estratégia</span>
+
+        <span class="dot">•</span>
+
+        <span>Planejamento</span>
+
+        <span class="dot">•</span>
+
+        <span>Patrimônio</span>
+
+        <span class="dot">•</span>
+
+        <span>Oportunidades</span>
+
       </div>
 
-      <div class="domain">luan-especialista.pro</div>
+      <div class="footer-contact">
 
-      <div class="copyright">
+        contato@luan-especialista.pro
+
+        <span class="dot">•</span>
+
+        47 99212-0915
+
+        <span class="dot">•</span>
+
+        @luan.especialista
+
+      </div>
+
+      <div class="footer-copy">
         © 2026 Luan Especialista. Todos os direitos reservados.
       </div>
+
     </footer>
 
   </div>
+
 </main>
 
 </body>
