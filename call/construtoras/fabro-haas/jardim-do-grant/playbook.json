@@ -1,0 +1,26 @@
+{
+  "nome": "Jardim do Grant",
+  "construtora": "Fabro Haas",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], o Jardim do Grant é o refúgio que você busca em Barra Velha. A apenas 250m da Praia do Grant, ele oferece uma experiência de resort com 1000m² de lazer e uma piscina de borda infinita deslumbrante. Quero te mostrar como esse projeto une o bem-estar da natureza com a sofisticação da Fabro Haas. Podemos falar 10 min amanhã para eu te apresentar as tipologias de 2 suítes?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Olá! O Jardim do Grant em Barra Velha é um convite à vida à beira-mar:\n🌊 A apenas 250m da Praia do Grant.\n🏊 1000m² de lazer com piscina aquecida e borda infinita.\n🧘 Sauna seca e coworking integrados.\nVamos agendar uma visita para você conhecer o local?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• 'A região do Grant é valorizada?': É uma das praias mais exclusivas e preservadas de Barra Velha, o que garante sossego e valorização contínua.\n• 'Entrega?': O cronograma da Fabro Haas é rigoroso, focado em precisão técnica e acabamento refinado."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "Pela localização próxima ao mar e o lazer de resort, as unidades final 4 são as primeiras a sair. Vamos garantir o seu horário na agenda para a apresentação comercial?"
+    }
+  ]
+}

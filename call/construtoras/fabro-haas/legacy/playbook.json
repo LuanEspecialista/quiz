@@ -1,0 +1,10 @@
+{
+  "nome": "Legacy Residence",
+  "construtora": "Fabro Haas",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], falo sobre o Legacy. No coração de Piçarras, ele representa a evolução da moradia de luxo: a apenas 200m do mar e cercado por conveniência [8, 9]. Quero te mostrar como o Legacy traduz elegância e solidez patrimonial. Podemos agendar uma apresentação rápida amanhã?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Conheça o Legacy Residence:\n📍 Centro de Balneário Piçarras.\n🌊 A apenas 200 metros do mar.\n✨ Assinatura de precisão Fabro Haas.\nPosso te enviar a planta das unidades Tipo 1 e 2?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'Prefiro o Itacolomi?': O Centro oferece uma conveniência imediata e escassez de terrenos, o que blinda o valor do seu imóvel.\n• 'É barulhento?': O Legacy foi desenhado para ser um refúgio de paz no centro da cidade." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "Unidades centrais com essa proximidade do mar são as primeiras a esgotar. Vamos reservar um horário na imobiliária para você conhecer o memorial descritivo?" }
+  ]
+}

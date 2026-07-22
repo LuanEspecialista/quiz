@@ -1,0 +1,10 @@
+{
+  "nome": "Skyline Living",
+  "construtora": "EJM Empreendimentos",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], falo sobre o Skyline Living. Ele é um projeto disruptivo, 'Powered by Housi', focado no investidor que busca fluxo constante. Com a proximidade do Aeroporto de Navegantes e Beto Carrero, a demanda por locação aqui é recorde [11-13]. Posso te apresentar como funciona a gestão profissional da Housi para o seu imóvel?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Invista com inteligência no Skyline Living:\n🚀 Gestão Housi: locação e manutenção 100% digital.\n✈️ 20 min do Aeroporto de Navegantes.\n🎢 7 min do Beto Carrero World.\nVamos conversar sobre a projeção de faturamento líquido?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'Locação sazonal compensa?': Sim, a alta conectividade da região garante ocupação por executivos e turistas o ano todo [11].\n• 'E o lazer?': O Skyline oferece um Home Club completo com Lounge Jogos, Pet Place e Academia [14, 15]." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "O gap de valorização em relação a Balneário Camboriú ainda é de 40%, mas está diminuindo rápido [16]. Vamos garantir sua unidade antes do próximo reajuste?" }
+  ]
+}

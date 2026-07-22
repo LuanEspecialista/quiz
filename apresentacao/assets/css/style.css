@@ -1,0 +1,331 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+:root {
+    --bg-principal: #0b0c10;
+    --bg-cards: #11141a;
+    --dourado: #cda250;
+    --dourado-hover: #b38b3d;
+    --texto-claro: #ffffff;
+    --texto-escuro: #a0a5b0;
+    --borda: #1f232b;
+}
+
+body {
+    background-color: var(--bg-principal);
+    color: var(--texto-claro);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Mantém a aplicação fixa na tela */
+}
+
+/* ==========================================================================
+   CABEÇALHO
+   ========================================================================== */
+.main-header {
+    background-color: var(--bg-principal);
+    border-bottom: 1px solid var(--borda);
+    padding: 15px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 90px;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-img {
+    height: 45px;
+    width: auto;
+    object-fit: contain;
+}
+
+.logo-text h1 {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 2px;
+}
+
+.logo-text h1 span {
+    color: var(--dourado);
+    font-weight: 700;
+}
+
+.logo-text p {
+    font-size: 10px;
+    color: var(--texto-escuro);
+    letter-spacing: 4px;
+    margin-top: 2px;
+}
+
+.filters-container {
+    display: flex;
+    gap: 20px;
+    flex-grow: 1;
+    justify-content: center;
+    max-width: 800px;
+}
+
+.filter-box {
+    background-color: var(--bg-cards);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    padding: 6px 15px;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+}
+
+.filter-box label {
+    font-size: 9px;
+    color: var(--dourado);
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.filter-box select {
+    background: transparent;
+    border: none;
+    color: var(--texto-claro);
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    width: 100%;
+}
+
+.filter-box select option {
+    background-color: var(--bg-cards);
+    color: var(--texto-claro);
+}
+
+.filter-box select:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.btn-fullscreen {
+    background: transparent;
+    border: 1px solid var(--borda);
+    color: var(--texto-escuro);
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-fullscreen:hover {
+    border-color: var(--dourado);
+    color: var(--texto-claro);
+}
+
+/* ==========================================================================
+   CONTAINER CENTRAL (PROPORÇÃO HORIZONTAL FIXA)
+   ========================================================================== */
+.viewer-container {
+    flex: 1; /* Ocupa dinamicamente a área entre o cabeçalho e rodapé */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #000000;
+    padding: 20px;
+    position: relative;
+    overflow: hidden; 
+}
+
+/* VISUALIZADOR DE PDF PADRÃO HORIZONTAL */
+.pdf-frame {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--borda);
+    background-color: var(--bg-cards);
+    transition: all 0.3s ease;
+}
+
+.placeholder-text {
+    color: var(--texto-escuro);
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 1px;
+    border: 2px dashed var(--borda);
+    padding: 40px;
+    border-radius: 8px;
+}
+
+/* ==========================================================================
+   RODAPÉ FIXO
+   ========================================================================== */
+.main-footer {
+    background-color: var(--bg-principal);
+    border-top: 1px solid var(--borda);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-nav {
+    padding: 12px 28px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#btn-anterior {
+    background: transparent;
+    border: 1px solid var(--borda);
+    color: var(--texto-claro);
+}
+
+#btn-anterior:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: var(--texto-claro);
+}
+
+#btn-proximo {
+    background-color: var(--dourado);
+    border: none;
+    color: #000000;
+}
+
+#btn-proximo:hover:not(:disabled) {
+    background-color: var(--dourado-hover);
+}
+
+.btn-nav:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    border-color: var(--borda) !important;
+    background-color: transparent !important;
+    color: var(--texto-escuro) !important;
+}
+
+.footer-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.info-link {
+    color: var(--texto-escuro);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    transition: color 0.3s ease;
+}
+
+.info-link:hover {
+    color: var(--dourado);
+}
+
+.separator {
+    width: 1px;
+    height: 14px;
+    background-color: #1f232b;
+}
+
+.parceria-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-sol-img {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+}
+
+.parceria-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.parceria-label {
+    font-size: 8px;
+    color: var(--texto-escuro);
+    letter-spacing: 1.5px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.parceria-nome {
+    font-size: 14px;
+    color: var(--dourado);
+    font-weight: 600;
+    letter-spacing: 1px;
+    line-height: 1;
+}
+
+/* ==========================================================================
+   LOADING SPINNER
+   ========================================================================== */
+.spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    color: var(--texto-escuro);
+    font-size: 14px;
+    letter-spacing: 0.5px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(205, 162, 80, 0.1);
+    border-top: 3px solid var(--dourado);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none !important;
+}
+/* ==========================================================================
+   COMPORTAMENTO INTELIGENTE PARA TELA CHEIA
+   ========================================================================== */
+
+/* Quando o navegador entrar em Tela Cheia */
+:fullscreen .main-header {
+    display: none !important; /* Esconde o cabeçalho e os filtros */
+}
+
+:fullscreen .viewer-container {
+    padding: 0; /* Remove as bordas para o PDF ganhar ainda mais espaço */
+    background-color: #000000;
+}
+
+:fullscreen .main-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.05); /* Deixa a borda do rodapé mais sutil na imersão */
+}

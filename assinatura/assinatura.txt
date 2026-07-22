@@ -1,0 +1,73 @@
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:560px; font-family:Arial, Helvetica, sans-serif; color:#1a1a1a;">
+  <tr>
+    <td style="padding:14px 0;">
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:560px;">
+        <tr>
+          <td style="width:95px; vertical-align:top; padding-right:16px;">
+            <img src="https://luan-especialista.pro/imagens/logo.png" 
+                 alt="Luan Especialista" 
+                 width="82" 
+                 style="display:block; max-width:82px; height:auto; border:0;">
+          </td>
+
+          <td style="vertical-align:top; border-left:2px solid #c89b3c; padding-left:16px;">
+            
+            <div style="font-size:20px; font-weight:700; color:#111111; line-height:24px;">
+              Luan Santos
+            </div>
+
+            <div style="font-size:14px; color:#c89b3c; font-weight:600; line-height:20px; margin-top:2px;">
+              Especialista em Crédito Inteligente
+            </div>
+
+            <div style="font-size:13px; color:#555555; line-height:19px; margin-top:2px;">
+              Autorizado Embracon
+            </div>
+
+            <div style="margin-top:12px; font-size:13px; line-height:22px; color:#222222;">
+              
+              <div>
+                <a href="https://wa.me/5547992120915" 
+                   target="_blank"
+                   style="color:#222222; text-decoration:none;">
+                  WhatsApp: +55 47 99212-0915
+                </a>
+              </div>
+
+              <div>
+                <a href="mailto:contato@luan-especialista.pro" 
+                   style="color:#222222; text-decoration:none;">
+                  E-mail: contato@luan-especialista.pro
+                </a>
+              </div>
+
+              <div>
+                <a href="https://instagram.com/luan.especialista" 
+                   target="_blank"
+                   style="color:#222222; text-decoration:none;">
+                  Instagram: @luan.especialista
+                </a>
+              </div>
+
+            </div>
+
+            <div style="margin-top:12px; font-size:12px; color:#777777; line-height:18px;">
+              Crédito Inteligente • Alavancagem Patrimonial • Estratégias Financeiras
+            </div>
+
+            <div style="margin-top:12px;">
+              <img src="https://luan-especialista.pro/imagens/elogo.png" 
+                   alt="Embracon" 
+                   width="28" 
+                   style="display:inline-block; vertical-align:middle; max-width:28px; height:auto; border:0; margin-right:6px;">
+              <span style="font-size:12px; color:#555555; vertical-align:middle;">
+                Autorizado Embracon
+              </span>
+            </div>
+
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

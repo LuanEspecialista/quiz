@@ -1,0 +1,26 @@
+{
+  "nome": "Orla da Barra",
+  "construtora": "Santer Prime",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], o Orla da Barra é um convite para onde o tempo corre devagar. Localizado na Praia do Tabuleiro em Barra Velha, este projeto foca na simplicidade elegante e na funcionalidade moderna. Quero te apresentar como este empreendimento, com entrega para 2029, se posiciona como um investimento de longo prazo extremamente seguro. Podemos falar por 10 minutos sobre a rentabilidade projetada?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Olá! Conheça o Orla da Barra em Barra Velha:\n🌅 Seus dias com vista definitiva para o mar.\n🧱 Diferenciais: Revestimento acústico total e churrasqueira a carvão.\n🏗️ Previsão de entrega para 2029 - ideal para ganho de capital.\nPosso te enviar a planta das unidades de 81m² a 88m²?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• '2029 está longe?': Para o investidor, esse é o cenário ideal: você entra com o menor valor de m² e colhe toda a valorização da infraestrutura que Barra Velha está recebendo agora.\n• 'Acabamento?': O padrão Santer inclui forro rebaixado em gesso, piso vinílico nos quartos e porcelanato no living."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "As unidades com vista mar definitiva são limitadas e muito procuradas por investidores de fora. Vamos garantir sua reserva na tabela atual?"
+    }
+  ]
+}

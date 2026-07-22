@@ -1,0 +1,10 @@
+{
+  "nome": "Kairós",
+  "construtora": "CP8 Empreendimentos",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], o Kairós é o projeto da CP8 focado no 'tempo certo'. É um empreendimento extremamente versátil em Piçarras, oferecendo desde plantas tipo até duplex de alto padrão. O diferencial aqui é a fachada norte, que garante sol constante e valorização imediata. Quero te apresentar os números desse investimento. Podemos falar amanhã?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Tudo bem? Destaques do Kairós:\n☀️ Fachada Norte: Incidência solar constante em todas as unidades.\n🚗 Vagas de garagem estendidas e infraestrutura para carros elétricos.\n🏊 Lazer completo entregue mobiliado e decorado.\nQual o melhor horário para eu te enviar a tabela de investidor?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'Qual a face do sol?': O Kairós é face norte total, o que é o 'filé mignon' do mercado imobiliário para evitar umidade e garantir luz.\n• 'Segurança?': Controle de acesso por reconhecimento facial e sistema de monitoramento completo." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "O Kairós atende tanto quem busca moradia quanto quem foca em locação sazonal. Qual dessas é a sua prioridade hoje?" }
+  ]
+}

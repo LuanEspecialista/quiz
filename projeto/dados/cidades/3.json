@@ -1,0 +1,25 @@
+{
+    "id": "3",
+    "nome": "Barra Velha",
+    "estado": "SC",
+    "posicionamento": "Tese de entrada relativa, antecipação de ciclo e captura de upside em estágio inicial.",
+    "dados_gerais": {
+        "populacao": "Aprox. 31.000 hab.",
+        "perfil_economico": "Crescimento industrial acelerado às margens da BR-101, forte expansão do comércio e início do boom imobiliário costeiro.",
+        "infraestrutura": "Investimentos em acessibilidade, pontes de ligação interna e pavimentação da região costeira (bairro Itajuba).",
+        "seguranca": "Crescimento monitorado com reforço contínuo de infraestrutura de segurança."
+    },
+    "vetores_valorizacao": {
+        "principal": "Excelente custo de entrada com alto potencial de valorização acumulada (upside).",
+        "impacto": "A cidade atrai quem busca antecipar o ciclo de valorização que já ocorreu nas vizinhas Piçarras e Penha, comprando metros quadrados mais competitivos com alto teto de crescimento."
+    },
+    "caracteristicas": {
+        "turismo": "Lagoa de Barra Velha (esportes náuticos), Praia da Península e a icônica estátua do Cristo.",
+        "gastronomia": "Forte presença de petiscarias tradicionais e restaurantes de cozinha caseira litorânea.",
+        "natureza": "Encontro da lagoa com o mar, praias ideais para o surf e pesca esportiva."
+    },
+    "frases_persuasivas": {
+        "investidor": "Antecipe-se ao mercado. Compre no início do ciclo imobiliário e garanta o maior ganho de capital da região.",
+        "moradia": "A praticidade do acesso rápido à BR-101 combinada com a paz de viver entre a lagoa e o mar."
+    }
+}

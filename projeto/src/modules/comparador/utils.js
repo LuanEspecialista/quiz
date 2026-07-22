@@ -1,0 +1,1 @@
+// Módulo: comparador - utils.js

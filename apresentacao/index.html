@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luan Especialista - Apresentações</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+    <!-- CABEÇALHO COM FILTROS -->
+    <header class="main-header">
+        <div class="logo-container">
+            <img src="assets/img/logo.png" alt="Luan Especialista" class="logo-img">
+            <div class="logo-text">
+                <h1>LUAN <span>ESPECIALISTA</span></h1>
+                <p>APRESENTAÇÕES</p>
+            </div>
+        </div>
+
+        <div class="filters-container">
+            <div class="filter-box">
+                <label>CIDADE</label>
+                <select id="select-cidade">
+                    <option value="">Selecione...</option>
+                </select>
+            </div>
+            
+            <div class="filter-box">
+                <label>CONSTRUTORA</label>
+                <select id="select-construtora" disabled>
+                    <option value="">Selecione a cidade...</option>
+                </select>
+            </div>
+
+            <div class="filter-box">
+                <label>EMPREENDIMENTO</label>
+                <select id="select-empreendimento" disabled>
+                    <option value="">Selecione a construtora...</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn-fullscreen" id="btn-fullscreen">Tela cheia</button>
+    </header>
+
+    <!-- ÁREA CENTRAL: VISUALIZADOR DE PDF COM LOADING E MÁSCARA -->
+    <main class="viewer-container">
+        <!-- Mensagem de instruções inicial -->
+        <div id="viewer-placeholder" class="placeholder-text">
+            <p>Selecione os filtros acima para iniciar a apresentação...</p>
+        </div>
+
+        <!-- Animação de Carregamento -->
+        <div id="loading-spinner" class="spinner-container hidden">
+            <div class="spinner"></div>
+            <p>Carregando apresentação imobiliária...</p>
+        </div>
+
+        <!-- Máscara invisível que bloqueia o clique duplo/extração de texto, mas deixa scrollar -->
+        <div id="pdf-overlay" class="pdf-mask hidden"></div>
+
+        <iframe id="pdf-viewer" src="" class="pdf-frame hidden" frameborder="0"></iframe>
+    </main>
+
+    <!-- RODAPÉ COMPLETO E ALINHADO (PADRÃO MOCKUP) -->
+    <footer class="main-footer">
+        <div class="nav-buttons">
+            <button id="btn-anterior" class="btn-nav" disabled>Anterior</button>
+            <button id="btn-proximo" class="btn-nav" disabled>Próximo</button>
+        </div>
+
+        <div class="footer-info">
+            <a href="tel:47992120915" class="info-link">47 99212-0915</a>
+            <div class="separator"></div>
+            <a href="https://luan-especialista.pro" target="_blank" class="info-link">luan-especialista.pro</a>
+            <div class="separator"></div>
+            <a href="mailto:contato@luan-especialista.pro" class="info-link">contato@luan-especialista.pro</a>
+            <div class="separator"></div>
+            <a href="https://solimoveis.com.br" target="_blank" class="info-link">solimoveis.com.br</a>
+        </div>
+
+        <div class="parceria-container">
+            <img src="assets/img/sol.png" alt="Sol Imóveis" class="logo-sol-img">
+            <div class="parceria-text">
+                
+            </div>
+        </div>
+    </footer>
+
+    <!-- CARREGAMENTO DOS SCRIPTS -->
+    <script src="assets/js/dados.js"></script>
+    <script src="assets/js/filtros.js"></script>
+    <script src="assets/js/viewer.js"></script>
+</body>
+</html>

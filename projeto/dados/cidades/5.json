@@ -1,0 +1,25 @@
+{
+    "id": "5",
+    "nome": "Balneário Camboriú",
+    "estado": "SC",
+    "posicionamento": "Vitrine do mercado de altíssimo padrão nacional e referência máxima de teto de preço (branding de escassez).",
+    "dados_gerais": {
+        "populacao": "Aprox. 140.000 hab. (população flutuante passa de 1 milhão na temporada)",
+        "perfil_economico": "Construção civil de superluxo, turismo internacional, comércio de grife e serviços financeiros de alta renda.",
+        "infraestrutura": "Alargamento histórico da faixa de areia, saneamento de ponta, asfalto impecável e segurança tecnológica preventiva.",
+        "seguranca": "Considerada uma das cidades mais seguras do Brasil através de forte investimento em monitoramento e guarda municipal."
+    },
+    "vetores_valorizacao": {
+        "principal": "Escassez absoluta de terrenos frente-mar e grifes arquitetônicas internacionais.",
+        "impacto": "Funciona como a âncora de preços do litoral. A valorização aqui dita o ritmo e empurra o crescimento de todo o Litoral Norte de SC."
+    },
+    "caracteristicas": {
+        "turismo": "Arranha-céus icônicos, vida noturna de classe mundial, teleférico do Parque Unipraias.",
+        "gastronomia": "Polo gastronômico internacional de luxo ao longo da Avenida Atlântica e Marina.",
+        "natureza": "Praia Central urbanizada integrada às praias preservadas da rodovia Interpraias (Laranjeiras, Taquaras, Estaleirinho)."
+    },
+    "frases_persuasivas": {
+        "investidor": "O metro quadrado mais cobiçado e seguro do país. Onde a escassez de espaço garante a perenidade do seu patrimônio.",
+        "moradia": "Estilo de vida cosmopolita e luxuoso, com o mar aos seus pés e segurança absoluta."
+    }
+}

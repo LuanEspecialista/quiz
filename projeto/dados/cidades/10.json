@@ -1,0 +1,25 @@
+{
+    "id": "10",
+    "nome": "Araquari",
+    "estado": "SC",
+    "posicionamento": "Sustentação logística e industrial do eixo norte (a 'Manaus catarinense' da BR-101).",
+    "dados_gerais": {
+        "populacao": "Aprox. 45.000 hab. (crescimento populacional proporcional mais rápido do estado)",
+        "perfil_economico": "Polo automotivo internacional (fábrica da BMW), grandes multinacionais logísticas, metalúrgicas e indústrias de transformação.",
+        "infraestrutura": "Crescendo em ritmo acelerado na pavimentação de distritos industriais, saneamento e condomínios de galpões.",
+        "seguranca": "Policiamento focado na segurança industrial e residencial do município."
+    },
+    "vetores_valorizacao": {
+        "principal": "Instalação contínua de indústrias globais de altíssimo valor agregado (BMW, etc.).",
+        "impacto": "A geração massiva de empregos técnicos e executivos de alto escalão cria um fluxo financeiro de trabalhadores que buscam habitação e lazer nas praias próximas (especialmente Barra Velha e Balneário Piçarras)."
+    },
+    "caracteristicas": {
+        "turismo": "Turismo de negócios, festas tradicionais religiosas e rota gastronômica do maracujá.",
+        "gastronomia": "Chas e culinária típica do interior catarinense, restaurantes com foco no público corporativo.",
+        "natureza": "Banhada por rios e canais navegáveis que desembocam na Baía da Babitonga."
+    },
+    "frases_persuasivas": {
+        "investidor": "O motor industrial silencioso que empurra o PIB da região. Onde o emprego cresce, o mercado imobiliário litorâneo vizinho explode.",
+        "moradia": "O sossego e custo de vida de uma cidade do interior que cresce de braços dados com marcas globais como a BMW."
+    }
+}

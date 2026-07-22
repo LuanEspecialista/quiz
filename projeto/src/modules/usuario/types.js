@@ -1,0 +1,1 @@
+// Módulo: usuario - types.js

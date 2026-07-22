@@ -1,0 +1,1 @@
+// Componente: Gallery - index.js

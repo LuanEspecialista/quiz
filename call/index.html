@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luan Especialista - Central de Conversão</title>
+    
+    <!-- Importação de Fontes Premium conforme a imagem -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Link para o CSS principal que organiza o visual -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+    <!-- CABEÇALHO: Logo e Busca -->
+    <header class="main-header">
+        <div class="logo-area">
+            <img src="../imagens/logo.png" alt="Logo Luan Especialista" class="main-logo">
+            <div class="logo-text">
+                <h1 class="gold-text">LUAN ESPECIALISTA</h1>
+                <span>ESTRATÉGIAS PATRIMONIAIS INTELIGENTES</span>
+            </div>
+        </div>
+        
+        <div class="header-center">
+            <h2 class="gold-text">CENTRAL DE CONVERSÃO</h2>
+            <p>ROTEIROS PRONTOS PARA CONVERTER INTERESSE EM REUNIÃO</p>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="mainSearch" placeholder="Pesquisar construtora ou empreendimento...">
+        </div>
+    </header>
+
+    <!-- DASHBOARD: Estrutura de Colunas -->
+    <main class="dashboard">
+        
+        <!-- COLUNA 1: Lista de Construtoras -->
+        <aside class="sidebar">
+            <h3 class="label">1. ESCOLHA A CONSTRUTORA</h3>
+            <div id="grid-construtoras" class="grid-construtoras">
+                <!-- Preenchido automaticamente pelo App.js -->
+            </div>
+
+            <!-- Card de Dica Rápida conforme a referência -->
+            <div class="tip-card">
+                <h3>💡 DICA RÁPIDA</h3>
+                <p>Use os roteiros como base, mas adapte sempre com a sua forma de falar.</p>
+                <p>Seja consultivo, faça perguntas e conduza para uma reunião.</p>
+                <strong class="gold-text">OBJETIVO: REUNIÃO MARCADA</strong>
+            </div>
+        </aside>
+
+        <!-- COLUNA 2 e 3: Empreendimentos e Playbook -->
+        <section class="main-content">
+            <h3 class="label">2. ESCOLHA O EMPREENDIMENTO</h3>
+            <div id="grid-empreendimentos" class="emp-nav">
+                <!-- Preenchido ao clicar em uma construtora -->
+            </div>
+
+            <!-- PAINEL CENTRAL: Onde o roteiro aparece -->
+            <div id="playbook-panel" class="playbook-container" style="display:none;">
+                
+                <!-- Cabeçalho do Imóvel Selecionado -->
+                <div class="playbook-header">
+                    <div class="header-info">
+                        <h1 id="emp-name-display" class="gold-text">SELECIONE UM IMÓVEL</h1>
+                        <p id="emp-desc-display">Explore os argumentos de venda e contorne objeções.</p>
+                    </div>
+                    <button class="btn-fav">⭐ Favoritar</button>
+                </div>
+
+                <!-- Abas de Navegação Tática -->
+                <nav class="tabs">
+                    <button class="tab-btn active" onclick="App.switchTab('ligacao')">📞 LIGAÇÃO</button>
+                    <button class="tab-btn" onclick="App.switchTab('whatsapp')">💬 WHATSAPP</button>
+                    <button class="tab-btn" onclick="App.switchTab('objecoes')">❓ OBJEÇÕES</button>
+                    <button class="tab-btn" onclick="App.switchTab('fechamento')">✅ FECHAMENTO</button>
+                </nav>
+
+                <!-- Área onde o texto do roteiro será injetado -->
+                <div id="playbook-content" class="content-body">
+                    <p style="color: #A0A0A0;">Escolha um empreendimento acima para carregar o script...</p>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- RODAPÉ: Informações de Contato -->
+    <footer class="main-footer">
+        <div class="footer-info">
+            <span>© 2026 Luan Especialista. Todos os direitos reservados.</span>
+        </div>
+        <div class="footer-contacts">
+            <span>📞 47 99212-0915</span>
+            <span>🌐 luan-especialista.pro</span>
+            <span>📸 @luan.especialista</span>
+        </div>
+    </footer>
+
+    <!-- Scripts de Inteligência -->
+    <script src="assets/js/app.js"></script>
+</body>
+</html>

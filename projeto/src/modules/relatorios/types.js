@@ -1,0 +1,1 @@
+// Módulo: relatorios - types.js

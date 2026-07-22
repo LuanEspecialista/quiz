@@ -1,0 +1,26 @@
+{
+  "nome": "Residencial Ilha de Capri",
+  "construtora": "SBJ Construtora",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], falo sobre o Ilha de Capri em Navegantes. A SBJ é reconhecida por entregar o que há de melhor em engenharia, utilizando marcas como Portobello, Docol e Tigre. Isso significa um imóvel com manutenção zero e altíssima valorização. O meu objetivo não é te vender o apto por telefone, mas te apresentar o plano de expansão de Navegantes que torna esse projeto um ativo financeiro único. Podemos agendar 10 min no Meet para eu te mostrar os detalhes técnicos?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Tudo bem? Conheça o padrão SBJ em Navegantes:\n🏙️ Residencial Ilha de Capri.\n🛠️ Acabamento Premium: Portobello, Docol e Tigre.\n🌊 Localização estratégica em uma das cidades que mais cresce em SC.\nPosso te enviar o book técnico com o memorial descritivo?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• 'Por que Navegantes?': Porque a cidade vive um boom logístico e portuário que reflete diretamente no valor do m² residencial.\n• 'O acabamento é realmente superior?': Sim, a SBJ é uma das poucas que especifica marcas de primeira linha em todo o memorial, garantindo durabilidade e liquidez na revenda."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "A qualidade SBJ costuma atrair investidores conservadores que buscam segurança. Vamos validar qual unidade ainda está disponível para o seu perfil?"
+    }
+  ]
+}

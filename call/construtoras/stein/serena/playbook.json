@@ -1,0 +1,26 @@
+{
+  "nome": "Residencial Serena",
+  "construtora": "Stein",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], falo sobre o Residencial Serena da Stein. Localizado no Itacolomi em Piçarras, ele é o sinônimo de serenidade: apenas 02 apartamentos por andar e acabamento de altíssimo padrão com porcelanato e gesso em todos os ambientes. O objetivo é te mostrar por que este é o imóvel mais equilibrado entre luxo e tranquilidade na região. Podemos falar 10 min amanhã?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Conheça a serenidade da marca Stein em Piçarras:\n✨ Apenas 02 apartamentos por andar.\n🛌 03 suítes amplas com living integrado.\n🛠️ Padrão Stein: Portas anti-impacto e 100% teto em gesso.\n🌊 Localização nobre no Bairro Itacolomi.\nQual o melhor horário para uma conversa rápida?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• 'Por que o Itacolomi?': É a região de Piçarras que mais recebe investimentos de infraestrutura e preserva a certificação Bandeira Azul.\n• 'Diferencial Stein?': A segurança de uma construtora com 55 anos que entrega o apartamento pronto, sem necessidade de reformas de acabamento."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "A exclusividade de poucos vizinhos torna o Serena muito disputado. Vamos agendar sua visita técnica para conhecer o memorial?"
+    }
+  ]
+}

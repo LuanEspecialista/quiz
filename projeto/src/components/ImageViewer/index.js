@@ -1,0 +1,1 @@
+// Componente: ImageViewer - index.js

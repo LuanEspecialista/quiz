@@ -1,0 +1,25 @@
+{
+    "id": "2",
+    "nome": "Balneário Piçarras",
+    "estado": "SC",
+    "posicionamento": "Caso de valorização por infraestrutura premium, qualificação ambiental e urbanismo visível.",
+    "dados_gerais": {
+        "populacao": "Aprox. 25.000 hab.",
+        "perfil_economico": "Forte adensamento imobiliário verticalizado de alto padrão, comércio forte e serviços voltados ao bem-estar.",
+        "infraestrutura": "Destaque para o saneamento básico exemplar, alargamento recente da faixa de areia da Praia Central e calçadões padronizados.",
+        "seguranca": "Monitoramento por câmeras e excelente policiamento local."
+    },
+    "vetores_valorizacao": {
+        "principal": "Certificação Internacional Bandeira Azul em toda a extensão reconhecida da orla.",
+        "impacto": "Garantia de balneabilidade, preservação ambiental e urbanismo planejado que atraem investidores exigentes e garantem liquidez superior."
+    },
+    "caracteristicas": {
+        "turismo": "Turismo focado em esportes náuticos, veraneio de alto padrão e praias extremamente limpas.",
+        "gastronomia": "Restaurantes sofisticados na avenida principal e na orla, com gastronomia internacional e contemporânea.",
+        "natureza": "Orla contínua propícia para caminhadas, águas calmas e protegidas, ideais para famílias."
+    },
+    "frases_persuasivas": {
+        "investidor": "Adquira patrimônio na praia com o m² que mais se valoriza devido ao planejamento urbano e selo ambiental internacional.",
+        "moradia": "Qualidade de vida pé na areia em uma orla premiada mundialmente pela sua limpeza e organização."
+    }
+}

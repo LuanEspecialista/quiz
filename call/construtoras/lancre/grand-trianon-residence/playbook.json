@@ -1,0 +1,26 @@
+{
+  "nome": "Grand Trianon Residence",
+  "construtora": "L'Ancrê Empreendimentos",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], falo sobre o Grand Trianon Residence. Ele é um projeto único no Bairro Itacolomi, em Balneário Piçarras, com uma arquitetura clássica inspirada na nobreza do Palácio de Versalhes. É o imóvel ideal para quem busca o encontro entre a arte e a eternidade, com detalhes como cristais Swarovski no hall de entrada. O objetivo não é vender o imóvel agora, mas te mostrar por que a L'Ancrê é referência em sofisticação atemporal. Podemos agendar 10 min no Meet para eu te apresentar as plantas de 2 e 3 suítes?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Tudo bem? Conheça a exclusividade do Grand Trianon em Piçarras:\n🏛️ Arquitetura Clássica inspirada em Versalhes.\n✨ Hall de entrada com cristais Swarovski e marcenaria fina.\n🌳 A poucos passos do novo parque linear e do mar (Bandeira Azul).\n🛌 Opções de 2 e 3 suítes com alto padrão de acabamento.\nVamos conversar sobre as unidades disponíveis e o potencial de valorização no Itacolomi?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• 'Por que Piçarras?': A cidade possui certificação Bandeira Azul e o Grand Trianon está em uma localização de desejo, equilibrando natureza e sofisticação.\n• 'O estilo clássico é muito carregado?': Pelo contrário, ele traz uma aura de exclusividade e nobreza que valoriza o patrimônio ao longo do tempo, fugindo do óbvio."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "Com apenas 2 ou 3 apartamentos por andar e box de praia privativo, o Grand Trianon oferece a privacidade que você exige. Vamos validar qual planta, de 72m² a 163m², melhor se encaixa no seu momento?"
+    }
+  ]
+}

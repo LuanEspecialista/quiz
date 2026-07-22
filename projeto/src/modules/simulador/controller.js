@@ -1,0 +1,1 @@
+// Módulo: simulador - controller.js

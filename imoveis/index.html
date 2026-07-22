@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imóveis | Luan Especialista</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PTGL91DC6D"></script>
+
+<script>
+window.dataLayer = window.dataLayer || [];
+
+function gtag(){
+  dataLayer.push(arguments);
+}
+
+gtag('js', new Date());
+
+gtag('config', 'G-PTGL91DC6D');
+</script>
+  <style>
+
+    :root{
+      --bg:#030303;
+      --gold:#d99a26;
+      --gold2:#f5b84b;
+      --muted:#b8b8b8;
+      --line:rgba(217,154,38,.35);
+    }
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    html{
+      scroll-behavior:smooth;
+    }
+
+    body{
+      background:var(--bg);
+      color:#fff;
+      font-family:Inter,sans-serif;
+      overflow-x:hidden;
+    }
+
+    a{
+      text-decoration:none;
+      color:inherit;
+    }
+
+    img{
+      max-width:100%;
+      display:block;
+    }
+
+    .container{
+      width:min(1120px,calc(100% - 32px));
+      margin:auto;
+    }
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      background:#030303;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+
+    .nav{
+      height:70px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:24px;
+    }
+
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-shrink:0;
+    }
+
+    .logo img{
+      width:46px;
+      height:46px;
+      object-fit:contain;
+    }
+
+    .logo strong{
+      display:block;
+      font-family:"Playfair Display",serif;
+      font-size:21px;
+      line-height:1;
+    }
+
+    .logo strong span{
+      color:var(--gold2);
+    }
+
+    .logo small{
+      display:block;
+      margin-top:5px;
+      font-size:9px;
+      letter-spacing:4px;
+      color:var(--muted);
+      text-transform:uppercase;
+    }
+
+    .menu{
+      display:flex;
+      align-items:center;
+      gap:30px;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .menu a{
+      padding:26px 0;
+      border-bottom:2px solid transparent;
+      opacity:.9;
+    }
+
+    .menu a:hover,
+    .menu a.active{
+      color:var(--gold2);
+      border-color:var(--gold);
+    }
+
+    .whats-top{
+      width:44px;
+      height:44px;
+      display:grid;
+      place-items:center;
+      border:1px solid var(--gold);
+      border-radius:14px;
+      color:var(--gold2);
+      flex-shrink:0;
+    }
+
+    .hero{
+      min-height:390px;
+      display:flex;
+      align-items:center;
+
+      background-image:
+      linear-gradient(90deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.68) 42%,rgba(0,0,0,.22) 100%),
+      linear-gradient(0deg,rgba(0,0,0,.48),rgba(0,0,0,.08)),
+      url("hero-imoveis.webp");
+
+      background-size:cover;
+      background-position:center;
+
+      border-bottom:1px solid var(--line);
+    }
+
+    .hero .container{
+  width:min(1400px,calc(100% - 80px));
+}
+
+.hero-content{
+  max-width:700px;
+  padding:58px 0;
+  margin-left:60px;
+}
+    }
+
+    .eyebrow{
+      display:flex;
+      align-items:center;
+      gap:14px;
+
+      color:var(--gold2);
+
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:6px;
+      text-transform:uppercase;
+
+      margin-bottom:18px;
+    }
+
+    .eyebrow:after{
+      content:"";
+      width:48px;
+      height:1px;
+      background:var(--gold);
+    }
+
+    h1{
+      font-family:"Playfair Display",serif;
+      font-size:clamp(34px,4.4vw,56px);
+      line-height:1.02;
+      margin-bottom:18px;
+      max-width:560px;
+    }
+
+    h1 span{
+      color:var(--gold2);
+    }
+
+    .hero p{
+      font-size:17px;
+      line-height:1.55;
+      color:#f1f1f1;
+      max-width:390px;
+      margin-bottom:26px;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+
+      border:1px solid var(--gold);
+
+      color:var(--gold2);
+
+      background:rgba(0,0,0,.32);
+
+      padding:14px 22px;
+
+      border-radius:16px;
+
+      font-size:13px;
+      font-weight:900;
+      text-transform:uppercase;
+
+      transition:.25s;
+    }
+
+    .btn:hover{
+      background:var(--gold);
+      color:#111;
+      transform:translateY(-2px);
+    }
+
+    .filters-wrap{
+      padding:24px 0 16px;
+      background:linear-gradient(180deg,#050606,#030303);
+    }
+
+    .filters{
+      display:flex;
+      justify-content:center;
+      flex-wrap:wrap;
+      gap:14px;
+    }
+
+    .filter-btn{
+      min-width:128px;
+      padding:12px 18px;
+
+      border-radius:999px;
+
+      border:1px solid rgba(255,255,255,.14);
+
+      background:rgba(255,255,255,.025);
+
+      color:#fff;
+
+      font-size:13px;
+      font-weight:800;
+
+      cursor:pointer;
+
+      transition:.25s;
+    }
+
+    .filter-btn.active,
+    .filter-btn:hover{
+      border-color:var(--gold);
+      color:var(--gold2);
+    }
+
+    .section{
+      padding:22px 0 34px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(240px,280px));
+      gap:18px;
+      justify-content:flex-start;
+    }
+
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+
+      border:1px solid rgba(255,255,255,.13);
+
+      border-radius:14px;
+
+      overflow:hidden;
+
+      cursor:pointer;
+
+      transition:.25s;
+    }
+
+    .card:hover{
+      transform:translateY(-3px);
+
+      border-color:rgba(217,154,38,.65);
+
+      box-shadow:0 18px 40px rgba(0,0,0,.35);
+    }
+
+    .card-img{
+      position:relative;
+      aspect-ratio:4/3;
+      background:#111;
+      overflow:hidden;
+    }
+
+    .card-img img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      transition:.35s;
+    }
+
+    .card:hover .card-img img{
+      transform:scale(1.04);
+    }
+
+    .tag{
+      position:absolute;
+      top:10px;
+      left:10px;
+
+      background:rgba(0,0,0,.82);
+
+      border:1px solid rgba(255,255,255,.12);
+
+      font-size:10px;
+      font-weight:900;
+
+      padding:6px 9px;
+
+      border-radius:8px;
+
+      text-transform:uppercase;
+
+      z-index:2;
+    }
+
+    .card-arrow{
+      position:absolute;
+
+      top:50%;
+      transform:translateY(-50%);
+
+      width:30px;
+      height:30px;
+
+      border-radius:50%;
+
+      border:1px solid rgba(217,154,38,.75);
+
+      background:rgba(0,0,0,.62);
+
+      color:var(--gold2);
+
+      font-size:22px;
+      font-weight:800;
+
+      display:grid;
+      place-items:center;
+
+      cursor:pointer;
+
+      opacity:0;
+
+      transition:.25s;
+
+      z-index:3;
+    }
+
+    .card-arrow-left{
+      left:10px;
+    }
+
+    .card-arrow-right{
+      right:10px;
+    }
+
+    .card:hover .card-arrow{
+      opacity:1;
+    }
+
+    .card-arrow:hover{
+      background:var(--gold);
+      color:#111;
+    }
+
+    .card-body{
+      padding:14px;
+
+      display:flex;
+      flex-direction:column;
+
+      height:100%;
+    }
+
+    .card h3{
+      font-size:16px;
+      line-height:1.3;
+
+      margin-bottom:10px;
+
+      min-height:42px;
+
+      display:flex;
+      align-items:flex-start;
+    }
+
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+
+      font-size:12px;
+
+      color:#d7d7d7;
+
+      margin-bottom:11px;
+    }
+
+    .price{
+      color:var(--gold2);
+
+      font-size:18px;
+      font-weight:900;
+
+      margin-bottom:12px;
+
+      min-height:44px;
+
+      display:flex;
+      align-items:flex-end;
+    }
+
+    .details{
+      display:flex;
+
+      justify-content:space-between;
+      align-items:center;
+
+      border-top:1px solid rgba(255,255,255,.08);
+
+      padding-top:11px;
+
+      font-size:13px;
+      font-weight:800;
+
+      margin-top:auto;
+    }
+
+    .details span:last-child{
+      width:30px;
+      height:30px;
+
+      border:1px solid var(--gold);
+
+      border-radius:50%;
+
+      display:grid;
+      place-items:center;
+
+      color:var(--gold2);
+
+      font-size:17px;
+
+      transition:.25s;
+    }
+
+    .card:hover .details span:last-child{
+      background:var(--gold);
+      color:#111;
+      transform:translateX(3px);
+    }
+
+    .cta-box{
+      margin-top:26px;
+
+      border:1px solid var(--line);
+
+      border-radius:16px;
+
+      padding:20px 24px;
+
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+
+      background:linear-gradient(90deg,rgba(217,154,38,.075),rgba(255,255,255,.018));
+    }
+
+    .cta-box h2{
+      font-size:21px;
+      margin-bottom:6px;
+    }
+
+    .cta-box p{
+      font-size:14px;
+      color:var(--muted);
+    }
+
+    footer{
+      border-top:1px solid var(--line);
+      padding:26px 0 30px;
+      background:#030303;
+    }
+
+    .footer-content{
+      display:grid;
+      grid-template-columns:1fr 2fr;
+      align-items:center;
+      gap:24px;
+    }
+
+    .footer-logo{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .footer-logo img{
+      width:54px;
+      height:54px;
+      object-fit:contain;
+    }
+
+    .footer-logo strong{
+      font-family:"Playfair Display",serif;
+      font-size:22px;
+      line-height:1;
+    }
+
+    .footer-logo span{
+      color:var(--gold2);
+    }
+
+    .footer-logo small{
+      display:block;
+      margin-top:5px;
+      font-size:9px;
+      letter-spacing:3px;
+      color:var(--muted);
+      text-transform:uppercase;
+    }
+
+    .footer-info{
+      display:flex;
+      justify-content:flex-end;
+      gap:28px;
+      flex-wrap:wrap;
+
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .site-url{
+      grid-column:1/-1;
+      text-align:center;
+      color:var(--gold2);
+      letter-spacing:10px;
+      font-size:13px;
+      margin-top:12px;
+    }
+
+    @media(max-width:900px){
+
+      .menu{
+        display:none;
+      }
+
+      .hero{
+        min-height:330px;
+      }
+
+      h1{
+        font-size:34px;
+        max-width:320px;
+      }
+
+      .hero p{
+        font-size:14px;
+        max-width:290px;
+      }
+
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .card-arrow{
+        opacity:1;
+      }
+
+      .footer-content{
+        grid-template-columns:1fr;
+      }
+
+      .footer-info{
+        justify-content:flex-start;
+        flex-direction:column;
+        gap:12px;
+      }
+
+      .site-url{
+        text-align:left;
+        letter-spacing:7px;
+      }
+
+    }
+
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="container nav">
+
+    <a href="../" class="logo">
+      <img src="../imagens/logo.png" alt="Luan Especialista">
+
+      <div>
+        <strong>LUAN <span>ESPECIALISTA</span></strong>
+        <small>Estratégias Patrimoniais</small>
+      </div>
+    </a>
+
+    <nav class="menu">
+      <a href="../">Início</a>
+      <a href="../estrategias-patrimoniais/">Estratégias Patrimoniais</a>
+      <a href="../mobilidade-experiencias/">Mobilidade & Experiências</a>
+      <a href="./" class="active">Imóveis</a>
+    </nav>
+
+    <a class="whats-top" href="https://wa.me/5547992120915" target="_blank">
+      ☎
+    </a>
+
+  </div>
+</header>
+
+<section class="hero">
+
+  <div class="container hero-content">
+
+    <div class="eyebrow">
+      Imóveis
+    </div>
+
+    <h1>
+      Imóveis no litoral
+      <span>que mais cresce no Brasil</span>
+    </h1>
+
+    <p>
+      Imóveis selecionados para patrimônio e valorização.
+    </p>
+
+    <a href="#imoveis" class="btn">
+      Analisar oportunidades →
+    </a>
+
+  </div>
+
+</section>
+
+<section class="filters-wrap" id="imoveis">
+
+  <div class="container">
+
+    <div class="filters">
+
+      <button class="filter-btn active" data-filter="Todos">
+        ▦ Todos
+      </button>
+
+      <button class="filter-btn" data-filter="Casa">
+        ⌂ Casas
+      </button>
+
+      <button class="filter-btn" data-filter="Apartamento">
+        ▥ Apartamentos
+      </button>
+
+      <button class="filter-btn" data-filter="Sobrado">
+        ⌘ Sobrados
+      </button>
+
+      <button class="filter-btn" data-filter="Terreno">
+        ⌖ Terrenos
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
+
+<main class="section">
+
+  <div class="container">
+
+    <div class="grid" id="listaImoveis"></div>
+
+    <div class="cta-box">
+
+      <div>
+        <h2>Encontrou algo que chamou atenção?</h2>
+
+        <p>
+          Fale diretamente comigo e receba mais informações.
+        </p>
+      </div>
+
+      <a class="btn" href="https://wa.me/5547992120915" target="_blank">
+        Analisar oportunidades
+      </a>
+
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+
+  <div class="container footer-content">
+
+    <div class="footer-logo">
+
+      <img src="../imagens/logo.png" alt="Luan Especialista">
+
+      <div>
+        <strong>LUAN <span>ESPECIALISTA</span></strong>
+        <small>Estratégias Patrimoniais</small>
+      </div>
+
+    </div>
+
+    <div class="footer-info">
+
+      <a href="mailto:contato@luan-especialista.pro">
+        contato@luan-especialista.pro
+      </a>
+
+      <a href="tel:+5547992120915">
+        47 99212-0915
+      </a>
+
+      <a href="https://instagram.com/luan.especialista" target="_blank">
+        @luan.especialista
+      </a>
+
+    </div>
+
+    <div class="site-url">
+      luan-especialista.pro
+    </div>
+
+  </div>
+
+</footer>
+
+<script>
+window.IMOVEIS = [];
+</script>
+
+<script src="imoveis-dados/lista-imoveis.js"></script>
+
+<script>
+
+const lista = document.getElementById("listaImoveis");
+
+const botoesFiltro = document.querySelectorAll(".filter-btn");
+
+function carregarArquivoImovel(nome){
+
+  return new Promise((resolve,reject)=>{
+
+    const script = document.createElement("script");
+
+    script.src = `imoveis-dados/${nome}.js`;
+
+    script.onload = resolve;
+
+    script.onerror = reject;
+
+    document.body.appendChild(script);
+
+  });
+
+}
+
+function renderImoveis(filtro = "Todos"){
+
+  lista.innerHTML = "";
+
+  const filtrados =
+  filtro === "Todos"
+  ? window.IMOVEIS
+  : window.IMOVEIS.filter(imovel => imovel.tipo === filtro);
+
+  filtrados.forEach(imovel=>{
+
+    const card = document.createElement("article");
+
+    card.className = "card";
+
+    const capa = `imagens/${imovel.pasta}/1.webp`;
+
+    card.innerHTML = `
+
+      <div class="card-img">
+
+        <img
+        class="card-photo"
+        src="${capa}"
+        alt="${imovel.titulo}"
+        loading="lazy"
+        data-img="1">
+
+        <div class="tag">
+          ${imovel.tipo}
+        </div>
+
+        <button class="card-arrow card-arrow-left" type="button">
+          ‹
+        </button>
+
+        <button class="card-arrow card-arrow-right" type="button">
+          ›
+        </button>
+
+      </div>
+
+      <div class="card-body">
+
+        <h3>
+          ${imovel.titulo}
+        </h3>
+
+        <div class="meta">
+
+          ${imovel.areaUtil ? `<span>${imovel.areaUtil}</span>` : ""}
+
+          ${imovel.dormitorios ? `<span>${imovel.dormitorios} dorm.</span>` : ""}
+
+          ${imovel.vagas ? `<span>${imovel.vagas} vaga</span>` : ""}
+
+        </div>
+
+        <div class="price">
+          ${imovel.valor}
+        </div>
+
+        <div class="details">
+
+          <span>
+            Ver detalhes
+          </span>
+
+          <span>
+            →
+          </span>
+
+        </div>
+
+      </div>
+
+    `;
+
+    card.addEventListener("click",()=>{
+
+      window.location.href =
+      `detalhes/detalhes.html?imovel=${imovel.slug}`;
+
+    });
+
+    lista.appendChild(card);
+
+    const fotoCard = card.querySelector(".card-photo");
+
+    const setaEsquerda =
+    card.querySelector(".card-arrow-left");
+
+    const setaDireita =
+    card.querySelector(".card-arrow-right");
+
+    const totalCard =
+    Math.min(imovel.totalImagens || 1,6);
+
+    let imagemAtual = 1;
+
+    function trocarImagemCard(novaImagem){
+
+      imagemAtual = novaImagem;
+
+      if(imagemAtual < 1)
+      imagemAtual = totalCard;
+
+      if(imagemAtual > totalCard)
+      imagemAtual = 1;
+
+      fotoCard.src =
+      `imagens/${imovel.pasta}/${imagemAtual}.webp`;
+
+    }
+
+    setaEsquerda.addEventListener("click",(event)=>{
+
+      event.stopPropagation();
+
+      trocarImagemCard(imagemAtual - 1);
+
+    });
+
+    setaDireita.addEventListener("click",(event)=>{
+
+      event.stopPropagation();
+
+      trocarImagemCard(imagemAtual + 1);
+
+    });
+
+  });
+
+}
+
+botoesFiltro.forEach(botao=>{
+
+  botao.addEventListener("click",()=>{
+
+    botoesFiltro.forEach(b=>
+      b.classList.remove("active")
+    );
+
+    botao.classList.add("active");
+
+    renderImoveis(botao.dataset.filter);
+
+  });
+
+});
+
+Promise.all(
+  arquivosImoveis.map(carregarArquivoImovel)
+)
+.then(()=>{
+  renderImoveis();
+});
+
+</script>
+
+</body>
+</html>

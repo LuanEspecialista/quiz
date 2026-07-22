@@ -1,0 +1,26 @@
+{
+  "nome": "Reserva da Armação",
+  "construtora": "Stein",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], falo sobre o Reserva da Armação. Ele é o residencial beira-mar mais exclusivo da Praia da Armação, em Penha. O objetivo da minha ligação não é te vender o imóvel agora, mas te apresentar o privilégio de morar em um projeto 'pé na areia' com apenas 02 apartamentos por andar. Estamos falando de um ícone da arquitetura contemporânea assinado por duas das maiores construtoras do Sul, Stein e Hacasa. Podemos agendar 10 min no Meet para eu te mostrar como a planta de 03 suítes integra o living com o horizonte?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Tudo bem? Conheça o Reserva da Armação em Penha:\n🌊 Localização Exclusiva: Av. Antônio Joaquim Tavares, 2.111 - Beira-mar.\n🏢 Exclusividade Total: Apenas 02 apartamentos por andar.\n🏊 Lazer Completo: Mais de 2.500m² de áreas de lazer de frente para o mar.\n🏗️ Parceria de Peso: Construtora Stein e Hacasa Empreendimentos.\nQual o melhor horário para conversarmos sobre a valorização desse metro quadrado pé na areia?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• 'Penha é um bom lugar para investir?': Sim, nos últimos 4 anos o segmento imobiliário na cidade cresceu quase 400%, impulsionado pelo turismo e pelo Aeroporto de Navegantes.\n• 'Por que investir no Reserva?': Pela segurança jurídica de duas empresas tradicionais e pela escassez de terrenos pé na areia, o que blinda a sua valorização futura."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "Unidades pé na areia com 02 por andar são raridades no mercado catarinense. Vamos validar sua posição solar e garantir o agendamento da sua visita técnica?"
+    }
+  ]
+}

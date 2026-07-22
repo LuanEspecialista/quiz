@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Luan Especialista | Austrália</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PTGL91DC6D"></script>
+
+<script>
+window.dataLayer = window.dataLayer || [];
+
+function gtag(){
+  dataLayer.push(arguments);
+}
+
+gtag('js', new Date());
+
+gtag('config', 'G-PTGL91DC6D');
+</script>
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:'Inter',sans-serif;
+  background:#050505;
+  color:#fff;
+  overflow-x:hidden;
+}
+
+.hero{
+  position:relative;
+  min-height:100vh;
+  padding:24px 5.5% 16px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.hero::before{
+  content:'';
+  position:absolute;
+  inset:0;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,.88) 0%,
+      rgba(0,0,0,.66) 40%,
+      rgba(0,0,0,.30) 100%
+    ),
+    url("hero-australia.webp");
+
+  background-size:cover;
+  background-position:center;
+  z-index:-2;
+}
+
+.hero::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at left top, rgba(214,180,106,.10), transparent 30%),
+    linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.42));
+  z-index:-1;
+}
+
+.topo{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:18px;
+}
+
+.logo{
+  width:80px;
+  height:auto;
+  display:block;
+}
+
+.btn-topo{
+  height:42px;
+  padding:0 22px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(214,180,106,.42);
+  background:rgba(0,0,0,.22);
+  backdrop-filter:blur(10px);
+  color:#e4be72;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:700;
+  transition:.2s;
+}
+
+.btn-topo:hover{
+  background:rgba(214,180,106,.08);
+}
+
+.center{
+  flex:1;
+  width:100%;
+  max-width:1280px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 340px;
+  gap:52px;
+  align-items:center;
+}
+
+.left small{
+  display:block;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  color:#d6b46a;
+  margin-bottom:12px;
+}
+
+.left h1{
+  font-size:clamp(28px,3.4vw,44px);
+  line-height:1.03;
+  font-weight:800;
+  letter-spacing:-1.8px;
+  max-width:680px;
+  margin-bottom:16px;
+}
+
+.gold{
+  color:#d8bc84;
+}
+
+.left .sub{
+  font-size:16px;
+  line-height:1.55;
+  color:#e5e5e5;
+  max-width:600px;
+  margin-bottom:24px;
+}
+
+.beneficios{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  max-width:760px;
+}
+
+.item{
+  padding-left:14px;
+  border-left:1px solid rgba(214,180,106,.30);
+}
+
+.item h3{
+  font-size:13px;
+  margin-bottom:6px;
+  color:#fff;
+}
+
+.item p{
+  font-size:12px;
+  line-height:1.45;
+  color:#cecece;
+}
+
+.card{
+  background:rgba(12,12,12,.60);
+  border:1px solid rgba(214,180,106,.22);
+  backdrop-filter:blur(18px);
+  border-radius:26px;
+  padding:24px;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,.40),
+    inset 0 1px 0 rgba(255,255,255,.03);
+}
+
+.card-top{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  margin:0 auto 14px;
+  border:1px solid rgba(214,180,106,.32);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  color:#d6b46a;
+  background:rgba(214,180,106,.05);
+}
+
+.card h2{
+  font-size:17px;
+  line-height:1.35;
+  text-align:center;
+  margin-bottom:18px;
+  font-weight:800;
+}
+
+.select{
+  width:100%;
+  height:52px;
+  padding:0 16px;
+  border-radius:15px;
+  background:#090909;
+  border:1px solid rgba(214,180,106,.28);
+  color:#fff;
+  font-size:14px;
+  outline:none;
+  margin-bottom:16px;
+}
+
+.info-inicial{
+  border-top:1px solid rgba(255,255,255,.06);
+  padding-top:14px;
+  font-size:13px;
+  line-height:1.5;
+  color:#d8d8d8;
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:16px;
+}
+
+.info-inicial span{
+  color:#d6b46a;
+  font-weight:800;
+}
+
+.resultado{
+  display:none;
+  animation:fade .28s ease;
+}
+
+.resultado.active{
+  display:block;
+}
+
+@keyframes fade{
+  from{
+    opacity:0;
+    transform:translateY(6px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+.resultado small{
+  display:block;
+  font-size:10px;
+  letter-spacing:1.2px;
+  color:#d6b46a;
+  margin-bottom:8px;
+  font-weight:700;
+}
+
+.valor{
+  font-size:28px;
+  font-weight:800;
+  line-height:1;
+  margin-bottom:10px;
+  letter-spacing:-1px;
+}
+
+.texto{
+  font-size:13px;
+  line-height:1.5;
+  color:#d3d3d3;
+  margin-bottom:16px;
+}
+
+.cta{
+  width:100%;
+  height:52px;
+  border:none;
+  border-radius:15px;
+  background:#d6b46a;
+  color:#090909;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.cta:hover{
+  transform:translateY(-2px);
+  filter:brightness(1.03);
+}
+
+.footer{
+  width:100%;
+  max-width:980px;
+  margin:22px auto 0;
+  padding-top:12px;
+  border-top:1px solid rgba(214,180,106,.14);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:22px;
+  flex-wrap:wrap;
+  font-size:12px;
+  color:#d0d0d0;
+}
+
+.footer a{
+  text-decoration:none;
+  color:#d0d0d0;
+}
+
+.site{
+  width:100%;
+  text-align:center;
+  padding-top:8px;
+  font-size:14px;
+  letter-spacing:5px;
+  color:#d6b46a;
+}
+
+@media(max-width:1050px){
+
+  .center{
+    grid-template-columns:1fr 330px;
+    gap:36px;
+  }
+
+  .beneficios{
+    grid-template-columns:repeat(2,1fr);
+    max-width:560px;
+  }
+
+}
+
+@media(max-width:860px){
+
+  body{
+    overflow:auto;
+  }
+
+  .hero{
+    min-height:100vh;
+    padding:22px 20px 18px;
+  }
+
+  .hero::before{
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.82) 0%,
+        rgba(0,0,0,.62) 42%,
+        rgba(0,0,0,.88) 100%
+      ),
+      url("hero-australia.webp");
+
+    background-size:cover;
+    background-position:center;
+  }
+
+  .topo{
+    margin-bottom:30px;
+  }
+
+  .logo{
+    width:72px;
+  }
+
+  .btn-topo{
+    height:40px;
+    padding:0 15px;
+    font-size:12px;
+  }
+
+  .center{
+    grid-template-columns:1fr;
+    gap:28px;
+    align-items:start;
+  }
+
+  .left h1{
+    font-size:34px;
+    letter-spacing:-1.5px;
+  }
+
+  .left .sub{
+    font-size:15px;
+  }
+
+  .beneficios{
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+
+  .card{
+    padding:22px;
+  }
+
+  .footer{
+    gap:10px;
+    font-size:11px;
+  }
+
+  .site{
+    font-size:12px;
+    letter-spacing:4px;
+  }
+
+}
+
+@media(max-width:520px){
+
+  .beneficios{
+    grid-template-columns:1fr;
+  }
+
+  .btn-topo{
+    white-space:nowrap;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<section class="hero">
+
+  <div class="topo">
+
+    <a href="https://luan-especialista.pro">
+      <img src="../imagens/logo.png" class="logo" alt="Luan Especialista">
+    </a>
+
+    <a
+      class="btn-topo"
+      href="https://wa.me/5547992120915?text=Olá,%20Luan.%20Moro%20na%20Austrália%20e%20quero%20entender%20as%20estratégias."
+      target="_blank">
+      Falar com especialista
+    </a>
+
+  </div>
+
+  <div class="center">
+
+    <div class="left">
+
+      <small>BRASILEIROS NA AUSTRÁLIA</small>
+
+      <h1>
+        A Austrália abriu novas portas.<br>
+        <span class="gold">
+          O Brasil ainda pode fazer parte do seu plano.
+        </span>
+      </h1>
+
+      <p class="sub">
+        Brasileiros na Austrália estão utilizando a força do dólar australiano para criar novas possibilidades financeiras no Brasil com visão de futuro.
+      </p>
+
+      <div class="beneficios">
+
+        <div class="item">
+          <h3>Futuro</h3>
+          <p>Estratégias alinhadas ao seu próximo ciclo de vida.</p>
+        </div>
+
+        <div class="item">
+          <h3>Imóveis</h3>
+          <p>Possibilidades no Brasil para quem vive no exterior.</p>
+        </div>
+
+        <div class="item">
+          <h3>Família</h3>
+          <p>Organização financeira para quem importa.</p>
+        </div>
+
+        <div class="item">
+          <h3>Moeda forte</h3>
+          <p>Aproveite a força do dólar australiano com inteligência.</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="right">
+
+      <div class="card">
+
+        <div class="card-top">
+          A$
+        </div>
+
+        <h2>
+          Quanto você consegue investir por mês?
+        </h2>
+
+        <select class="select" id="valor">
+
+          <option value="">
+            Selecionar
+          </option>
+
+          <option value="400">
+            A$ 550/mês
+          </option>
+
+          <option value="700">
+            A$ 850/mês
+          </option>
+
+          <option value="1000">
+            A$ 1.250/mês
+          </option>
+
+          <option value="outro">
+            Outro valor
+          </option>
+
+        </select>
+
+        <div class="info-inicial" id="infoInicial">
+          <span>→</span>
+          <p>
+            Selecione uma opção para descobrir possibilidades estimadas no Brasil.
+          </p>
+        </div>
+
+        <div class="resultado" id="resultado">
+
+          <small>
+            POSSIBILIDADES ESTIMADAS NO BRASIL
+          </small>
+
+          <div class="valor" id="valorTexto">
+            R$ 400.000,00
+          </div>
+
+          <div class="texto">
+            Estratégias inteligentes para brasileiros que vivem na Austrália.
+          </div>
+
+        </div>
+
+        <button class="cta" id="cta">
+          Conversar no WhatsApp
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div>
+
+    <div class="footer">
+
+      <a href="mailto:contato@luan-especialista.pro">
+        contato@luan-especialista.pro
+      </a>
+
+      <a href="https://wa.me/5547992120915" target="_blank">
+        47 99212-0915
+      </a>
+
+      <a href="https://instagram.com/luan.especialista" target="_blank">
+        @luan.especialista
+      </a>
+
+    </div>
+
+    <div class="site">
+      luan-especialista.pro
+    </div>
+
+  </div>
+
+</section>
+
+<script>
+
+const select = document.getElementById('valor');
+const resultado = document.getElementById('resultado');
+const valorTexto = document.getElementById('valorTexto');
+const cta = document.getElementById('cta');
+const infoInicial = document.getElementById('infoInicial');
+
+const dados = {
+
+  400:{
+    valor:'R$ 400.000,00',
+    msg:'Olá, Luan. Moro na Austrália e quero entender a estratégia para acessar até R$ 400.000,00 no Brasil.'
+  },
+
+  700:{
+    valor:'R$ 700.000,00',
+    msg:'Olá, Luan. Moro na Austrália e quero entender a estratégia para acessar até R$ 700.000,00 no Brasil.'
+  },
+
+  1000:{
+    valor:'R$ 1.000.000,00',
+    msg:'Olá, Luan. Moro na Austrália e quero entender a estratégia para acessar até R$ 1.000.000,00 no Brasil.'
+  },
+
+  outro:{
+    valor:'Estratégia personalizada',
+    msg:'Olá, Luan. Moro na Austrália e quero entender uma estratégia personalizada.'
+  }
+
+};
+
+function abrirWhatsapp(msg){
+
+  window.open(
+    'https://wa.me/5547992120915?text=' + encodeURIComponent(msg),
+    '_blank'
+  );
+
+}
+
+function atualizar(){
+
+  const valor = select.value;
+
+  if(!valor){
+
+    resultado.classList.remove('active');
+
+    infoInicial.style.display = 'flex';
+
+    cta.onclick = () => abrirWhatsapp(
+      'Olá, Luan. Moro na Austrália e quero entender novas possibilidades financeiras no Brasil.'
+    );
+
+    return;
+
+  }
+
+  infoInicial.style.display = 'none';
+
+  resultado.classList.add('active');
+
+  valorTexto.innerHTML = dados[valor].valor;
+
+  cta.onclick = () => abrirWhatsapp(dados[valor].msg);
+
+}
+
+select.addEventListener('change', atualizar);
+
+atualizar();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+    "id": "9",
+    "nome": "Itapema",
+    "estado": "SC",
+    "posicionamento": "Segundo mercado imobiliário mais verticalizado do estado, referência de valorização consolidada e infraestrutura de orla.",
+    "dados_gerais": {
+        "populacao": "Aprox. 75.000 hab.",
+        "perfil_economico": "Forte construção civil de médio-alto e alto padrão, comércio forte e turismo de veraneio massivo de alta renda.",
+        "infraestrutura": "Investimentos robustos na infraestrutura da Meia Praia, calçadões padronizados e andamento do projeto do Parque Linear e alargamento da faixa de areia.",
+        "seguranca": "Monitoramento por vídeo sofisticado e forte policiamento preventivo."
+    },
+    "vetores_valorizacao": {
+        "principal": "Consolidação imobiliária como alternativa direta a Balneário Camboriú.",
+        "impacto": "O mercado de Meia Praia dita tendências de rentabilidade e liquidez rápida, sendo um prato cheio para investidores focados em giros imobiliários rápidos."
+    },
+    "caracteristicas": {
+        "turismo": "Meia Praia, Canto da Praia (reduto de pescadores e restaurantes), ponte dos suspiros.",
+        "gastronomia": "Opções sofisticadas com vista para o mar, focado em frutos do mar grelhados e bistrôs requintados.",
+        "natureza": "Costão rochoso com trilhas rápidas e praias com excelente faixa de areia para práticas esportivas."
+    },
+    "frases_persuasivas": {
+        "investidor": "Liquidez imediata e rentabilidade comprovada em um dos mercados verticais mais sólidos e consolidados do Sul do país.",
+        "moradia": "O privilégio de viver em uma praia com infraestrutura de lazer completa, calçadões planos e comércio ativo o ano inteiro."
+    }
+}

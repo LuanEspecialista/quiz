@@ -1,0 +1,10 @@
+{
+  "nome": "Zaya Home Resort",
+  "construtora": "Bertoldi",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], o Zaya é focado no investidor que busca o conceito de 'Home Resort'. Estamos falando de alta rotatividade e valorização em cidades estratégicas de SC. Quero te apresentar o modelo de diversificação de receitas que o Short Stay proporciona. Podemos agendar uma breve reunião de apresentação?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Destaques do Zaya Home Resort:\n💰 Maior rentabilidade que aluguéis tradicionais.\n🔄 Alta rotatividade de hóspedes.\n📈 Localização em polos de crescimento.\nPosso te enviar o material técnico?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'Short stay é arriscado?': Com gestão profissional da Seazone, o risco de vacância prolongada é minimizado drasticamente [13].\n• 'E o lazer?': É o coração do projeto, atraindo o público que busca experiência e não apenas um teto." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "O próximo passo é validarmos o seu perfil de investidor para encaixar a melhor unidade do Zaya. Vamos agendar?" }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+    "id": "4",
+    "nome": "Navegantes",
+    "estado": "SC",
+    "posicionamento": "Hub logístico aeroportuário integrado ao crescimento industrial e imobiliário costeiro.",
+    "dados_gerais": {
+        "populacao": "Aprox. 86.000 hab.",
+        "perfil_economico": "Economia robusta baseada no Aeroporto Internacional, terminal portuário privado (Portonave), pesca industrial e estaleiros.",
+        "infraestrutura": "Excelente conexão logística rodoviária e portuária, vias duplicadas de acesso à orla do Gravatá.",
+        "seguranca": "Segurança estruturada para suportar um rápido crescimento demográfico."
+    },
+    "vetores_valorizacao": {
+        "principal": "Duplicação de acessos e crescimento exponencial do bairro Gravatá (limítrofe a Piçarras).",
+        "impacto": "O vetor imobiliário residencial é empurrado pela solidez econômica dos empregos de alta renda gerados pelos setores portuário, logístico e aeroportuário."
+    },
+    "caracteristicas": {
+        "turismo": "Orla com ciclovia contínua, Praia do Gravatá com excelente infraestrutura urbana.",
+        "gastronomia": "Opções variadas que atendem desde o público corporativo até turistas de temporada à beira-mar.",
+        "natureza": "Praias de mar aberto ideais para o surf e o molhe norte da barra do rio Itajaí-Açu."
+    },
+    "frases_persuasivas": {
+        "investidor": "O casamento perfeito entre o PIB logístico de Santa Catarina e a forte valorização imobiliária residencial da orla.",
+        "moradia": "Viver perto do seu trabalho global com a liberdade de caminhar no calçadão à beira-mar todos os dias."
+    }
+}

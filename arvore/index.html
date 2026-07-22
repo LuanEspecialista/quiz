@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa de Conversa</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    .sidebar, .main-card, .history-card {
+      padding: 18px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    .title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    .muted { color: #6b7280; font-size: 14px; line-height: 1.6; }
+    .buttons-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.2s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    .btn-outline {
+      background: #fff;
+      border: 1px solid #d1d5db;
+      color: #111827;
+    }
+    .btn-option {
+      width: 100%;
+      text-align: left;
+      background: #f3f4f6;
+      color: #111827;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-copy {
+      background: #111827;
+      color: #fff;
+    }
+    .section {
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 14px;
+      margin-top: 14px;
+      border: 1px solid #eef2f7;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 700;
+      margin: 0 6px 6px 0;
+    }
+    .stage {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7280;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .node-title { font-size: 26px; font-weight: 700; margin-bottom: 12px; }
+    .script-box {
+      border-radius: 18px;
+      padding: 18px;
+      line-height: 1.8;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+    .history-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 12px;
+      background: #fff;
+    }
+    .ok {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #ecfdf5;
+      color: #065f46;
+      font-size: 14px;
+      display: none;
+    }
+    ul.rules {
+      margin: 10px 0 0 18px;
+      padding: 0;
+      color: #374151;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .node-title { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card sidebar">
+      <h1 class="title">Mapa de Conversa</h1>
+      <p class="muted">Fluxo prático para reativar clientes antigos e conduzir a conversa até o convite.</p>
+
+      <div class="buttons-row">
+        <button class="btn-outline" onclick="goBack()">Voltar</button>
+        <button class="btn-outline" onclick="resetFlow()">Resetar</button>
+      </div>
+
+      <div class="section">
+        <div class="stage">Caminho</div>
+        <div id="trail"></div>
+      </div>
+
+      <div class="section">
+        <div class="stage">Regras</div>
+        <ul class="rules">
+          <li>Não falar produto cedo.</li>
+          <li>Não falar parcela cedo.</li>
+          <li>Conduzir leve e humano.</li>
+          <li>Fazer o cliente falar mais.</li>
+        </ul>
+      </div>
+
+      <div id="copyFeedback" class="ok">Fala copiada.</div>
+    </div>
+
+    <div>
+      <div class="card main-card">
+        <div id="currentStage" class="stage"></div>
+        <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+          <h2 id="currentTitle" class="node-title"></h2>
+          <button class="btn-copy" onclick="copyScript()">Copiar fala</button>
+        </div>
+        <div id="scriptBox" class="script-box"></div>
+        <div id="helperBox" class="section"></div>
+        <div id="optionsBox"></div>
+      </div>
+
+      <div class="card history-card" style="margin-top:20px;">
+        <h3 class="title" style="font-size:20px;">Histórico do fluxo</h3>
+        <div id="history"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tree = {
+      start: {
+        stage: 'Saudação',
+        title: 'Abertura inicial',
+        script: 'Bom dia, [nome], tudo certo? Aqui é o Luan, te atendi aí com as calhas.',
+        helper: 'Objetivo: ativar memória sem parecer vendedor.',
+        color: '#111827',
+        text: '#ffffff',
+        options: [{ label: 'Ir para contexto', next: 'contexto' }]
+      },
+      contexto: {
+        stage: 'Contexto',
+        title: 'Reconexão e contexto',
+        script: 'Esses dias lembrei de alguns clientes daí depois de tudo que aconteceu... acabei me mudando pra Piçarras. Como vocês estão hoje?',
+        helper: 'Objetivo: humanizar e abrir conversa.',
+        color: '#f3f4f6',
+        text: '#111827',
+        options: [
+          { label: 'Cliente está bem', next: 'bem' },
+          { label: 'Cliente inseguro / enchente', next: 'inseguro' },
+          { label: 'Resposta fria / curta', next: 'frio' }
+        ]
+      },
+      bem: {
+        stage: 'Ramo A',
+        title: 'Cliente está bem',
+        script: 'Que bom 🙏 Muita gente começou a repensar algumas coisas depois disso tudo, principalmente casa e segurança. Vocês já pensaram nisso ou seguem do mesmo jeito?',
+        helper: 'Objetivo: puxar reflexão sem pressionar.',
+        color: '#ecfdf5',
+        text: '#064e3b',
+        options: [
+          { label: 'Está perdido', next: 'diagnostico_perdido' },
+          { label: 'Já está vendo algo', next: 'diagnostico_vendo' },
+          { label: 'Tem casa / dinheiro / base', next: 'diagnostico_base' }
+        ]
+      },
+      inseguro: {
+        stage: 'Ramo B',
+        title: 'Cliente inseguro / afetado',
+        script: 'Imagino... não dá pra passar por isso todo ano mesmo. Vocês já estão vendo algo ou ainda tão meio sem direção nisso?',
+        helper: 'Objetivo: validar dor e puxar diagnóstico.',
+        color: '#fffbeb',
+        text: '#78350f',
+        options: [
+          { label: 'Está perdido', next: 'diagnostico_perdido' },
+          { label: 'Já está vendo algo', next: 'diagnostico_vendo' },
+          { label: 'Tem casa / dinheiro / base', next: 'diagnostico_base' },
+          { label: 'Quer sair logo', next: 'quer_sair' }
+        ]
+      },
+      frio: {
+        stage: 'Ramo C',
+        title: 'Cliente frio / seco',
+        script: 'Entendi. Te chamei mais pra retomar contato mesmo, porque lembrei de bastante gente daí. Como estão as coisas por aí hoje?',
+        helper: 'Objetivo: não vender; reaquecer.',
+        color: '#f4f4f5',
+        text: '#18181b',
+        options: [
+          { label: 'Cliente abriu mais', next: 'contexto' },
+          { label: 'Continuou frio', next: 'followup_frio' }
+        ]
+      },
+      followup_frio: {
+        stage: 'Follow-up',
+        title: 'Follow-up leve',
+        script: 'Sem problema 🙏 Qualquer hora que eu puder te ajudar com algo relacionado a moradia, patrimônio ou planejamento, fico à disposição.',
+        helper: 'Objetivo: sair elegante e deixar porta aberta.',
+        color: '#fafafa',
+        text: '#111827',
+        options: [{ label: 'Encerrar', next: 'fim' }]
+      },
+      quer_sair: {
+        stage: 'Dor quente',
+        title: 'Cliente quer sair da cidade / mudar',
+        script: 'Te entendo... muita gente chegou exatamente nesse ponto. Mas me diz, vocês já estão vendo algo ou ainda tão meio sem direção nisso?',
+        helper: 'Objetivo: manter o cliente falando e entender base atual.',
+        color: '#fff1f2',
+        text: '#881337',
+        options: [
+          { label: 'Está perdido', next: 'diagnostico_perdido' },
+          { label: 'Já está vendo algo', next: 'diagnostico_vendo' },
+          { label: 'Tem casa / dinheiro / base', next: 'diagnostico_base' }
+        ]
+      },
+      diagnostico_perdido: {
+        stage: 'Diagnóstico',
+        title: 'Cliente sem direção',
+        script: 'Normal... muita gente trava exatamente aí. Porque acha que precisa ter tudo pronto pra começar. Mas na prática dá pra organizar isso com calma, passo a passo.',
+        helper: 'Objetivo: aliviar e preparar seu posicionamento.',
+        color: '#eff6ff',
+        text: '#1e3a8a',
+        options: [{ label: 'Ir para posicionamento', next: 'posicionamento' }]
+      },
+      diagnostico_vendo: {
+        stage: 'Diagnóstico',
+        title: 'Cliente já olhando opções',
+        script: 'Boa... isso já ajuda bastante. O ponto é só cuidar pra não entrar em algo que depois pese ou não resolva de verdade.',
+        helper: 'Objetivo: virar consultor, não vendedor.',
+        color: '#eff6ff',
+        text: '#1e3a8a',
+        options: [{ label: 'Ir para posicionamento', next: 'posicionamento' }]
+      },
+      diagnostico_base: {
+        stage: 'Diagnóstico',
+        title: 'Cliente já tem base',
+        script: 'Perfeito... então vocês já têm uma base. Isso abre bastante possibilidade de fazer algo bem estruturado.',
+        helper: 'Objetivo: reconhecer valor e elevar percepção.',
+        color: '#eff6ff',
+        text: '#1e3a8a',
+        options: [{ label: 'Ir para posicionamento', next: 'posicionamento' }]
+      },
+      posicionamento: {
+        stage: 'Posicionamento',
+        title: 'Seu posicionamento',
+        script: 'Hoje eu trabalho ajudando justamente nisso: organizar a parte de moradia e patrimônio pra pessoa sair melhor do que tá hoje, sem se enrolar.',
+        helper: 'Objetivo: mostrar autoridade sem falar produto cedo.',
+        color: '#f5f3ff',
+        text: '#4c1d95',
+        options: [{ label: 'Ir para convite', next: 'convite' }]
+      },
+      convite: {
+        stage: 'Convite',
+        title: 'Convite leve',
+        script: 'Se fizer sentido, posso te mostrar algumas possibilidades bem diretas pro teu caso.',
+        helper: 'Objetivo: abrir espaço para avanço sem pressão.',
+        color: '#eef2ff',
+        text: '#312e81',
+        options: [
+          { label: 'Cliente aceitou', next: 'fechamento' },
+          { label: 'Cliente pediu tempo', next: 'tempo' },
+          { label: 'Cliente desconversou', next: 'desconversou' }
+        ]
+      },
+      fechamento: {
+        stage: 'Fechamento',
+        title: 'Próximo passo',
+        script: 'Me chama aqui mesmo ou me passa um horário que eu te explico rapidinho, sem compromisso.',
+        helper: 'Objetivo: tirar do abstrato e levar para ação.',
+        color: '#dcfce7',
+        text: '#14532d',
+        options: [{ label: 'Finalizar', next: 'fim' }]
+      },
+      tempo: {
+        stage: 'Objeção leve',
+        title: 'Cliente pediu tempo',
+        script: 'Claro, sem problema. O importante é fazer isso do jeito certo e no teu tempo. Quando quiser, eu te mostro com calma.',
+        helper: 'Objetivo: manter porta aberta sem carência.',
+        color: '#fefce8',
+        text: '#713f12',
+        options: [{ label: 'Finalizar', next: 'fim' }]
+      },
+      desconversou: {
+        stage: 'Objeção leve',
+        title: 'Cliente desconversou',
+        script: 'Tranquilo 🙏 Só quis retomar contato mesmo. De qualquer forma, fico à disposição se em algum momento vocês quiserem olhar isso com mais calma.',
+        helper: 'Objetivo: preservar relação para follow-up futuro.',
+        color: '#fff7ed',
+        text: '#9a3412',
+        options: [{ label: 'Finalizar', next: 'fim' }]
+      },
+      fim: {
+        stage: 'Fim',
+        title: 'Fluxo encerrado',
+        script: 'Conversa concluída ou pausada. Próximo contato depende do retorno do cliente.',
+        helper: 'Use reset para começar outro caso.',
+        color: '#0f172a',
+        text: '#ffffff',
+        options: []
+      }
+    };
+
+    let path = ['start'];
+
+    function render() {
+      const currentId = path[path.length - 1];
+      const current = tree[currentId];
+
+      document.getElementById('currentStage').textContent = current.stage;
+      document.getElementById('currentTitle').textContent = current.title;
+      document.getElementById('scriptBox').textContent = current.script;
+      document.getElementById('scriptBox').style.background = current.color;
+      document.getElementById('scriptBox').style.color = current.text;
+      document.getElementById('helperBox').innerHTML = '<strong>Objetivo:</strong> ' + current.helper.replace('Objetivo: ', '');
+
+      const optionsBox = document.getElementById('optionsBox');
+      optionsBox.innerHTML = '';
+      current.options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-option';
+        btn.innerHTML = '<span>' + option.label + '</span><span>→</span>';
+        btn.onclick = () => goNext(option.next);
+        optionsBox.appendChild(btn);
+      });
+
+      const trail = document.getElementById('trail');
+      trail.innerHTML = path.map(id => '<span class="badge">' + tree[id].stage + '</span>').join('');
+
+      const history = document.getElementById('history');
+      history.innerHTML = path.map(id => {
+        const item = tree[id];
+        return `
+          <div class="history-item">
+            <div class="stage">${item.stage}</div>
+            <div style="font-weight:700; margin-bottom:8px;">${item.title}</div>
+            <div style="line-height:1.7; color:#374151;">${item.script}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function goNext(next) {
+      path.push(next);
+      render();
+    }
+
+    function goBack() {
+      if (path.length > 1) path.pop();
+      render();
+    }
+
+    function resetFlow() {
+      path = ['start'];
+      render();
+    }
+
+    function copyScript() {
+      const current = tree[path[path.length - 1]];
+      navigator.clipboard.writeText(current.script).then(() => {
+        const feedback = document.getElementById('copyFeedback');
+        feedback.style.display = 'block';
+        setTimeout(() => { feedback.style.display = 'none'; }, 1600);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>

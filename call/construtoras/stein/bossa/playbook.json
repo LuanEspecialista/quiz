@@ -1,0 +1,26 @@
+{
+  "nome": "Bossa",
+  "construtora": "Stein",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], falo sobre o Bossa em Balneário Piçarras. Ele é um projeto que une brasilidade e modernidade a apenas 100m do mar. Mais que um residencial, o Bossa traz um Boulevard no térreo com 17 lojas que criará um calçadão vibrante. O meu foco hoje é te mostrar por que este conceito de 'fachada ativa' é o que mais valoriza o imóvel no litoral. Podemos falar 10 min por vídeo amanhã?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Olá! Conheça o Bossa Stein em Balneário Piçarras:\n🌊 Apenas 100 metros do mar.\n🏙️ Fachada Moderna: Concreto aparente, vidro e muito verde (Real Green Building).\n🛍️ Boulevard: 17 lojas no térreo para sua conveniência.\n🏊 Lazer de Alto Padrão: Piscina de frente para o mar, Sports Bar e Cine Bossa.\nVamos agendar uma breve apresentação das 17 opções de plantas?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• 'As lojas tiram a privacidade?': De forma alguma. O Boulevard tem circulação planejada e o acesso residencial é totalmente independente e controlado por biometria.\n• 'Diferencial construtivo?': O Bossa utiliza o conceito Green Building, com ventilação cruzada e floreiras que bloqueiam a maresia naturalmente."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "Com duas torres imponentes e opções de apartamentos Duplex, o Bossa está mudando o skyline de Piçarras. Vamos validar qual tipologia atende melhor sua família?"
+    }
+  ]
+}

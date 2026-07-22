@@ -1,0 +1,10 @@
+{
+  "nome": "Mare",
+  "construtora": "Stein",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], falo sobre o Mare. Ele é a materialização dos 55 anos de tradição da Stein em Piçarras. Mais que um 3 suítes, é um projeto com vista permanente para o mar e fachada ativa. O objetivo não é te vender o imóvel agora, mas mostrar por que este é o metro quadrado mais seguro da região. Podemos agendar 10 min no Meet para eu te mostrar as plantas de 131m²?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Tudo bem, [NOME]? Destaques do Mare em Piçarras:\n🌊 Vista permanente e definitiva para o mar.\n🏗️ Qualidade Stein: 500.000m² construídos.\n✨ Lazer completo com 1.479m².\nQual melhor horário para uma breve apresentação?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'Por que Stein?': Porque segurança jurídica e acabamento de alto padrão são inegociáveis para quem busca patrimônio sólido.\n• 'O mercado de Piçarras está saturado?': Pelo contrário, Piçarras é a primeira cidade com orla 100% Bandeira Azul [8]." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "Com apenas 27 andares e alta procura, as unidades de frente mar esgotam rápido. Vamos validar sua unidade hoje?" }
+  ]
+}

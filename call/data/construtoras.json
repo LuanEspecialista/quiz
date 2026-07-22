@@ -1,0 +1,74 @@
+[
+  {
+    "id": "stein",
+    "nome": "STEIN",
+    "unidades": 5,
+    "empreendimentos": ["mare", "panorama", "reserva-da-armacao", "bossa", "serena"]
+  },
+  {
+    "id": "cp8",
+    "nome": "CP8",
+    "unidades": 2,
+    "empreendimentos": ["distintto", "kairos"]
+  },
+  {
+    "id": "santer",
+    "nome": "SANTER",
+    "unidades": 2,
+    "empreendimentos": ["barra-view-residences", "orla-da-barra"]
+  },
+  {
+    "id": "fabro-haas",
+    "nome": "FABRO HAAS",
+    "unidades": 3,
+    "empreendimentos": ["legacy", "jardim-do-grant", "boulevard"]
+  },
+  {
+    "id": "bertoldi",
+    "nome": "BERTOLDI",
+    "unidades": 1,
+    "empreendimentos": ["zaya-home-resort"]
+  },
+  {
+    "id": "ejm",
+    "nome": "EJM",
+    "unidades": 1,
+    "empreendimentos": ["skyline-living"]
+  },
+  {
+    "id": "wg",
+    "nome": "WG",
+    "unidades": 1,
+    "empreendimentos": ["pinna-studios"]
+  },
+  {
+    "id": "inbrasul",
+    "nome": "INBRASUL",
+    "unidades": 1,
+    "empreendimentos": ["azure"]
+  },
+  {
+    "id": "lancre",
+    "nome": "L'ANCRÊ",
+    "unidades": 1,
+    "empreendimentos": ["grand-trianon-residence"]
+  },
+  {
+    "id": "roll",
+    "nome": "ROLL",
+    "unidades": 1,
+    "empreendimentos": ["poema"]
+  },
+  {
+    "id": "sbj",
+    "nome": "SBJ",
+    "unidades": 1,
+    "empreendimentos": ["residencial-ilha-de-capri"]
+  },
+  {
+    "id": "grupo-j-souza",
+    "nome": "GRUPO J SOUZA",
+    "unidades": 1,
+    "empreendimentos": ["zuri-park-studios"]
+  }
+]
