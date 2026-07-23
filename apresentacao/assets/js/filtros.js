@@ -1,26 +1,25 @@
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('dadosCarregados', () => {
     const selectCidade = document.getElementById('select-cidade');
     const selectConstrutora = document.getElementById('select-construtora');
     const selectEmpreendimento = document.getElementById('select-empreendimento');
 
-    CIDADES.forEach(cidade => {
-        const option = document.createElement('option');
-        option.value = cidade.id;
-        option.textContent = cidade.nome;
-        selectCidade.appendChild(option);
-    });
+    // Popula o select de cidades
+    populaCidades();
 
-    CONSTRUTORAS.forEach(constItem => {
-        const option = document.createElement('option');
-        option.value = constItem.id;
-        option.textContent = constItem.nome;
-        selectConstrutora.appendChild(option);
-    });
+    function populaCidades() {
+        selectCidade.innerHTML = '<option value="">Selecione...</option>';
+        CIDADES.forEach(cidade => {
+            const option = document.createElement('option');
+            option.value = cidade.id;
+            option.textContent = cidade.nome;
+            selectCidade.appendChild(option);
+        });
+    }
 
     selectCidade.addEventListener('change', () => {
         if (selectCidade.value) {
             selectConstrutora.disabled = false;
-            selectConstrutora.options[0].textContent = "Selecione...";
+            populaConstrutoras();
         } else {
             resetarSelect(selectConstrutora, "Selecione a cidade...");
             resetarSelect(selectEmpreendimento, "Selecione a construtora...");
@@ -37,6 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         filtrarEmpreendimentos();
     });
+
+    function populaConstrutoras() {
+        selectConstrutora.innerHTML = '<option value="">Selecione...</option>';
+        CONSTRUTORAS.forEach(constItem => {
+            const option = document.createElement('option');
+            option.value = constItem.id;
+            option.textContent = constItem.nome;
+            selectConstrutora.appendChild(option);
+        });
+    }
 
     function filtrarEmpreendimentos() {
         const cidadeSelecionada = selectCidade.value;
