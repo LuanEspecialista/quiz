@@ -1,13 +1,13 @@
-window.addEventListener('dadosCarregados', () => {
+function inicializarFiltros() {
     const selectCidade = document.getElementById('select-cidade');
     const selectConstrutora = document.getElementById('select-construtora');
     const selectEmpreendimento = document.getElementById('select-empreendimento');
 
-    // Popula o select de cidades
-    populaCidades();
+    if (!selectCidade) return;
 
-    function populaCidades() {
-        selectCidade.innerHTML = '<option value="">Selecione...</option>';
+    // Popula o select de cidades
+    selectCidade.innerHTML = '<option value="">Selecione...</option>';
+    if (CIDADES && CIDADES.length > 0) {
         CIDADES.forEach(cidade => {
             const option = document.createElement('option');
             option.value = cidade.id;
@@ -16,7 +16,7 @@ window.addEventListener('dadosCarregados', () => {
         });
     }
 
-    selectCidade.addEventListener('change', () => {
+    selectCidade.onchange = () => {
         if (selectCidade.value) {
             selectConstrutora.disabled = false;
             populaConstrutoras();
@@ -25,9 +25,9 @@ window.addEventListener('dadosCarregados', () => {
             resetarSelect(selectEmpreendimento, "Selecione a construtora...");
         }
         filtrarEmpreendimentos();
-    });
+    };
 
-    selectConstrutora.addEventListener('change', () => {
+    selectConstrutora.onchange = () => {
         if (selectConstrutora.value) {
             selectEmpreendimento.disabled = false;
             selectEmpreendimento.options[0].textContent = "Selecione...";
@@ -35,16 +35,18 @@ window.addEventListener('dadosCarregados', () => {
             resetarSelect(selectEmpreendimento, "Selecione a construtora...");
         }
         filtrarEmpreendimentos();
-    });
+    };
 
     function populaConstrutoras() {
         selectConstrutora.innerHTML = '<option value="">Selecione...</option>';
-        CONSTRUTORAS.forEach(constItem => {
-            const option = document.createElement('option');
-            option.value = constItem.id;
-            option.textContent = constItem.nome;
-            selectConstrutora.appendChild(option);
-        });
+        if (CONSTRUTORAS && CONSTRUTORAS.length > 0) {
+            CONSTRUTORAS.forEach(constItem => {
+                const option = document.createElement('option');
+                option.value = constItem.id;
+                option.textContent = constItem.nome;
+                selectConstrutora.appendChild(option);
+            });
+        }
     }
 
     function filtrarEmpreendimentos() {
@@ -78,4 +80,7 @@ window.addEventListener('dadosCarregados', () => {
         selectElement.innerHTML = `<option value="">${textoPadrao}</option>`;
         selectElement.disabled = true;
     }
-});
+}
+
+window.inicializarFiltros = inicializarFiltros;
+window.addEventListener('dadosCarregados', inicializarFiltros);
