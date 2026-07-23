@@ -1,4 +1,3 @@
-// Função principal para rodar os filtros
 function inicializarFiltrosApp() {
     const selectCidade = document.getElementById('select-cidade');
     const selectConstrutora = document.getElementById('select-construtora');
@@ -6,11 +5,10 @@ function inicializarFiltrosApp() {
 
     if (!selectCidade || !selectConstrutora || !selectEmpreendimento) return;
 
-    // 1. Popula Cidades no carregamento
     populaCidades();
 
     function populaCidades() {
-        selectCidade.innerHTML = '<option value="">Selecione...</option>';
+        selectCidade.innerHTML = '<option value="">Selecione a cidade...</option>';
         if (typeof CIDADES !== 'undefined' && CIDADES.length > 0) {
             CIDADES.forEach(cidade => {
                 const option = document.createElement('option');
@@ -21,22 +19,30 @@ function inicializarFiltrosApp() {
         }
     }
 
-    // 2. Quando seleciona a Cidade -> Libera e filtra as Construtoras que existem NESSA cidade
+    // 1. FILTRA APENAS AS CONSTRUTORAS DA CIDADE SELECIONADA
     selectCidade.addEventListener('change', () => {
-        const cidadeId = selectCidade.value;
+        const cidadeId = selectCidade.value ? selectCidade.value.toLowerCase().trim() : '';
         
-        resetarSelect(selectConstrutora, "Selecione...");
-        resetarSelect(selectEmpreendimento, "Selecione a construtora...");
+        resetarSelect(selectConstrutora, "Selecione a construtora...");
+        resetarSelect(selectEmpreendimento, "Selecione o empreendimento...");
 
         if (cidadeId && typeof EMPREENDIMENTOS !== 'undefined') {
-            // Descobre quais construtoras têm empreendimentos nesta cidade
-            const construtorasNaCidadeIds = [...new Set(
-                EMPREENDIMENTOS
-                    .filter(emp => emp.cidadeId === cidadeId)
-                    .map(emp => emp.construtoraId)
+            // Pega apenas os empreendimentos da cidade escolhida
+            const empsDaCidade = EMPREENDIMENTOS.filter(emp => {
+                const idCidadeEmp = emp.cidadeId ? emp.cidadeId.toLowerCase().trim() : '';
+                return idCidadeEmp === cidadeId;
+            });
+
+            // Extrai os IDs das construtoras desses empreendimentos (sem duplicar)
+            const idsConstrutorasAtivas = [...new Set(
+                empsDaCidade.map(emp => emp.construtoraId ? emp.construtoraId.toLowerCase().trim() : '')
             )];
 
-            const construtorasFiltradas = CONSTRUTORAS.filter(c => construtorasNaCidadeIds.includes(c.id));
+            // Filtra a lista global de CONSTRUTORAS mantendo só as que estão na lista ativa
+            const construtorasFiltradas = CONSTRUTORAS.filter(c => {
+                const idConstrutora = c.id ? c.id.toLowerCase().trim() : '';
+                return idsConstrutorasAtivas.includes(idConstrutora);
+            });
 
             if (construtorasFiltradas.length > 0) {
                 selectConstrutora.disabled = false;
@@ -47,21 +53,23 @@ function inicializarFiltrosApp() {
                     selectConstrutora.appendChild(option);
                 });
             } else {
-                selectConstrutora.options[0].textContent = "Nenhuma construtora encontrada...";
+                selectConstrutora.options[0].textContent = "Nenhuma construtora nesta cidade...";
             }
         }
     });
 
-    // 3. Quando seleciona a Construtora -> Libera e filtra os Empreendimentos (Cidade + Construtora)
+    // 2. FILTRA APENAS OS EMPREENDIMENTOS DA CONSTRUTORA + CIDADE SELECIONADAS
     selectConstrutora.addEventListener('change', () => {
-        const cidadeId = selectCidade.value;
-        const construtoraId = selectConstrutora.value;
+        const cidadeId = selectCidade.value ? selectCidade.value.toLowerCase().trim() : '';
+        const construtoraId = selectConstrutora.value ? selectConstrutora.value.toLowerCase().trim() : '';
 
-        resetarSelect(selectEmpreendimento, "Selecione...");
+        resetarSelect(selectEmpreendimento, "Selecione o empreendimento...");
 
         if (cidadeId && construtoraId && typeof EMPREENDIMENTOS !== 'undefined') {
             const empreendimentosFiltrados = EMPREENDIMENTOS.filter(emp => {
-                return emp.cidadeId === cidadeId && emp.construtoraId === construtoraId;
+                const empCidade = emp.cidadeId ? emp.cidadeId.toLowerCase().trim() : '';
+                const empConstrutora = emp.construtoraId ? emp.construtoraId.toLowerCase().trim() : '';
+                return empCidade === cidadeId && empConstrutora === construtoraId;
             });
 
             if (empreendimentosFiltrados.length > 0) {
@@ -84,8 +92,6 @@ function inicializarFiltrosApp() {
     }
 }
 
-// EVITA O PROBLEMA DE SINCRONISMO:
-// Executa se o evento for disparado OU se os dados já tiverem sido carregados antes
 window.addEventListener('dadosCarregados', inicializarFiltrosApp);
 
 if (typeof CIDADES !== 'undefined' && CIDADES.length > 0) {
