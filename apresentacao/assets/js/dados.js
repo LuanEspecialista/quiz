@@ -1,56 +1,55 @@
-const CIDADES = [
-    { id: 'penha', nome: 'Penha' },
-    { id: 'balneario-picarras', nome: 'Balneário Piçarras' },
-    { id: 'barra-velha', nome: 'Barra Velha' },
-    { id: 'navegantes', nome: 'Navegantes' }
-];
+const SUPABASE_URL = 'https://kdwvbkxucwdvuoknotkb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkd3Zia3h1Y3dkdnVva25vdGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMzYzMDQsImV4cCI6MjA5OTcxMjMwNH0.SQJ2gOYYPIwhrKOxt6BU_VIoOTdagQxCbC8EdKZGZm8';
 
-const CONSTRUTORAS = [
-    { id: 'inbrasul', nome: 'Inbrasul Empreendimentos' },
-    { id: 'j-souza', nome: 'Grupo J Souza' },
-    { id: 'santer', nome: 'Santer Empreendimentos' },
-    { id: 'cp8', nome: 'CP8 Empreendimentos' },
-    { id: 'lancre', nome: "L'Ancrê Empreendimentos" },
-    { id: 'sbj', nome: 'SBJ Construtora' },
-    { id: 'wg', nome: 'WG Construtora' },
-    { id: 'roll', nome: 'Roll Empreendimentos' },
-    { id: 'ejm', nome: 'EJM Empreendimentos' },
-    { id: 'bertoldi', nome: 'Bertoldi Construtora' }
-];
+let supabaseClient = null;
+let CIDADES = [];
+let CONSTRUTORAS = [];
+let EMPREENDIMENTOS = [];
 
-const EMPREENDIMENTOS = [
-    { id: 'pinna', nome: 'Pinna Studios', construtoraId: 'wg', cidadeId: 'penha', tabelaId: 'tabela-pinna', orientacao: 'horizontal' },
-    { id: 'azure', nome: 'Azure Palm Club', construtoraId: 'inbrasul', cidadeId: 'penha', tabelaId: 'tabela-azure', orientacao: 'horizontal' },
-    { 
-        id: 'barra-view', 
-        nome: 'Barra View Residences', 
-        construtoraId: 'santer', 
-        cidadeId: 'barra-velha', 
-        orientacao: 'horizontal',
-        tabelaId: [
-            { nome: 'Tabela Torre 1', arquivo: 'tabela-barra-view-torre1' },
-            { nome: 'Tabela Torre 2', arquivo: 'tabela-barra-view-torre2' }
-        ] 
-    },
-    { id: 'distintto', nome: 'Distintto', construtoraId: 'cp8', cidadeId: 'balneario-picarras', tabelaId: 'tabela-distintto', orientacao: 'horizontal' },
-    { id: 'grand-trianon', nome: 'Grand Trianon Residence', construtoraId: 'lancre', cidadeId: 'balneario-picarras', tabelaId: 'tabela-grand-trianon', orientacao: 'horizontal' },
-    { id: 'ilha-de-capri', nome: 'Residencial Ilha de Capri', construtoraId: 'sbj', cidadeId: 'penha', tabelaId: 'tabela-ilha-de-capri', orientacao: 'vertical' },
-    { id: 'kairos', nome: 'Kairós', construtoraId: 'cp8', cidadeId: 'balneario-picarras', tabelaId: 'tabela-kairos', orientacao: 'horizontal' },
-    { id: 'orla-da-barra', nome: 'Orla da Barra', construtoraId: 'santer', cidadeId: 'barra-velha', tabelaId: 'tabela-orla-da-barra', orientacao: 'horizontal' },
-    { id: 'poema', nome: 'Poema', construtoraId: 'roll', cidadeId: 'balneario-picarras', tabelaId: 'tabela-poema', orientacao: 'horizontal' },
-    { id: 'skyline', nome: 'Skyline Living', construtoraId: 'ejm', cidadeId: 'penha', tabelaId: 'tabela-skyline', orientacao: 'horizontal' },
-    { 
-        id: 'zaya', 
-        nome: 'Zaya Home Resort', 
-        construtoraId: 'bertoldi', 
-        cidadeId: 'penha', 
-        orientacao: 'horizontal',
-        tabelaId: [
-            { nome: 'Torre 1', arquivo: 'tabela-zaya-torre1' },
-            { nome: 'Torre 2', arquivo: 'tabela-zaya-torre2' },
-            { nome: 'Torre 3', arquivo: 'tabela-zaya-torre3' },
-            { nome: 'Torre 4', arquivo: 'tabela-zaya-torre4' }
-        ] 
-    },
-    { id: 'zuri', nome: 'Zuri Park Studios', construtoraId: 'j-souza', cidadeId: 'penha', tabelaId: 'tabela-zuri', orientacao: 'vertical' }
-];
+async function carregarDadosDoSupabase() {
+    try {
+        if (typeof supabase === 'undefined') {
+            console.error('Biblioteca do Supabase não foi carregada no HTML!');
+            return;
+        }
+
+        if (!supabaseClient) {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+
+        const [resCidades, resConstrutoras, resEmpreendimentos] = await Promise.all([
+            supabaseClient.from('cidades').select('*'),
+            supabaseClient.from('construtoras').select('*'),
+            supabaseClient.from('empreendimentos').select('*')
+        ]);
+
+        if (resCidades.error) console.error('Erro Cidades:', resCidades.error);
+        if (resConstrutoras.error) console.error('Erro Construtoras:', resConstrutoras.error);
+        if (resEmpreendimentos.error) console.error('Erro Empreendimentos:', resEmpreendimentos.error);
+
+        CIDADES = resCidades.data || [];
+        CONSTRUTORAS = resConstrutoras.data || [];
+        
+        EMPREENDIMENTOS = (resEmpreendimentos.data || []).map(emp => ({
+            id: emp.id,
+            nome: emp.nome,
+            cidadeId: emp.cidade_id,
+            construtoraId: emp.construtora_id,
+            orientacao: emp.orientacao,
+            pdfApresentacao: emp.pdf_apresentacao_url,
+            tabelaId: emp.tabelas_multiplas || emp.pdf_tabela_url
+        }));
+
+        console.log('Dados do Supabase carregados com sucesso:', { CIDADES, CONSTRUTORAS, EMPREENDIMENTOS });
+
+        // Dispara o evento e também chama a função global de renderizar se existir
+        window.dispatchEvent(new Event('dadosCarregados'));
+        if (typeof window.inicializarFiltros === 'function') {
+            window.inicializarFiltros();
+        }
+    } catch (err) {
+        console.error('Erro ao conectar no Supabase:', err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', carregarDadosDoSupabase);
