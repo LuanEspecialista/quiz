@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Referências do DOM
     const selectCidade = document.getElementById('select-cidade');
     const selectConstrutora = document.getElementById('select-construtora');
     const selectEmpreendimento = document.getElementById('select-empreendimento');
@@ -14,36 +15,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let estadoAtual = 'nenhuma'; 
     let empreendimentoSelecionado = null;
 
-    // Função utilitária para gerar a URL segura contra tela preta no PC
     function obterUrlViewer(urlOriginal) {
         if (!urlOriginal) return '';
-        
-        // Verifica se é um dispositivo móvel (iOS/Android)
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        
-        // No celular, usa o parâmetro nativo com scroll desativado na barra
-        if (isMobile) {
-            return `${urlOriginal}#toolbar=0&navpanes=0&scrollbar=0`;
-        }
-        
-        // No PC, usa o leitor do Google Docs via iframe para GARANTIR que não dê tela preta
-        return `https://docs.google.com/viewer?url=${encodeURIComponent(urlOriginal)}&embedded=true`;
+        return `${urlOriginal}#toolbar=0&navpanes=0&scrollbar=0`;
     }
 
-    // 1. ESCUTA O CARREGAMENTO DOS DADOS DO SUPABASE
-    window.addEventListener('dadosCarregados', inicializarFiltros);
-    if (typeof EMPREENDIMENTOS !== 'undefined' && EMPREENDIMENTOS.length > 0) {
-        inicializarFiltros();
+    // 1. INICIALIZAÇÃO
+    window.addEventListener('dadosCarregados', inicializarApp);
+    if (typeof CIDADES !== 'undefined' && CIDADES.length > 0) {
+        inicializarApp();
     }
 
-    function inicializarFiltros() {
+    function inicializarApp() {
         popularCidades();
-        popularEmpreendimentos();
     }
 
+    // 2. FILTROS EM CASCATA (CIDADE -> CONSTRUTORA -> EMPREENDIMENTO)
     function popularCidades() {
         if (!selectCidade) return;
-        selectCidade.innerHTML = '<option value="">Todas as Cidades</option>';
+        selectCidade.innerHTML = '<option value="">Selecione a cidade...</option>';
         if (typeof CIDADES !== 'undefined') {
             CIDADES.forEach(c => {
                 const opt = document.createElement('option');
@@ -54,61 +44,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function popularConstrutoras(cidadeId) {
-        if (!selectConstrutora) return;
-        selectConstrutora.innerHTML = '<option value="">Todas as Construtoras</option>';
-        
-        const construtorasValidas = (typeof obterConstrutorasPorCidade === 'function') 
-            ? obterConstrutorasPorCidade(cidadeId) 
-            : (typeof CONSTRUTORAS !== 'undefined' ? CONSTRUTORAS : []);
-        
-        construtorasValidas.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = c.nome;
-            selectConstrutora.appendChild(opt);
-        });
-        
-        selectConstrutora.disabled = false;
-    }
-
-    function popularEmpreendimentos() {
-        if (!selectEmpreendimento) return;
-        
-        const cidadeId = selectCidade ? selectCidade.value : '';
-        const construtoraId = selectConstrutora ? selectConstrutora.value : '';
-
-        selectEmpreendimento.innerHTML = '<option value="">Selecione um Empreendimento</option>';
-
-        if (typeof EMPREENDIMENTOS === 'undefined') return;
-
-        const filtrados = EMPREENDIMENTOS.filter(emp => {
-            const bateCidade = cidadeId ? emp.cidadeId === cidadeId : true;
-            const bateConstrutora = construtoraId ? emp.construtoraId === construtoraId : true;
-            return bateCidade && bateConstrutora;
-        });
-
-        filtrados.forEach(emp => {
-            const opt = document.createElement('option');
-            opt.value = emp.id;
-            opt.textContent = emp.nome;
-            selectEmpreendimento.appendChild(opt);
-        });
-    }
-
-    // 2. EVENTOS DOS FILTROS EM CASCATA
     if (selectCidade) {
-        selectCidade.addEventListener('change', (e) => {
-            popularConstrutoras(e.target.value);
-            popularEmpreendimentos();
+        selectCidade.addEventListener('change', () => {
+            const cidadeId = selectCidade.value;
+            resetarSelect(selectConstrutora, "Selecione a construtora...");
+            resetarSelect(selectEmpreendimento, "Selecione a construtora primeiro...");
             resetarViewer();
+
+            if (!cidadeId || typeof EMPREENDIMENTOS === 'undefined') return;
+
+            // Busca empreendimentos da cidade selecionada
+            const empsDaCidade = EMPREENDIMENTOS.filter(emp => emp.cidadeId === cidadeId);
+
+            // Filtra as construtoras vinculadas aos empreendimentos da cidade
+            const idsConstrutorasValidas = [...new Set(empsDaCidade.map(emp => emp.construtoraId))];
+            const construtorasFiltradas = CONSTRUTORAS.filter(c => idsConstrutorasValidas.includes(c.id));
+
+            if (construtorasFiltradas.length > 0) {
+                selectConstrutora.disabled = false;
+                construtorasFiltradas.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.nome;
+                    selectConstrutora.appendChild(opt);
+                });
+            } else {
+                selectConstrutora.options[0].textContent = "Nenhuma construtora nesta cidade...";
+            }
         });
     }
 
     if (selectConstrutora) {
         selectConstrutora.addEventListener('change', () => {
-            popularEmpreendimentos();
+            const cidadeId = selectCidade ? selectCidade.value : '';
+            const construtoraId = selectConstrutora.value;
+
+            resetarSelect(selectEmpreendimento, "Selecione o empreendimento...");
             resetarViewer();
+
+            if (!cidadeId || !construtoraId || typeof EMPREENDIMENTOS === 'undefined') return;
+
+            const empsFiltrados = EMPREENDIMENTOS.filter(emp => 
+                emp.cidadeId === cidadeId && emp.construtoraId === construtoraId
+            );
+
+            if (empsFiltrados.length > 0) {
+                selectEmpreendimento.disabled = false;
+                empsFiltrados.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.id;
+                    opt.textContent = emp.nome;
+                    selectEmpreendimento.appendChild(opt);
+                });
+            } else {
+                selectEmpreendimento.options[0].textContent = "Nenhum empreendimento encontrado...";
+            }
         });
     }
 
@@ -124,7 +114,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. MANIPULAÇÃO DO VISUALIZADOR DE PDF
+    function resetarSelect(selectElement, textoPadrao) {
+        if (!selectElement) return;
+        selectElement.innerHTML = `<option value="">${textoPadrao}</option>`;
+        selectElement.disabled = true;
+    }
+
+    // 3. EXIBIÇÃO E MÁSCARAS DO VIEWER
     if (pdfViewer) {
         pdfViewer.addEventListener('load', () => {
             if (pdfViewer.src && pdfViewer.src !== window.location.href && pdfViewer.src !== 'about:blank') {
@@ -145,7 +141,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function carregarApresentacao() {
-        if (!empreendimentoSelecionado || !empreendimentoSelecionado.pdfApresentacao) return;
+        if (!empreendimentoSelecionado || !empreendimentoSelecionado.pdfApresentacao) {
+            alert("Apresentação em PDF não disponível para este empreendimento.");
+            return;
+        }
         estadoAtual = 'apresentacao';
         
         removerMenuTorres();
@@ -155,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (viewerPlaceholder) viewerPlaceholder.classList.add('hidden');
         if (loadingSpinner) loadingSpinner.classList.remove('hidden');
 
-        // CARREGA A URL TRATADA PARA EVITAR TELA PRETA NO PC
         pdfViewer.src = obterUrlViewer(empreendimentoSelecionado.pdfApresentacao);
 
         if (btnAnterior) {
@@ -174,7 +172,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function carregarTabela(urlPdf) {
-        if (!urlPdf) return;
+        if (!urlPdf) {
+            alert("Tabela de vendas indisponível para este empreendimento.");
+            return;
+        }
         estadoAtual = 'tabela';
         removerMenuTorres();
         
@@ -183,7 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pdfViewer) pdfViewer.classList.add('hidden');
         if (loadingSpinner) loadingSpinner.classList.remove('hidden');
 
-        // CARREGA A URL TRATADA PARA EVITAR TELA PRETA NO PC
         pdfViewer.src = obterUrlViewer(urlPdf);
 
         if (btnAnterior) {
@@ -196,6 +196,81 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 4. MENU DE SELEÇÃO DE MÚLTIPLAS TABELAS / TORRES
+    function criarMenuTorres(torres) {
+        removerMenuTorres(); 
+        if (pdfViewer) pdfViewer.classList.add('hidden'); 
+        if (loadingSpinner) loadingSpinner.classList.add('hidden');
+
+        const containerTorres = document.createElement('div');
+        containerTorres.id = 'container-escolha-torres';
+        containerTorres.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            margin: 40px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        `;
+
+        const titulo = document.createElement('h3');
+        titulo.textContent = "Selecione a tabela desejada:";
+        titulo.style.cssText = "color: #ffffff; margin-bottom: 10px; font-size: 1.1rem;";
+        containerTorres.appendChild(titulo);
+
+        torres.forEach(torre => {
+            const botaoTorre = document.createElement('button');
+            botaoTorre.textContent = torre.nome;
+            botaoTorre.style.cssText = `
+                background-color: #1e1e1e;
+                border: 1px solid #d4af37;
+                color: #ffffff;
+                width: 100%;
+                padding: 14px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 1rem;
+                transition: all 0.2s ease;
+            `;
+            
+            botaoTorre.addEventListener('mouseover', () => {
+                botaoTorre.style.backgroundColor = '#d4af37';
+                botaoTorre.style.color = '#000000';
+            });
+            botaoTorre.addEventListener('mouseout', () => {
+                botaoTorre.style.backgroundColor = '#1e1e1e';
+                botaoTorre.style.color = '#ffffff';
+            });
+
+            botaoTorre.addEventListener('click', () => {
+                carregarTabela(torre.url);
+            });
+
+            containerTorres.appendChild(botaoTorre);
+        });
+
+        const viewerContainer = document.querySelector('.viewer-container');
+        if (viewerContainer) {
+            viewerContainer.appendChild(containerTorres);
+        }
+        
+        if (btnAnterior) {
+            btnAnterior.disabled = false;
+            btnAnterior.textContent = "Voltar p/ Apresentação";
+        }
+    }
+
+    function removerMenuTorres() {
+        const menuExistente = document.getElementById('container-escolha-torres');
+        if (menuExistente) menuExistente.remove();
+    }
+
+    // NAVEGAÇÃO DOS BOTÕES SUPERIORES
     if (btnProximo) {
         btnProximo.addEventListener('click', () => {
             if (estadoAtual === 'apresentacao' && empreendimentoSelecionado) {
@@ -215,85 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 carregarApresentacao();
             }
         });
-    }
-
-    // 4. MENU DE MÚLTIPLAS TORRES (RESPONSIVO)
-    function criarMenuTorres(torres) {
-        removerMenuTorres(); 
-        if (pdfViewer) pdfViewer.classList.add('hidden'); 
-        if (loadingSpinner) loadingSpinner.classList.add('hidden');
-
-        const containerTorres = document.createElement('div');
-        containerTorres.id = 'container-escolha-torres';
-        containerTorres.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            width: 100%;
-            max-width: 400px;
-            margin: 20px auto;
-            padding: 15px;
-            box-sizing: border-box;
-        `;
-
-        const titulo = document.createElement('h3');
-        titulo.textContent = "Selecione a tabela desejada:";
-        titulo.style.cssText = "color: var(--texto-claro); margin-bottom: 10px; font-size: 1.1rem;";
-        containerTorres.appendChild(titulo);
-
-        torres.forEach(torre => {
-            const botaoTorre = document.createElement('button');
-            botaoTorre.textContent = torre.nome;
-            botaoTorre.className = 'btn-nav';
-            botaoTorre.style.cssText = `
-                background-color: var(--bg-cards, #1e1e1e);
-                border: 1px solid var(--dourado, #d4af37);
-                color: var(--texto-claro, #ffffff);
-                width: 100%;
-                padding: 14px 20px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 1rem;
-                transition: all 0.2s ease;
-            `;
-            
-            botaoTorre.addEventListener('mouseover', () => {
-                botaoTorre.style.backgroundColor = 'var(--dourado, #d4af37)';
-                botaoTorre.style.color = '#000000';
-            });
-            botaoTorre.addEventListener('mouseout', () => {
-                botaoTorre.style.backgroundColor = 'var(--bg-cards, #1e1e1e)';
-                botaoTorre.style.color = 'var(--texto-claro, #ffffff)';
-            });
-
-            botaoTorre.addEventListener('click', () => {
-                carregarTabela(torre.url);
-            });
-
-            containerTorres.appendChild(botaoTorre);
-        });
-
-        const viewerContainer = document.querySelector('.viewer-container') || document.querySelector('.viewer-area');
-        if (viewerContainer) {
-            viewerContainer.appendChild(containerTorres);
-        }
-        
-        if (btnAnterior) {
-            btnAnterior.disabled = false;
-            btnAnterior.textContent = "Voltar p/ Apresentação";
-            btnAnterior.onclick = () => {
-                carregarApresentacao();
-                btnAnterior.onclick = null; 
-            };
-        }
-    }
-
-    function removerMenuTorres() {
-        const menuExistente = document.getElementById('container-escolha-torres');
-        if (menuExistente) menuExistente.remove();
     }
 
     function resetarViewer() {
@@ -318,12 +314,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. MODO TELA CHEIA
+    // 5. TELA CHEIA
     if (btnFullscreen) {
         btnFullscreen.addEventListener('click', () => {
-            const elementoAlvo = document.documentElement;
             if (!document.fullscreenElement) {
-                elementoAlvo.requestFullscreen().catch(err => {
+                document.documentElement.requestFullscreen().catch(err => {
                     console.error(`Erro ao ativar Tela Cheia: ${err.message}`);
                 });
                 btnFullscreen.textContent = "Sair da Tela Cheia";
