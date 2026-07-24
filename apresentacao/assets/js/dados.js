@@ -32,7 +32,6 @@ async function carregarDadosDoSupabase() {
         CONSTRUTORAS = resConstrutoras.data || [];
         
         EMPREENDIMENTOS = (resEmpreendimentos.data || []).map(emp => {
-            // Trata o campo de tabelas para não quebrar se vier em string JSON do Supabase
             let tabelaFinal = emp.pdf_tabela_url;
             if (emp.tabelas_multiplas) {
                 try {
