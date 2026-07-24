@@ -329,3 +329,58 @@ body {
 :fullscreen .main-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.05); /* Deixa a borda do rodapé mais sutil na imersão */
 }
+
+/* ===================================================
+   RESPONSIVIDADE DO VISUALIZADOR DE PDF E FILTROS
+   =================================================== */
+
+/* Ajuste das dimensões da área do PDF */
+.viewer-container, .viewer-area {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+}
+
+#pdf-viewer {
+    width: 100%;
+    border: none;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+}
+
+/* Modos de visualização */
+#pdf-viewer.modo-horizontal {
+    height: 75vh;
+    aspect-ratio: 16/9;
+}
+
+#pdf-viewer.modo-vertical {
+    height: 80vh;
+    max-width: 800px;
+}
+
+/* Regras específicas para celulares */
+@media (max-width: 768px) {
+    #pdf-viewer.modo-horizontal,
+    #pdf-viewer.modo-vertical {
+        height: 65vh !important;
+        width: 100% !important;
+    }
+
+    .filter-container, .filtros-bar {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+        padding: 10px;
+    }
+
+    select, button {
+        width: 100% !important;
+        font-size: 16px !important; /* Previne zoom forçado no iOS */
+    }
+}
