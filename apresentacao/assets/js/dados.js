@@ -9,7 +9,7 @@ let EMPREENDIMENTOS = [];
 async function carregarDadosDoSupabase() {
     try {
         if (typeof supabase === 'undefined') {
-            console.error('Biblioteca do Supabase não foi carregada no HTML!');
+            console.error('Biblioteca do Supabase não carregada!');
             return;
         }
 
@@ -17,7 +17,7 @@ async function carregarDadosDoSupabase() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
 
-        // Busca todas as tabelas em paralelo
+        // Busca paralela das 3 tabelas no Supabase
         const [resCidades, resConstrutoras, resEmpreendimentos] = await Promise.all([
             supabaseClient.from('cidades').select('*'),
             supabaseClient.from('construtoras').select('*'),
@@ -33,6 +33,8 @@ async function carregarDadosDoSupabase() {
         
         EMPREENDIMENTOS = (resEmpreendimentos.data || []).map(emp => {
             let tabelaFinal = emp.pdf_tabela_url;
+            
+            // Verifica se possui múltiplas tabelas (JSONB retornado do Supabase)
             if (emp.tabelas_multiplas) {
                 try {
                     tabelaFinal = typeof emp.tabelas_multiplas === 'string' 
@@ -54,13 +56,13 @@ async function carregarDadosDoSupabase() {
             };
         });
 
-        console.log('Dados do Supabase carregados com sucesso:', { CIDADES, CONSTRUTORAS, EMPREENDIMENTOS });
+        console.log('Dados carregados com sucesso do Supabase!');
 
-        // Avisa a aplicação que os dados chegaram
+        // Dispara o evento para renderizar a interface
         window.dispatchEvent(new Event('dadosCarregados'));
         
     } catch (err) {
-        console.error('Erro ao conectar no Supabase:', err);
+        console.error('Erro de conexão com o Supabase:', err);
     }
 }
 
