@@ -20,23 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${urlOriginal}#toolbar=0&navpanes=0&scrollbar=0`;
     }
 
-    // 1. INICIALIZAÇÃO
-    window.addEventListener('dadosCarregados', inicializarApp);
-    
-    // Se os dados já estiverem disponíveis na memória
-    if (typeof CIDADES !== 'undefined' && CIDADES.length > 0) {
-        inicializarApp();
-    }
-
-    function inicializarApp() {
-        popularCidades();
-    }
-
-    // 2. FILTROS EM CASCATA (CIDADE -> CONSTRUTORA -> EMPREENDIMENTO)
+    // 1. INICIALIZAÇÃO E CARREGAMENTO DE CIDADES
     function popularCidades() {
         if (!selectCidade) return;
-        selectCidade.innerHTML = '<option value="">Selecione a cidade...</option>';
-        if (typeof CIDADES !== 'undefined' && CIDADES.length > 0) {
+        
+        // Verifica se a variável global CIDADES existe e possui dados
+        if (typeof CIDADES !== 'undefined' && Array.isArray(CIDADES) && CIDADES.length > 0) {
+            selectCidade.innerHTML = '<option value="">Selecione a cidade...</option>';
             CIDADES.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c.id;
@@ -44,9 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectCidade.appendChild(opt);
             });
             selectCidade.disabled = false;
+        } else {
+            selectCidade.innerHTML = '<option value="">Aguardando dados...</option>';
+            selectCidade.disabled = true;
         }
     }
 
+    // Ouve o evento disparado pelo Supabase/DataJS
+    window.addEventListener('dadosCarregados', () => {
+        popularCidades();
+    });
+
+    // Tentativa imediata de popular caso os dados já existam na memória
+    popularCidades();
+
+    // 2. FILTROS EM CASCATA (CIDADE -> CONSTRUTORA -> EMPREENDIMENTO)
     if (selectCidade) {
         selectCidade.addEventListener('change', () => {
             const cidadeId = selectCidade.value;
@@ -56,23 +58,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!cidadeId || typeof EMPREENDIMENTOS === 'undefined') return;
 
-            // Busca empreendimentos da cidade selecionada
             const empsDaCidade = EMPREENDIMENTOS.filter(emp => emp.cidadeId === cidadeId);
-
-            // Filtra as construtoras vinculadas aos empreendimentos da cidade
             const idsConstrutorasValidas = [...new Set(empsDaCidade.map(emp => emp.construtoraId))];
-            const construtorasFiltradas = CONSTRUTORAS.filter(c => idsConstrutorasValidas.includes(c.id));
+            
+            if (typeof CONSTRUTORAS !== 'undefined') {
+                const construtorasFiltradas = CONSTRUTORAS.filter(c => idsConstrutorasValidas.includes(c.id));
 
-            if (construtorasFiltradas.length > 0) {
-                selectConstrutora.disabled = false;
-                construtorasFiltradas.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.nome;
-                    selectConstrutora.appendChild(opt);
-                });
-            } else {
-                selectConstrutora.options[0].textContent = "Nenhuma construtora nesta cidade...";
+                if (construtorasFiltradas.length > 0) {
+                    selectConstrutora.disabled = false;
+                    construtorasFiltradas.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.nome;
+                        selectConstrutora.appendChild(opt);
+                    });
+                } else {
+                    selectConstrutora.options[0].textContent = "Nenhuma construtora nesta cidade...";
+                }
             }
         });
     }
@@ -108,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectEmpreendimento) {
         selectEmpreendimento.addEventListener('change', () => {
             const id = selectEmpreendimento.value;
-            if (id) {
+            if (id && typeof EMPREENDIMENTOS !== 'undefined') {
                 empreendimentoSelecionado = EMPREENDIMENTOS.find(emp => emp.id === id);
                 carregarApresentacao();
             } else {
@@ -317,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. TELA CHEIA OTIMIZADA
+    // 5. TELA CHEIA
     if (btnFullscreen) {
         const mainViewerContainer = document.querySelector('.viewer-container') || document.querySelector('main');
 
@@ -326,14 +328,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetEl = mainViewerContainer || document.documentElement;
                 if (targetEl.requestFullscreen) {
                     targetEl.requestFullscreen();
-                } else if (targetEl.webkitRequestFullscreen) { /* Safari */
+                } else if (targetEl.webkitRequestFullscreen) {
                     targetEl.webkitRequestFullscreen();
                 }
                 btnFullscreen.textContent = "Sair da Tela Cheia";
             } else {
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) { /* Safari */
+                } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
                 }
                 btnFullscreen.textContent = "Tela cheia";
