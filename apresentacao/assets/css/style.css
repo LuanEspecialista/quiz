@@ -21,7 +21,7 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Mantém a aplicação fixa na tela */
+    overflow: hidden;
 }
 
 /* ==========================================================================
@@ -34,7 +34,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 75px; /* Reduzido levemente para ganhar espaço */
+    height: 75px;
 }
 
 .logo-container {
@@ -79,7 +79,7 @@ body {
     background-color: var(--bg-cards);
     border: 1px solid var(--borda);
     border-radius: 6px;
-    padding: 4px 12px;
+    padding: 6px 12px;
     display: flex;
     flex-direction: column;
     min-width: 180px;
@@ -94,7 +94,7 @@ body {
 }
 
 .filter-box select {
-    background: transparent;
+    background-color: var(--bg-cards);
     border: none;
     color: var(--texto-claro);
     font-size: 13px;
@@ -105,8 +105,9 @@ body {
 }
 
 .filter-box select option {
-    background-color: var(--bg-cards);
-    color: var(--texto-claro);
+    background-color: #11141a !important;
+    color: #ffffff !important;
+    padding: 8px;
 }
 
 .filter-box select:disabled {
@@ -139,13 +140,12 @@ body {
     align-items: center;
     justify-content: center;
     background-color: #000000;
-    padding: 10px; /* Reduzido para aproximar do limite */
+    padding: 10px;
     position: relative;
     overflow: hidden; 
     width: 100%;
 }
 
-/* VISUALIZADOR DE PDF */
 .pdf-frame {
     width: 100%;
     height: 100%;
@@ -166,7 +166,7 @@ body {
 }
 
 /* ==========================================================================
-   RODAPÉ SLIM (OTIMIZADO)
+   RODAPÉ SLIM
    ========================================================================== */
 .main-footer {
     background-color: var(--bg-principal);
@@ -175,7 +175,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 50px; /* Reduzido de 80px para 50px (Visual Slim) */
+    height: 50px;
 }
 
 .nav-buttons {
@@ -184,7 +184,7 @@ body {
 }
 
 .btn-nav {
-    padding: 6px 20px; /* Altura de botão menor */
+    padding: 6px 20px;
     border-radius: 5px;
     font-size: 12px;
     font-weight: 600;
@@ -253,7 +253,7 @@ body {
 }
 
 .logo-sol-img {
-    height: 24px; /* Reduzido para adequar ao rodapé slim */
+    height: 24px;
     width: auto;
     object-fit: contain;
 }
@@ -314,9 +314,8 @@ body {
 }
 
 /* ==========================================================================
-   TELA CHEIA OTIMIZADA (EXPANSÃO TOTAL SEM SOBRAS)
+   TELA CHEIA (EXPANSÃO TOTAL)
    ========================================================================== */
-
 :fullscreen .main-header,
 :-webkit-full-screen .main-header {
     display: none !important;
@@ -324,7 +323,7 @@ body {
 
 :fullscreen .main-footer,
 :-webkit-full-screen .main-footer {
-    display: none !important; /* Oculta o rodapé em tela cheia para imersão total */
+    display: none !important;
 }
 
 :fullscreen .viewer-container,
@@ -333,8 +332,6 @@ body {
     margin: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    max-width: 100vw !important;
-    max-height: 100vh !important;
     background-color: #000000;
 }
 
@@ -342,8 +339,6 @@ body {
 :-webkit-full-screen #pdf-viewer {
     width: 100vw !important;
     height: 100vh !important;
-    max-width: 100vw !important;
-    max-height: 100vh !important;
     border: none !important;
     border-radius: 0 !important;
 }
@@ -351,7 +346,6 @@ body {
 /* ===================================================
    RESPONSIVIDADE E MODOS
    =================================================== */
-
 #pdf-viewer.modo-horizontal {
     height: 100%;
     width: 100%;
@@ -360,29 +354,4 @@ body {
 #pdf-viewer.modo-vertical {
     height: 100%;
     max-width: 850px;
-}
-
-@media (max-width: 768px) {
-    .main-header {
-        height: auto;
-        padding: 10px;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .filters-container {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .filter-box {
-        min-width: 100%;
-    }
-
-    .main-footer {
-        height: auto;
-        padding: 10px;
-        flex-direction: column;
-        gap: 10px;
-    }
 }
