@@ -314,18 +314,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. TELA CHEIA
+    // 5. TELA CHEIA OTIMIZADA
     if (btnFullscreen) {
+        const mainViewerContainer = document.querySelector('.viewer-container') || document.querySelector('main');
+
         btnFullscreen.addEventListener('click', () => {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.error(`Erro ao ativar Tela Cheia: ${err.message}`);
-                });
+                // Aplica o fullscreen no elemento do container principal
+                const targetEl = mainViewerContainer || document.documentElement;
+                if (targetEl.requestFullscreen) {
+                    targetEl.requestFullscreen();
+                } else if (targetEl.webkitRequestFullscreen) { /* Safari */
+                    targetEl.webkitRequestFullscreen();
+                }
                 btnFullscreen.textContent = "Sair da Tela Cheia";
             } else {
-                document.exitFullscreen();
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { /* Safari */
+                    document.webkitExitFullscreen();
+                }
                 btnFullscreen.textContent = "Tela cheia";
             }
         });
     }
-});
