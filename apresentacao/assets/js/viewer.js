@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. INICIALIZAÇÃO
     window.addEventListener('dadosCarregados', inicializarApp);
+    
+    // Se os dados já estiverem disponíveis na memória
     if (typeof CIDADES !== 'undefined' && CIDADES.length > 0) {
         inicializarApp();
     }
@@ -34,13 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function popularCidades() {
         if (!selectCidade) return;
         selectCidade.innerHTML = '<option value="">Selecione a cidade...</option>';
-        if (typeof CIDADES !== 'undefined') {
+        if (typeof CIDADES !== 'undefined' && CIDADES.length > 0) {
             CIDADES.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c.id;
                 opt.textContent = c.nome;
                 selectCidade.appendChild(opt);
             });
+            selectCidade.disabled = false;
         }
     }
 
@@ -320,7 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         btnFullscreen.addEventListener('click', () => {
             if (!document.fullscreenElement) {
-                // Aplica o fullscreen no elemento do container principal
                 const targetEl = mainViewerContainer || document.documentElement;
                 if (targetEl.requestFullscreen) {
                     targetEl.requestFullscreen();
@@ -338,3 +340,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+});
