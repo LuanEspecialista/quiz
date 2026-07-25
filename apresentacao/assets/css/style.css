@@ -30,11 +30,11 @@ body {
 .main-header {
     background-color: var(--bg-principal);
     border-bottom: 1px solid var(--borda);
-    padding: 15px 40px;
+    padding: 10px 30px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 90px;
+    height: 75px; /* Reduzido levemente para ganhar espaço */
 }
 
 .logo-container {
@@ -44,13 +44,13 @@ body {
 }
 
 .logo-img {
-    height: 45px;
+    height: 40px;
     width: auto;
     object-fit: contain;
 }
 
 .logo-text h1 {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 400;
     letter-spacing: 2px;
 }
@@ -61,15 +61,15 @@ body {
 }
 
 .logo-text p {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--texto-escuro);
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     margin-top: 2px;
 }
 
 .filters-container {
     display: flex;
-    gap: 20px;
+    gap: 15px;
     flex-grow: 1;
     justify-content: center;
     max-width: 800px;
@@ -79,14 +79,14 @@ body {
     background-color: var(--bg-cards);
     border: 1px solid var(--borda);
     border-radius: 6px;
-    padding: 6px 15px;
+    padding: 4px 12px;
     display: flex;
     flex-direction: column;
-    min-width: 200px;
+    min-width: 180px;
 }
 
 .filter-box label {
-    font-size: 9px;
+    font-size: 8px;
     color: var(--dourado);
     font-weight: 700;
     letter-spacing: 1px;
@@ -97,7 +97,7 @@ body {
     background: transparent;
     border: none;
     color: var(--texto-claro);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     outline: none;
     cursor: pointer;
@@ -118,9 +118,9 @@ body {
     background: transparent;
     border: 1px solid var(--borda);
     color: var(--texto-escuro);
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -131,26 +131,25 @@ body {
 }
 
 /* ==========================================================================
-   CONTAINER CENTRAL (PROPORÇÃO HORIZONTAL FIXA)
+   CONTAINER CENTRAL
    ========================================================================== */
 .viewer-container {
-    flex: 1; /* Ocupa dinamicamente a área entre o cabeçalho e rodapé */
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #000000;
-    padding: 20px;
+    padding: 10px; /* Reduzido para aproximar do limite */
     position: relative;
     overflow: hidden; 
+    width: 100%;
 }
 
-/* VISUALIZADOR DE PDF PADRÃO HORIZONTAL */
+/* VISUALIZADOR DE PDF */
 .pdf-frame {
     width: 100%;
     height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid var(--borda);
     background-color: var(--bg-cards);
     transition: all 0.3s ease;
@@ -158,39 +157,40 @@ body {
 
 .placeholder-text {
     color: var(--texto-escuro);
-    font-size: 16px;
+    font-size: 15px;
     text-align: center;
     letter-spacing: 1px;
     border: 2px dashed var(--borda);
-    padding: 40px;
+    padding: 30px;
     border-radius: 8px;
 }
 
 /* ==========================================================================
-   RODAPÉ FIXO
+   RODAPÉ SLIM (OTIMIZADO)
    ========================================================================== */
 .main-footer {
     background-color: var(--bg-principal);
     border-top: 1px solid var(--borda);
-    padding: 0 40px;
+    padding: 0 30px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 80px;
+    height: 50px; /* Reduzido de 80px para 50px (Visual Slim) */
 }
 
 .nav-buttons {
     display: flex;
-    gap: 15px;
+    gap: 10px;
 }
 
 .btn-nav {
-    padding: 12px 28px;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: 6px 20px; /* Altura de botão menor */
+    border-radius: 5px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    height: 34px;
 }
 
 #btn-anterior {
@@ -225,13 +225,13 @@ body {
 .footer-info {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
 }
 
 .info-link {
     color: var(--texto-escuro);
     text-decoration: none;
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 0.5px;
     transition: color 0.3s ease;
 }
@@ -242,18 +242,18 @@ body {
 
 .separator {
     width: 1px;
-    height: 14px;
+    height: 12px;
     background-color: #1f232b;
 }
 
 .parceria-container {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .logo-sol-img {
-    height: 32px;
+    height: 24px; /* Reduzido para adequar ao rodapé slim */
     width: auto;
     object-fit: contain;
 }
@@ -265,16 +265,16 @@ body {
 }
 
 .parceria-label {
-    font-size: 8px;
+    font-size: 7px;
     color: var(--texto-escuro);
-    letter-spacing: 1.5px;
+    letter-spacing: 1px;
     font-weight: 500;
     line-height: 1;
     margin-bottom: 2px;
 }
 
 .parceria-nome {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--dourado);
     font-weight: 600;
     letter-spacing: 1px;
@@ -291,13 +291,13 @@ body {
     justify-content: center;
     gap: 15px;
     color: var(--texto-escuro);
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: 0.5px;
 }
 
 .spinner {
-    width: 40px;
-    height: 40px;
+    width: 35px;
+    height: 35px;
     border: 3px solid rgba(205, 162, 80, 0.1);
     border-top: 3px solid var(--dourado);
     border-radius: 50%;
@@ -312,75 +312,77 @@ body {
 .hidden {
     display: none !important;
 }
+
 /* ==========================================================================
-   COMPORTAMENTO INTELIGENTE PARA TELA CHEIA
+   TELA CHEIA OTIMIZADA (EXPANSÃO TOTAL SEM SOBRAS)
    ========================================================================== */
 
-/* Quando o navegador entrar em Tela Cheia */
-:fullscreen .main-header {
-    display: none !important; /* Esconde o cabeçalho e os filtros */
+:fullscreen .main-header,
+:-webkit-full-screen .main-header {
+    display: none !important;
 }
 
-:fullscreen .viewer-container {
-    padding: 0; /* Remove as bordas para o PDF ganhar ainda mais espaço */
+:fullscreen .main-footer,
+:-webkit-full-screen .main-footer {
+    display: none !important; /* Oculta o rodapé em tela cheia para imersão total */
+}
+
+:fullscreen .viewer-container,
+:-webkit-full-screen .viewer-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
     background-color: #000000;
 }
 
-:fullscreen .main-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.05); /* Deixa a borda do rodapé mais sutil na imersão */
+:fullscreen #pdf-viewer,
+:-webkit-full-screen #pdf-viewer {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    border: none !important;
+    border-radius: 0 !important;
 }
 
 /* ===================================================
-   RESPONSIVIDADE DO VISUALIZADOR DE PDF E FILTROS
+   RESPONSIVIDADE E MODOS
    =================================================== */
 
-/* Ajuste das dimensões da área do PDF */
-.viewer-container, .viewer-area {
-    width: 100%;
-    max-width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 70vh;
-}
-
-#pdf-viewer {
-    width: 100%;
-    border: none;
-    background-color: #1a1a1a;
-    border-radius: 8px;
-}
-
-/* Modos de visualização */
 #pdf-viewer.modo-horizontal {
-    height: 75vh;
-    aspect-ratio: 16/9;
+    height: 100%;
+    width: 100%;
 }
 
 #pdf-viewer.modo-vertical {
-    height: 80vh;
-    max-width: 800px;
+    height: 100%;
+    max-width: 850px;
 }
 
-/* Regras específicas para celulares */
 @media (max-width: 768px) {
-    #pdf-viewer.modo-horizontal,
-    #pdf-viewer.modo-vertical {
-        height: 65vh !important;
-        width: 100% !important;
+    .main-header {
+        height: auto;
+        padding: 10px;
+        flex-direction: column;
+        gap: 10px;
     }
 
-    .filter-container, .filtros-bar {
-        display: flex;
+    .filters-container {
         flex-direction: column;
         width: 100%;
-        gap: 12px;
-        padding: 10px;
     }
 
-    select, button {
-        width: 100% !important;
-        font-size: 16px !important; /* Previne zoom forçado no iOS */
+    .filter-box {
+        min-width: 100%;
+    }
+
+    .main-footer {
+        height: auto;
+        padding: 10px;
+        flex-direction: column;
+        gap: 10px;
     }
 }
