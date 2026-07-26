@@ -1,52 +1,41 @@
 /*
 =========================================================
-CENTRAL DE CONVERSÃO
 LUAN ESPECIALISTA
+CENTRAL DE CONVERSÃO
 APP.JS
+VERSÃO DEFINITIVA
 =========================================================
 */
 
-const state={
+const state = {
 
-    construtoras:[],
+    construtoras: [],
 
-    construtoraAtual:null,
+    construtoraAtual: null,
 
-    empreendimentoAtual:null,
+    empreendimentoAtual: null,
 
-    dados:null,
+    dados: null,
 
-    playbook:null,
+    playbook: null,
 
-    secaoAtual:null
+    secaoAtual: null
 
 };
 
-const ui={
+const ui = {
 
-    chipsConstrutoras:
+    construtoras: document.getElementById("construtoras"),
 
-    document.getElementById("construtoras"),
+    empreendimentos: document.getElementById("empreendimentos"),
 
-    chipsEmpreendimentos:
+    empreendimentosSection: document.getElementById("empreendimentos-section"),
 
-    document.getElementById("empreendimentos"),
+    sidebar: document.getElementById("sidebar"),
 
-    empreendimentosSection:
+    content: document.getElementById("content"),
 
-    document.getElementById("empreendimentos-section"),
-
-    sidebar:
-
-    document.getElementById("sidebar"),
-
-    content:
-
-    document.getElementById("content"),
-
-    pesquisa:
-
-    document.getElementById("search")
+    pesquisa: document.getElementById("search")
 
 };
 
@@ -58,6 +47,10 @@ document.addEventListener(
 
 );
 
+/* =========================================================
+INICIAR
+========================================================= */
+
 async function iniciar(){
 
     await carregarConstrutoras();
@@ -67,181 +60,120 @@ async function iniciar(){
     registrarPesquisa();
 
 }
-/*
-=========================================================
+
+/* =========================================================
 CARREGA CONSTRUTORAS
-=========================================================
-*/
+========================================================= */
 
 async function carregarConstrutoras(){
 
     try{
 
-        const resposta=
-
-        await fetch(
+        const resposta = await fetch(
 
             "data/construtoras.json"
 
         );
 
-        state.construtoras=
+        if(!resposta.ok){
 
-        await resposta.json();
+            throw new Error("Erro ao carregar construtoras.");
+
+        }
+
+        state.construtoras = await resposta.json();
 
     }
 
     catch(erro){
 
-        console.error(
-
-            erro
-
-        );
+        console.error(erro);
 
     }
 
 }
-/*
-=========================================================
+
+/* =========================================================
 RENDERIZA CONSTRUTORAS
-=========================================================
-*/
+========================================================= */
 
 function renderConstrutoras(){
 
-    ui.chipsConstrutoras.innerHTML="";
+    ui.construtoras.innerHTML = "";
 
-    state.construtoras.forEach(
+    state.construtoras.forEach(construtora=>{
 
-        construtora=>{
+        const botao = document.createElement("button");
 
-            const botao=
+        botao.className = "chip";
 
-            document.createElement("button");
+        botao.textContent = construtora.nome;
 
-            botao.className="chip";
+        botao.onclick = ()=>{
 
-            botao.innerText=
+            selecionarConstrutora(construtora);
 
-            construtora.nome;
+        };
 
-            botao.onclick=()=>{
+        ui.construtoras.appendChild(botao);
 
-                selecionarConstrutora(
-
-                    construtora
-
-                );
-
-            };
-
-            ui.chipsConstrutoras
-
-            .appendChild(
-
-                botao
-
-            );
-
-        }
-
-    );
+    });
 
 }
-/*
-=========================================================
-SELECIONA CONSTRUTORA
-=========================================================
-*/
 
-function selecionarConstrutora(
+/* =========================================================
+SELECIONAR CONSTRUTORA
+========================================================= */
 
-    construtora
+function selecionarConstrutora(construtora){
 
-){
+    state.construtoraAtual = construtora;
 
-    state.construtoraAtual=
+    document.querySelectorAll("#construtoras .chip")
 
-    construtora;
+    .forEach(chip=>chip.classList.remove("active"));
+
+    event.target.classList.add("active");
 
     renderEmpreendimentos();
 
 }
-/*
-=========================================================
+
+/* =========================================================
 RENDERIZA EMPREENDIMENTOS
-=========================================================
-*/
+========================================================= */
 
 function renderEmpreendimentos(){
 
-    ui.empreendimentosSection
+    ui.empreendimentosSection.classList.remove("hidden");
 
-    .classList
+    ui.empreendimentos.innerHTML = "";
 
-    .remove("hidden");
+    state.construtoraAtual.empreendimentos.forEach(nome=>{
 
-    ui.chipsEmpreendimentos
+        const botao = document.createElement("button");
 
-    .innerHTML="";
+        botao.className = "chip";
 
-    state.construtoraAtual
+        botao.textContent = formatarNome(nome);
 
-    .empreendimentos
+        botao.onclick = ()=>{
 
-    .forEach(
+            selecionarEmpreendimento(nome);
 
-        empreendimento=>{
+        };
 
-            const botao=
+        ui.empreendimentos.appendChild(botao);
 
-            document.createElement("button");
-
-            botao.className="chip";
-
-            botao.innerText=
-
-            formatarNome(
-
-                empreendimento
-
-            );
-
-            botao.onclick=()=>{
-
-                selecionarEmpreendimento(
-
-                    empreendimento
-
-                );
-
-            };
-
-            ui.chipsEmpreendimentos
-
-            .appendChild(
-
-                botao
-
-            );
-
-        }
-
-    );
+    });
 
 }
-/*
-=========================================================
-FORMATA NOME
-=========================================================
-*/
 
-function formatarNome(
+/* =========================================================
+FORMATAR NOME
+========================================================= */
 
-    texto
-
-){
+function formatarNome(texto){
 
     return texto
 
@@ -251,38 +183,52 @@ function formatarNome(
 
         /\b\w/g,
 
-        letra=>letra.toUpperCase()
+        l=>l.toUpperCase()
 
     );
 
 }
-/*
-=========================================================
-SELECIONA EMPREENDIMENTO
-=========================================================
-*/
 
-async function selecionarEmpreendimento(empreendimento){
+/* =========================================================
+SELECIONAR EMPREENDIMENTO
+========================================================= */
 
-    state.empreendimentoAtual = empreendimento;
+async function selecionarEmpreendimento(nome){
+
+    state.empreendimentoAtual = nome;
+
+    document.querySelectorAll("#empreendimentos .chip")
+
+    .forEach(chip=>chip.classList.remove("active"));
+
+    event.target.classList.add("active");
 
     await carregarDados();
 
     await carregarPlaybook();
 
-    state.secaoAtual = state.playbook.secoes[0].id;
+    if(
 
-    renderSidebar();
+        state.playbook &&
+
+        state.playbook.secoes &&
+
+        state.playbook.secoes.length
+
+    ){
+
+        state.secaoAtual = state.playbook.secoes[0].id;
+
+        renderSidebar();
+
+    }
 
 }
-/*
-=========================================================
-CARREGA DADOS
-=========================================================
-*/
+/* =========================================================
+CARREGAR DADOS
+========================================================= */
 
 async function carregarDados(){
-    
 
     try{
 
@@ -292,23 +238,27 @@ async function carregarDados(){
 
         );
 
+        if(!resposta.ok){
+
+            throw new Error("dados.json não encontrado.");
+
+        }
+
         state.dados = await resposta.json();
 
     }
 
-    catch(e){
+    catch(erro){
 
-        console.error(e);
+        console.error(erro);
 
     }
 
 }
 
-/*
-=========================================================
-CARREGA PLAYBOOK
-=========================================================
-*/
+/* =========================================================
+CARREGAR PLAYBOOK
+========================================================= */
 
 async function carregarPlaybook(){
 
@@ -320,34 +270,39 @@ async function carregarPlaybook(){
 
         );
 
+        if(!resposta.ok){
+
+            throw new Error("playbook.json não encontrado.");
+
+        }
+
         state.playbook = await resposta.json();
 
     }
 
-    catch(e){
+    catch(erro){
 
-        console.error(e);
+        console.error(erro);
 
     }
 
 }
-/*
-=========================================================
+
+/* =========================================================
 RENDER SIDEBAR
-=========================================================
-*/
+========================================================= */
 
 function renderSidebar(){
 
-    ui.sidebar.innerHTML="";
+    ui.sidebar.innerHTML = "";
 
     state.playbook.secoes.forEach(secao=>{
 
-        const item=document.createElement("button");
+        const item = document.createElement("button");
 
-        item.className="sidebar-item";
+        item.className = "sidebar-item";
 
-        item.textContent=secao.titulo;
+        item.textContent = secao.titulo;
 
         if(secao.id===state.secaoAtual){
 
@@ -355,9 +310,9 @@ function renderSidebar(){
 
         }
 
-        item.onclick=()=>{
+        item.onclick = ()=>{
 
-            state.secaoAtual=secao.id;
+            state.secaoAtual = secao.id;
 
             renderSidebar();
 
@@ -370,11 +325,10 @@ function renderSidebar(){
     renderConteudo();
 
 }
-/*
-=========================================================
+
+/* =========================================================
 RENDER CONTEÚDO
-=========================================================
-*/
+========================================================= */
 
 function renderConteudo(){
 
@@ -390,7 +344,7 @@ function renderConteudo(){
 
     }
 
-    ui.content.innerHTML=`
+    ui.content.innerHTML = `
 
     <div class="playbook-card fade">
 
@@ -402,11 +356,33 @@ function renderConteudo(){
 
                 ${state.dados.construtora}
 
-                • ${state.dados.cidade}
+                •
+
+                ${state.dados.localizacao}
 
             </p>
 
         </div>
+
+        ${state.dados.descricao ? `
+
+        <div class="block">
+
+            <div class="block-title">
+
+                SOBRE O EMPREENDIMENTO
+
+            </div>
+
+            <div class="block-text">
+
+                ${state.dados.descricao}
+
+            </div>
+
+        </div>
+
+        ` : ""}
 
         <div class="block">
 
@@ -422,88 +398,215 @@ function renderConteudo(){
 
             </div>
 
-            <button
-
-                class="copy-button"
-
-                onclick="copiarTexto()"
-
-            >
-
-                Copiar roteiro
-
-            </button>
-
         </div>
+
+        <button
+
+            class="copy-button"
+
+            onclick="copiarTexto()"
+
+        >
+
+            Copiar roteiro
+
+        </button>
 
     </div>
 
     `;
 
 }
-/*
-=========================================================
+/* =========================================================
 COPIAR TEXTO
-=========================================================
-*/
+========================================================= */
 
 function copiarTexto(){
 
     const secao = state.playbook.secoes.find(
 
-        s=>s.id===state.secaoAtual
+        s => s.id === state.secaoAtual
 
     );
+
+    if(!secao) return;
 
     navigator.clipboard.writeText(secao.conteudo);
 
 }
-/*
-=========================================================
+
+/* =========================================================
 PESQUISA
-=========================================================
-*/
+========================================================= */
 
 function registrarPesquisa(){
+
+    if(!ui.pesquisa) return;
 
     ui.pesquisa.addEventListener(
 
         "input",
 
-        e=>{
+        function(e){
 
-            const texto=e.target.value
-
-            .toLowerCase()
-
-            .trim();
-
-            document
-
-            .querySelectorAll(
-
-                "#construtoras .chip"
-
-            )
-
-            .forEach(chip=>{
-
-                chip.style.display=
-
-                chip.innerText
+            const texto = e.target.value
 
                 .toLowerCase()
 
-                .includes(texto)
+                .trim();
 
-                ?"flex"
+            document
 
-                :"none";
+                .querySelectorAll("#construtoras .chip")
 
-            });
+                .forEach(chip=>{
+
+                    chip.style.display = chip.innerText
+
+                        .toLowerCase()
+
+                        .includes(texto)
+
+                        ? ""
+
+                        : "none";
+
+                });
 
         }
 
     );
 
 }
+
+/* =========================================================
+ESTADO VAZIO
+========================================================= */
+
+function mostrarInicio(){
+
+    ui.sidebar.innerHTML = `
+
+        <div class="empty-sidebar">
+
+            <p>
+
+                Selecione um empreendimento
+
+            </p>
+
+        </div>
+
+    `;
+
+    ui.content.innerHTML = `
+
+        <div class="empty-state">
+
+            <h2>
+
+                Central de Conversão
+
+            </h2>
+
+            <p>
+
+                Escolha uma construtora e um empreendimento para iniciar.
+
+            </p>
+
+        </div>
+
+    `;
+
+}
+
+mostrarInicio();
+
+/* =========================================================
+ATUALIZA BOTÕES ATIVOS
+========================================================= */
+
+function atualizarChips(container, valor){
+
+    document
+
+        .querySelectorAll(container + " .chip")
+
+        .forEach(chip=>{
+
+            chip.classList.remove("active");
+
+            if(
+
+                chip.textContent.trim().toLowerCase() ===
+
+                valor.replaceAll("-"," ").toLowerCase()
+
+            ){
+
+                chip.classList.add("active");
+
+            }
+
+        });
+
+}
+
+/* =========================================================
+VERSÕES ATUALIZADAS DAS SELEÇÕES
+========================================================= */
+
+function selecionarConstrutora(construtora){
+
+    state.construtoraAtual = construtora;
+
+    atualizarChips(
+
+        "#construtoras",
+
+        construtora.nome
+
+    );
+
+    renderEmpreendimentos();
+
+}
+
+async function selecionarEmpreendimento(nome){
+
+    state.empreendimentoAtual = nome;
+
+    atualizarChips(
+
+        "#empreendimentos",
+
+        formatarNome(nome)
+
+    );
+
+    await carregarDados();
+
+    await carregarPlaybook();
+
+    if(
+
+        state.playbook &&
+
+        state.playbook.secoes &&
+
+        state.playbook.secoes.length
+
+    ){
+
+        state.secaoAtual = state.playbook.secoes[0].id;
+
+        renderSidebar();
+
+    }
+
+}
+
+/* =========================================================
+FIM DO APP
+========================================================= */
