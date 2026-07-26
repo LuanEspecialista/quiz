@@ -67,3 +67,192 @@ async function iniciar(){
     registrarPesquisa();
 
 }
+/*
+=========================================================
+CARREGA CONSTRUTORAS
+=========================================================
+*/
+
+async function carregarConstrutoras(){
+
+    try{
+
+        const resposta=
+
+        await fetch(
+
+            "data/construtoras.json"
+
+        );
+
+        state.construtoras=
+
+        await resposta.json();
+
+    }
+
+    catch(erro){
+
+        console.error(
+
+            erro
+
+        );
+
+    }
+
+}
+/*
+=========================================================
+RENDERIZA CONSTRUTORAS
+=========================================================
+*/
+
+function renderConstrutoras(){
+
+    ui.chipsConstrutoras.innerHTML="";
+
+    state.construtoras.forEach(
+
+        construtora=>{
+
+            const botao=
+
+            document.createElement("button");
+
+            botao.className="chip";
+
+            botao.innerText=
+
+            construtora.nome;
+
+            botao.onclick=()=>{
+
+                selecionarConstrutora(
+
+                    construtora
+
+                );
+
+            };
+
+            ui.chipsConstrutoras
+
+            .appendChild(
+
+                botao
+
+            );
+
+        }
+
+    );
+
+}
+/*
+=========================================================
+SELECIONA CONSTRUTORA
+=========================================================
+*/
+
+function selecionarConstrutora(
+
+    construtora
+
+){
+
+    state.construtoraAtual=
+
+    construtora;
+
+    renderEmpreendimentos();
+
+}
+/*
+=========================================================
+RENDERIZA EMPREENDIMENTOS
+=========================================================
+*/
+
+function renderEmpreendimentos(){
+
+    ui.empreendimentosSection
+
+    .classList
+
+    .remove("hidden");
+
+    ui.chipsEmpreendimentos
+
+    .innerHTML="";
+
+    state.construtoraAtual
+
+    .empreendimentos
+
+    .forEach(
+
+        empreendimento=>{
+
+            const botao=
+
+            document.createElement("button");
+
+            botao.className="chip";
+
+            botao.innerText=
+
+            formatarNome(
+
+                empreendimento
+
+            );
+
+            botao.onclick=()=>{
+
+                selecionarEmpreendimento(
+
+                    empreendimento
+
+                );
+
+            };
+
+            ui.chipsEmpreendimentos
+
+            .appendChild(
+
+                botao
+
+            );
+
+        }
+
+    );
+
+}
+/*
+=========================================================
+FORMATA NOME
+=========================================================
+*/
+
+function formatarNome(
+
+    texto
+
+){
+
+    return texto
+
+    .replaceAll("-"," ")
+
+    .replace(
+
+        /\b\w/g,
+
+        letra=>letra.toUpperCase()
+
+    );
+
+}
