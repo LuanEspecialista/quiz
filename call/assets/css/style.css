@@ -215,53 +215,21 @@ section{
 
 .search-area{
 
-    width:min(var(--max-width),94%);
+    max-width:1400px;
 
-    margin:0 auto 55px;
-
-    display:flex;
-
-    justify-content:center;
+    margin:10px auto 18px;
 
 }
 
-#search{
+.search-area input{
 
-    width:760px;
+    height:42px;
 
-    max-width:100%;
+    border-radius:10px;
 
-    height:60px;
+    font-size:14px;
 
-    background:#11161d;
-
-    border:1px solid var(--border);
-
-    border-radius:999px;
-
-    padding:0 26px;
-
-    color:#fff;
-
-    font-size:16px;
-
-    transition:var(--transition);
-
-}
-
-#search::placeholder{
-
-    color:#7b7b7b;
-
-}
-
-#search:focus{
-
-    border-color:var(--gold);
-
-    box-shadow:
-
-    0 0 0 4px rgba(212,164,74,.10);
+    padding:0 16px;
 
 }
 /* ==========================================================
