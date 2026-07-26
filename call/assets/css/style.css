@@ -1,126 +1,166 @@
-/* CSS DEFINITIVO PARA REPLICAR O LAYOUT DA IMAGEM [2] */
-:root {
-    --gold: #C5A059;
-    --bg-black: #050505;
-    --card-bg: #111111;
-    --border: #222222;
-    --text-gray: #A0A0A0;
+/* ==========================================================
+   LUAN ESPECIALISTA
+   CENTRAL DE CONVERSÃO
+   STYLE.CSS
+========================================================== */
+
+/* ==========================================================
+   RESET
+========================================================== */
+
+*{
+
+    margin:0;
+
+    padding:0;
+
+    box-sizing:border-box;
+
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+html{
 
-body { 
-    background-color: var(--bg-black); 
-    color: white; 
-    font-family: 'Inter', sans-serif; 
-    padding: 20px;
+    scroll-behavior:smooth;
+
 }
 
-/* HEADER: Logo à esquerda, Título no centro, Busca à direita [2] */
-.main-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px 30px 20px;
+body{
+
+    background:#050608;
+
+    color:#ffffff;
+
+    font-family:"Inter",sans-serif;
+
+    overflow-x:hidden;
+
+    min-height:100vh;
+
 }
 
-.gold-text { 
-    color: var(--gold); 
-    font-family: 'Cormorant Garamond', serif; 
-    text-transform: uppercase;
+img{
+
+    display:block;
+
+    max-width:100%;
+
 }
 
-/* DASHBOARD: Cria a coluna da esquerda (320px) e o resto para o conteúdo [2] */
-.dashboard {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 40px;
-    max-width: 1400px;
-    margin: 0 auto;
+button{
+
+    font-family:inherit;
+
+    border:none;
+
+    outline:none;
+
+    cursor:pointer;
+
 }
 
-.label { color: var(--gold); font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 20px; }
+input{
 
-/* GRID DE CONSTRUTORAS: 2 colunas de cartões conforme a lista [3] */
-.grid-construtoras {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    font-family:inherit;
+
+    border:none;
+
+    outline:none;
+
 }
 
-.card-construtora {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    padding: 20px 10px;
-    border-radius: 8px;
-    text-align: center;
-    cursor: pointer;
-    transition: 0.3s;
+a{
+
+    text-decoration:none;
+
+    color:inherit;
+
 }
 
-.card-construtora:hover, .card-construtora.active {
-    border-color: var(--gold);
-    box-shadow: inset 0 0 10px rgba(197, 160, 89, 0.2);
+ul{
+
+    list-style:none;
+
 }
+/* ==========================================================
+   VARIÁVEIS
+========================================================== */
 
-.card-construtora h3 { font-size: 0.85rem; color: white; margin-bottom: 5px; }
-.card-construtora span { font-size: 0.65rem; color: var(--text-gray); }
+:root{
 
-/* SEÇÃO DE EMPREENDIMENTOS: Navegação horizontal superior [2] */
-.emp-nav {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 30px;
+    --background:#050608;
+
+    --card:#0d1117;
+
+    --card-light:#141922;
+
+    --gold:#D4A44A;
+
+    --gold-hover:#E3B55C;
+
+    --white:#ffffff;
+
+    --text:#c6c6c6;
+
+    --border:rgba(255,255,255,.08);
+
+    --shadow:0 25px 60px rgba(0,0,0,.45);
+
+    --radius:22px;
+
+    --transition:.25s;
+
+    --max-width:1450px;
+
 }
+/* ==========================================================
+   BACKGROUND
+========================================================== */
 
-.card-emp-mini {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    padding: 15px 25px;
-    border-radius: 8px;
-    text-align: center;
-    min-width: 180px;
-    cursor: pointer;
+.background-glow{
+
+    position:fixed;
+
+    inset:0;
+
+    pointer-events:none;
+
+    z-index:-1;
+
+    background:
+
+    radial-gradient(circle at 10% 10%,
+
+    rgba(212,164,74,.10),
+
+    transparent 30%),
+
+    radial-gradient(circle at 90% 80%,
+
+    rgba(212,164,74,.08),
+
+    transparent 35%),
+
+    radial-gradient(circle at center,
+
+    rgba(255,255,255,.02),
+
+    transparent 60%);
+
 }
+/* ==========================================================
+   CONTAINER
+========================================================== */
 
-/* PLAYBOOK: Onde os roteiros de conversão aparecem [2] */
-.playbook-container {
-    background: var(--card-bg);
-    border: 1px solid var(--gold);
-    border-radius: 12px;
-    padding: 30px;
-}
+section{
 
-.tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid var(--border); }
-.tab-btn {
-    background: none; border: none; color: var(--text-gray);
-    padding: 15px 20px; cursor: pointer; font-weight: 600;
-}
-.tab-btn.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+    width:min(
 
-/* BLOCOS DE SCRIPT COM BOTÃO COPIAR [2] */
-.script-section {
-    background: rgba(255,255,255,0.03);
-    padding: 20px;
-    margin-bottom: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 8px;
-    border: 1px solid #222;
-}
+    var(--max-width),
 
-.btn-copy {
-    background: none; border: 1px solid var(--gold); color: var(--gold);
-    padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.7rem;
-}
+    94%
 
-.btn-copy:hover { background: var(--gold); color: black; }
+    );
 
-.tip-card {
-    margin-top: 40px;
-    background: rgba(197, 160, 89, 0.05);
-    border: 1px dashed var(--gold);
-    padding: 20px;
-    border-radius: 8px;
+    margin:auto;
+
 }
