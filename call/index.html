@@ -5,17 +5,17 @@
 
 <meta charset="UTF-8">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>Central de Conversão | Luan Especialista</title>
-
-<link rel="stylesheet" href="assets/css/style.css">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="assets/css/style.css">
 
 </head>
 
@@ -26,14 +26,9 @@
 <header class="hero">
 
 <img
-
-src="imagens/logo.png"
-
+src="../imagens/logo.png"
 class="logo"
-
-alt="Luan Especialista"
-
->
+alt="Luan Especialista">
 
 <h1>
 
@@ -43,7 +38,7 @@ CENTRAL DE CONVERSÃO
 
 <p>
 
-Escolha uma construtora, selecione um empreendimento e utilize o roteiro ideal para levar o cliente até uma reunião presencial ou Meet.
+Transformando interessados em reuniões presenciais e apresentações online.
 
 </p>
 
@@ -52,14 +47,9 @@ Escolha uma construtora, selecione um empreendimento e utilize o roteiro ideal p
 <section class="search-area">
 
 <input
-
 id="search"
-
 type="text"
-
-placeholder="Pesquisar construtora ou empreendimento..."
-
->
+placeholder="Pesquisar construtora ou empreendimento...">
 
 </section>
 
@@ -72,16 +62,16 @@ Construtoras
 </h2>
 
 <div
-
 id="construtoras"
+class="chips">
 
-class="chips"
-
-></div>
+</div>
 
 </section>
 
-<section class="chips-section">
+<section
+id="empreendimentos-section"
+class="chips-section hidden">
 
 <h2>
 
@@ -90,46 +80,42 @@ Empreendimentos
 </h2>
 
 <div
-
 id="empreendimentos"
+class="chips">
 
-class="chips"
-
-></div>
+</div>
 
 </section>
 
 <main class="workspace">
 
 <aside
-
 id="sidebar"
+class="sidebar">
 
-class="sidebar"
+<div class="empty-sidebar">
 
->
+Selecione um empreendimento
+
+</div>
 
 </aside>
 
 <section
-
 id="content"
-
-class="content"
-
->
+class="content">
 
 <div class="empty-state">
 
-<h3>
+<h2>
 
 Bem-vindo.
 
-</h3>
+</h2>
 
 <p>
 
-Selecione uma construtora para iniciar.
+Escolha uma construtora para começar.
 
 </p>
 
