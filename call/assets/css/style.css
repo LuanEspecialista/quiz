@@ -378,3 +378,200 @@ section{
     border-color:var(--gold);
 
 }
+/* ==========================================================
+   WORKSPACE
+========================================================== */
+
+.workspace{
+
+    width:min(var(--max-width),94%);
+
+    margin:70px auto 120px;
+
+    display:grid;
+
+    grid-template-columns:220px 1fr;
+
+    gap:50px;
+
+    align-items:start;
+
+}
+/* ==========================================================
+   SIDEBAR
+========================================================== */
+
+.sidebar{
+
+    position:sticky;
+
+    top:120px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:8px;
+
+    padding-right:28px;
+
+    border-right:1px solid rgba(255,255,255,.08);
+
+    min-height:500px;
+
+}
+/* ==========================================================
+   ITENS DA SIDEBAR
+========================================================== */
+
+.sidebar-item{
+
+    position:relative;
+
+    padding:14px 0;
+
+    color:#7d7d7d;
+
+    font-size:15px;
+
+    font-weight:500;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.sidebar-item:hover{
+
+    color:#fff;
+
+    padding-left:8px;
+
+}
+
+.sidebar-item.active{
+
+    color:var(--gold);
+
+    font-weight:600;
+
+    padding-left:14px;
+
+}
+
+.sidebar-item.active::before{
+
+    content:"";
+
+    position:absolute;
+
+    left:-29px;
+
+    top:0;
+
+    width:3px;
+
+    height:100%;
+
+    border-radius:999px;
+
+    background:var(--gold);
+
+}
+/* ==========================================================
+   CONTEÚDO
+========================================================== */
+
+.content{
+
+    width:100%;
+
+    min-height:650px;
+
+}
+/* ==========================================================
+   CARD PRINCIPAL
+========================================================== */
+
+.playbook-card{
+
+    background:rgba(255,255,255,.035);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    border-radius:26px;
+
+    padding:48px;
+
+    backdrop-filter:blur(20px);
+
+    box-shadow:0 30px 80px rgba(0,0,0,.40);
+
+}
+/* ==========================================================
+   CABEÇALHO DO CARD
+========================================================== */
+
+.playbook-header{
+
+    padding-bottom:30px;
+
+    margin-bottom:40px;
+
+    border-bottom:1px solid rgba(255,255,255,.08);
+
+}
+
+.playbook-header h2{
+
+    font-family:"Cormorant Garamond",serif;
+
+    font-size:42px;
+
+    font-weight:600;
+
+    margin-bottom:10px;
+
+    color:#fff;
+
+}
+
+.playbook-header p{
+
+    color:#9ca3af;
+
+    font-size:16px;
+
+}
+/* ==========================================================
+   TEXTO
+========================================================== */
+
+.block-title{
+
+    color:var(--gold);
+
+    font-size:13px;
+
+    text-transform:uppercase;
+
+    letter-spacing:2px;
+
+    font-weight:700;
+
+    margin-bottom:18px;
+
+}
+
+.block-text{
+
+    color:#d7d7d7;
+
+    line-height:1.95;
+
+    font-size:17px;
+
+    white-space:pre-line;
+
+}
