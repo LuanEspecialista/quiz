@@ -282,6 +282,7 @@ CARREGA DADOS
 */
 
 async function carregarDados(){
+    
 
     try{
 
@@ -292,6 +293,34 @@ async function carregarDados(){
         );
 
         state.dados = await resposta.json();
+
+    }
+
+    catch(e){
+
+        console.error(e);
+
+    }
+
+}
+
+/*
+=========================================================
+CARREGA PLAYBOOK
+=========================================================
+*/
+
+async function carregarPlaybook(){
+
+    try{
+
+        const resposta = await fetch(
+
+            `construtoras/${state.construtoraAtual.id}/${state.empreendimentoAtual}/playbook.json`
+
+        );
+
+        state.playbook = await resposta.json();
 
     }
 
