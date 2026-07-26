@@ -132,3 +132,41 @@ const App = {
         });
     }
 };
+
+/*
+=========================================================
+RENDERIZA SIDEBAR
+=========================================================
+*/
+
+function renderSidebar(){
+
+    sidebar.innerHTML="";
+
+    state.playbook.secoes.forEach(secao=>{
+
+        const item=document.createElement("div");
+
+        item.className="sidebar-item";
+
+        item.innerText=secao.titulo;
+
+        if(secao.id===state.secaoAtual){
+
+            item.classList.add("active");
+
+        }
+
+        item.onclick=()=>{
+
+            selecionarSecao(secao.id);
+
+        };
+
+        sidebar.appendChild(item);
+
+    });
+
+    renderConteudo();
+
+}
