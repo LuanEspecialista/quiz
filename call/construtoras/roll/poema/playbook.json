@@ -1,0 +1,10 @@
+{
+  "nome": "Poema",
+  "construtora": "Roll Empreendimentos",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], falo sobre o Poema. Ele nasce como um contraponto à velocidade do mundo: um convite à pausa a poucos passos do mar em Piçarras [17]. É um projeto contemporâneo onde a luz e a fluidez são protagonistas. O objetivo é te mostrar como o Poema protege sua qualidade de vida e seu capital. Podemos falar amanhã?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Destaques do Poema em Piçarras:\n🌊 Terreno de esquina a poucos passos do mar.\n🛠️ Segurança jurídica: Patrimônio de Afetação [18].\n🔋 Infraestrutura para carros elétricos e lazer completo.\nPosso te enviar as tipologias de 2 ou 3 suítes?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'A Roll é nova na região?': A Roll une a experiência técnica de 15 anos de seus fundadores com uma visão estratégica de crescimento no Litoral Norte [19, 20].\n• 'Prazo de entrega?': Entrega garantida para Dez/2031, ideal para ganho de capital na planta [21]." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "O cronograma prevê acréscimos automáticos de 5% em cada fase de lançamento [21]. Vamos validar sua proposta ainda na tabela de investidor?" }
+  ]
+}

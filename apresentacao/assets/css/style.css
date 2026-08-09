@@ -1,0 +1,357 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+:root {
+    --bg-principal: #0b0c10;
+    --bg-cards: #11141a;
+    --dourado: #cda250;
+    --dourado-hover: #b38b3d;
+    --texto-claro: #ffffff;
+    --texto-escuro: #a0a5b0;
+    --borda: #1f232b;
+}
+
+body {
+    background-color: var(--bg-principal);
+    color: var(--texto-claro);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   CABEÇALHO
+   ========================================================================== */
+.main-header {
+    background-color: var(--bg-principal);
+    border-bottom: 1px solid var(--borda);
+    padding: 10px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 75px;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+}
+
+.logo-text h1 {
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 2px;
+}
+
+.logo-text h1 span {
+    color: var(--dourado);
+    font-weight: 700;
+}
+
+.logo-text p {
+    font-size: 9px;
+    color: var(--texto-escuro);
+    letter-spacing: 3px;
+    margin-top: 2px;
+}
+
+.filters-container {
+    display: flex;
+    gap: 15px;
+    flex-grow: 1;
+    justify-content: center;
+    max-width: 800px;
+}
+
+.filter-box {
+    background-color: var(--bg-cards);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    padding: 6px 12px;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+}
+
+.filter-box label {
+    font-size: 8px;
+    color: var(--dourado);
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.filter-box select {
+    background-color: var(--bg-cards);
+    border: none;
+    color: var(--texto-claro);
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    width: 100%;
+}
+
+.filter-box select option {
+    background-color: #11141a !important;
+    color: #ffffff !important;
+    padding: 8px;
+}
+
+.filter-box select:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.btn-fullscreen {
+    background: transparent;
+    border: 1px solid var(--borda);
+    color: var(--texto-escuro);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-fullscreen:hover {
+    border-color: var(--dourado);
+    color: var(--texto-claro);
+}
+
+/* ==========================================================================
+   CONTAINER CENTRAL
+   ========================================================================== */
+.viewer-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #000000;
+    padding: 10px;
+    position: relative;
+    overflow: hidden; 
+    width: 100%;
+}
+
+.pdf-frame {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--borda);
+    background-color: var(--bg-cards);
+    transition: all 0.3s ease;
+}
+
+.placeholder-text {
+    color: var(--texto-escuro);
+    font-size: 15px;
+    text-align: center;
+    letter-spacing: 1px;
+    border: 2px dashed var(--borda);
+    padding: 30px;
+    border-radius: 8px;
+}
+
+/* ==========================================================================
+   RODAPÉ SLIM
+   ========================================================================== */
+.main-footer {
+    background-color: var(--bg-principal);
+    border-top: 1px solid var(--borda);
+    padding: 0 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 50px;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-nav {
+    padding: 6px 20px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 34px;
+}
+
+#btn-anterior {
+    background: transparent;
+    border: 1px solid var(--borda);
+    color: var(--texto-claro);
+}
+
+#btn-anterior:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: var(--texto-claro);
+}
+
+#btn-proximo {
+    background-color: var(--dourado);
+    border: none;
+    color: #000000;
+}
+
+#btn-proximo:hover:not(:disabled) {
+    background-color: var(--dourado-hover);
+}
+
+.btn-nav:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    border-color: var(--borda) !important;
+    background-color: transparent !important;
+    color: var(--texto-escuro) !important;
+}
+
+.footer-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.info-link {
+    color: var(--texto-escuro);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    transition: color 0.3s ease;
+}
+
+.info-link:hover {
+    color: var(--dourado);
+}
+
+.separator {
+    width: 1px;
+    height: 12px;
+    background-color: #1f232b;
+}
+
+.parceria-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-sol-img {
+    height: 24px;
+    width: auto;
+    object-fit: contain;
+}
+
+.parceria-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.parceria-label {
+    font-size: 7px;
+    color: var(--texto-escuro);
+    letter-spacing: 1px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.parceria-nome {
+    font-size: 12px;
+    color: var(--dourado);
+    font-weight: 600;
+    letter-spacing: 1px;
+    line-height: 1;
+}
+
+/* ==========================================================================
+   LOADING SPINNER
+   ========================================================================== */
+.spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    color: var(--texto-escuro);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.spinner {
+    width: 35px;
+    height: 35px;
+    border: 3px solid rgba(205, 162, 80, 0.1);
+    border-top: 3px solid var(--dourado);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ==========================================================================
+   TELA CHEIA (EXPANSÃO TOTAL)
+   ========================================================================== */
+:fullscreen .main-header,
+:-webkit-full-screen .main-header {
+    display: none !important;
+}
+
+:fullscreen .main-footer,
+:-webkit-full-screen .main-footer {
+    display: none !important;
+}
+
+:fullscreen .viewer-container,
+:-webkit-full-screen .viewer-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: #000000;
+}
+
+:fullscreen #pdf-viewer,
+:-webkit-full-screen #pdf-viewer {
+    width: 100vw !important;
+    height: 100vh !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+/* ===================================================
+   RESPONSIVIDADE E MODOS
+   =================================================== */
+#pdf-viewer.modo-horizontal {
+    height: 100%;
+    width: 100%;
+}
+
+#pdf-viewer.modo-vertical {
+    height: 100%;
+    max-width: 850px;
+}

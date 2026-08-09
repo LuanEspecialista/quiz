@@ -1,0 +1,29 @@
+{
+  "name": "plataforma-estrategia-patrimonial-luan-especialista",
+  "version": "2.0.0",
+  "description": "Plataforma de modelagem patrimonial inteligente, simulação financeira e tese regional premium.",
+  "private": true,
+  "main": "src/app/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "jest",
+    "lint": "eslint src/**/*.js"
+  },
+  "keywords": [
+    "embracon",
+    "consorcio",
+    "home equity",
+    "carta de credito",
+    "investimento",
+    "litoral-norte-sc"
+  ],
+  "author": "Luan Especialista",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "vite": "^5.0.0"
+  }
+}

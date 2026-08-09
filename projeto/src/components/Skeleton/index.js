@@ -1,0 +1,1 @@
+// Componente: Skeleton - index.js

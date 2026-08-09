@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luan Especialista - Análise de Crédito Inteligente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+
+    <!-- Header Principal -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-2 rounded-lg text-white font-bold text-xl">L</div>
+                <span class="font-bold text-lg tracking-wider text-white">LUAN ESPECIALISTA</span>
+            </div>
+            <span class="text-xs bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">
+                Crédito Inteligente & Investimentos
+            </span>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-12">
+        <!-- Seção de Acesso (Login por Código) -->
+        <div id="login-section" class="max-w-md mx-auto text-center space-y-8 py-12">
+            <div class="space-y-3">
+                <h1 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                    Sua Análise Personalizada
+                </h1>
+                <p class="text-slate-400 text-sm">
+                    Insira o código de acesso exclusivo fornecido pelo seu especialista para visualizar sua simulação de crédito e investimento.
+                </p>
+            </div>
+
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+                <div class="text-left">
+                    <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase block mb-2">Código de Acesso</label>
+                    <input type="text" id="codigo-input" placeholder="Ex: HUXK58" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-center text-xl font-mono tracking-widest text-blue-400 focus:outline-none focus:border-blue-500 uppercase transition-all">
+                </div>
+                <button onclick="buscarAnalise()" id="btn-buscar" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <span>Acessar Análise</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <div id="error-message" class="text-red-400 text-xs hidden"></div>
+            </div>
+        </div>
+
+        <!-- Seção do Resultado (Oculta por padrão) -->
+        <div id="result-section" class="hidden space-y-8">
+            <!-- Saudação do Cliente -->
+            <div class="bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-500/20 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Olá, <span id="cliente-nome">---</span>!</h2>
+                    <p class="text-slate-300 text-sm mt-1">Sua análise financeira estruturada já está disponível abaixo.</p>
+                </div>
+                <div class="text-xs text-slate-400">
+                    <p>Análise gerada em: <span id="analise-data" class="font-mono text-slate-200">--/--/----</span></p>
+                    <p>Código: <span id="analise-codigo" class="font-mono text-blue-400 font-bold">---</span></p>
+                </div>
+            </div>
+
+            <!-- Resumo Patrimonial -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Patrimônio Atual</p>
+                    <p id="patrimonio-valor" class="text-2xl font-bold text-emerald-400 mt-2">R$ 0,00</p>
+                    <p id="patrimonio-onde" class="text-xs text-slate-400 mt-1">Investido em: ---</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Rentabilidade Líquida</p>
+                    <p id="patrimonio-rentabilidade" class="text-2xl font-bold text-white mt-2">0,00% <span class="text-xs text-slate-400">/ano</span></p>
+                    <p class="text-xs text-slate-400 mt-1">Rendimento atual estimado</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">CUB Atual</p>
+                    <p id="cub-valor" class="text-2xl font-bold text-blue-400 mt-2">R$ 0,00</p>
+                    <p class="text-xs text-slate-400 mt-1">Referência em Santa Catarina</p>
+                </div>
+            </div>
+
+            <!-- Detalhes da Estratégia -->
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-6">
+                <h3 class="text-lg font-bold border-b border-slate-800 pb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-blue-500"></i> Estruturação da Proposta
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
+                            <span class="text-slate-400 text-sm">Entrada Simulada:</span>
+                            <span id="estrategia-entrada" class="font-semibold text-white">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
+                            <span class="text-slate-400 text-sm">Parcelas Mensais:</span>
+                            <span id="estrategia-parcelas" class="font-semibold text-white">---</span>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
+                            <span class="text-slate-400 text-sm">Reforços Anuais:</span>
+                            <span id="estrategia-reforcos" class="font-semibold text-white">---</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
+                            <span class="text-slate-400 text-sm">Estratégia Pós-Chaves:</span>
+                            <span id="estrategia-poschaves" class="font-semibold text-blue-400">---</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recomendação Especializada -->
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-comment-dots text-indigo-500"></i> Recomendação do Especialista
+                </h3>
+                <p id="recomendacao-texto" class="text-slate-300 text-sm leading-relaxed whitespace-pre-line bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+                    Nenhuma recomendação registrada.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const formatCurrency = (val) => {
+            if (!val) return 'R$ 0,00';
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+        };
+
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '--/--/----';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        };
+
+        async function buscarAnalise() {
+            const codigo = document.getElementById('codigo-input').value.trim();
+            const errorMsg = document.getElementById('error-message');
+            const btn = document.getElementById('btn-buscar');
+
+            if (!codigo) {
+                errorMsg.textContent = "Por favor, digite o seu código de acesso.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerHTML = `<span>Buscando...</span><i class="fa-solid fa-spinner animate-spin"></i>`;
+
+            try {
+                // Consulta a API local do Cloudflare Pages
+                const response = await fetch(`/api/analise?codigo=${codigo}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Erro ao buscar análise.");
+                }
+
+                // Preencher dados do Cliente (Mapeado direto da linha da tabela)
+                document.getElementById('cliente-nome').textContent = data.cliente || 'Cliente';
+                document.getElementById('analise-data').textContent = formatDate(data.data_analise);
+                document.getElementById('analise-codigo').textContent = data.codigo_acesso;
+
+                // Preencher Bloco Patrimônio
+                document.getElementById('patrimonio-valor').textContent = formatCurrency(data.patrimonio_disponivel);
+                document.getElementById('patrimonio-onde').textContent = `Investido em: ${data.onde_investido || 'Não informado'}`;
+                document.getElementById('patrimonio-rentabilidade').textContent = `${data.rentabilidade_liquida_ano || '0'}% /ano`;
+                document.getElementById('cub-valor').textContent = formatCurrency(data.cub_sc);
+
+                // Preencher Detalhes da Estratégia
+                document.getElementById('estrategia-entrada').textContent = `${formatCurrency(data.entrada_valor)} (${data.entrada_percentual || 0}%)`;
+                document.getElementById('estrategia-parcelas').textContent = `${data.parcelas_mensais_quantidade || 0}x de ${formatCurrency(data.parcelas_mensais_valor)}`;
+                document.getElementById('estrategia-reforcos').textContent = data.reforcos_anuais_valor ? `${data.reforcos_anuais_quantidade || 0}x de ${formatCurrency(data.reforcos_anuais_valor)}` : 'Não planejado';
+                document.getElementById('estrategia-poschaves').textContent = data.opcao_pos_chaves || 'Não informada';
+
+                // Preencher Recomendação
+                document.getElementById('recomendacao-texto').textContent = data.recomendacao_texto || "Análise em processamento. Entre em contato com seu consultor.";
+
+                // Transição de Telas
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('result-section').classList.remove('hidden');
+
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Acessar Análise</span><i class="fa-solid fa-arrow-right"></i>`;
+            }
+        }
+    </script>
+</body>
+</html>

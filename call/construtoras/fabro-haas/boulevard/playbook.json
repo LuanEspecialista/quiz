@@ -1,0 +1,26 @@
+{
+  "nome": "Itajuba Boulevard",
+  "construtora": "Fabro Haas",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], falo sobre o Itajuba Boulevard em Barra Velha. Este projeto da Fabro Haas é a síntese da união entre sofisticação e harmonia, localizado no coração da Praia de Itajuba. Com curvas orgânicas inspiradas na brisa do mar, ele é um marco na arquitetura local. Quero te mostrar como a localização estratégica na Av. Itajuba torna este o investimento mais seguro da região. Podemos falar amanhã?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Tudo bem? Conheça o Itajuba Boulevard em Barra Velha:\n📍 Endereço Premium: Av. Itajuba, 4326 - Esquina com Av. Simas.\n🌊 Vista para o Mar: A poucos metros da faixa de areia da Praia de Itajuba.\n✨ Design Orgânico: Um projeto sofisticado que respeita a paisagem.\nPosso te enviar o material técnico completo com as metragens disponíveis?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• 'Por que Itajuba?': É uma região paradisíaca em pleno desenvolvimento, que oferece a calma da praia com fácil acesso aos centros urbanos.\n• 'Segurança da Obra?': A Fabro Haas entrega precisão técnica e elegância, focando em projetos que valorizam o patrimônio e a estética urbana."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "O Itajuba Boulevard é para quem vive a vida em plena harmonia. Vamos reservar um horário na sua agenda para conhecermos o memorial descritivo?"
+    }
+  ]
+}

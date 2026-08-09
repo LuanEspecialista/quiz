@@ -1,0 +1,1 @@
+// Componente: Accordion - index.js

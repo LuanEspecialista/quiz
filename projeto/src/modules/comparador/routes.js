@@ -1,0 +1,1 @@
+// Módulo: comparador - routes.js

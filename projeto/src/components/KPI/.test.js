@@ -1,0 +1,1 @@
+// Componente: KPI - .test.js

@@ -1,0 +1,1 @@
+// Componente: Gauge - .test.js

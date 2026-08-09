@@ -1,0 +1,25 @@
+{
+    "id": "6",
+    "nome": "Joinville",
+    "estado": "SC",
+    "posicionamento": "Maior economia do estado, hub de tecnologia e potência industrial nacional (lastro patrimonial de solidez).",
+    "dados_gerais": {
+        "populacao": "Aprox. 616.000 hab.",
+        "perfil_economico": "Maior PIB de Santa Catarina. Polo metal-mecânico, de tecnologia, plástico, químico e de saúde de referência.",
+        "infraestrutura": "Estrutura urbana completa de metrópole, universidades federais, aeroporto próprio e excelentes hospitais.",
+        "seguranca": "Segurança estruturada e planejada para os padrões de uma grande cidade industrial de alta renda."
+    },
+    "vetores_valorizacao": {
+        "principal": "Geração de riqueza contínua e diversificação econômica.",
+        "impacto": "A proximidade de Joinville com o Litoral Norte garante que as famílias de alta renda industrial comprem suas segundas residências e façam investimentos imobiliários em Penha, Piçarras e Barra Velha."
+    },
+    "caracteristicas": {
+        "turismo": "Festival de Dança de Joinville, Escola do Teatro Bolshoi, turismo de negócios e eventos culturais germânicos.",
+        "gastronomia": "Culinária alemã tradicional, confeitarias históricas e forte cena de cervejarias artesanais.",
+        "natureza": "Cercada pela exuberante Serra Dona Francisca, com turismo rural forte e preservado."
+    },
+    "frases_persuasivas": {
+        "investidor": "O polo gerador de riqueza de Santa Catarina. O lastro econômico que sustenta e consome a valorização do litoral norte.",
+        "moradia": "A estrutura de uma metrópole com a forte cultura europeia de organização, educação e qualidade de vida."
+    }
+}

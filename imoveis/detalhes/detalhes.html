@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detalhes do Imóvel | Luan Especialista</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#030303;
+      --gold:#d99a26;
+      --gold2:#f5b84b;
+      --muted:#b8b8b8;
+      --line:rgba(217,154,38,.35);
+    }
+
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:#fff;font-family:Inter,sans-serif;overflow-x:hidden}
+    a{text-decoration:none;color:inherit}
+    img{display:block;max-width:100%}
+    .container{width:min(1120px,calc(100% - 32px));margin:auto}
+
+    header{
+      height:68px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex;
+      align-items:center;
+      background:#030303;
+      position:sticky;
+      top:0;
+      z-index:50;
+    }
+
+    .nav{display:flex;justify-content:space-between;align-items:center;width:100%}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo img{width:44px;height:44px;object-fit:contain}
+    .logo strong{font-family:"Playfair Display",serif;font-size:20px;line-height:1}
+    .logo span{color:var(--gold2)}
+
+    .back{
+      border:1px solid var(--gold);
+      color:var(--gold2);
+      padding:10px 14px;
+      border-radius:12px;
+      font-size:13px;
+      font-weight:800;
+    }
+
+    main{padding:24px 0 36px}
+
+    .top{
+      display:grid;
+      grid-template-columns:1.35fr .75fr;
+      gap:22px;
+      align-items:start;
+    }
+
+    .gallery-box{
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:#111;
+    }
+
+    .main-photo{
+      position:relative;
+      background:#111;
+    }
+
+    .main-photo img{
+      width:100%;
+      height:430px;
+      object-fit:cover;
+    }
+
+    .photo-arrow{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      border:1px solid rgba(217,154,38,.75);
+      background:rgba(0,0,0,.62);
+      color:var(--gold2);
+      font-size:30px;
+      font-weight:800;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      z-index:3;
+      transition:.2s;
+    }
+
+    .photo-arrow:hover{background:var(--gold);color:#111}
+    .photo-arrow.left{left:14px}
+    .photo-arrow.right{right:14px}
+
+    .counter{
+      position:absolute;
+      right:14px;
+      bottom:14px;
+      background:rgba(0,0,0,.72);
+      border:1px solid rgba(255,255,255,.14);
+      color:#fff;
+      font-size:12px;
+      font-weight:800;
+      padding:7px 10px;
+      border-radius:999px;
+      z-index:3;
+    }
+
+    .thumbs{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      padding:10px;
+      background:#070707;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+
+    .thumbs img{
+      width:76px;
+      height:58px;
+      object-fit:cover;
+      border-radius:9px;
+      border:1px solid rgba(255,255,255,.12);
+      cursor:pointer;
+      opacity:.62;
+      flex:0 0 auto;
+      transition:.2s;
+    }
+
+    .thumbs img.active,
+    .thumbs img:hover{
+      opacity:1;
+      border-color:var(--gold);
+    }
+
+    .info{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:20px;
+      background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    }
+
+    .tag{
+      display:inline-block;
+      color:var(--gold2);
+      border:1px solid rgba(217,154,38,.5);
+      border-radius:999px;
+      padding:7px 12px;
+      font-size:11px;
+      font-weight:900;
+      margin-bottom:13px;
+      text-transform:uppercase;
+    }
+
+    h1{
+      font-family:"Playfair Display",serif;
+      font-size:27px;
+      line-height:1.12;
+      margin-bottom:12px;
+    }
+
+    .price{
+      color:var(--gold2);
+      font-size:25px;
+      font-weight:900;
+      margin-bottom:16px;
+    }
+
+    .specs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:9px;
+      margin-bottom:16px;
+    }
+
+    .spec{
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:11px;
+      padding:9px;
+      font-size:12px;
+      color:#cfcfcf;
+    }
+
+    .spec strong{
+      display:block;
+      color:#fff;
+      font-size:15px;
+      margin-top:3px;
+    }
+
+    .whats{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      width:100%;
+      padding:14px;
+      border-radius:14px;
+      background:var(--gold);
+      color:#111;
+      font-size:14px;
+      font-weight:900;
+      margin-top:12px;
+    }
+
+    .section{
+      margin-top:22px;
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      padding:20px;
+      background:rgba(255,255,255,.025);
+    }
+
+    .section h2{
+      font-size:20px;
+      margin-bottom:12px;
+      color:var(--gold2);
+    }
+
+    .section p{
+      color:#d7d7d7;
+      line-height:1.65;
+      font-size:15px;
+      white-space:pre-line;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .chip{
+      border:1px solid rgba(217,154,38,.35);
+      color:#eee;
+      border-radius:999px;
+      padding:8px 11px;
+      font-size:12px;
+      background:rgba(255,255,255,.025);
+    }
+
+    footer{
+      border-top:1px solid var(--line);
+      padding:24px 0;
+      color:#aaa;
+      font-size:13px;
+    }
+
+    @media(max-width:850px){
+      header{height:64px}
+      .logo img{width:40px;height:40px}
+      .logo strong{font-size:17px}
+      .back{font-size:12px;padding:9px 12px}
+
+      main{padding:18px 0 30px}
+      .top{grid-template-columns:1fr;gap:16px}
+
+      .main-photo img{height:300px}
+      .photo-arrow{
+        width:38px;
+        height:38px;
+        font-size:27px;
+      }
+
+      h1{font-size:24px}
+      .price{font-size:22px}
+      .info{padding:17px}
+      .section{padding:17px}
+      .thumbs img{width:68px;height:52px}
+    }
+
+    @media(max-width:430px){
+      .container{width:min(100% - 24px,1120px)}
+      .main-photo img{height:270px}
+      .specs{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="container nav">
+    <a href="../index.html" class="logo">
+      <img src="../../imagens/logo.png" alt="Luan Especialista">
+      <strong>LUAN <span>ESPECIALISTA</span></strong>
+    </a>
+
+    <a href="../index.html" class="back">← Voltar</a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="top">
+    <div class="gallery-box">
+      <div class="main-photo">
+        <img id="fotoPrincipal" src="" alt="">
+        <button class="photo-arrow left" id="prevFoto" type="button">‹</button>
+        <button class="photo-arrow right" id="nextFoto" type="button">›</button>
+        <div class="counter" id="contadorFotos">1 / 1</div>
+      </div>
+
+      <div class="thumbs" id="miniaturas"></div>
+    </div>
+
+    <aside class="info">
+      <span class="tag" id="status"></span>
+      <h1 id="titulo"></h1>
+      <div class="price" id="valor"></div>
+
+      <div class="specs">
+        <div class="spec">Área útil<strong id="areaUtil"></strong></div>
+        <div class="spec">Área total<strong id="areaTotal"></strong></div>
+        <div class="spec">Dormitórios<strong id="dormitorios"></strong></div>
+        <div class="spec">Banheiros<strong id="banheiros"></strong></div>
+        <div class="spec">Vagas<strong id="vagas"></strong></div>
+        <div class="spec">Entrega<strong id="entrega"></strong></div>
+      </div>
+
+      <a id="whatsapp" class="whats" target="_blank">Tenho interesse</a>
+    </aside>
+  </div>
+
+  <section class="section">
+    <h2>Descrição do imóvel</h2>
+    <p id="descricao"></p>
+  </section>
+
+  <section class="section" id="comodidadesSection">
+    <h2>Comodidades</h2>
+    <div class="chips" id="comodidades"></div>
+  </section>
+
+  <section class="section">
+    <h2>Localização</h2>
+    <p id="localizacao"></p>
+  </section>
+</main>
+
+<footer>
+  <div class="container">luan-especialista.pro</div>
+</footer>
+
+<script>
+  window.IMOVEIS = [];
+</script>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get("imovel") || "apartamento-penha-4361";
+
+  function carregarArquivoImovel(slug){
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = `../imoveis-dados/${slug}.js`;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.body.appendChild(script);
+    });
+  }
+
+  carregarArquivoImovel(slug).then(() => {
+    const imovel = window.IMOVEIS.find(item => item.slug === slug) || window.IMOVEIS[0];
+
+    if(!imovel){
+      document.querySelector("main").innerHTML = "<p>Imóvel não encontrado.</p>";
+      return;
+    }
+
+    const caminhoBase = `../imagens/${imovel.pasta}/`;
+    const totalFotos = imovel.totalImagens || 1;
+    let fotoAtual = 1;
+
+    const fotoPrincipal = document.getElementById("fotoPrincipal");
+    const contadorFotos = document.getElementById("contadorFotos");
+    const miniaturas = document.getElementById("miniaturas");
+
+    document.title = `${imovel.titulo} | Luan Especialista`;
+
+    document.getElementById("status").textContent = imovel.status || "Disponível";
+    document.getElementById("titulo").textContent = imovel.titulo;
+    document.getElementById("valor").textContent = imovel.valor || "Consulte";
+    document.getElementById("areaUtil").textContent = imovel.areaUtil || "-";
+    document.getElementById("areaTotal").textContent = imovel.areaTotal || "-";
+    document.getElementById("dormitorios").textContent = imovel.dormitorios || "-";
+    document.getElementById("banheiros").textContent = imovel.banheiros || "-";
+    document.getElementById("vagas").textContent = imovel.vagas || "-";
+    document.getElementById("entrega").textContent = imovel.entrega || "-";
+    document.getElementById("descricao").textContent = imovel.descricao || imovel.descricaoCurta || "";
+    document.getElementById("localizacao").textContent = imovel.endereco || imovel.cidade || "";
+
+    const mensagem = encodeURIComponent(
+      `Olá, tenho interesse no imóvel ${imovel.codigo} - ${imovel.titulo}. Pode me passar mais informações?`
+    );
+
+    document.getElementById("whatsapp").href = `https://wa.me/5547992120915?text=${mensagem}`;
+
+    function atualizarFoto(numero){
+      fotoAtual = numero;
+
+      if(fotoAtual < 1) fotoAtual = totalFotos;
+      if(fotoAtual > totalFotos) fotoAtual = 1;
+
+      fotoPrincipal.src = `${caminhoBase}${fotoAtual}.webp`;
+      fotoPrincipal.alt = `${imovel.titulo} - imagem ${fotoAtual}`;
+      contadorFotos.textContent = `${fotoAtual} / ${totalFotos}`;
+
+      document.querySelectorAll(".thumbs img").forEach(img => {
+        img.classList.toggle("active", Number(img.dataset.foto) === fotoAtual);
+      });
+    }
+
+    for(let i = 1; i <= totalFotos; i++){
+      const img = document.createElement("img");
+      img.src = `${caminhoBase}${i}.webp`;
+      img.alt = `${imovel.titulo} - miniatura ${i}`;
+      img.loading = "lazy";
+      img.dataset.foto = i;
+      img.onclick = () => atualizarFoto(i);
+      miniaturas.appendChild(img);
+    }
+
+    document.getElementById("prevFoto").onclick = () => atualizarFoto(fotoAtual - 1);
+    document.getElementById("nextFoto").onclick = () => atualizarFoto(fotoAtual + 1);
+
+    document.addEventListener("keydown", (event) => {
+      if(event.key === "ArrowLeft") atualizarFoto(fotoAtual - 1);
+      if(event.key === "ArrowRight") atualizarFoto(fotoAtual + 1);
+    });
+
+    const comodidades = [
+      ...(imovel.lazer || []),
+      ...(imovel.seguranca || []),
+      ...(imovel.utilitarios || [])
+    ];
+
+    const comodidadesBox = document.getElementById("comodidades");
+
+    if(comodidades.length){
+      comodidades.forEach(item => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = item;
+        comodidadesBox.appendChild(chip);
+      });
+    } else {
+      document.getElementById("comodidadesSection").style.display = "none";
+    }
+
+    atualizarFoto(1);
+  }).catch(() => {
+    document.querySelector("main").innerHTML = "<p>Erro ao carregar o imóvel.</p>";
+  });
+</script>
+
+</body>
+</html>

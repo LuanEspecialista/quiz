@@ -1,0 +1,25 @@
+{
+    "id": "8",
+    "nome": "Porto Belo",
+    "estado": "SC",
+    "posicionamento": "Capital catarinense dos transatlânticos, foco de condomínios aeronáuticos e forte expansão horizontal de luxo.",
+    "dados_gerais": {
+        "populacao": "Aprox. 27.000 hab.",
+        "perfil_economico": "Economia voltada ao turismo marítimo, construção civil em vertiginosa ascensão e mercado de luxo residencial e náutico.",
+        "infraestrutura": "Recebendo grandes investimentos em novos acessos urbanos, asfalto e planejamento de bairros planejados de alto padrão.",
+        "seguranca": "Excelente índice de tranquilidade, típica de uma baía protegida de alto padrão."
+    },
+    "vetores_valorizacao": {
+        "principal": "Proximidade de Itapema e Balneário Camboriú com apelo geográfico único de baía náutica.",
+        "impacto": "A escassez de terrenos nas cidades vizinhas gerou um transbordo de investimentos espetacular para Porto Belo, transformando a cidade em canteiro de obras de altíssimo padrão."
+    },
+    "caracteristicas": {
+        "turismo": "Ilha de Porto Belo, porto de parada de cruzeiros internacionais, costões e praias calmas.",
+        "gastronomia": "Restaurantes charmosos à beira da baía, especialistas em maricultura e gastronomia gourmet.",
+        "natureza": "Águas mansas e verde-esmeralda, ideais para iates e esportes à vela."
+    },
+    "frases_persuasivas": {
+        "investidor": "O novo refúgio do mercado náutico catarinense. Onde a geografia da baía desenha um cenário perfeito de valorização contínua.",
+        "moradia": "A tranquilidade de viver em uma enseada paradisíaca, integrada ao desenvolvimento imobiliário mais charmoso do estado."
+    }
+}

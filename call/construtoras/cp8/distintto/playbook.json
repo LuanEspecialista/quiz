@@ -1,0 +1,10 @@
+{
+  "nome": "Distintto",
+  "construtora": "CP8 Empreendimentos",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], falo sobre o Distintto. Ele é um marco em Piçarras por ser um dos poucos com certificação internacional LEED. Isso garante ao investidor um imóvel com eficiência térmica e acústica superior, além de custos condominiais reduzidos. É o padrão de luxo consciente que o mercado premium busca hoje. Podemos agendar 10 min no Meet para eu te mostrar como essa engenharia protege seu patrimônio?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Olá! Conheça o Distintto da CP8:\n🌿 Selo LEED: Certificação internacional de sustentabilidade.\n🏖️ Apenas 140m do mar em Balneário Piçarras.\n📐 Unidades de 80m² com 2 suítes e acabamento premium.\nVamos conversar sobre o potencial de revenda deste projeto?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'O selo LEED encarece o imóvel?': Pelo contrário, ele valoriza a revenda em até 20% e reduz custos de manutenção.\n• 'Privacidade?': O projeto conta com paredes duplas e manta acústica em todas as lajes para isolamento total." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "Com apenas 14 pavimentos, as unidades de final 01 e 02 são as mais disputadas. Vamos garantir a sua reserva antes do próximo reajuste?" }
+  ]
+}

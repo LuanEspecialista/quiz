@@ -1,0 +1,157 @@
+import React, { useState, useEffect } from "react";
+import { 
+  LayoutDashboard, 
+  Building2, 
+  Building, 
+  Layers, 
+  Bot, 
+  GitBranch, 
+  Users, 
+  UserCheck, 
+  TrendingUp, 
+  Link2, 
+  Settings,
+  Menu,
+  X
+} from "lucide-react";
+
+interface SidebarProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
+
+export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+  const [isOpenMobile, setIsOpenMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "construtoras", label: "Construtoras", icon: Building2 },
+    { id: "empreendimentos", label: "Empreendimentos", icon: Building },
+    { id: "unidades", label: "Unidades", icon: Layers },
+    { id: "importar-ia", label: "Importar IA", icon: Bot },
+    { id: "fluxos", label: "Fluxos Financeiros", icon: GitBranch },
+    { id: "clientes", label: "Clientes", icon: Users },
+    { id: "afiliados", label: "Afiliados", icon: UserCheck },
+    { id: "indicadores", label: "Indicadores (Selic/CUB)", icon: TrendingUp },
+    { id: "links", label: "Links Temporários", icon: Link2 },
+    { id: "configuracoes", label: "Configurações", icon: Settings },
+  ];
+
+  const handleSelect = (id: string) => {
+    setActiveTab(id);
+    if (isMobile) setIsOpenMobile(false);
+  };
+
+  return (
+    <>
+      {/* Botão de Menu para Celulares */}
+      {isMobile && (
+        <button
+          onClick={() => setIsOpenMobile(!isOpenMobile)}
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            zIndex: 9999,
+            backgroundColor: "#c5a059",
+            color: "#000",
+            border: "none",
+            borderRadius: "50%",
+            width: "50px",
+            height: "50px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+            cursor: "pointer"
+          }}
+        >
+          {isOpenMobile ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      )}
+
+      {/* Container do Menu */}
+      <aside
+        style={{
+          width: "250px",
+          minWidth: "250px",
+          backgroundColor: "#0d0d0f",
+          borderRight: "1px solid #1a1a1e",
+          height: "100vh",
+          position: isMobile ? "fixed" : "sticky",
+          top: 0,
+          left: isMobile ? (isOpenMobile ? "0" : "-260px") : "0",
+          zIndex: 1000,
+          transition: "left 0.3s ease",
+          display: "flex",
+          flexDirection: "column",
+          padding: "1.5rem 1rem",
+          boxSizing: "border-box"
+        }}
+      >
+        <div style={{ marginBottom: "2rem", paddingLeft: "0.5rem" }}>
+          <h1 style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#c5a059", letterSpacing: "1px", margin: 0 }}>
+            LUAN ESPECIALISTA
+          </h1>
+          <span style={{ fontSize: "0.65rem", color: "#71717a", textTransform: "uppercase" }}>
+            Painel Administrativo
+          </span>
+        </div>
+
+        <nav style={{ display: "flex", flexDirection: "column", gap: "0.25rem", flex: 1, overflowY: "auto" }}>
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleSelect(item.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  padding: "0.6rem 0.8rem",
+                  borderRadius: "6px",
+                  border: "none",
+                  backgroundColor: isActive ? "#1c1917" : "transparent",
+                  color: isActive ? "#c5a059" : "#a1a1aa",
+                  fontWeight: isActive ? "bold" : "normal",
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                <Icon size={18} style={{ color: isActive ? "#c5a059" : "#71717a" }} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Overlay escuro ao abrir o menu no celular */}
+      {isMobile && isOpenMobile && (
+        <div
+          onClick={() => setIsOpenMobile(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            zIndex: 999
+          }}
+        />
+      )}
+    </>
+  );
+}

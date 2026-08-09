@@ -1,0 +1,25 @@
+{
+    "id": "7",
+    "nome": "Itajaí",
+    "estado": "SC",
+    "posicionamento": "Segunda maior economia do estado, referência em mercado imobiliário de alto padrão integrado ao lifestyle náutico.",
+    "dados_gerais": {
+        "populacao": "Aprox. 264.000 hab.",
+        "perfil_economico": "Polo portuário gigante, maior mercado pesqueiro do país, polo náutico de luxo (Marina Itajaí) e polo universitário e de saúde.",
+        "infraestrutura": "Urbanismo sofisticado (bairro Cabeçudas e Praia Brava), excelente malha viária e conexão rápida com Balneário Camboriú.",
+        "seguranca": "Forte policiamento, bairros nobres monitorados por inteligência de segurança integrada."
+    },
+    "vetores_valorizacao": {
+        "principal": "Valorização estrondosa da Praia Brava e consolidação do mercado náutico de alto padrão.",
+        "impacto": "Combina a solidez econômica de um porto global de águas profundas com o lifestyle de alto luxo da Praia Brava, criando um dos m² mais valorizados do país."
+    },
+    "caracteristicas": {
+        "turismo": "Volvo Ocean Race (stopover histórico), Marina Itajaí, Mercado Público e praias icônicas.",
+        "gastronomia": "Efervescente polo gastronômico na orla da Praia Brava e no centro histórico/portuário.",
+        "natureza": "Belezas naturais como o Canto do Morcego, Praia do Atalaia e Cabeçudas."
+    },
+    "frases_persuasivas": {
+        "investidor": "Invista na economia que move os portos do Sul do país, aliada à valorização imobiliária imbatível da Praia Brava.",
+        "moradia": "Equilíbrio perfeito entre o desenvolvimento de uma cidade forte e o privilégio de morar em frente à Brava."
+    }
+}

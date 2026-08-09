@@ -1,0 +1,1 @@
+// Componente: Badge - index.js

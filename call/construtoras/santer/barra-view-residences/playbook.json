@@ -1,0 +1,26 @@
+{
+  "nome": "Barra View Residences",
+  "construtora": "Santer Prime",
+  "secoes": [
+    {
+      "id": "ligacao",
+      "titulo": "Ligação",
+      "conteudo": "Olá [NOME], falo sobre o Barra View Residences. Ele é a expressão máxima de conforto na Praia do Tabuleiro, em Barra Velha. Estamos em uma localização beira-mar privilegiada, a apenas 2km do centro, unindo a paz da natureza com a conveniência urbana. O objetivo não é te vender o imóvel agora, mas te mostrar por que Barra Velha é hoje a 'Joia Catarinense' em valorização. Podemos agendar 10 min para eu te apresentar o projeto das torres com entrega para 2025 e 2026?"
+    },
+    {
+      "id": "whatsapp",
+      "titulo": "WhatsApp",
+      "conteudo": "Tudo bem? Conheça o Barra View em Barra Velha:\n🌊 Beira-mar na Praia do Tabuleiro.\n📍 Apenas 2km do Centro da cidade.\n🏊 Lazer Premium: Wonder Pool, Fireside, Spas e Workspace.\n🏗️ Entrega da 1ª torre em Dez/2025.\nQual o melhor horário para eu te enviar o book com as metragens disponíveis?"
+    },
+    {
+      "id": "objecoes",
+      "titulo": "Objeções",
+      "conteudo": "• 'Barra Velha é boa para investimento?': Sim, é a 7ª cidade com maior crescimento populacional no Brasil, com um PIB que saltou de R$ 709 milhões para R$ 2,3 bilhões em 20 anos.\n• 'O mar é agitado?': A Praia do Tabuleiro é famosa pelas águas limpas e pelo ambiente familiar e tranquilo, perfeita para quem busca desacelerar."
+    },
+    {
+      "id": "fechamento",
+      "titulo": "Fechamento",
+      "conteudo": "Com a primeira torre entregando já no próximo ano, a liquidez para quem busca morar ou lucrar com a valorização é imediata. Vamos validar sua unidade?"
+    }
+  ]
+}

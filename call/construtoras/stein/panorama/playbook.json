@@ -1,0 +1,10 @@
+{
+  "nome": "Panorama",
+  "construtora": "Stein",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], falo sobre o Panorama. Ele é o marco de inauguração do estilo Stein em Penha. Localizado na Praia da Armação, traz um conceito inédito de sofisticação para a região. O objetivo não é falar de preço agora, mas te mostrar por que este projeto é o divisor de águas para quem investe em Penha. Podemos agendar 10 min no Meet para eu te apresentar o conceito 'Panorama'?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Tudo bem? Destaques do Panorama Stein em Penha:\n🏖️ Localização privilegiada na Praia da Armação.\n🏗️ Conceito arquitetônico inédito no Litoral Norte.\n🛡️ Segurança e tradição de 55 anos Stein.\nVamos conversar sobre o potencial de valorização deste lançamento?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'Penha é um bom investimento?': Com certeza. Penha combina 365 dias de turismo com o despertar de um novo mercado imobiliário de luxo [5].\n• 'Por que o Panorama?': Pela exclusividade de ser o primeiro Stein na cidade, garantindo liquidez futura." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "O próximo passo é validarmos as metragens e a posição solar das unidades disponíveis. Qual melhor horário para sua visita técnica?" }
+  ]
+}

@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-P26QZZDB');</script>
+<!-- End Google Tag Manager -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luan Especialista | Estratégias Patrimoniais, Imóveis e Mobilidade</title>
+
+<meta name="description" content="Estratégias patrimoniais inteligentes. Imóveis selecionados, mobilidade, experiências e planejamento para construção, proteção e expansão de patrimônio no Brasil e exterior.">
+
+<meta name="keywords" content="imóveis em Penha SC, investimentos imobiliários, patrimônio, planejamento patrimonial, imóveis litoral catarinense, oportunidades imobiliárias, Luan Especialista">
+
+<meta name="author" content="Luan Especialista">
+
+<meta property="og:title" content="Luan Especialista">
+
+<meta property="og:description" content="Estratégias patrimoniais inteligentes para construção e expansão de patrimônio.">
+
+<meta property="og:image" content="https://luan-especialista.pro/imagens/logo.png">
+
+<meta property="og:url" content="https://luan-especialista.pro">
+
+<meta property="og:type" content="website">
+
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/imagens/logo.png">
+
+<meta name="theme-color" content="#030303">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    html,body{
+      width:100%;
+      min-height:100%;
+      overflow-x:hidden;
+
+      background:#040506;
+
+      color:#fff;
+
+      font-family:'Inter',sans-serif;
+    }
+
+    body{
+      background:
+      linear-gradient(to bottom,
+      rgba(0,0,0,.68),
+      rgba(0,0,0,.90)),
+      url("./imagens/hero-bg.webp") center/cover no-repeat fixed;
+    }
+
+    .hero{
+
+      min-height:100vh;
+
+      display:flex;
+      align-items:center;
+
+      padding:18px 22px 26px;
+    }
+
+    .container{
+      width:100%;
+      max-width:1140px;
+      margin:0 auto;
+    }
+
+    /* TOPO */
+
+    .top{
+
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+
+      margin-bottom:20px;
+    }
+
+    .logo{
+      width:46px;
+      display:block;
+    }
+
+    .top-btn{
+
+      color:#e7be73;
+
+      text-decoration:none;
+
+      border:1px solid rgba(231,190,115,.36);
+
+      border-radius:999px;
+
+      padding:10px 20px;
+
+      font-size:12px;
+      font-weight:600;
+
+      background:rgba(255,255,255,.03);
+
+      backdrop-filter:blur(12px);
+
+      transition:.2s ease;
+    }
+
+    .top-btn:hover{
+      border-color:rgba(231,190,115,.62);
+      transform:translateY(-1px);
+    }
+
+    /* HERO */
+
+    .hero-content{
+      text-align:center;
+
+      margin-bottom:22px;
+    }
+
+    h1{
+
+      font-family:'Cormorant Garamond',serif;
+
+      font-size:clamp(38px,4.2vw,58px);
+
+      font-weight:500;
+
+      line-height:.92;
+
+      letter-spacing:.5px;
+
+      margin-bottom:10px;
+
+      text-shadow:0 8px 22px rgba(0,0,0,.45);
+    }
+
+    .gold{
+      color:#d7ab63;
+    }
+
+    .subtitle{
+
+      font-size:15px;
+
+      font-weight:500;
+
+      color:rgba(255,255,255,.90);
+
+      margin-bottom:8px;
+    }
+
+    .description{
+
+      font-size:13px;
+
+      color:rgba(255,255,255,.68);
+
+      margin-bottom:18px;
+    }
+
+    /* FLAGS */
+
+    .flags{
+
+      display:flex;
+      justify-content:center;
+      flex-wrap:wrap;
+
+      gap:10px;
+    }
+
+    .flag{
+
+      width:48px;
+      height:48px;
+
+      border-radius:14px;
+
+      background:rgba(255,255,255,.07);
+
+      border:1px solid rgba(255,255,255,.10);
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      transition:.2s ease;
+    }
+
+    .flag:hover{
+
+      transform:translateY(-2px);
+
+      border-color:rgba(215,171,99,.42);
+
+      background:rgba(255,255,255,.09);
+    }
+
+    .flag img{
+
+      width:29px;
+      height:29px;
+
+      border-radius:50%;
+
+      object-fit:cover;
+    }
+
+    /* CARDS */
+
+    .cards{
+
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+
+      gap:16px;
+
+      margin-bottom:16px;
+    }
+
+    .card{
+
+      position:relative;
+
+      overflow:hidden;
+
+      min-height:205px;
+
+      border-radius:24px;
+
+      padding:24px;
+
+      background:
+      linear-gradient(145deg,
+      rgba(255,255,255,.09),
+      rgba(255,255,255,.02));
+
+      border:1px solid rgba(255,255,255,.10);
+
+      backdrop-filter:blur(18px);
+
+      transition:.25s ease;
+    }
+
+    .card:hover{
+
+      transform:translateY(-3px);
+
+      border-color:rgba(215,171,99,.20);
+    }
+
+    .card::before{
+
+      content:"";
+
+      position:absolute;
+      inset:0;
+
+      background:
+      radial-gradient(circle at top right,
+      rgba(215,171,99,.16),
+      transparent 42%);
+
+      pointer-events:none;
+    }
+
+    .card-inner{
+      position:relative;
+      z-index:2;
+    }
+
+    /* ICONES */
+
+    .icon-row{
+
+      display:flex;
+      align-items:center;
+
+      gap:14px;
+
+      margin-bottom:16px;
+    }
+
+    .icon-row svg{
+
+      width:19px;
+      height:19px;
+
+      stroke:#d7ab63;
+      stroke-width:1.5;
+
+      fill:none;
+
+      stroke-linecap:round;
+      stroke-linejoin:round;
+
+      opacity:.95;
+    }
+
+    /* TITULOS */
+
+    .card h2{
+
+      font-family:'Cormorant Garamond',serif;
+
+      font-size:30px;
+
+      line-height:1;
+
+      font-weight:600;
+
+      margin-bottom:10px;
+
+      text-shadow:0 4px 12px rgba(0,0,0,.35);
+    }
+
+    .card p{
+
+      font-size:13px;
+
+      line-height:1.5;
+
+      color:rgba(255,255,255,.74);
+
+      max-width:300px;
+
+      margin-bottom:18px;
+    }
+
+    .card-btn{
+
+      display:inline-flex;
+
+      align-items:center;
+      justify-content:center;
+
+      color:#f0cc82;
+
+      text-decoration:none;
+
+      font-size:11px;
+      font-weight:700;
+
+      border:1px solid rgba(240,204,130,.30);
+
+      border-radius:999px;
+
+      padding:9px 15px;
+
+      background:rgba(255,255,255,.03);
+
+      transition:.2s ease;
+    }
+
+    .card-btn:hover{
+
+      border-color:rgba(240,204,130,.58);
+
+      background:rgba(255,255,255,.05);
+    }
+
+    /* FOOTER */
+
+    .mini-footer{
+
+      margin-top:12px;
+
+      padding-top:16px;
+
+      border-top:1px solid rgba(255,255,255,.09);
+
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+
+      gap:8px;
+
+      text-align:center;
+    }
+
+    .mini-links{
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      flex-wrap:wrap;
+
+      gap:10px;
+
+      color:rgba(255,255,255,.58);
+
+      font-size:10px;
+
+      letter-spacing:2px;
+
+      text-transform:uppercase;
+    }
+
+    .footer-contact{
+
+      color:rgba(255,255,255,.72);
+
+      font-size:11px;
+    }
+
+    .footer-copy{
+
+      color:rgba(255,255,255,.40);
+
+      font-size:10px;
+    }
+
+    .dot{
+      color:#d7ab63;
+    }
+
+    /* MOBILE */
+
+    @media(max-width:900px){
+
+      .hero{
+        padding:18px 14px 30px;
+        align-items:flex-start;
+      }
+
+      .top{
+        margin-bottom:28px;
+      }
+
+      .top-btn{
+        display:none;
+      }
+
+      .logo{
+        width:48px;
+      }
+
+      h1{
+        font-size:42px;
+      }
+
+      .description{
+
+        max-width:320px;
+
+        margin:0 auto 18px;
+
+        line-height:1.45;
+      }
+
+      .cards{
+
+        grid-template-columns:1fr;
+
+        gap:14px;
+      }
+
+      .card{
+
+        min-height:190px;
+
+        padding:22px;
+      }
+
+      .card h2{
+        font-size:28px;
+      }
+
+      .mini-links{
+
+        gap:8px;
+
+        font-size:9px;
+      }
+
+      .footer-contact{
+        font-size:10px;
+        line-height:1.6;
+      }
+
+    }
+
+    /* NOTEBOOKS */
+
+    @media(max-height:760px) and (min-width:901px){
+
+      .hero{
+        padding:12px 22px 18px;
+      }
+
+      .top{
+        margin-bottom:10px;
+      }
+
+      .hero-content{
+        margin-bottom:16px;
+      }
+
+      h1{
+        font-size:52px;
+      }
+
+      .subtitle{
+        font-size:14px;
+      }
+
+      .description{
+        font-size:12px;
+        margin-bottom:14px;
+      }
+
+      .flag{
+
+        width:42px;
+        height:42px;
+      }
+
+      .flag img{
+
+        width:25px;
+        height:25px;
+      }
+
+      .cards{
+        gap:14px;
+      }
+
+      .card{
+
+        min-height:180px;
+
+        padding:20px;
+      }
+
+      .card h2{
+        font-size:27px;
+      }
+
+      .card p{
+
+        font-size:12px;
+
+        line-height:1.4;
+
+        margin-bottom:14px;
+      }
+
+    }
+
+  </style>
+</head>
+
+<body>
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P26QZZDB"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager -->
+
+<section class="hero">
+
+  <div class="container">
+
+    <!-- TOPO -->
+
+    <header class="top">
+
+      <img class="logo" src="./imagens/logo.png" alt="Luan Especialista">
+
+      <a class="top-btn" href="https://wa.me/5547992120915">
+        Falar com especialista
+      </a>
+
+    </header>
+
+    <!-- HERO -->
+
+    <div class="hero-content">
+
+      <h1>
+        LUAN <span class="gold">ESPECIALISTA</span>
+      </h1>
+
+      <div class="subtitle">
+        Estratégias patrimoniais inteligentes
+      </div>
+
+      <div class="description">
+        Brasil e exterior conectados através de oportunidades estratégicas.
+      </div>
+
+      <!-- FLAGS -->
+
+      <div class="flags">
+
+        <a class="flag" href="./brasil/">
+          <img src="https://flagcdn.com/w80/br.png" alt="">
+        </a>
+
+        <a class="flag" href="./eua/">
+          <img src="https://flagcdn.com/w80/us.png" alt="">
+        </a>
+
+        <a class="flag" href="./portugal/">
+          <img src="https://flagcdn.com/w80/pt.png" alt="">
+        </a>
+
+        <a class="flag" href="./espanha/">
+          <img src="https://flagcdn.com/w80/es.png" alt="">
+        </a>
+
+        <a class="flag" href="./irlanda/">
+          <img src="https://flagcdn.com/w80/ie.png" alt="">
+        </a>
+
+        <a class="flag" href="./canada/">
+          <img src="https://flagcdn.com/w80/ca.png" alt="">
+        </a>
+
+        <a class="flag" href="./australia/">
+          <img src="https://flagcdn.com/w80/au.png" alt="">
+        </a>
+
+      </div>
+
+    </div>
+
+    <!-- CARDS -->
+
+    <section class="cards">
+
+      <!-- CARD 1 -->
+
+      <article class="card">
+
+        <div class="card-inner">
+
+          <div class="icon-row">
+
+            <svg viewBox="0 0 24 24">
+              <path d="M3 11.5 12 4l9 7.5"/>
+              <path d="M5.5 10.5V20h13v-9.5"/>
+              <path d="M9.5 20v-5h5v5"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19V5"/>
+              <path d="M4 19h16"/>
+              <path d="M8 16v-5"/>
+              <path d="M12 16V8"/>
+              <path d="M16 16v-9"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="8"/>
+              <path d="M4 12h16"/>
+            </svg>
+
+          </div>
+
+          <h2>Estratégias Patrimoniais</h2>
+
+          <p>
+            Soluções para construir, proteger e multiplicar patrimônio no Brasil.
+          </p>
+
+          <a class="card-btn" href="./estrategias-patrimoniais">
+            Conhecer estratégia →
+          </a>
+
+        </div>
+
+      </article>
+
+      <!-- CARD 2 -->
+
+      <article class="card">
+
+        <div class="card-inner">
+
+          <div class="icon-row">
+
+            <svg viewBox="0 0 24 24">
+              <path d="M5 15h10l3-4h-4l-2-3H8l-2 3H4l1 4z"/>
+              <circle cx="7" cy="17" r="1.7"/>
+              <circle cx="16" cy="17" r="1.7"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M5 15l2-5h10l2 5"/>
+              <path d="M6 15h12"/>
+              <circle cx="8" cy="17" r="1.6"/>
+              <circle cx="16" cy="17" r="1.6"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M4 16c4 2 12 2 16 0"/>
+              <path d="M7 15l3-5h5l3 5"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M3 15h14l4-5h-8"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M6 16h4l3-5h3"/>
+              <circle cx="6" cy="17" r="2"/>
+            </svg>
+
+          </div>
+
+          <h2>
+            Mobilidade &<br>
+            Experiências
+          </h2>
+
+          <p>
+            Frotas, lazer e operações comerciais transformadas em possibilidades reais.
+          </p>
+
+          <a class="card-btn" href="./mobilidade-experiencias">
+            Explorar possibilidades →
+          </a>
+
+        </div>
+
+      </article>
+
+      <!-- CARD 3 -->
+
+      <article class="card">
+
+        <div class="card-inner">
+
+          <div class="icon-row">
+
+            <svg viewBox="0 0 24 24">
+              <path d="M3 21h18"/>
+              <path d="M6 21V7l6-4 6 4v14"/>
+              <path d="M9 21v-6h5v6"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M4 21V5h16v16"/>
+            </svg>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M12 21s7-5.2 7-12"/>
+            </svg>
+
+          </div>
+
+          <h2>Imóveis</h2>
+
+          <p>
+            Oportunidades selecionadas no litoral de Santa Catarina para morar e investir.
+          </p>
+
+          <a class="card-btn" href="./imoveis">
+            Ver oportunidades →
+          </a>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- FOOTER -->
+
+    <footer class="mini-footer">
+
+      <div class="mini-links">
+
+        <span>Estratégia</span>
+
+        <span class="dot">•</span>
+
+        <span>Planejamento</span>
+
+        <span class="dot">•</span>
+
+        <span>Patrimônio</span>
+
+        <span class="dot">•</span>
+
+        <span>Oportunidades</span>
+
+      </div>
+
+      <div class="footer-contact">
+
+        contato@luan-especialista.pro
+
+        <span class="dot">•</span>
+
+        47 99212-0915
+
+        <span class="dot">•</span>
+
+        @luan.especialista
+
+      </div>
+
+      <div class="footer-copy">
+        © 2026 Luan Especialista. Todos os direitos reservados.
+      </div>
+
+    </footer>
+
+  </div>
+
+</section>
+
+</body>
+</html>

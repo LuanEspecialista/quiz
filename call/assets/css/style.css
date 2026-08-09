@@ -1,0 +1,892 @@
+/* ==========================================================
+   LUAN ESPECIALISTA
+   CENTRAL DE CONVERSÃO
+========================================================== */
+
+/* ==========================================================
+   RESET
+========================================================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    background:#050608;
+    color:#ffffff;
+    font-family:"Inter",sans-serif;
+    overflow-x:hidden;
+    min-height:100vh;
+}
+
+img{
+    display:block;
+    max-width:100%;
+}
+
+button{
+    font:inherit;
+    border:none;
+    background:none;
+    cursor:pointer;
+}
+
+input,
+select{
+    font:inherit;
+    outline:none;
+    border:none;
+}
+
+a{
+    color:inherit;
+    text-decoration:none;
+}
+
+/* ==========================================================
+   VARIÁVEIS
+========================================================== */
+
+:root{
+
+    --bg:#050608;
+
+    --card:#0E1117;
+
+    --card-hover:#151A22;
+
+    --gold:#C7A15A;
+
+    --gold-soft:rgba(199,161,90,.15);
+
+    --text:#D7D7D7;
+
+    --text-light:#9B9B9B;
+
+    --border:#222831;
+
+    --radius:12px;
+
+    --transition:.25s;
+
+    --max-width:1450px;
+
+}
+
+/* ==========================================================
+   BACKGROUND
+========================================================== */
+
+body::before{
+
+    content:"";
+
+    position:fixed;
+
+    inset:0;
+
+    z-index:-1;
+
+    background:
+
+    radial-gradient(circle at left top,
+    rgba(199,161,90,.08),
+    transparent 35%),
+
+    radial-gradient(circle at right bottom,
+    rgba(199,161,90,.05),
+    transparent 45%);
+
+}
+
+/* ==========================================================
+   CONTAINER
+========================================================== */
+
+.container{
+
+    width:min(var(--max-width),95%);
+
+    margin:auto;
+
+}
+
+/* ==========================================================
+   HERO
+========================================================== */
+
+.hero{
+
+    width:min(var(--max-width),95%);
+
+    margin:18px auto 12px;
+
+    display:grid;
+
+    grid-template-columns:220px 1fr 220px;
+
+    align-items:center;
+
+    gap:20px;
+
+}
+
+.logo{
+
+    width:140px;
+
+    height:auto;
+
+}
+
+.hero-center{
+
+    text-align:center;
+
+}
+
+.hero-center h1{
+
+    font-family:"Cormorant Garamond",serif;
+
+    font-size:34px;
+
+    font-weight:600;
+
+    letter-spacing:1px;
+
+    color:#fff;
+
+}
+
+.hero-center p{
+
+    margin-top:4px;
+
+    color:var(--text-light);
+
+    font-size:13px;
+
+}
+
+.hero-right{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+}
+
+.search{
+
+    width:260px;
+
+    height:38px;
+
+    background:#10141B;
+
+    border:1px solid var(--border);
+
+    border-radius:8px;
+
+    padding:0 14px;
+
+    color:#fff;
+
+    transition:.25s;
+
+}
+
+.search:focus{
+
+    border-color:var(--gold);
+
+}
+/* ==========================================================
+   FILTROS
+========================================================== */
+
+.filters{
+
+    width:min(var(--max-width),95%);
+
+    margin:8px auto 22px;
+
+    display:grid;
+
+    grid-template-columns:1fr 1fr;
+
+    gap:16px;
+
+}
+
+.filter{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:8px;
+
+}
+
+.filter label{
+
+    color:var(--gold);
+
+    font-size:11px;
+
+    font-weight:600;
+
+    letter-spacing:1px;
+
+    text-transform:uppercase;
+
+}
+
+.filter select{
+
+    width:100%;
+
+    height:42px;
+
+    background:#10141B;
+
+    border:1px solid var(--border);
+
+    border-radius:8px;
+
+    color:#fff;
+
+    padding:0 14px;
+
+    transition:.25s;
+
+}
+
+.filter select:hover{
+
+    border-color:#3a3a3a;
+
+}
+
+.filter select:focus{
+
+    border-color:var(--gold);
+
+}
+
+/* ==========================================================
+   CHIPS (DESKTOP)
+========================================================== */
+
+.chips-section{
+
+    width:min(var(--max-width),95%);
+
+    margin:0 auto 18px;
+
+}
+
+.chips-section h2{
+
+    font-size:12px;
+
+    color:var(--gold);
+
+    text-transform:uppercase;
+
+    letter-spacing:1px;
+
+    margin-bottom:10px;
+
+    font-weight:600;
+
+}
+
+.chips{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:8px;
+
+}
+
+.chip{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    height:30px;
+
+    padding:0 12px;
+
+    background:#10141B;
+
+    border:1px solid var(--border);
+
+    border-radius:7px;
+
+    color:#d5d5d5;
+
+    font-size:12px;
+
+    font-weight:500;
+
+    transition:.20s;
+
+}
+
+.chip:hover{
+
+    border-color:var(--gold);
+
+    background:#161B22;
+
+}
+
+.chip.active{
+
+    background:var(--gold);
+
+    color:#000;
+
+    border-color:var(--gold);
+
+}
+
+/* ==========================================================
+   DIVISOR
+========================================================== */
+
+.separator{
+
+    width:min(var(--max-width),95%);
+
+    margin:18px auto;
+
+    height:1px;
+
+    background:#1A1A1A;
+
+}
+/* ==========================================================
+   WORKSPACE
+========================================================== */
+
+.workspace{
+
+    width:min(var(--max-width),95%);
+
+    margin:18px auto 40px;
+
+    display:grid;
+
+    grid-template-columns:180px 1fr;
+
+    gap:20px;
+
+    align-items:start;
+
+}
+
+/* ==========================================================
+   SIDEBAR
+========================================================== */
+
+.sidebar{
+
+    position:sticky;
+
+    top:20px;
+
+    background:#0F131A;
+
+    border:1px solid var(--border);
+
+    border-radius:12px;
+
+    padding:10px;
+
+}
+
+.sidebar-item{
+
+    width:100%;
+
+    padding:11px 12px;
+
+    border-radius:8px;
+
+    background:transparent;
+
+    color:var(--text-light);
+
+    font-size:13px;
+
+    font-weight:500;
+
+    text-align:left;
+
+    transition:.20s;
+
+}
+
+.sidebar-item + .sidebar-item{
+
+    margin-top:4px;
+
+}
+
+.sidebar-item:hover{
+
+    background:#171C24;
+
+    color:#fff;
+
+}
+
+.sidebar-item.active{
+
+    background:var(--gold-soft);
+
+    color:var(--gold);
+
+    border-left:3px solid var(--gold);
+
+}
+
+/* ==========================================================
+   CONTEÚDO
+========================================================== */
+
+.content{
+
+    min-height:650px;
+
+}
+
+/* ==========================================================
+   CARD
+========================================================== */
+
+.playbook-card{
+
+    background:#0F131A;
+
+    border:1px solid var(--border);
+
+    border-radius:16px;
+
+    padding:24px;
+
+}
+
+/* ==========================================================
+   CABEÇALHO
+========================================================== */
+
+.playbook-header{
+
+    padding-bottom:18px;
+
+    margin-bottom:22px;
+
+    border-bottom:1px solid #1E242D;
+
+}
+
+.playbook-header h2{
+
+    font-family:"Cormorant Garamond",serif;
+
+    font-size:30px;
+
+    font-weight:600;
+
+    color:#fff;
+
+    margin-bottom:4px;
+
+}
+
+.playbook-header p{
+
+    color:var(--text-light);
+
+    font-size:13px;
+
+}
+
+/* ==========================================================
+   BLOCO
+========================================================== */
+
+.block{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:16px;
+
+}
+
+.block-title{
+
+    color:var(--gold);
+
+    text-transform:uppercase;
+
+    letter-spacing:1px;
+
+    font-size:11px;
+
+    font-weight:700;
+
+}
+
+.block-text{
+
+    color:#D5D5D5;
+
+    font-size:15px;
+
+    line-height:1.75;
+
+}
+
+/* ==========================================================
+   BOTÃO COPIAR
+========================================================== */
+
+.copy-button{
+
+    align-self:flex-start;
+
+    height:36px;
+
+    padding:0 18px;
+
+    border-radius:8px;
+
+    background:var(--gold);
+
+    color:#000;
+
+    font-size:12px;
+
+    font-weight:600;
+
+    transition:.20s;
+
+}
+
+.copy-button:hover{
+
+    transform:translateY(-1px);
+
+    filter:brightness(1.05);
+
+}
+/* ==========================================================
+   EMPTY STATE
+========================================================== */
+
+.empty-state,
+.empty-sidebar{
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    text-align:center;
+
+    min-height:300px;
+
+    color:var(--text-light);
+
+}
+
+.empty-state h2{
+
+    font-size:28px;
+
+    font-family:"Cormorant Garamond",serif;
+
+    color:#fff;
+
+    margin-bottom:8px;
+
+}
+
+.empty-state p{
+
+    font-size:14px;
+
+}
+
+/* ==========================================================
+   SCROLL
+========================================================== */
+
+::-webkit-scrollbar{
+
+    width:8px;
+
+}
+
+::-webkit-scrollbar-track{
+
+    background:#050608;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#232323;
+
+    border-radius:999px;
+
+}
+
+::-webkit-scrollbar-thumb:hover{
+
+    background:#C7A15A;
+
+}
+
+/* ==========================================================
+   ANIMAÇÕES
+========================================================== */
+
+.fade{
+
+    animation:fade .25s ease;
+
+}
+
+@keyframes fade{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(10px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+
+    }
+
+}
+
+.chip,
+.sidebar-item,
+.copy-button,
+.search,
+.filter select{
+
+    transition:all .20s ease;
+
+}
+
+/* ==========================================================
+   RESPONSIVO TABLET
+========================================================== */
+
+@media(max-width:1100px){
+
+.hero{
+
+    grid-template-columns:140px 1fr;
+
+    gap:14px;
+
+}
+
+.hero-right{
+
+    grid-column:1 / -1;
+
+    justify-content:center;
+
+}
+
+.search{
+
+    width:100%;
+
+    max-width:500px;
+
+}
+
+.workspace{
+
+    grid-template-columns:1fr;
+
+}
+
+.sidebar{
+
+    position:relative;
+
+    top:auto;
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+
+    gap:8px;
+
+}
+
+.sidebar-item{
+
+    text-align:center;
+
+    border-left:none!important;
+
+}
+
+}
+
+/* ==========================================================
+   RESPONSIVO CELULAR
+========================================================== */
+
+@media(max-width:768px){
+
+.hero{
+
+    grid-template-columns:1fr;
+
+    text-align:center;
+
+}
+
+.logo{
+
+    margin:auto;
+
+    width:110px;
+
+}
+
+.hero-center h1{
+
+    font-size:24px;
+
+}
+
+.hero-center p{
+
+    font-size:12px;
+
+}
+
+.filters{
+
+    grid-template-columns:1fr;
+
+}
+
+.chips{
+
+    display:none;
+
+}
+
+.workspace{
+
+    margin-top:12px;
+
+}
+
+.playbook-card{
+
+    padding:18px;
+
+}
+
+.playbook-header h2{
+
+    font-size:24px;
+
+}
+
+.block-text{
+
+    font-size:14px;
+
+}
+
+.copy-button{
+
+    width:100%;
+
+    justify-content:center;
+
+}
+
+}
+
+/* ==========================================================
+   RESPONSIVO CELULAR PEQUENO
+========================================================== */
+
+@media(max-width:480px){
+
+.hero{
+
+    margin-top:12px;
+
+}
+
+.playbook-card{
+
+    padding:16px;
+
+}
+
+.playbook-header{
+
+    margin-bottom:16px;
+
+    padding-bottom:16px;
+
+}
+
+.playbook-header h2{
+
+    font-size:21px;
+
+}
+
+.block-text{
+
+    line-height:1.6;
+
+}
+
+}

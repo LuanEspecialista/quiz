@@ -1,0 +1,25 @@
+{
+    "id": "1",
+    "nome": "Penha",
+    "estado": "SC",
+    "posicionamento": "Tese de entretenimento, fluxo recorrente e transformação da permanência turística.",
+    "dados_gerais": {
+        "populacao": "Aprox. 34.000 hab. (com forte população flutuante)",
+        "perfil_economico": "Economia baseada no turismo de entretenimento, pesca artesanal e crescente construção civil de alto padrão.",
+        "infraestrutura": "Recebendo investimentos massivos em saneamento, pavimentação de acessos secundários e revitalização de vias turísticas.",
+        "seguranca": "Índices excelentes de segurança pública, característicos de cidades balneárias monitoradas."
+    },
+    "vetores_valorizacao": {
+        "principal": "Plano de expansão de R$ 2 bilhões do Beto Carrero World.",
+        "impacto": "Conversão do turismo de 'um único dia' para permanência de múltiplos dias com hotelaria integrada, gerando alta demanda por locação de temporada e valorização imobiliária no entorno."
+    },
+    "caracteristicas": {
+        "turismo": "Mais de 19 praias, com destaque para a Praia Vermelha (preservada) e a Praia da Saudade.",
+        "gastronomia": "Polo gastronômico focado em frutos do mar, com tradição na culinária açoriana.",
+        "natureza": "Pontas de pedra, trilhas ecológicas, ecoturismo e observação de baleias-franca."
+    },
+    "frases_persuasivas": {
+        "investidor": "Invista onde o fluxo de pessoas é garantido o ano inteiro pelo maior polo de entretenimento da América Latina.",
+        "moradia": "A tranquilidade de viver em uma península cercada por 19 praias, com a segurança que sua família merece."
+    }
+}

@@ -1,0 +1,1 @@
+// Módulo: comparador - service.js

@@ -1,0 +1,10 @@
+{
+  "nome": "Pinna Studios",
+  "construtora": "WG Construtora",
+  "secoes": [
+    { "id": "ligacao", "titulo": "Ligação", "conteudo": "Olá [NOME], o Pinna Studios é o primeiro projeto 100% Smart de Penha. O foco aqui é rentabilidade passiva real com gestão da Seazone. Quero te mostrar como funciona o ecossistema de dados que garante ocupação acima da média. Podemos falar 10 min por vídeo para eu te apresentar a projeção de faturamento?" },
+    { "id": "whatsapp", "titulo": "WhatsApp", "conteudo": "Olá! O Pinna Studios é o investimento perfeito para Airbnb:\n📱 100% Smart e Automatizado.\n🤝 Gestão total pela Seazone.\n🏖️ Apenas 175m do mar.\nVamos conversar sobre os números desse negócio?" },
+    { "id": "objecoes", "titulo": "Objeções", "conteudo": "• 'Studio valoriza?': Sim, pela conveniência e tecnologia, o ticket de locação diária é superior a apartamentos comuns.\n• 'E a gestão?': A Seazone cuida de tudo, do anúncio à limpeza. Você só acompanha o rendimento pelo app." },
+    { "id": "fechamento", "titulo": "Fechamento", "conteudo": "As obras iniciam em 2027. Garantir agora na planta é assegurar o maior ganho de capital até a entrega em 2031." }
+  ]
+}

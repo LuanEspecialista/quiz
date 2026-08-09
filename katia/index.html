@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estudo Patrimonial | Kátia</title>
+    <meta name="description" content="Estudo Patrimonial Personalizado">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="estilo.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<section id="inicio" class="hero">
+    <div class="hero-overlay"></div>
+    <img class="hero-image" src="imagens/hero.webp" alt="Balneário Piçarras">
+    <div class="container hero-content">
+        <div class="hero-text">
+            <span class="badge">ESTUDO PATRIMONIAL EXCLUSIVO</span>
+            <h1>Kátia,<br>este estudo foi desenvolvido exclusivamente para você.</h1>
+            <p>O objetivo desta apresentação não é vender um apartamento. É mostrar, através de projeções financeiras, como seu patrimônio pode evoluir ao longo dos próximos anos preservando liquidez, reduzindo riscos e permitindo diferentes caminhos para sua decisão.</p>
+            <a href="#dashboard" class="botao">Iniciar Estudo</a>
+        </div>
+    </div>
+</section>
+
+<section class="introducao">
+    <div class="container">
+        <div class="titulo">
+            <span>UM PLANEJAMENTO PATRIMONIAL</span>
+            <h2>Antes de decidir comprar um imóvel, existe uma pergunta muito mais importante.</h2>
+        </div>
+        <div class="texto">
+            <p>A pergunta não é: <strong>"Qual apartamento comprar?"</strong></p>
+            <p>A verdadeira pergunta é:</p>
+            <h3>"Como utilizar o patrimônio que você já construiu para aumentar sua segurança financeira e sua qualidade de vida?"</h3>
+            <p>Durante aproximadamente um mês e meio conversamos sobre diferentes possibilidades. Cada conversa ajudou a entender melhor seus objetivos, suas dúvidas e principalmente o cuidado que você tem antes de tomar uma decisão tão importante.</p>
+            <p>Por isso esta apresentação foi construída especificamente para você. Ela não tenta convencer. Ela mostra possibilidades.</p>
+        </div>
+    </div>
+</section>
+
+<section class="patrimonio-atual">
+    <div class="container">
+        <div class="section-title">
+            <span>SEU PONTO DE PARTIDA</span>
+            <h2>Hoje seu patrimônio já é sólido.</h2>
+        </div>
+        <div class="cards-grid">
+            <div class="card-info">
+                <h3>Capital disponível</h3>
+                <h2 id="capitalAtual">R$ 475.000</h2>
+                <p>Aplicado com liquidez.</p>
+            </div>
+            <div class="card-info">
+                <h3>Apartamento em São Bento</h3>
+                <h2>R$ 450.000</h2>
+                <p>Quitado.</p>
+            </div>
+            <div class="card-info destaque">
+                <h3>Patrimônio atual</h3>
+                <h2 id="patrimonioAtual">R$ 925.000</h2>
+                <p>Capital + imóvel.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="mercado" class="mercado">
+    <div class="container duas-colunas">
+        <div class="conteudo-texto">
+            <span class="mini">O MOMENTO</span>
+            <h2>Por que este estudo está sendo apresentado agora?</h2>
+            <p>Você comentou que talvez ainda não tenha certeza sobre morar no litoral. E isso faz total sentido. Uma mudança patrimonial nunca deve acontecer por impulso.</p>
+            <p>Entretanto, o mercado imobiliário funciona em ciclos. As condições de negociação existentes hoje podem não permanecer disponíveis futuramente. Por isso este estudo não pretende apressar sua decisão. Ele pretende mostrar quais caminhos existem caso você escolha aproveitar o momento atual.</p>
+        </div>
+        <div class="conteudo-imagem">
+            <img src="imagens/mulher_mar.webp" alt="Praia">
+        </div>
+    </div>
+</section>
+<section class="transicao">
+    <div class="container">
+        <div class="frase">
+            <h2>Agora que entendemos o ponto de partida, vamos analisar o cenário onde esse patrimônio poderá estar localizado nos próximos anos.</h2>
+        </div>
+    </div>
+</section>
+
+<section id="cidade" class="cidade">
+    <div class="container">
+        <div class="section-title">
+            <span>BALNEÁRIO PIÇARRAS</span>
+            <h2>Um lugar pensado para viver, preservar patrimônio e aproveitar a vida.</h2>
+            <p>Quando analisamos um imóvel, não estamos comprando apenas metros quadrados. Estamos escolhendo onde o patrimônio estará pelos próximos anos.</p>
+        </div>
+        <div class="cidade-grid">
+            <div class="cidade-imagem">
+                <img src="imagens/orla.webp" alt="Orla">
+            </div>
+            <div class="cidade-texto">
+                <h3>Uma cidade que cresce sem perder qualidade de vida.</h3>
+                <p>Enquanto diversos municípios cresceram de forma acelerada e desorganizada, Balneário Piçarras evoluiu preservando aquilo que mais atrai moradores: tranquilidade, segurança e contato com o mar.</p>
+                <p>Esse crescimento planejado é um dos fatores que contribuem para sua valorização imobiliária.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- BANDEIRA AZUL: Escrita na Esquerda, Imagem na Direita -->
+<section class="bandeira-azul">
+    <div class="container duas-colunas">
+        <div class="conteudo-texto">
+            <span class="mini">QUALIDADE INTERNACIONAL</span>
+            <h2>A única cidade do Brasil com 100% da orla certificada pelo Programa Bandeira Azul.</h2>
+            <p>A certificação Bandeira Azul é concedida apenas para praias que atendem critérios rigorosos relacionados à qualidade da água, segurança, infraestrutura e preservação ambiental.</p>
+            <p>Na prática, significa viver em uma cidade reconhecida internacionalmente pela qualidade do seu litoral.</p>
+            <div class="destaque-box">
+                <strong>6,7 km de orla totalmente certificada.</strong>
+            </div>
+        </div>
+        <div class="conteudo-imagem">
+            <img src="imagens/bandeira.webp" alt="Bandeira Azul">
+        </div>
+    </div>
+</section>
+
+<!-- PARQUE LINEAR: Imagem na Esquerda, Escrita na Direita -->
+<section class="parque-linear">
+    <div class="container duas-colunas">
+        <div class="conteudo-imagem">
+            <img src="imagens/parque_linear.webp" alt="Parque Linear">
+        </div>
+        <div class="conteudo-texto">
+            <span class="mini">QUALIDADE DE VIDA</span>
+            <h2>O Parque Linear transforma o dia a dia.</h2>
+            <p>O apartamento analisado está localizado a aproximadamente três minutos caminhando do Parque Linear, um espaço criado para caminhadas, corridas, bicicleta, convivência e lazer.</p>
+        </div>
+    </div>
+</section>
+
+<section class="porto">
+    <div class="container">
+        <div class="cidade-grid">
+            <div>
+                <h2>Projetos estruturantes costumam impulsionar regiões inteiras.</h2>
+                <p>Entre eles está o Porto Park, um projeto inovador que reforça ainda mais o potencial turístico da cidade.</p>
+                <p>Independentemente do prazo de implantação, grandes investimentos públicos e privados costumam aumentar o interesse pela região e contribuir para valorização imobiliária ao longo do tempo.</p>
+            </div>
+            <div>
+                <img src="imagens/porto_park.webp" alt="Porto Park">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="ecologico">
+    <div class="container">
+        <div class="duas-colunas">
+            <div>
+                <img src="imagens/ecologico.webp" alt="Parque Ecológico">
+            </div>
+            <div>
+                <span>NATUREZA</span>
+                <h2>Cidade que cresce preservando áreas verdes.</h2>
+                <p>Além do litoral, Balneário Piçarras também investe em áreas permanentes de preservação, ecoturismo e qualidade ambiental. Isso significa mais qualidade de vida para moradores e maior atratividade para visitantes.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="lifestyle">
+    <div class="container">
+        <div class="section-title">
+            <span>ESTILO DE VIDA</span>
+            <h2>Mais do que morar perto da praia. É mudar o ritmo da rotina.</h2>
+        </div>
+        <div class="cards-lifestyle">
+            <div class="life-card">
+                <img src="imagens/orla_nascer.webp" alt="Estilo de vida">
+                <h3>Começar o dia diferente.</h3>
+                <p>Menos trânsito. Mais tempo. Mais qualidade de vida.</p>
+            </div>
+            <div class="life-card">
+                <img src="imagens/homem_piscina.webp" alt="Bem-estar">
+                <h3>Bem-estar.</h3>
+                <p>Estrutura pensada para lazer, saúde e descanso.</p>
+            </div>
+            <div class="life-card">
+                <img src="imagens/drink.webp" alt="Momentos">
+                <h3>Receber amigos.</h3>
+                <p>Espaços criados para aproveitar momentos especiais.</p>
+            </div>
+            <div class="life-card">
+                <img src="imagens/casal_sofa.webp" alt="Calma">
+                <h3>Viver com calma.</h3>
+                <p>Ter um imóvel na praia também significa poder desacelerar.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="transicao">
+    <div class="container">
+        <div class="frase">
+            <h2>Agora que conhecemos o potencial da cidade, vamos analisar o apartamento escolhido para este estudo patrimonial.</h2>
+        </div>
+    </div>
+</section>
+
+<section id="apartamento" class="apartamento">
+    <div class="container">
+        <div class="section-title">
+            <span>O APARTAMENTO ESTUDADO</span>
+            <h2>Um apartamento pesado para morar, aproveitar e preservar patrimônio.</h2>
+            <p>Esta não é apenas uma unidade na planta. É um imóvel cuidadosamente localizado, próximo ao mar, ao Parque Linear e inserido em uma das regiões que mais vêm despertando interesse no litoral catarinense.</p>
+        </div>
+        <div class="fachada-principal">
+            <img src="imagens/fachada.webp" alt="Fachada">
+        </div>
+    </div>
+</section>
+
+<section class="ficha-tecnica">
+    <div class="container">
+        <div class="section-title">
+            <span>FICHA TÉCNICA</span>
+            <h2>Características da unidade analisada</h2>
+        </div>
+        <div class="grid-ficha">
+            <div class="item-ficha">
+                <h4>Unidade</h4>
+                <p>405</p>
+            </div>
+            <div class="item-ficha">
+                <h4>Área Privativa</h4>
+                <p>62,05 m²</p>
+            </div>
+            <div class="item-ficha">
+                <h4>Dormitórios</h4>
+                <p>2 Suítes</p>
+            </div>
+            <div class="item-ficha">
+                <h4>Configuração</h4>
+                <p>1 Suíte Híbrida</p>
+            </div>
+            <div class="item-ficha">
+                <h4>Garagem</h4>
+                <p>1 vaga</p>
+            </div>
+            <div class="item-ficha destaque">
+                <h4>Valor Atual</h4>
+                <p id="valorApartamento">R$ 693.011,47</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="planta">
+    <div class="container">
+        <div class="duas-colunas">
+            <div>
+                <img src="imagens/planta.webp" alt="Planta">
+            </div>
+            <div>
+                <span>DISTRIBUIÇÃO</span>
+                <h2>Uma planta inteligente.</h2>
+                <p>Os ambientes foram distribuídos buscando integração entre sala, cozinha, varanda e área íntima.</p>
+                <p>A suíte híbrida oferece flexibilidade para adaptar o espaço conforme a necessidade da família, escritório ou quarto de hóspedes.</p>
+                <p>É um apartamento que privilegia conforto sem desperdiçar área útil.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="estrutura">
+    <div class="container">
+        <div class="section-title">
+            <span>ESTRUTURA</span>
+            <h2>Mais de 800 m² dedicados ao lazer e bem-estar.</h2>
+            <p>Os ambientes foram planejados para oferecer experiências tanto aos moradores quanto aos convidados.</p>
+        </div>
+        <div class="cards-estrutura">
+            <div class="estrutura-card">✔ Rooftop</div>
+            <div class="estrutura-card">✔ Piscina Adulto</div>
+            <div class="estrutura-card">✔ Piscina Infantil</div>
+            <div class="estrutura-card">✔ Fireplace</div>
+            <div class="estrutura-card">✔ Academia</div>
+            <div class="estrutura-card">✔ Coworking</div>
+            <div class="estrutura-card">✔ Espaço Gourmet</div>
+            <div class="estrutura-card">✔ Salão de Festas</div>
+            <div class="estrutura-card">✔ Market</div>
+            <div class="estrutura-card">✔ Lavanderia</div>
+            <div class="estrutura-card">✔ Carregador para veículo elétrico</div>
+            <div class="estrutura-card">✔ Bicicletário</div>
+        </div>
+    </div>
+</section>
+
+<section class="galeria">
+    <div class="container">
+        <div class="section-title">
+            <span>AMBIENTES</span>
+            <h2>Imagine sua rotina nesses espaços.</h2>
+        </div>
+        <div class="galeria-grid">
+            <div><img src="imagens/relax.webp" alt="Lazer"></div>
+            <div><img src="imagens/market.webp" alt="Market"></div>
+            <div><img src="imagens/carro_eletrico.webp" alt="Carregador Veículo Elétrico"></div>
+            <div><img src="imagens/mulher_piscina.webp" alt="Piscina Feminina"></div>
+        </div>
+    </div>
+</section>
+
+<section class="texto-impacto">
+    <div class="container">
+        <h2>Mais importante do que comprar um apartamento é comprar um estilo de vida.</h2>
+        <p>Durante nossas conversas, percebi que sua maior preocupação nunca foi simplesmente adquirir um imóvel. Sempre foi preservar seu patrimônio, manter liberdade para decidir o futuro e fazer uma escolha consciente.</p>
+        <p>É exatamente por isso que a próxima etapa deste estudo talvez seja a mais importante de todas.</p>
+        <p>Vamos deixar a emoção de lado por alguns minutos e olhar exclusivamente para os números.</p>
+        <p>Você poderá alterar cenários, modificar valores, simular aluguel, acompanhar a evolução do patrimônio e visualizar como diferentes decisões impactam o resultado final.</p>
+    </div>
+</section>
+
+<section class="comparativo">
+    <div class="container">
+        <div class="section-title">
+            <span>O QUE VOCÊ POSSUI HOJE</span>
+            <h2>Comparando o presente com as possibilidades.</h2>
+        </div>
+        <div class="comparativo-grid">
+            <div class="comparativo-card">
+                <h3>Hoje</h3>
+                <ul>
+                    <li>Apartamento quitado em São Bento.</li>
+                    <li>Capital disponível aplicado.</li>
+                    <li>Patrimônio aproximado de R$ 925 mil.</li>
+                    <li>Alta liquidez.</li>
+                </ul>
+            </div>
+            <div class="comparativo-card destaque">
+                <h3>Possibilidades</h3>
+                <ul>
+                    <li>Morar na praia.</li>
+                    <li>Continuar morando em São Bento.</li>
+                    <li>Gerar renda através de aluguel.</li>
+                    <li>Preservar patrimônio.</li>
+                    <li>Potencial valorização do imóvel.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="engenharia">
+    <div class="container">
+        <div class="section-title">
+            <span>ENGENHARIA FINANCEIRA</span>
+            <h2>É aqui que esta apresentação se torna diferente.</h2>
+        </div>
+        <div class="texto-central">
+            <p>Até este momento analisamos localização, qualidade de vida e características do imóvel.</p>
+            <p>Agora vamos responder à pergunta mais importante:</p>
+            <h3>Como fazer tudo isso preservando o máximo possível do seu patrimônio?</h3>
+            <p>Para isso foi desenvolvido um simulador exclusivo. Nele você poderá alterar cenários, modificar valores, simular rendimentos, acompanhar a evolução do patrimônio e visualizar diferentes estratégias.</p>
+        </div>
+    </div>
+</section>
+
+<section class="frase-impacto">
+    <div class="container">
+        <blockquote>"Os números não foram criados para convencer. Foram criados para ajudar você a decidir."</blockquote>
+    </div>
+</section>
+
+<section class="transicao-dashboard">
+    <div class="container">
+        <div class="cta-dashboard">
+            <h2>Bem-vinda ao Estudo Patrimonial Interativo.</h2>
+            <p>A partir deste ponto todas as informações abaixo são recalculadas em tempo real. Você poderá modificar os valores e visualizar imediatamente como cada decisão impacta seu patrimônio.</p>
+            <a href="#dashboard" class="botao">Abrir Simulador Financeiro</a>
+        </div>
+    </div>
+</section>
+
+<section id="dashboard" class="dashboard">
+    <div class="container">
+        <div class="dashboard-header">
+            <span>ESTUDO PATRIMONIAL INTERATIVO</span>
+            <h2>Simule diferentes cenários antes de tomar qualquer decisão.</h2>
+            <p>Todos os cálculos abaixo são atualizados em tempo real. Você pode alterar valores, comparar cenários e visualizar como pequenas mudanças podem impactar seu patrimônio ao longo dos próximos anos.</p>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <small>Patrimônio Atual</small>
+                <h2 class="kpiPatrimonioAtual">R$ 925.000</h2>
+                <span>Capital disponível + apartamento atual</span>
+            </div>
+            <div class="kpi-card destaque">
+                <small>Patrimônio Projetado</small>
+                <h2 id="patrimonioProjetado">R$ 1.650.000</h2>
+                <span>Simulação dinâmica</span>
+            </div>
+            <div class="kpi-card">
+                <small>Saldo Investido</small>
+                <h2 id="saldoBancoFinal">R$ 405.698</h2>
+                <span>Capital ainda aplicado</span>
+            </div>
+            <div class="kpi-card">
+                <small>Apartamento Praia</small>
+                <h2 id="valorApartamentoFinal">R$ 1.200.000</h2>
+                <span>Estimativa conservadora</span>
+            </div>
+            <div class="kpi-card">
+                <small>Apartamento São Bento</small>
+                <h2 id="valorSaoBentoFinal">R$ 450.000</h2>
+                <span>Patrimônio preservado</span>
+            </div>
+            <div class="kpi-card">
+                <small>Entrada</small>
+                <h2>R$ 69.301</h2>
+                <span>Pagamento inicial</span>
+            </div>
+            <div class="kpi-card">
+                <small>Parcela Inicial</small>
+                <h2>R$ 2.772</h2>
+                <span>100 parcelas</span>
+            </div>
+            <div class="kpi-card">
+                <small>Reforço Anual</small>
+                <h2>R$ 43.313</h2>
+                <span>8 pagamentos</span>
+            </div>
+        </div>
+
+        <div class="painel-dashboard">
+            <div class="painel-esquerda">
+                <div class="painel-card">
+                    <h3>Capital disponível</h3>
+                    <input type="range" id="sliderCapital" min="100000" max="1000000" step="5000" value="475000">
+                    <div id="valorCapital" class="valor-slider">R$ 475.000</div>
+                </div>
+                <div class="painel-card">
+                    <h3>Ajuda mensal do bolso</h3>
+                    <input type="range" id="sliderAporte" min="0" max="6000" step="100" value="1500">
+                    <div id="valorAporte" class="valor-slider">R$ 1.500</div>
+                </div>
+                <div class="painel-card">
+                    <h3>Rendimento líquido do CDI</h3>
+                    <input type="range" id="sliderCDI" min="0.50" max="1.20" step="0.01" value="0.80">
+                    <div id="valorCDI" class="valor-slider">0,80%</div>
+                </div>
+                <div class="painel-card">
+                    <h3>Valor esperado do imóvel na entrega</h3>
+                    <input type="range" id="sliderValorizacao" min="900000" max="1500000" step="10000" value="1200000">
+                    <div id="valorValorizacao" class="valor-slider">R$ 1.200.000</div>
+                </div>
+            </div>
+            <div class="painel-direita">
+                <div class="grafico-box">
+                    <h3>Evolução Patrimonial</h3>
+                    <canvas id="graficoPatrimonio"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-completo">
+            <div class="dashboard-left">
+                <div class="card-dashboard">
+                    <h3>Simulação de Aluguel</h3>
+                    <p>Escolha quanto você acredita que conseguiria alugar um dos imóveis. O system recalculará todo o patrimônio automaticamente.</p>
+                    <input type="range" id="sliderAluguel" min="1500" max="7000" step="100" value="1800">
+                    <div class="valor-slider"><span id="valorAluguel">R$ 1.800</span></div>
+                </div>
+                <div class="card-dashboard">
+                    <h3>Origem do aluguel</h3>
+                    <label><input type="radio" name="tipoAluguel" value="saobento" checked> Apartamento em São Bento</label>
+                    <label><input type="radio" name="tipoAluguel" value="picarras"> Apartamento em Piçarras</label>
+                    <label><input type="radio" name="tipoAluguel" value="comparar"> Comparar ambos</label>
+                </div>
+                <div class="card-dashboard">
+                    <h3>Correções Utilizadas</h3>
+                    <table class="mini-table">
+                        <tr><td>Durante a obra</td><td><strong>CUB Positivo</strong></td></tr>
+                        <tr><td>Após as chaves</td><td><strong>IPCA + 0,9% a.m.</strong></td></tr>
+                        <tr><td>CDI Líquido</td><td><strong id="cdiAtual">0,80%</strong></td></tr>
+                    </table>
+                </div>
+                <div class="card-dashboard">
+                    <h3>Resumo do Fluxo</h3>
+                    <ul class="lista-resumo">
+                        <li>Entrada <strong>R$ 69.301</strong></li>
+                        <li>100 parcelas <strong>R$ 2.772</strong></li>
+                        <li>8 reforços <strong>R$ 43.313</strong></li>
+                        <li>Entrega <strong>Dezembro/2031</strong></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="dashboard-right">
+                <div class="grafico-card"><h3>Saldo do Capital Investido</h3><canvas id="graficoBanco"></canvas></div>
+                <div class="grafico-card"><h3>Valorização do Apartamento</h3><canvas id="graficoImovel"></canvas></div>
+                <div class="grafico-card"><h3>Fluxo Financeiro</h3><canvas id="graficoFluxo"></canvas></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="explicacao-financeira">
+    <div class="container">
+        <h2>Como esta engenharia financeira funciona?</h2>
+        <div class="explicacao-grid">
+            <div>
+                <h3>Capital preservado</h3>
+                <p>Após o pagamento da entrada, o saldo permanece investido e continua criando rendimento mês após mês.</p>
+            </div>
+            <div>
+                <h3>Pagamento híbrido</h3>
+                <p>As parcelas podem ser compostas por parte do rendimento do investimento e parte do fluxo mensal da cliente.</p>
+            </div>
+            <div>
+                <h3>Reforços anuais</h3>
+                <p>Os reforços são pagos utilizando o caixa disponível, mantendo a estratégia planejada.</p>
+            </div>
+            <div>
+                <h3>Após as chaves</h3>
+                <p>O cliente poderá optar por morar no apartamento, alugá-lo ou utilizar o imóvel atual para gerar renda.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cenarios">
+    <div class="container">
+        <h2>Compare diferentes possibilidades</h2>
+        <div class="cards-cenarios">
+            <div class="cenario"><h3>Cenário 01</h3><p>Morar na praia e alugar São Bento.</p></div>
+            <div class="cenario"><h3>Cenário 02</h3><p>Continuar em São Bento e alugar Piçarras.</p></div>
+            <div class="cenario"><h3>Cenário 03</h3><p>Vender São Bento futuramente e concentrar patrimônio no litoral.</p></div>
+        </div>
+    </div>
+</section>
+
+<section class="resumo-executivo">
+    <div class="container">
+        <div class="section-title">
+            <span>RESUMO EXECUTIVO</span>
+            <h2>O que este cenário representa?</h2>
+        </div>
+        <div class="resumo-box">
+            <p id="textoResumo">Kátia, considerando os parâmetros atuais desta simulação, parte das parcelas é suportada pelo rendimento do capital investido e parte pelo fluxo mensal definido por você. Ao longo do contrato o patrimônio continua evoluindo enquanto os pagamentos acontecem de forma planejada. Na entrega das chaves você poderá escolher entre morar no apartamento, gerar renda com locação ou até vender um dos imóveis caso faça sentido naquele momento.</p>
+        </div>
+    </div>
+</section>
+
+<section class="timeline-financeira">
+    <div class="container">
+        <div class="section-title">
+            <span>LINHA DO TEMPO</span>
+            <h2>Como acontece toda a operação ao longo dos anos.</h2>
+        </div>
+        <div class="timeline">
+            <div class="evento">
+                <div class="ano">2026</div>
+                <div class="conteudo">
+                    <h3>Entrada</h3>
+                    <p>Pagamento da entrada de R$ 69.301,15. O saldo permanece investido produzindo rendimento.</p>
+                </div>
+            </div>
+            <div class="evento">
+                <div class="ano">2027</div>
+                <div class="conteudo">
+                    <h3>Primeiros Reforços</h3>
+                    <p>Começam os reforços anuais. As parcelas seguem normalmente.</p>
+                </div>
+            </div>
+            <div class="evento">
+                <div class="ano">2028</div>
+                <div class="conteudo">
+                    <h3>Início da Obra</h3>
+                    <p>A partir daqui as parcelas passam a sofrer atualização pelo CUB-SC Positivo.</p>
+                </div>
+            </div>
+            <div class="evento">
+                <div class="ano">2031</div>
+                <div class="conteudo">
+                    <h3>Entrega das Chaves</h3>
+                    <p>Neste momento você escolhe qual estratégia deseja seguir: morar na praia, alugar São Bento, alugar Piçarras ou vender um dos imóveis.</p>
+                </div>
+            </div>
+            <div class="evento">
+                <div class="ano">2034</div>
+                <div class="conteudo">
+                    <h3>Quitação</h3>
+                    <p>Finalização do fluxo planejado e consolidação do patrimônio.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cards-inteligentes">
+    <div class="container">
+        <div class="section-title">
+            <span>INDICADORES</span>
+            <h2>Leitura rápida do cenário.</h2>
+        </div>
+        <div class="grid-indicadores">
+            <div class="indicador positivo">
+                <h3>Saldo Bancário</h3>
+                <h2 id="saldoRestante">R$ 210.000</h2>
+                <p>Capital ainda disponível na entrega das chaves.</p>
+            </div>
+            <div class="indicador">
+                <h3>Valor estimado do apartamento</h3>
+                <h2 id="valorProjetado">R$ 1.200.000</h2>
+                <p>Estimativa conservadora.</p>
+            </div>
+            <div class="indicador">
+                <h3>Renda de aluguel</h3>
+                <h2 id="receitaAluguel">R$ 1.800</h2>
+                <p>Valor controlado pelo slider.</p>
+            </div>
+            <div class="indicador">
+                <h3>Patrimônio Total</h3>
+                <h2 id="patrimonioFinal">R$ 1.650.000</h2>
+                <p>Resultado projetado.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="fluxo-detalhado">
+    <div class="container">
+        <div class="section-title">
+            <span>FLUXO MENSAL</span>
+            <h2>Como cada parcela será composta.</h2>
+        </div>
+        <table class="tabela-fluxo">
+            <thead>
+                <tr>
+                    <th>Mês</th>
+                    <th>Parcela</th>
+                    <th>Rendimento</th>
+                    <th>Bolso</th>
+                    <th>Aluguel</th>
+                    <th>Saldo Banco</th>
+                    <th>Patrimônio</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaFluxo">
+                <!-- preenchido automaticamente -->
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="alertas">
+    <div class="container">
+        <div class="alerta verde">✔ O patrimônio permanece preservado durante praticamente toda a operação.</div>
+        <div class="alerta azul">✔ Você pode alterar qualquer valor utilizando os controles acima.</div>
+        <div class="alerta dourado">✔ Nenhuma decisão precisa ser tomada hoje. O objetivo desta ferramenta é permitir que você compreenda os diferentes caminhos possíveis antes de decidir.</div>
+    </div>
+</section>
+
+<section class="analise-inteligente">
+    <div class="container">
+        <div class="section-title">
+            <span>ANÁLISE INTELIGENTE</span>
+            <h2>O que este cenário significa na prática?</h2>
+        </div>
+        <div class="analise-box">
+            <div class="analise-item">
+                <div class="icone positivo">▲</div>
+                <div>
+                    <h3>Patrimônio</h3>
+                    <p id="analisePatrimonio">Seu patrimônio permanece distribuído entre liquidez financeira e imóveis, reduzindo concentração em apenas um ativo.</p>
+                </div>
+            </div>
+            <div class="analise-item">
+                <div class="icone azul">$</div>
+                <div>
+                    <h3>Fluxo de Caixa</h3>
+                    <p id="analiseFluxo">Parte das parcelas é suportada pelo rendimento do capital investido, reduzindo o desembolso mensal.</p>
+                </div>
+            </div>
+            <div class="analise-item">
+                <div class="icone dourado">🏠</div>
+                <div>
+                    <h3>Flexibilidade</h3>
+                    <p id="analiseFlexibilidade">Na entrega das chaves você ainda poderá decidir entre morar, alugar, vender ou manter os dois imóveis.</p>
+                </div>
+            </div>
+            <div class="analise-item">
+                <div class="icone verde">✔</div>
+                <div>
+                    <h3>Liquidez</h3>
+                    <p id="analiseLiquidez">Mesmo durante a operação permanece um saldo financeiro disponível, preservando segurança patrimonial.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="comparador-cenarios">
+    <div class="container">
+        <div class="section-title">
+            <span>COMPARAÇÃO</span>
+            <h2>Como cada decisão altera seu patrimônio.</h2>
+        </div>
+        <div class="comparador-grid">
+            <div class="cenario-card">
+                <h3>Cenário A</h3>
+                <h4>Morar em Piçarras</h4>
+                <ul>
+                    <li>✔ Qualidade de vida</li>
+                    <li>✔ Aluguel de São Bento</li>
+                    <li>✔ Dois imóveis</li>
+                    <li>✔ Patrimônio crescente</li>
+                </ul>
+            </div>
+            <div class="cenario-card">
+                <h3>Cenário B</h3>
+                <h4>Continuar em São Bento</h4>
+                <ul>
+                    <li>✔ Uso eventual da praia</li>
+                    <li>✔ Airbnb</li>
+                    <li>✔ Flexibilidade</li>
+                    <li>✔ Renda adicional</li>
+                </ul>
+            </div>
+            <div class="cenario-card">
+                <h3>Cenário C</h3>
+                <h4>Venda futura</h4>
+                <ul>
+                    <li>✔ Liquidez elevada</li>
+                    <li>✔ Capital disponível</li>
+                    <li>✔ Escolha futura</li>
+                    <li>✔ Sem obrigação hoje</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="painel-final">
+    <div class="container">
+        <div class="section-title">
+            <span>RESUMO DO ESTUDO</span>
+            <h2>Resultado projetado para este cenário.</h2>
+        </div>
+        <div class="resultado-grid">
+            <div class="resultado-card">
+                <small>Patrimônio Atual</small>
+                <h2 id="resultadoAtual">R$ 925.000</h2>
+            </div>
+            <div class="resultado-card">
+                <small>Patrimônio Projetado</small>
+                <h2 id="resultadoProjetado">R$ 1.650.000</h2>
+            </div>
+            <div class="resultado-card">
+                <small>Valorização Estimada</small>
+                <h2 id="resultadoValorizacao">+78%</h2>
+            </div>
+            <div class="resultado-card">
+                <small>Saldo Financeiro</small>
+                <h2 id="resultadoBanco">R$ 210.000</h2>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="conclusao-estudo">
+    <div class="container">
+        <div class="box-conclusao">
+            <h2>Kátia, nenhum destes cenários precisa ser escolhido hoje.</h2>
+            <p>O objetivo deste estudo foi mostrar que existem diferentes caminhos para utilizar o patrimônio que você já construiu. Cada alternativa possui vantagens, riscos e momentos ideais. A decisão continua sendo totalmente sua.</p>
+            <p>O mais importante é que ela seja tomada com clareza, compreendendo o impacto financeiro de cada possibilidade.</p>
+        </div>
+    </div>
+</section>
+
+<section id="faq" class="faq">
+    <div class="container">
+        <div class="section-title">
+            <span>PERGUNTAS FREQUENTES</span>
+            <h2>As dúvidas mais comuns antes de tomar uma decisão.</h2>
+        </div>
+        <div class="faq-lista">
+            <div class="faq-item">
+                <h3>E se eu decidir não morar na praia?</h3>
+                <p>Não existe obrigação. O apartamento pode permanecer como investimento, gerar renda por locação ou até mesmo ser vendido futuramente.</p>
+            </div>
+            <div class="faq-item">
+                <h3>E se o aluguel for diferente do valor utilizado na simulação?</h3>
+                <p>Todos os valores desta página são simuláveis. Você pode alterar o aluguel entre R$ 1.500 e R$ 7.000 e visualizar instantaneamente o impacto no patrimônio.</p>
+            </div>
+            <div class="faq-item">
+                <h3>Os valores das parcelas permanecem iguais?</h3>
+                <p>Não. Durante a obra as parcelas acompanham o CUB-SC. Após a entrega das chaves passam para IPCA + 0,9% ao mês conforme tabela da incorporadora. Por isso todos os cálculos deste estudo utilizam projeções.</p>
+            </div>
+            <div class="faq-item">
+                <h3>Posso vender meu apartamento atual futuramente?</h3>
+                <p>Sim. A engenharia financeira foi construída justamente para preservar essa liberdade. Nada impede que, no futuro, você decida vender São Bento, permanecer com os dois imóveis ou até concentrar todo o patrimônio no litoral.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="proximos-passos">
+    <div class="container">
+        <div class="section-title">
+            <span>CONCLUSÃO</span>
+            <h2>O objetivo deste estudo nunca foi decidir por você.</h2>
+        </div>
+        <div class="texto-final">
+            <p>Kátia, durante nossas conversas percebi que você toma decisões importantes apenas quando compreende exatamente todos os cenários possíveis. Foi por isso que desenvolvi este estudo.</p>
+            <p>Mais importante do que escolher um apartamento é compreender como cada decisão impacta seu patrimônio, sua liquidez e sua qualidade de vida ao longo dos próximos anos.</p>
+            <p>Independentemente da alternativa escolhida, a decisão continuará sendo totalmente sua. Meu papel é ajudá-la a visualizar esses caminhos de forma clara, transparente e baseada em números.</p>
+        </div>
+    </div>
+</section>
+
+<section class="cta-final">
+    <div class="container">
+        <div class="cta-box">
+            <h2>Agora basta escolher qual cenário faz mais sentido para sua realidade.</h2>
+            <p>Todos os cálculos apresentados podem ser ajustados. Caso deseje, podemos construir novos cenários utilizando outros valores de aluguel, novos aportes ou diferentes estratégias patrimoniais.</p>
+            <a href="https://wa.me/5547992120915" class="botao-final">Conversar sobre este estudo</a>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container footer-grid">
+        <div class="footer-logo">
+            <img src="../imagens/logo.png" alt="Luan Especialista">
+        </div>
+        <div class="footer-contato">
+            <h3>Contato</h3>
+            <p>📞 (47) 99212-0915</p>
+            <p>🌐 luan-especialista.pro</p>
+        </div>
+        <div class="footer-sol">
+            <img src="imagens/sol.png" alt="Sol Imóveis">
+        </div>
+    </div>
+    <div class="copyright">
+        <p>Este estudo possui caráter exclusivamente demonstrativo. Os resultados apresentados são projeções baseadas nos parâmetros informados pelo usuário e nas condições atuais de mercado, podendo sofrer alterações conforme índices econômicos, CUB, IPCA, rentabilidade e demais fatores externos.</p>
+    </div>
+</footer>
+
+<!-- ARQUITETURA DE SCRIPTS 2.0 -->
+<script src="config.js"></script>
+<script src="motorFinanceiro.js"></script>
+<script src="simulador.js"></script>
+<script src="timeline.js"></script>
+<script src="explicacoes.js"></script>
+<script src="graficos.js"></script>
+<script src="dashboard.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

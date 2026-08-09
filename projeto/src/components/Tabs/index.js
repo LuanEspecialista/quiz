@@ -1,0 +1,1 @@
+// Componente: Tabs - index.js

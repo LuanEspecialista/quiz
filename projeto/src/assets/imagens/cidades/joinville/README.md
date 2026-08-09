@@ -1,0 +1,6 @@
+# Cidade: joinville
+
+Pasta de ativos de imagem e mídias exclusivas de inteligência urbana e regional do município de **joinville**.
+
+### Tese Comercial:
+Consulte o dossiê regional em: `docs/13-Cidades.md`.

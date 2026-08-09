@@ -1,0 +1,1 @@
+// Componente: Gallery - .test.js
