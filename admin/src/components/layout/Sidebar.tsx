@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, 
   Building2, 
@@ -10,6 +10,7 @@ import {
   UserCheck, 
   TrendingUp, 
   Link2, 
+  FileText,
   Settings,
   Menu,
   X
@@ -37,6 +38,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "construtoras", label: "Construtoras", icon: Building2 },
     { id: "empreendimentos", label: "Empreendimentos", icon: Building },
+    { id: "apresentacoes", label: "Apresentações", icon: FileText },
     { id: "unidades", label: "Unidades", icon: Layers },
     { id: "importar-ia", label: "Importar IA", icon: Bot },
     { id: "fluxos", label: "Fluxos Financeiros", icon: GitBranch },

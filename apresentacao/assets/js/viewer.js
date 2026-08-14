@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAnterior = document.getElementById('btn-anterior');
     const btnProximo = document.getElementById('btn-proximo');
     const btnFullscreen = document.getElementById('btn-fullscreen');
+    const btnUnidades = document.getElementById('btn-unidades');
+    const empreendimentoDiretoId = new URLSearchParams(window.location.search).get('empreendimento');
 
     let estadoAtual = 'nenhuma'; 
     let empreendimentoSelecionado = null;
@@ -43,10 +45,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ouve o evento disparado pelo Supabase/DataJS
     window.addEventListener('dadosCarregados', () => {
         popularCidades();
+        carregarEmpreendimentoDireto();
     });
 
     // Tentativa imediata de popular caso os dados já existam na memória
     popularCidades();
+
+    function carregarEmpreendimentoDireto() {
+        if (!empreendimentoDiretoId || typeof EMPREENDIMENTOS === 'undefined') return;
+        const empreendimento = EMPREENDIMENTOS.find(emp => String(emp.id) === empreendimentoDiretoId);
+        document.body.classList.add('modo-direto');
+
+        if (!empreendimento) {
+            if (viewerPlaceholder) {
+                viewerPlaceholder.classList.remove('hidden');
+                viewerPlaceholder.innerHTML = '<p>Apresentação não encontrada ou indisponível.</p>';
+            }
+            return;
+        }
+
+        empreendimentoSelecionado = empreendimento;
+        document.title = `${empreendimento.nome} | Luan Especialista`;
+        if (btnUnidades) {
+            btnUnidades.href = `/admin/?tab=unidades&empreendimento=${encodeURIComponent(empreendimento.id)}&disponibilidade=DISPONIVEL`;
+            btnUnidades.classList.remove('hidden');
+        }
+        carregarApresentacao();
+    }
 
     // 2. FILTROS EM CASCATA (CIDADE -> CONSTRUTORA -> EMPREENDIMENTO)
     if (selectCidade) {
@@ -159,7 +184,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (viewerPlaceholder) viewerPlaceholder.classList.add('hidden');
         if (loadingSpinner) loadingSpinner.classList.remove('hidden');
 
-        pdfViewer.src = obterUrlViewer(empreendimentoSelecionado.pdfApresentacao);
+        const versao = encodeURIComponent(empreendimentoSelecionado.apresentacaoAtualizadaEm || Date.now());
+        const separador = empreendimentoSelecionado.pdfApresentacao.includes('?') ? '&' : '?';
+        pdfViewer.src = obterUrlViewer(`${empreendimentoSelecionado.pdfApresentacao}${separador}v=${versao}`);
 
         if (btnAnterior) {
             btnAnterior.disabled = true; 

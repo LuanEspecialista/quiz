@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
-import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History } from "lucide-react";
+import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks } from "lucide-react";
 
-export const ImportarIAModule: React.FC = () => {
+const UnidadesImporter: React.FC = () => {
   const [jsonInput, setJsonInput] = useState("");
   const [parsedData, setParsedData] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,8 +43,53 @@ export const ImportarIAModule: React.FC = () => {
 
       const data = JSON.parse(cleanJson);
 
+      if (data.status === "PENDENTE_INFORMACAO") {
+        const perguntas = Array.isArray(data.perguntas)
+          ? data.perguntas.map((item: any) => item.pergunta || item.motivo).filter(Boolean)
+          : [];
+        setParsedData(null);
+        setImportStatus({
+          error: perguntas.length
+            ? `A IA identificou informações pendentes: ${perguntas.join(" ")}`
+            : "A IA identificou informações pendentes. Responda às perguntas antes de gerar o JSON de importação.",
+        });
+        return;
+      }
+
+      if (data.status && data.status !== "PRONTO_PARA_IMPORTAR") {
+        setParsedData(null);
+        setImportStatus({ error: "Status de importação inválido. Use um JSON com status PRONTO_PARA_IMPORTAR." });
+        return;
+      }
+
       if (!data.unidades || !Array.isArray(data.unidades)) {
         setImportStatus({ error: "Formato inválido: O JSON precisa conter a lista 'unidades'." });
+        return;
+      }
+
+      const camposObrigatorios = [
+        ["empreendimento.nome", data.empreendimento?.nome],
+        ["empreendimento.cidade", data.empreendimento?.cidade],
+        ["empreendimento.inicio_obras", data.empreendimento?.inicio_obras],
+        ["empreendimento.previsao_entrega", data.empreendimento?.previsao_entrega],
+        ["regras_correcao.indice_pre_chaves", data.regras_correcao?.indice_pre_chaves],
+        ["regras_correcao.regra_pos_chaves", data.regras_correcao?.regra_pos_chaves || data.regras_correcao?.indice_pos_chaves],
+      ];
+      const pendencias = camposObrigatorios
+        .filter(([, valor]) => valor === undefined || valor === null || valor === "")
+        .map(([campo]) => campo);
+
+      data.unidades.forEach((unidade: any, indice: number) => {
+        ["codigo_unidade", "torre", "tipologia", "quartos", "valor_tabela", "status", "fluxo_dados"].forEach((campo) => {
+          if (unidade[campo] === undefined || unidade[campo] === null || unidade[campo] === "") {
+            pendencias.push(`unidades[${indice}].${campo}`);
+          }
+        });
+      });
+
+      if (pendencias.length > 0) {
+        setParsedData(null);
+        setImportStatus({ error: `Importação bloqueada: faltam dados obrigatórios (${pendencias.join(", ")}). Peça à IA para esclarecer antes de gerar o JSON.` });
         return;
       }
 
@@ -77,7 +122,7 @@ export const ImportarIAModule: React.FC = () => {
       // 1. Monta as unidades para a tabela principal (estoque ativo)
       const unidadesParaInserir = parsedData.unidades.map((u: any) => {
         const cod = (u.codigo_unidade || u.numero || "S/N").toString().trim();
-        const torreClean = (u.torre || "Torre A").trim();
+        const torreClean = String(u.torre).trim();
         const valorTabela = parseFloat(u.valor_tabela) || 0;
 
         let fluxo = u.fluxo_dados || {};
@@ -92,7 +137,8 @@ export const ImportarIAModule: React.FC = () => {
           numero_unidade: cod,
           numero: cod,
           sku: `${selectedEmpId}-${torreClean}-${cod}`.replace(/\s+/g, ""),
-          tipologia: u.tipologia || "Studio",
+          tipologia: u.tipologia,
+          quartos: Number(u.quartos),
           area_privativa: parseFloat(u.area_privativa) || null,
           vagas: parseInt(u.vagas) || 0,
           valor_tabela: valorTabela,
@@ -328,3 +374,237 @@ export const ImportarIAModule: React.FC = () => {
     </div>
   );
 };
+
+type EmpreendimentoResumo = { id: string; nome: string; cidade?: string | null };
+type ConstrutoraResumo = { id: string; nome: string; sku?: string | null };
+
+type CaracteristicaExtra = {
+  categoria: string;
+  nome: string;
+  valor: unknown;
+  unidade?: string | null;
+  fonte?: string | null;
+};
+
+type EmpreendimentoIA = {
+  status?: string;
+  empreendimento?: {
+    nome?: string;
+    construtora?: string | null;
+    cidade?: string | null;
+    bairro?: string | null;
+    endereco?: string | null;
+    tipo?: string | null;
+    status_obra?: string | null;
+    previsao_entrega?: string | null;
+    descricao?: string | null;
+    quantidade_torres?: number | null;
+    quantidade_unidades?: number | null;
+    total_pavimentos?: number | null;
+    area_lazer_m2?: number | null;
+    area_minima?: number | null;
+    area_maxima?: number | null;
+    faixa_preco?: number | null;
+    valorizacao_aa?: number | null;
+    quartos_disponiveis?: number[] | null;
+  };
+  lazer?: Array<string | Record<string, unknown>>;
+  diferenciais?: Array<string | Record<string, unknown>>;
+  caracteristicas?: CaracteristicaExtra[];
+  observacoes?: string | null;
+  fontes?: Array<{ arquivo?: string; pagina?: string | number; trecho?: string }>;
+  campos_nao_encontrados?: string[];
+  perguntas?: Array<{ campo?: string; pergunta?: string; motivo?: string }>;
+};
+
+function cleanJson(raw: string) {
+  return raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+}
+
+function present(value: unknown) {
+  return value !== undefined && value !== null && value !== "";
+}
+
+function normalizeBuilderName(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/\b(construtora|incorporadora|empreendimentos|engenharia|ltda|sa|s a)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+const EmpreendimentoImporter: React.FC = () => {
+  const [jsonInput, setJsonInput] = useState("");
+  const [parsed, setParsed] = useState<EmpreendimentoIA | null>(null);
+  const [empreendimentos, setEmpreendimentos] = useState<EmpreendimentoResumo[]>([]);
+  const [construtoras, setConstrutoras] = useState<ConstrutoraResumo[]>([]);
+  const [selectedConstrutoraId, setSelectedConstrutoraId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ error?: string; success?: string } | null>(null);
+
+  useEffect(() => {
+    void Promise.all([
+      supabase.from("empreendimentos").select("id, nome, cidade").order("nome"),
+      supabase.from("construtoras").select("id, nome, sku").order("nome"),
+    ]).then(([empResult, construtoraResult]) => {
+      if (empResult.error || construtoraResult.error) setStatus({ error: empResult.error?.message || construtoraResult.error?.message });
+      else {
+        setEmpreendimentos((empResult.data || []) as EmpreendimentoResumo[]);
+        setConstrutoras((construtoraResult.data || []) as ConstrutoraResumo[]);
+      }
+    });
+  }, []);
+
+  function parse() {
+    setStatus(null);
+    try {
+      const data = JSON.parse(cleanJson(jsonInput)) as EmpreendimentoIA;
+      if (data.status === "PENDENTE_INFORMACAO") {
+        const questions = (data.perguntas || []).map((item) => item.pergunta || item.motivo).filter(Boolean);
+        setParsed(null);
+        setStatus({ error: questions.length ? questions.join(" ") : "A leitura precisa de esclarecimentos antes de ser importada." });
+        return;
+      }
+      if (data.status !== "PRONTO_PARA_IMPORTAR" || !data.empreendimento?.nome || !data.empreendimento?.construtora) {
+        throw new Error("O JSON precisa ter status PRONTO_PARA_IMPORTAR, empreendimento.nome e empreendimento.construtora.");
+      }
+      if (!Array.isArray(data.caracteristicas) || !Array.isArray(data.lazer) || !Array.isArray(data.diferenciais)) {
+        throw new Error("O JSON precisa conter as listas caracteristicas, lazer e diferenciais, mesmo quando vazias.");
+      }
+      const invalid = data.caracteristicas.some((item) => !item || !item.categoria || !item.nome || !present(item.valor));
+      if (invalid) throw new Error("Cada característica precisa ter categoria, nome e valor confirmado.");
+
+      setParsed(data);
+      const builderName = normalizeBuilderName(data.empreendimento.construtora);
+      const builderMatch = construtoras.find((item) => normalizeBuilderName(item.nome) === builderName);
+      setSelectedConstrutoraId(builderMatch?.id || "");
+    } catch (error) {
+      setParsed(null);
+      setStatus({ error: error instanceof Error ? error.message : "JSON inválido." });
+    }
+  }
+
+  async function save() {
+    if (!parsed?.empreendimento || !selectedConstrutoraId) return;
+    const source = parsed.empreendimento;
+    const payload: Record<string, unknown> = {
+      nome: source.nome?.trim(),
+      construtora_id: selectedConstrutoraId,
+      ativo: true,
+    };
+    const mapping: Array<[string, unknown]> = [
+      ["cidade", source.cidade], ["bairro", source.bairro], ["endereco", source.endereco],
+      ["tipo", source.tipo], ["status", source.status_obra], ["previsao_entrega", source.previsao_entrega],
+      ["descricao", source.descricao], ["quantidade_torres", source.quantidade_torres],
+      ["quantidade_unidades", source.quantidade_unidades], ["total_pavimentos", source.total_pavimentos],
+      ["area_lazer_m2", source.area_lazer_m2], ["area_minima", source.area_minima],
+      ["area_maxima", source.area_maxima], ["faixa_preco", source.faixa_preco],
+      ["valorizacao_aa", source.valorizacao_aa], ["observacoes", parsed.observacoes],
+      ["quartos_disponiveis", source.quartos_disponiveis],
+    ];
+    mapping.forEach(([key, value]) => { if (present(value)) payload[key] = value; });
+    payload.lazer = parsed.lazer || [];
+    payload.diferenciais = parsed.diferenciais || [];
+    payload.caracteristicas = {
+      itens: parsed.caracteristicas || [],
+      fontes: parsed.fontes || [],
+      campos_nao_encontrados: parsed.campos_nao_encontrados || [],
+      importado_em: new Date().toISOString(),
+    };
+
+    setSaving(true);
+    setStatus(null);
+    const duplicate = empreendimentos.find((item) =>
+      item.nome.trim().toLocaleLowerCase("pt-BR") === source.nome?.trim().toLocaleLowerCase("pt-BR") &&
+      (!source.cidade || item.cidade?.trim().toLocaleLowerCase("pt-BR") === source.cidade.trim().toLocaleLowerCase("pt-BR"))
+    );
+    if (duplicate) {
+      setSaving(false);
+      setStatus({ error: `O empreendimento ${duplicate.nome} já está cadastrado. Edite-o pela aba Empreendimentos.` });
+      return;
+    }
+    const { error } = await supabase.from("empreendimentos").insert(payload);
+    setSaving(false);
+    if (error) setStatus({ error: `Erro ao cadastrar o empreendimento: ${error.message}` });
+    else {
+      setStatus({ success: "Empreendimento cadastrado e preenchido. Ele já está disponível nas abas Empreendimentos e Apresentações." });
+      setJsonInput("");
+      setParsed(null);
+      setSelectedConstrutoraId("");
+    }
+  }
+
+  const selectedConstrutora = construtoras.find((item) => item.id === selectedConstrutoraId);
+  const builderDiffers = Boolean(parsed && selectedConstrutora && normalizeBuilderName(parsed.empreendimento?.construtora || "") !== normalizeBuilderName(selectedConstrutora.nome));
+
+  return <div>
+    {status?.error && <div style={errorBox}><AlertCircle size={18} /> {status.error}</div>}
+    {status?.success && <div style={successBox}><CheckCircle2 size={18} /> {status.success}</div>}
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "1.5rem" }}>
+      <section style={panelStyle}>
+        <h2 style={panelTitle}><FileJson size={18} /> JSON das características</h2>
+        <p style={helpStyle}>Cole o JSON produzido com o prompt de empreendimento. Dados ausentes não serão apagados nem substituídos.</p>
+        <textarea rows={20} value={jsonInput} onChange={(event) => setJsonInput(event.target.value)} placeholder="Cole aqui o JSON do leitor de empreendimento..." style={textareaStyle} />
+        <button onClick={parse} style={secondaryActionStyle}>Validar características <ArrowRight size={16} /></button>
+      </section>
+      <section style={panelStyle}>
+        <h2 style={panelTitle}><Home size={18} /> Prévia e destino</h2>
+        {!parsed ? <div style={emptyStyle}><Home size={38} /><span>Valide um JSON para revisar todas as características antes de salvar.</span></div> : <div>
+          <label style={labelStyle}>Confirmar construtora existente *</label>
+          <select value={selectedConstrutoraId} onChange={(event) => setSelectedConstrutoraId(event.target.value)} style={selectStyle}>
+            <option value="">Selecione a construtora...</option>
+            {construtoras.map((item) => <option key={item.id} value={item.id}>{item.nome}{item.sku ? ` (${item.sku})` : ""}</option>)}
+          </select>
+          {!selectedConstrutoraId && <div style={{ ...errorBox, marginTop: 10 }}>A construtora lida não foi localizada automaticamente. Confirme uma construtora existente ou cadastre-a primeiro na aba Construtoras.</div>}
+          {builderDiffers && <div style={{ ...errorBox, marginTop: 10 }}>A construtora selecionada é diferente do nome lido no material. Revise antes de cadastrar.</div>}
+          <div style={summaryStyle}>
+            <div><strong>Nome lido:</strong> {parsed.empreendimento?.nome}</div>
+            <div><strong>Construtora lida:</strong> {parsed.empreendimento?.construtora}</div>
+            <div><strong>Cidade:</strong> {parsed.empreendimento?.cidade || "não encontrada"}</div>
+            <div><strong>Torres:</strong> {parsed.empreendimento?.quantidade_torres ?? "não encontrado"}</div>
+            <div><strong>Unidades:</strong> {parsed.empreendimento?.quantidade_unidades ?? "não encontrado"}</div>
+            <div><strong>Quartos:</strong> {parsed.empreendimento?.quartos_disponiveis?.map((q) => q === 0 ? "Studio" : `${q}Q`).join(" · ") || "não encontrado"}</div>
+            <div><strong>Valorização:</strong> {parsed.empreendimento?.valorizacao_aa != null ? `${parsed.empreendimento.valorizacao_aa}% a.a.` : "não encontrada (editável depois)"}</div>
+            <div><strong>Lazeres:</strong> {parsed.lazer?.length || 0}</div>
+            <div><strong>Diferenciais:</strong> {parsed.diferenciais?.length || 0}</div>
+            <div><strong>Outras características:</strong> {parsed.caracteristicas?.length || 0}</div>
+          </div>
+          <div style={{ maxHeight: 220, overflowY: "auto", border: "1px solid #27272a", borderRadius: 6 }}>
+            {(parsed.caracteristicas || []).map((item, index) => <div key={`${item.categoria}-${item.nome}-${index}`} style={itemStyle}><div><strong style={{ color: "#fff" }}>{item.nome}</strong><small style={{ display: "block", color: "#71717a" }}>{item.categoria}{item.fonte ? ` · ${item.fonte}` : ""}</small></div><span style={{ color: "#c5a059", textAlign: "right" }}>{typeof item.valor === "object" ? JSON.stringify(item.valor) : String(item.valor)}{item.unidade ? ` ${item.unidade}` : ""}</span></div>)}
+          </div>
+          {(parsed.campos_nao_encontrados?.length || 0) > 0 && <p style={{ color: "#fbbf24", fontSize: 12 }}>Não encontrados: {parsed.campos_nao_encontrados?.join(", ")}</p>}
+          <button disabled={!selectedConstrutoraId || saving || builderDiffers} onClick={() => void save()} style={{ ...primaryActionStyle, opacity: !selectedConstrutoraId || saving || builderDiffers ? .45 : 1 }}>{saving ? <Loader2 size={18} /> : <ListChecks size={18} />}{saving ? "Cadastrando..." : "Cadastrar empreendimento"}</button>
+        </div>}
+      </section>
+    </div>
+  </div>;
+};
+
+export const ImportarIAModule: React.FC = () => {
+  const [mode, setMode] = useState<"unidades" | "empreendimento">("unidades");
+  return <div>
+    <div style={{ marginBottom: "1.5rem" }}>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: ".5rem" }}><Sparkles style={{ color: "#c5a059" }} /> Importador Inteligente por IA</h1>
+      <p style={{ color: "#71717a", fontSize: ".875rem", margin: ".25rem 0 0" }}>Escolha o leitor adequado para cada tipo de documento.</p>
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20, padding: 6, background: "#121212", border: "1px solid #27272a", borderRadius: 9 }}>
+      <button onClick={() => setMode("unidades")} style={modeButton(mode === "unidades")}><Building2 size={17} /><span><strong>Leitor de unidades</strong><small>Tabelas, preços, estoque e fluxos</small></span></button>
+      <button onClick={() => setMode("empreendimento")} style={modeButton(mode === "empreendimento")}><Home size={17} /><span><strong>Leitor de empreendimento</strong><small>Cadastro, lazer e características</small></span></button>
+    </div>
+    {mode === "unidades" ? <UnidadesImporter /> : <EmpreendimentoImporter />}
+  </div>;
+};
+
+const panelStyle = { backgroundColor: "#121212", border: "1px solid #222", borderRadius: 8, padding: "1.25rem" } as const;
+const panelTitle = { color: "#c5a059", fontSize: "1rem", margin: "0 0 .75rem", display: "flex", alignItems: "center", gap: ".4rem" } as const;
+const helpStyle = { color: "#71717a", fontSize: 12, lineHeight: 1.5 } as const;
+const textareaStyle = { width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#d4d4d8", padding: ".75rem", borderRadius: 6, fontFamily: "monospace", fontSize: ".8rem", resize: "vertical", boxSizing: "border-box" } as const;
+const secondaryActionStyle = { width: "100%", marginTop: "1rem", background: "#27272a", color: "#fff", fontWeight: 700, padding: ".75rem", borderRadius: 6, border: "1px solid #3f3f46", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: ".5rem" } as const;
+const primaryActionStyle = { width: "100%", marginTop: 16, background: "#c5a059", color: "#09090b", fontWeight: 800, padding: ".75rem", borderRadius: 6, border: 0, cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: ".5rem" } as const;
+const errorBox = { background: "rgba(239,68,68,.1)", border: "1px solid #ef4444", color: "#f87171", padding: ".8rem", borderRadius: 7, marginBottom: "1rem", display: "flex", alignItems: "center", gap: ".5rem", fontSize: 13 } as const;
+const successBox = { ...errorBox, background: "rgba(34,197,94,.1)", border: "1px solid #22c55e", color: "#4ade80" } as const;
+const emptyStyle = { minHeight: 360, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", gap: 10, color: "#71717a", border: "1px dashed #27272a", borderRadius: 6 } as const;
+const labelStyle = { display: "block", color: "#a1a1aa", fontSize: 12, marginBottom: 6 } as const;
+const selectStyle = { width: "100%", background: "#18181b", border: "1px solid #c5a059", color: "#fff", padding: ".65rem", borderRadius: 6, boxSizing: "border-box" } as const;
+const summaryStyle = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "14px 0", padding: 12, background: "#18181b", borderRadius: 6, color: "#d4d4d8", fontSize: 12 } as const;
+const itemStyle = { display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 10px", borderBottom: "1px solid #27272a", color: "#a1a1aa", fontSize: 12 } as const;
+const modeButton = (active: boolean) => ({ border: active ? "1px solid #c5a059" : "1px solid transparent", background: active ? "rgba(197,160,89,.12)" : "transparent", color: active ? "#f4d79c" : "#a1a1aa", borderRadius: 6, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, textAlign: "left", ...(active ? {} : {}), } as const);
+

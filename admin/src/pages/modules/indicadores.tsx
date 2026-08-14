@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { 
   TrendingUp, 
@@ -65,8 +65,6 @@ export default function Indicadores() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("TODAS");
 
-  const [isFocado, setIsFocado] = useState(false);
-
   // Estado do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -77,11 +75,12 @@ export default function Indicadores() {
   const [unlockSku, setUnlockSku] = useState(false);
   const [categoria, setCategoria] = useState("CONSTRUCAO");
   const [cidade, setCidade] = useState("");
-  const [tipoValor, setTipoValor] = useState<"PORCENTAGEM" | "VALOR_NOMINAL" | "VALOR_M2">("PORCENTAGEM");
-
+  const [, setTipoValor] = useState<"PORCENTAGEM" | "VALOR_NOMINAL" | "VALOR_M2">("PORCENTAGEM");
   // Campos de Configuração Direta
   const [valorAtual, setValorAtual] = useState<string>(""); 
   const [indexadorBase, setIndexadorBase] = useState("100% CDI");
+  const [tributacaoTipo, setTributacaoTipo] = useState<"isento" | "regressivo" | "fixo">("isento");
+  const [aliquotaFixa, setAliquotaFixa] = useState(15);
 
   // Lançamento Dinâmico de Série de Histórico
   const [historicoEntradas, setHistoricoEntradas] = useState<SerieHistorica[]>([
@@ -170,6 +169,8 @@ export default function Indicadores() {
       setTipoValor(item.tipo_valor || "PORCENTAGEM");
       setValorAtual(item.valor_atual !== undefined && item.valor_atual !== null ? item.valor_atual.toString() : (item.valor?.toString() || ""));
       setIndexadorBase(item.indexador_base || "");
+      setTributacaoTipo(item.tributacao?.tipo || "isento");
+      setAliquotaFixa(Number(item.tributacao?.aliquota_fixa) || 15);
 
       try {
         const { data: histData } = await supabase
@@ -200,6 +201,8 @@ export default function Indicadores() {
       setTipoValor("PORCENTAGEM");
       setValorAtual("");
       setIndexadorBase("");
+      setTributacaoTipo("isento");
+      setAliquotaFixa(15);
       setHistoricoEntradas([
         { mesAno: "2026-01", valor: 0 },
         { mesAno: "2026-02", valor: 0 },
@@ -236,6 +239,11 @@ export default function Indicadores() {
       valor: valorTratado,
       valor_atual: valorTratado
     };
+
+    payloadIndicador.tributacao = tributacaoTipo === "regressivo" ? {
+      tipo: "regressivo",
+      faixas: [{ ate_dias: 180, aliquota: 22.5 }, { ate_dias: 360, aliquota: 20 }, { ate_dias: 720, aliquota: 17.5 }, { ate_dias: null, aliquota: 15 }]
+    } : tributacaoTipo === "fixo" ? { tipo: "fixo", aliquota_fixa: aliquotaFixa } : { tipo: "isento" };
 
     if (cidade.trim()) payloadIndicador.cidade = cidade.trim();
     if (indexadorBase.trim()) payloadIndicador.indexador_base = indexadorBase.trim();
@@ -509,7 +517,8 @@ export default function Indicadores() {
               </div>
 
               {categoria === "RENDA_FIXA" && (
-                <div style={{ gridColumn: "span 2" }}>
+                <div style={{ gridColumn: "span 2", display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem" }}>
+                  <div style={{ gridColumn: "span 2" }}>
                   <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.7rem", marginBottom: "0.2rem" }}>Regra de Rendimento / Indexador</label>
                   <input
                     type="text"
@@ -518,6 +527,10 @@ export default function Indicadores() {
                     onChange={(e) => setIndexadorBase(e.target.value)}
                     style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
                   />
+                  </div>
+                  <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.7rem", marginBottom: "0.2rem" }}>Tributação sobre o rendimento</label><select value={tributacaoTipo} onChange={(e) => setTributacaoTipo(e.target.value as typeof tributacaoTipo)} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px" }}><option value="isento">Isento</option><option value="regressivo">IR regressivo de renda fixa</option><option value="fixo">Alíquota fixa</option></select></div>
+                  {tributacaoTipo === "fixo" && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.7rem", marginBottom: "0.2rem" }}>Alíquota fixa (%)</label><input type="number" min="0" max="100" step="0.1" value={aliquotaFixa} onChange={(e) => setAliquotaFixa(Number(e.target.value))} style={{ width: "100%", boxSizing: "border-box", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px" }}/></div>}
+                  {tributacaoTipo === "regressivo" && <p style={{ gridColumn: "span 2", color: "#71717a", fontSize: ".68rem", margin: 0 }}>Padrão: 22,5% até 180 dias; 20% até 360; 17,5% até 720; 15% acima de 720. Incide somente sobre o rendimento.</p>}
                 </div>
               )}
             </div>

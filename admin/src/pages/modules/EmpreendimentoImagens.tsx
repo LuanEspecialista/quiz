@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Upload, Image as ImageIcon, Trash2, CheckCircle2, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { Upload, Image as ImageIcon, Loader2 } from "lucide-react";
+import { supabase } from "../../lib/supabase"; // Ajuste o caminho relativo para a sua pasta lib/supabase se necessário
 
 interface EmpreendimentoImagensProps {
   empreendimentoId?: string;
   imagemAtual?: string;
-  onImageUploaded: (url: string) => void;
+  onCoverChanged: (url: string) => void;
 }
 
-export function EmpreendimentoImagens({ empreendimentoId, imagemAtual, onImageUploaded }: EmpreendimentoImagensProps) {
+export default function EmpreendimentoImagens({ empreendimentoId, imagemAtual, onCoverChanged }: EmpreendimentoImagensProps) {
   const [uploading, setUploading] = useState(false);
   const [nomeArquivo, setNomeArquivo] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -61,7 +61,7 @@ export function EmpreendimentoImagens({ empreendimentoId, imagemAtual, onImageUp
       const urlFinal = publicUrlData.publicUrl;
 
       setMensagem("Imagem enviada com sucesso!");
-      onImageUploaded(urlFinal);
+      onCoverChanged(urlFinal);
       setFile(null);
     } catch (err: any) {
       console.error("Erro no upload:", err);

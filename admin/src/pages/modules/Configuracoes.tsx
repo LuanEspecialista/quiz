@@ -1,295 +1,46 @@
-import React, { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AlertCircle, Building2, CheckCircle2, Coins, Globe2, Plus, RefreshCw, Save, Settings, Shield, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { 
-  Settings, 
-  Save, 
-  Building2, 
-  Percent, 
-  Sliders, 
-  RefreshCw,
-  CheckCircle2,
-  AlertCircle
-} from "lucide-react";
 
-interface ConfigGerais {
-  taxa_administracao_padrao: number;
-  fundo_reserva_padrao: number;
-  taxa_juros_financiamento_anual: number;
-  incc_projetado_anual: number;
-  valor_m2_referencia: number;
-  rentabilidade_aluguel_anual: number;
-  moeda_padrao: string;
-  casas_decimais_taxas: number;
+type Tab = "financeiro" | "imobiliario" | "idiomas" | "cambio" | "paginas";
+type Feedback = { type: "success" | "error"; msg: string } | null;
+type BusinessConfig = { taxa_administracao_padrao:number; fundo_reserva_padrao:number; taxa_juros_financiamento_anual:number; incc_projetado_anual:number; valor_m2_referencia:number; rentabilidade_aluguel_anual:number; casas_decimais_taxas:number };
+type SiteConfig = { idioma_padrao:"pt-BR"|"en-US"|"es"; idiomas_ativos:string[]; moeda_pt:"BRL"; moeda_en:"USD"; moeda_es:"USD"; cambio_automatico:boolean; tipo_ptax:"compra"|"venda"; margem_cambio_percentual:number; cotacao_manual:number|null };
+type SitePage = { id?:number; titulo:string; caminho:string; ativa:boolean; exige_login:boolean; protecao_obrigatoria:boolean; ordem:number; categoria:string|null; idiomas:string[] };
+type Quote = { cotacao:number|null; data_cotacao:string|null; manual:boolean };
+
+const businessDefaults:BusinessConfig={taxa_administracao_padrao:15,fundo_reserva_padrao:1,taxa_juros_financiamento_anual:11.5,incc_projetado_anual:5.5,valor_m2_referencia:8500,rentabilidade_aluguel_anual:.5,casas_decimais_taxas:2};
+const siteDefaults:SiteConfig={idioma_padrao:"pt-BR",idiomas_ativos:["pt-BR","en-US","es"],moeda_pt:"BRL",moeda_en:"USD",moeda_es:"USD",cambio_automatico:true,tipo_ptax:"venda",margem_cambio_percentual:0,cotacao_manual:null};
+const emptyPage:SitePage={titulo:"",caminho:"/",ativa:true,exige_login:false,protecao_obrigatoria:false,ordem:0,categoria:"site",idiomas:["pt-BR","en-US","es"]};
+const fieldStyle={width:"100%",boxSizing:"border-box" as const,background:"#101012",border:"1px solid #34343a",color:"#fff",padding:"10px",borderRadius:6};
+const cardStyle={background:"#0d0d0f",border:"1px solid #242428",borderRadius:9,padding:18};
+
+export default function Configuracoes(){
+ const[tab,setTab]=useState<Tab>("financeiro"),[business,setBusiness]=useState(businessDefaults),[site,setSite]=useState(siteDefaults),[pages,setPages]=useState<SitePage[]>([]),[draft,setDraft]=useState(emptyPage),[quote,setQuote]=useState<Quote>({cotacao:null,data_cotacao:null,manual:false});
+ const[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[feedback,setFeedback]=useState<Feedback>(null);
+ const load=useCallback(async()=>{setLoading(true);const[b,s,p,q]=await Promise.all([supabase.from("configuracoes").select("*").eq("id",1).maybeSingle(),supabase.from("site_configuracoes").select("*").eq("id",1).maybeSingle(),supabase.from("site_paginas").select("*").order("ordem"),supabase.from("cotacao_usd_brl_atual").select("*").maybeSingle()]);if(b.data)setBusiness({...businessDefaults,...b.data});if(s.data)setSite({...siteDefaults,...s.data});if(p.data)setPages(p.data as SitePage[]);if(q.data)setQuote(q.data as Quote);const error=b.error||s.error||p.error;if(error)setFeedback({type:"error",msg:`Configuração incompleta no Supabase: ${error.message}`});setLoading(false)},[]);
+ // eslint-disable-next-line react-hooks/set-state-in-effect
+ useEffect(()=>{void load()},[load]);
+ const validNumber=(value:number,min=0,max=100)=>Number.isFinite(value)&&value>=min&&value<=max;
+ const saveBusiness=async()=>{if(!Object.entries(business).every(([key,value])=>key==="valor_m2_referencia"?validNumber(value,0,1000000):key==="casas_decimais_taxas"?validNumber(value,0,6):validNumber(value)))return setFeedback({type:"error",msg:"Revise os valores: taxas devem ficar entre 0 e 100."});setSaving(true);const{error}=await supabase.from("configuracoes").upsert({id:1,...business,moeda_padrao:"BRL",updated_at:new Date().toISOString()});setSaving(false);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Parâmetros salvos."})};
+ const saveSite=async()=>{if(!site.idiomas_ativos.includes(site.idioma_padrao))return setFeedback({type:"error",msg:"O idioma padrão precisa estar ativo."});if(site.cotacao_manual!==null&&site.cotacao_manual<=0)return setFeedback({type:"error",msg:"A cotação manual deve ser positiva."});setSaving(true);const{error}=await supabase.from("site_configuracoes").upsert({id:1,...site,updated_at:new Date().toISOString()});setSaving(false);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Preferências do site salvas."});if(!error)void load()};
+ const normalizePath=(value:string)=>{const clean=`/${value.trim().replace(/^\/+|\/+$/g,"")}`;return clean==="/"?"/":`${clean}/`};
+ const savePage=async(page:SitePage)=>{if(!page.titulo.trim())return setFeedback({type:"error",msg:"Informe o título da página."});const payload={...page,titulo:page.titulo.trim(),caminho:normalizePath(page.caminho),exige_login:page.protecao_obrigatoria||page.exige_login,updated_at:new Date().toISOString()};const{error}=page.id?await supabase.from("site_paginas").update(payload).eq("id",page.id):await supabase.from("site_paginas").insert(payload);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Página salva."});if(!error){setDraft(emptyPage);void load()}};
+ const removePage=async(page:SitePage)=>{if(page.protecao_obrigatoria)return setFeedback({type:"error",msg:"Esta página possui proteção obrigatória."});if(!page.id||!confirm(`Excluir ${page.titulo}?`))return;const{error}=await supabase.from("site_paginas").delete().eq("id",page.id);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Página excluída."});if(!error)void load()};
+ const refreshPtax=async()=>{setSaving(true);const{error}=await supabase.functions.invoke("atualizar-ptax");setSaving(false);setFeedback(error?{type:"error",msg:`A atualização automática ainda não está publicada no Supabase. Informe a cotação manual abaixo.` }:{type:"success",msg:"Cotação do dólar atualizada."});if(!error)void load()};
+ const toggleLocale=(locale:string)=>setSite(old=>({...old,idiomas_ativos:old.idiomas_ativos.includes(locale)?old.idiomas_ativos.filter(x=>x!==locale):[...old.idiomas_ativos,locale]}));
+ const numberField=(label:string,key:keyof BusinessConfig,step="0.1")=><label style={{color:"#aaa"}}>{label}<input style={{...fieldStyle,marginTop:6}} type="number" min="0" step={step} value={business[key]} onChange={e=>setBusiness({...business,[key]:Number(e.target.value)})}/></label>;
+ const tabs:[Tab,string,typeof Settings][]=[["financeiro","Financeiro",Coins],["imobiliario","Imobiliário",Building2],["idiomas","Idiomas e moedas",Globe2],["cambio","Cotação do dólar",RefreshCw],["paginas","Páginas e acesso",Shield]];
+ return <div style={{color:"#eee",display:"grid",gap:16}}><header style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><h1 style={{margin:0,display:"flex",gap:8,alignItems:"center"}}><Settings color="#c5a059"/>Configurações</h1><p style={{color:"#85858d",marginTop:5}}>Parâmetros centrais da plataforma e do site público.</p></div><button onClick={()=>void load()} disabled={loading} style={{padding:9}}><RefreshCw size={16}/></button></header>
+ {feedback&&<div style={{padding:12,borderRadius:7,border:`1px solid ${feedback.type==="success"?"#166534":"#991b1b"}`,color:feedback.type==="success"?"#4ade80":"#f87171",display:"flex",gap:8}}>{feedback.type==="success"?<CheckCircle2 size={18}/>:<AlertCircle size={18}/>} {feedback.msg}</div>}
+ <nav style={{display:"flex",gap:4,overflowX:"auto",borderBottom:"1px solid #27272a"}}>{tabs.map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} style={{background:"transparent",border:0,borderBottom:tab===id?"2px solid #c5a059":"2px solid transparent",color:tab===id?"#d7ab63":"#999",padding:"11px 14px",display:"flex",gap:7,whiteSpace:"nowrap",cursor:"pointer"}}><Icon size={16}/>{label}</button>)}</nav>
+ {loading?<div style={cardStyle}>Carregando configurações...</div>:<>
+ {tab==="financeiro"&&<section style={cardStyle}><h2>Consórcio e financiamento</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:16}}>{numberField("Taxa de administração padrão (%)","taxa_administracao_padrao")}{numberField("Fundo de reserva padrão (%)","fundo_reserva_padrao")}{numberField("Juros de financiamento anual (%)","taxa_juros_financiamento_anual")}{numberField("INCC projetado anual (%)","incc_projetado_anual")}</div><SaveButton busy={saving} onClick={saveBusiness}/></section>}
+ {tab==="imobiliario"&&<section style={cardStyle}><h2>Parâmetros imobiliários</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:16}}>{numberField("Valor médio do m² de referência (BRL)","valor_m2_referencia","100")}{numberField("Rentabilidade estimada do aluguel (% ao mês)","rentabilidade_aluguel_anual","0.05")}{numberField("Casas decimais para taxas","casas_decimais_taxas","1")}</div><SaveButton busy={saving} onClick={saveBusiness}/></section>}
+ {tab==="idiomas"&&<section style={cardStyle}><h2>Idiomas e moedas</h2><div style={{display:"grid",gap:18,maxWidth:620}}><label>Idioma padrão<select style={{...fieldStyle,marginTop:6}} value={site.idioma_padrao} onChange={e=>setSite({...site,idioma_padrao:e.target.value as SiteConfig["idioma_padrao"]})}><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (USA)</option><option value="es">Español</option></select></label><div><strong>Idiomas ativos</strong><div style={{display:"flex",gap:18,marginTop:10}}>{[["pt-BR","Português"],["en-US","Inglês"],["es","Espanhol"]].map(([id,label])=><label key={id}><input type="checkbox" checked={site.idiomas_ativos.includes(id)} onChange={()=>toggleLocale(id)}/> {label}</label>)}</div></div><div style={{padding:12,background:"#151518",borderRadius:7}}>Português: <strong>BRL (R$)</strong> · Inglês: <strong>USD ($)</strong> · Espanhol: <strong>USD ($)</strong></div></div><SaveButton busy={saving} onClick={saveSite}/></section>}
+ {tab==="cambio"&&<section style={cardStyle}><h2>Cotação do dólar</h2><p style={{color:"#8b8b93"}}>Usada para converter valores para dólar nos idiomas inglês e espanhol. No automático, a plataforma consulta a cotação oficial do Banco Central.</p><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:16}}><div style={{padding:14,background:"#151518",borderRadius:7}}><small style={{color:"#888"}}>Cotação em uso</small><strong style={{display:"block",fontSize:26,color:"#d7ab63",marginTop:5}}>{quote.cotacao?quote.cotacao.toFixed(4):"—"}</strong><small>{quote.manual?"Ajuste manual":"Cotação oficial"} · {quote.data_cotacao||"sem data"}</small></div><label><input type="checkbox" checked={site.cambio_automatico} onChange={e=>setSite({...site,cambio_automatico:e.target.checked})}/> Atualização automática</label><label>Fonte da cotação<select style={{...fieldStyle,marginTop:6}} value={site.tipo_ptax} onChange={e=>setSite({...site,tipo_ptax:e.target.value as SiteConfig["tipo_ptax"]})}><option value="venda">Cotação oficial para conversão</option></select></label><label>Margem cambial (%)<input style={{...fieldStyle,marginTop:6}} type="number" step="0.01" value={site.margem_cambio_percentual} onChange={e=>setSite({...site,margem_cambio_percentual:Number(e.target.value)})}/></label><label>Cotação manual (deixe vazio para usar a oficial)<input style={{...fieldStyle,marginTop:6}} type="number" min="0" step="0.000001" value={site.cotacao_manual??""} onChange={e=>setSite({...site,cotacao_manual:e.target.value?Number(e.target.value):null})}/></label></div><div style={{display:"flex",gap:9,marginTop:18}}><SaveButton busy={saving} onClick={saveSite}/><button onClick={()=>void refreshPtax()} disabled={saving}><RefreshCw size={15}/> Buscar cotação agora</button></div></section>}
+ {tab==="paginas"&&<section style={cardStyle}><h2>Páginas e controle de acesso</h2><div style={{overflowX:"auto"}}><div style={{minWidth:820,display:"grid",gap:8}}>{pages.map((page,index)=><div key={page.id} style={{display:"grid",gridTemplateColumns:"2fr 2fr 70px 90px 90px 80px",gap:8,alignItems:"center"}}><input style={fieldStyle} value={page.titulo} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,titulo:e.target.value}:p))}/><input style={fieldStyle} value={page.caminho} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,caminho:e.target.value}:p))}/><input style={fieldStyle} type="number" value={page.ordem} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,ordem:Number(e.target.value)}:p))}/><label><input type="checkbox" checked={page.ativa} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,ativa:e.target.checked}:p))}/> Ativa</label><label><input type="checkbox" checked={page.exige_login} disabled={page.protecao_obrigatoria} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,exige_login:e.target.checked}:p))}/> Login</label><span><button onClick={()=>void savePage(page)} title="Salvar"><Save size={14}/></button><button onClick={()=>void removePage(page)} disabled={page.protecao_obrigatoria} title="Excluir"><Trash2 size={14}/></button></span></div>)}</div></div><h3>Adicionar página</h3><div style={{display:"grid",gridTemplateColumns:"2fr 2fr 80px auto",gap:8}}><input style={fieldStyle} placeholder="Título" value={draft.titulo} onChange={e=>setDraft({...draft,titulo:e.target.value})}/><input style={fieldStyle} placeholder="/caminho/" value={draft.caminho} onChange={e=>setDraft({...draft,caminho:e.target.value})}/><input style={fieldStyle} type="number" value={draft.ordem} onChange={e=>setDraft({...draft,ordem:Number(e.target.value)})}/><button onClick={()=>void savePage(draft)}><Plus size={15}/>Adicionar</button></div></section>}
+ </>}</div>
 }
 
-export default function Configuracoes() {
-  const [activeTab, setActiveTab] = useState<"geral" | "imobiliario" | "exibicao">("geral");
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-
-  const [form, setForm] = useState<ConfigGerais>({
-    taxa_administracao_padrao: 15.0,
-    fundo_reserva_padrao: 1.0,
-    taxa_juros_financiamento_anual: 11.5,
-    incc_projetado_anual: 5.5,
-    valor_m2_referencia: 8500.0,
-    rentabilidade_aluguel_anual: 0.5,
-    moeda_padrao: "BRL",
-    casas_decimais_taxas: 2
-  });
-
-  useEffect(() => {
-    fetchConfiguracoes();
-  }, []);
-
-  const fetchConfiguracoes = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("configuracoes")
-        .select("*")
-        .maybeSingle();
-
-      if (error) {
-        console.error("Erro ao carregar configurações:", error);
-      } else if (data) {
-        setForm({
-          taxa_administracao_padrao: data.taxa_administracao_padrao ?? 15.0,
-          fundo_reserva_padrao: data.fundo_reserva_padrao ?? 1.0,
-          taxa_juros_financiamento_anual: data.taxa_juros_financiamento_anual ?? 11.5,
-          incc_projetado_anual: data.incc_projetado_anual ?? 5.5,
-          valor_m2_referencia: data.valor_m2_referencia ?? 8500.0,
-          rentabilidade_aluguel_anual: data.rentabilidade_aluguel_anual ?? 0.5,
-          moeda_padrao: data.moeda_padrao ?? "BRL",
-          casas_decimais_taxas: data.casas_decimais_taxas ?? 2
-        });
-      }
-    } catch (err) {
-      console.error("Erro de conexão:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (field: keyof ConfigGerais, val: any) => {
-    setForm((prev) => ({ ...prev, [field]: val }));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setFeedback(null);
-
-    try {
-      const { error } = await supabase
-        .from("configuracoes")
-        .upsert({ id: 1, ...form, updated_at: new Date().toISOString() });
-
-      if (error) throw error;
-
-      setFeedback({ type: "success", msg: "Configurações salvas com sucesso!" });
-    } catch (err: any) {
-      setFeedback({ type: "error", msg: "Erro ao salvar: " + (err.message || "Tente novamente.") });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div style={{ color: "#e4e4e7", fontFamily: "sans-serif", fontSize: "0.85rem", padding: "1.5rem" }}>
-      {/* CABEÇALHO */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem", borderBottom: "1px solid #1f1f23", paddingBottom: "0.8rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.2rem", fontWeight: "600", color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Settings style={{ width: "20px", height: "20px", color: "#c5a059" }} /> Configurações do Sistema
-          </h1>
-          <p style={{ color: "#71717a", fontSize: "0.75rem", margin: "0.2rem 0 0 0" }}>
-            Defina as taxas base, parâmetros imobiliários e preferências que alimentam os comparativos.
-          </p>
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving || loading}
-          style={{
-            backgroundColor: "#c5a059",
-            color: "#000",
-            fontWeight: "bold",
-            padding: "0.5rem 1.1rem",
-            borderRadius: "4px",
-            border: "none",
-            cursor: saving ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            fontSize: "0.8rem"
-          }}
-        >
-          {saving ? <RefreshCw style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} /> : <Save style={{ width: "14px", height: "14px" }} />}
-          Salvar Parâmetros
-        </button>
-      </div>
-
-      {/* FEEDBACK DE SUCESSO/ERRO */}
-      {feedback && (
-        <div
-          style={{
-            padding: "0.6rem 0.8rem",
-            borderRadius: "4px",
-            marginBottom: "1rem",
-            fontSize: "0.8rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            backgroundColor: feedback.type === "success" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
-            border: `1px solid ${feedback.type === "success" ? "#22c55e" : "#ef4444"}`,
-            color: feedback.type === "success" ? "#4ade80" : "#f87171"
-          }}
-        >
-          {feedback.type === "success" ? <CheckCircle2 style={{ width: "16px", height: "16px" }} /> : <AlertCircle style={{ width: "16px", height: "16px" }} />}
-          {feedback.msg}
-        </div>
-      )}
-
-      {/* ABAS */}
-      <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid #1f1f23", marginBottom: "1.2rem" }}>
-        {[
-          { id: "geral", label: "Consórcio & Financiamento", icon: Percent },
-          { id: "imobiliario", label: "Parâmetros Imobiliários", icon: Building2 },
-          { id: "exibicao", label: "Formatação & Exibição", icon: Sliders }
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              style={{
-                backgroundColor: "transparent",
-                color: isActive ? "#c5a059" : "#a1a1aa",
-                border: "none",
-                borderBottom: isActive ? "2px solid #c5a059" : "2px solid transparent",
-                padding: "0.5rem 0.8rem",
-                fontSize: "0.8rem",
-                fontWeight: isActive ? "bold" : "normal",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.35rem"
-              }}
-            >
-              <Icon style={{ width: "14px", height: "14px" }} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* PAINEL DE FORMULÁRIO */}
-      <div style={{ backgroundColor: "#09090b", border: "1px solid #1f1f23", borderRadius: "6px", padding: "1.2rem" }}>
-        {activeTab === "geral" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem" }}>
-            <div>
-              <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.75rem", marginBottom: "0.3rem" }}>Taxa de Administração Padrão (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={form.taxa_administracao_padrao}
-                onChange={(e) => handleChange("taxa_administracao_padrao", parseFloat(e.target.value) || 0)}
-                style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.75rem", marginBottom: "0.3rem" }}>Fundo de Reserva Padrão (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={form.fundo_reserva_padrao}
-                onChange={(e) => handleChange("fundo_reserva_padrao", parseFloat(e.target.value) || 0)}
-                style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.75rem", marginBottom: "0.3rem" }}>Juros Financiamento Anual (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={form.taxa_juros_financiamento_anual}
-                onChange={(e) => handleChange("taxa_juros_financiamento_anual", parseFloat(e.target.value) || 0)}
-                style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.75rem", marginBottom: "0.3rem" }}>INCC Projetado Anual (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={form.incc_projetado_anual}
-                onChange={(e) => handleChange("incc_projetado_anual", parseFloat(e.target.value) || 0)}
-                style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
-              />
-            </div>
-          </div>
-        )}
-
-        {activeTab === "imobiliario" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem" }}>
-            <div>
-              <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.75rem", marginBottom: "0.3rem" }}>Valor Médio m² de Referência (R$)</label>
-              <input
-                type="number"
-                step="100"
-                value={form.valor_m2_referencia}
-                onChange={(e) => handleChange("valor_m2_referencia", parseFloat(e.target.value) || 0)}
-                style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.75rem", marginBottom: "0.3rem" }}>Rentabilidade de Aluguel Estimada (% ao mês)</label>
-              <input
-                type="number"
-                step="0.05"
-                value={form.rentabilidade_aluguel_anual}
-                onChange={(e) => handleChange("rentabilidade_aluguel_anual", parseFloat(e.target.value) || 0)}
-                style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
-              />
-            </div>
-          </div>
-        )}
-
-        {activeTab === "exibicao" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem" }}>
-            <div>
-              <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.75rem", marginBottom: "0.3rem" }}>Moeda Base</label>
-              <select
-                value={form.moeda_padrao}
-                onChange={(e) => handleChange("moeda_padrao", e.target.value)}
-                style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem" }}
-              >
-                <option value="BRL">Real Brasileiro (R$)</option>
-                <option value="USD">Dólar Americano ($)</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.75rem", marginBottom: "0.3rem" }}>Casas Decimais para Taxas</label>
-              <select
-                value={form.casas_decimais_taxas}
-                onChange={(e) => handleChange("casas_decimais_taxas", parseInt(e.target.value, 10))}
-                style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem" }}
-              >
-                <option value={2}>2 Casas Decimais (ex: 15,00%)</option>
-                <option value={3}>3 Casas Decimais (ex: 15,000%)</option>
-                <option value={4}>4 Casas Decimais (ex: 15,0000%)</option>
-              </select>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+function SaveButton({busy,onClick}:{busy:boolean;onClick:()=>void|Promise<void>}){return <button onClick={()=>void onClick()} disabled={busy} style={{marginTop:18,background:"#c5a059",color:"#000",fontWeight:700,padding:"10px 15px",border:0,borderRadius:6}}>{busy?<RefreshCw size={15}/>:<Save size={15}/>} Salvar</button>}

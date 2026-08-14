@@ -17,21 +17,28 @@ async function carregarDadosDoSupabase() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
 
-        // Busca paralela das 3 tabelas no Supabase
-        const [resCidades, resConstrutoras, resEmpreendimentos] = await Promise.all([
+        // Busca os dados da vitrine e as apresentacoes ativas em paralelo.
+        const [resCidades, resConstrutoras, resEmpreendimentos, resApresentacoes] = await Promise.all([
             supabaseClient.from('cidades').select('*'),
             supabaseClient.from('construtoras').select('*'),
-            supabaseClient.from('empreendimentos').select('*')
+            supabaseClient.from('empreendimentos').select('*'),
+            supabaseClient.from('apresentacoes').select('empreendimento_id, ativo, pdf_url, updated_at').eq('ativo', true)
         ]);
 
         if (resCidades.error) console.error('Erro Cidades:', resCidades.error);
         if (resConstrutoras.error) console.error('Erro Construtoras:', resConstrutoras.error);
         if (resEmpreendimentos.error) console.error('Erro Empreendimentos:', resEmpreendimentos.error);
+        if (resApresentacoes.error) console.error('Erro Apresentacoes:', resApresentacoes.error);
 
         CIDADES = resCidades.data || [];
         CONSTRUTORAS = resConstrutoras.data || [];
         
+        const apresentacoesPorEmpreendimento = new Map(
+            (resApresentacoes.data || []).map(item => [item.empreendimento_id, item])
+        );
+
         EMPREENDIMENTOS = (resEmpreendimentos.data || []).map(emp => {
+            const apresentacao = apresentacoesPorEmpreendimento.get(emp.id);
             let tabelaFinal = emp.pdf_tabela_url;
             
             // Verifica se possui múltiplas tabelas (JSONB retornado do Supabase)
@@ -51,7 +58,8 @@ async function carregarDadosDoSupabase() {
                 cidadeId: emp.cidade_id,
                 construtoraId: emp.construtora_id,
                 orientacao: emp.orientacao || 'horizontal',
-                pdfApresentacao: emp.pdf_apresentacao_url,
+                pdfApresentacao: apresentacao?.pdf_url || emp.pdf_apresentacao_url,
+                apresentacaoAtualizadaEm: apresentacao?.updated_at || emp.updated_at,
                 tabelaId: tabelaFinal
             };
         });

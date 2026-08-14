@@ -1,642 +1,1191 @@
-import React, { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { 
-  Building2, 
-  Plus, 
-  Search, 
-  MapPin, 
-  Edit3, 
-  Trash2, 
-  X, 
-  Check, 
-  Building,
-  Filter,
-  Sparkles,
-  TrendingUp,
-  ShieldCheck,
-  CheckSquare,
-  Square,
-  Calendar,
-  Image as ImageIcon
+import { useEffect, useMemo, useState } from "react";
+import {
+  Building2,
+  Edit3,
+  Image as ImageIcon,
+  MapPin,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+  Upload,
+  X,
+  Save,
+  AlertCircle,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
-import { EmpreendimentoImagens } from "./EmpreendimentoImagens";
 
-const DEFAULT_CIDADES = [
-  "Penha - SC", "Balneário Piçarras - SC", "Barra Velha - SC", "Navegantes - SC",
-  "Itajaí - SC", "Balneário Camboriú - SC", "Camboriú - SC", "Itapema - SC",
-  "Porto Belo - SC", "Bombinhas - SC", "Blumenau - SC", "Brusque - SC",
-  "Florianópolis - SC", "São José - SC", "Palhoça - SC", "Joinville - SC",
-  "Araquari - SC", "São Francisco do Sul - SC", "Jaraguá do Sul - SC", "Tijucas - SC"
+import { supabase } from "../../lib/supabase";
+
+type Empreendimento = {
+  id: string;
+  nome?: string | null;
+  titulo?: string | null;
+  slug?: string | null;
+  construtora_id?: string | null;
+  cidade?: string | null;
+  bairro?: string | null;
+  endereco?: string | null;
+  tipo?: string | null;
+  status?: string | null;
+  descricao?: string | null;
+  entrega?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  numero_torres?: number | null;
+  numero_unidades?: number | null;
+  area_minima?: number | null;
+  area_maxima?: number | null;
+  faixa_preco?: number | null;
+  valorizacao_aa?: number | null;
+  quartos_disponiveis?: number[] | null;
+  imagem_url?: string | null;
+  ativo?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type EmpreendimentoImagem = {
+  id: string;
+  empreendimento_id: string;
+  url: string;
+  ordem?: number;
+  created_at?: string;
+};
+
+type FormData = {
+  nome: string;
+  construtora_id: string;
+  cidade: string;
+  bairro: string;
+  endereco: string;
+  tipo: string;
+  status: string;
+  entrega: string;
+  numero_torres: string;
+  numero_unidades: string;
+  area_minima: string;
+  area_maxima: string;
+  faixa_preco: string;
+  valorizacao_aa: string;
+  quartos_disponiveis: string;
+  descricao: string;
+  imagem_url: string;
+  ativo: boolean;
+};
+
+const STATUS_OPTIONS = [
+  "Todos",
+  "Lançamento",
+  "Em obras",
+  "Pronto",
+  "Entregue",
+  "Esgotado",
 ];
 
-const OPCOES_LAZER_PADRAO = [
-  "Piscina Adulto", "Piscina Infantil", "Piscina Aquecida", "Piscina Coberta com Raia", 
-  "Raia Semi-Olímpica", "Deck Molhado", "Bar Molhado", "Rooftop 360º", "SPA / Jacuzzi",
-  "Academia Fit / Fitness Center", "Crossfit Zone", "Pilates", "Sauna Seca", "Sauna Úmida", 
-  "Espaço Massagem", "Quadra de Tênis", "Quadra Poliesportiva", "Quadra de Beach Tennis",
-  "Espaço Gourmet", "Salão de Festas", "Churrasqueira Coletiva", "Fire Place (Praça do Fogo)", 
-  "Pub / Bar Temático", "Adega Compartilhada", "Coworking / Sala de Reunião", 
-  "Lavanderia OMO / Compartilhada", "Pet Place / Pet Care", "Mini Market 24h", "Car Wash", 
-  "Carregador para Carro Elétrico", "Bicicletário / Oficina", "Brinquedoteca", 
-  "Playground Outdoor", "Game Room / Salão de Jogos", "Cinema / Cine Lounge"
-];
+const EMPTY_FORM: FormData = {
+  nome: "",
+  construtora_id: "",
+  cidade: "",
+  bairro: "",
+  endereco: "",
+  tipo: "",
+  status: "Lançamento",
+  entrega: "",
+  numero_torres: "",
+  numero_unidades: "",
+  area_minima: "",
+  area_maxima: "",
+  faixa_preco: "",
+  valorizacao_aa: "",
+  quartos_disponiveis: "",
+  descricao: "",
+  imagem_url: "",
+  ativo: true,
+};
 
-export const EmpreendimentosModule: React.FC = () => {
-  const [empreendimentos, setEmpreendimentos] = useState<any[]>([]);
-  const [construtoras, setConstrutoras] = useState<any[]>([]);
-  const [cidadesList, setCidadesList] = useState<string[]>(DEFAULT_CIDADES);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCidadeFilter, setSelectedCidadeFilter] = useState("");
+function normalize(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any | null>(null);
+function formatCurrency(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "—";
+  }
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
-  const [formNome, setFormNome] = useState("");
-  const [formConstrutoraId, setFormConstrutoraId] = useState("");
-  const [formCidade, setFormCidade] = useState("");
-  const [formBairro, setFormBairro] = useState("");
-  const [formSku, setFormSku] = useState("");
-  const [skuManual, setSkuManual] = useState(false);
-  const [formImagemUrl, setFormImagemUrl] = useState("");
+function getStatusClass(status?: string | null) {
+  const value = normalize(status);
+  if (value.includes("pronto") || value.includes("entregue")) return "ready";
+  if (value.includes("obra")) return "construction";
+  if (value.includes("esgotado")) return "sold";
+  return "launch";
+}
 
-  const [formDataEntrega, setFormDataEntrega] = useState("");
-  const [formAreaLazerM2, setFormAreaLazerM2] = useState("");
-  const [formValorizacaoAa, setFormValorizacaoAa] = useState("12");
-  const [lazerSelecionado, setLazerSelecionado] = useState<string[]>([]);
-  const [listaLazerCustom, setListaLazerCustom] = useState<string[]>(OPCOES_LAZER_PADRAO);
-  const [novoItemLazer, setNovoItemLazer] = useState("");
+export default function Empreendimentos() {
+  const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
+  const [construtoras, setConstrutoras] = useState<
+    { id: string; nome?: string | null; name?: string | null }[]
+  >([]);
 
-  const [indicePre, setIndicePre] = useState("CUB");
-  const [indicePos, setIndicePos] = useState("IPCA");
-  const [jurosPos, setJurosPos] = useState("1.0");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [tipoFilter, setTipoFilter] = useState("Todos");
+  const [ativoFilter, setAtivoFilter] = useState("Todos");
 
-  const [isAddingNewCity, setIsAddingNewCity] = useState(false);
-  const [newCityInput, setNewCityInput] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Empreendimento | null>(null);
+  const [form, setForm] = useState<FormData>(EMPTY_FORM);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [selectedForImages, setSelectedForImages] = useState<Empreendimento | null>(null);
+  const [imagensGaleria, setImagensGaleria] = useState<EmpreendimentoImagem[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
-  useEffect(() => {
-    if (!skuManual && formNome && !editingItem) {
-      const nomeClean = formNome.replace(/[^a-zA-Z0-9]/g, "").substring(0, 4).toUpperCase();
-      const cidadeClean = formCidade ? formCidade.replace(/[^a-zA-Z0-9]/g, "").substring(0, 3).toUpperCase() : "EMP";
-      const randomDigit = Math.floor(100 + Math.random() * 900);
-      setFormSku(`EMP-${nomeClean}-${cidadeClean}-${randomDigit}`);
-    }
-  }, [formNome, formCidade, skuManual, editingItem]);
+  const [galeriasMap, setGaleriasMap] = useState<Record<string, string[]>>({});
+  const [activeImageIndexes, setActiveImageIndexes] = useState<Record<string, number>>({});
 
-  const fetchData = async () => {
-    setLoading(true);
-    const { data: empData, error } = await supabase
-      .from("empreendimentos")
-      .select("*, construtoras(id, nome)")
-      .order("nome");
-
-    if (error) console.error("Erro ao buscar empreendimentos:", error);
-
-    const { data: constData } = await supabase.from("construtoras").select("id, nome").order("nome");
-
-    if (empData) setEmpreendimentos(empData);
-    if (constData) setConstrutoras(constData);
-
-    if (empData) {
-      const cidadesExistentes = empData
-        .map((e) => e.cidade)
-        .filter((c): c is string => Boolean(c));
-      
-      const setUnico = new Set([...DEFAULT_CIDADES, ...cidadesExistentes]);
-      setCidadesList(Array.from(setUnico).sort());
-    }
-
-    setLoading(false);
-  };
-
-  const handleOpenModal = (item?: any) => {
-    setIsAddingNewCity(false);
-    setNewCityInput("");
-    setSkuManual(false);
-
-    if (item) {
-      setEditingItem(item);
-      setFormNome(item.nome || "");
-      setFormConstrutoraId(item.construtora_id || "");
-      setFormCidade(item.cidade || "");
-      setFormBairro(item.bairro || "");
-      setFormSku(item.sku || "");
-      setFormImagemUrl(item.imagem_url || "");
-      setFormDataEntrega(item.data_entrega || "");
-      setFormAreaLazerM2(item.area_lazer_m2 ? String(item.area_lazer_m2) : "");
-      setFormValorizacaoAa(item.valorizacao_aa ? String(item.valorizacao_aa) : "12");
-      setLazerSelecionado(Array.isArray(item.lazer) ? item.lazer : []);
-      
-      const regras = item.regras_correcao || {};
-      setIndicePre(regras.indice_pre_chaves || "CUB");
-      setIndicePos(regras.indice_pos_chaves || "IPCA");
-      setJurosPos(regras.juros_pos_chaves_am || "1.0");
-    } else {
-      setEditingItem(null);
-      setFormNome("");
-      setFormConstrutoraId("");
-      setFormCidade("");
-      setFormBairro("");
-      setFormSku("");
-      setFormImagemUrl("");
-      setFormDataEntrega("");
-      setFormAreaLazerM2("");
-      setFormValorizacaoAa("12");
-      setLazerSelecionado([]);
-      setIndicePre("CUB");
-      setIndicePos("IPCA");
-      setJurosPos("1.0");
-    }
-    setIsModalOpen(true);
-  };
-
-  const toggleLazer = (item: string) => {
-    if (lazerSelecionado.includes(item)) {
-      setLazerSelecionado(lazerSelecionado.filter((i) => i !== item));
-    } else {
-      setLazerSelecionado([...lazerSelecionado, item]);
-    }
-  };
-
-  const handleAddCustomLazer = () => {
-    if (!novoItemLazer.trim()) return;
-    const itemFormatted = novoItemLazer.trim();
-    if (!listaLazerCustom.includes(itemFormatted)) {
-      setListaLazerCustom([...listaLazerCustom, itemFormatted]);
-    }
-    if (!lazerSelecionado.includes(itemFormatted)) {
-      setLazerSelecionado([...lazerSelecionado, itemFormatted]);
-    }
-    setNovoItemLazer("");
-  };
-
-  const handleAddNewCity = () => {
-    if (!newCityInput.trim()) return;
-    const cidadeFormatada = newCityInput.trim();
-
-    if (!cidadesList.includes(cidadeFormatada)) {
-      const novaLista = [...cidadesList, cidadeFormatada].sort();
-      setCidadesList(novaLista);
-    }
-
-    setFormCidade(cidadeFormatada);
-    setNewCityInput("");
-    setIsAddingNewCity(false);
-  };
-
-  const handleSave = async () => {
-    if (!formNome.trim() || !formConstrutoraId) {
-      alert("Preencha o Nome e selecione a Construtora.");
-      return;
-    }
-
-    setLoading(true);
-
-    const payload = {
-      nome: formNome.trim(),
-      construtora_id: formConstrutoraId,
-      cidade: formCidade || null,
-      bairro: formBairro || null,
-      sku: formSku.trim() || null,
-      imagem_url: formImagemUrl.trim() || null,
-      data_entrega: formDataEntrega || null,
-      area_lazer_m2: formAreaLazerM2 ? Number(formAreaLazerM2) : null,
-      valorizacao_aa: formValorizacaoAa ? Number(formValorizacaoAa) : null,
-      lazer: lazerSelecionado,
-      regras_correcao: {
-        indice_pre_chaves: indicePre,
-        indice_pos_chaves: indicePos,
-        juros_pos_chaves_am: jurosPos
+  async function ensureBucketExists() {
+    try {
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const exists = buckets?.some((b) => b.name === "empreendimentos");
+      if (!exists) {
+        await supabase.storage.createBucket("empreendimentos", {
+          public: true,
+        });
       }
-    };
+    } catch (e) {}
+  }
+
+  async function loadData() {
+    setLoading(true);
+    setError("");
 
     try {
-      let result;
-      if (editingItem) {
-        result = await supabase
-          .from("empreendimentos")
-          .update(payload)
-          .eq("id", editingItem.id)
-          .select();
-      } else {
-        result = await supabase
-          .from("empreendimentos")
-          .insert([payload])
-          .select();
-      }
+      await ensureBucketExists();
 
-      if (result.error) {
-        console.error("Erro no Supabase ao salvar:", result.error);
-        alert(`Erro ao salvar no banco: ${result.error.message}`);
-      } else {
-        setIsModalOpen(false);
-        await fetchData();
-      }
+      const [empRes, constRes, imgRes] = await Promise.all([
+        supabase
+          .from("empreendimentos")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("construtoras")
+          .select("id, nome")
+          .order("nome", { ascending: true }),
+        supabase
+          .from("empreendimento_imagens")
+          .select("*")
+      ]);
+
+      if (empRes.error) throw empRes.error;
+
+      const listaEmps = (empRes.data || []) as Empreendimento[];
+      const todasImagens = (imgRes.data || []) as EmpreendimentoImagem[];
+
+      const map: Record<string, string[]> = {};
+      listaEmps.forEach((emp) => {
+        const imgsDoEmp = todasImagens
+          .filter((img) => img.empreendimento_id === emp.id)
+          .map((img) => img.url);
+
+        const listaFinal = [...imgsDoEmp];
+        if (emp.imagem_url && !listaFinal.includes(emp.imagem_url)) {
+          listaFinal.unshift(emp.imagem_url);
+        } else if (listaFinal.length === 0 && emp.imagem_url) {
+          listaFinal.push(emp.imagem_url);
+        }
+
+        map[emp.id] = listaFinal;
+      });
+
+      setGaleriasMap(map);
+      setEmpreendimentos(listaEmps);
+      setConstrutoras((constRes.data || []) as any[]);
     } catch (err: any) {
-      console.error("Exceção não tratada ao salvar:", err);
-      alert(`Erro inesperado: ${err.message || err}`);
+      console.error(err);
+      setError(err?.message || "Não foi possível carregar os empreendimentos.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleDelete = async (id: string, nome: string) => {
-    if (confirm(`Excluir o empreendimento "${nome}"?`)) {
-      const { error } = await supabase.from("empreendimentos").delete().eq("id", id);
-      if (error) {
-        alert("Erro ao excluir: " + error.message);
-      } else {
-        fetchData();
-      }
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const tiposDisponiveis = useMemo(() => {
+    const tiposSet = new Set<string>();
+    empreendimentos.forEach((item) => {
+      if (item.tipo) tiposSet.add(item.tipo.trim());
+    });
+    return ["Todos", ...Array.from(tiposSet)];
+  }, [empreendimentos]);
+
+  const filtered = useMemo(() => {
+    const term = normalize(search);
+    return empreendimentos.filter((item) => {
+      const matchesSearch =
+        !term ||
+        normalize(item.nome).includes(term) ||
+        normalize(item.titulo).includes(term) ||
+        normalize(item.cidade).includes(term) ||
+        normalize(item.bairro).includes(term) ||
+        normalize(item.endereco).includes(term);
+
+      const matchesStatus =
+        statusFilter === "Todos" ||
+        normalize(item.status) === normalize(statusFilter);
+
+      const matchesTipo =
+        tipoFilter === "Todos" ||
+        normalize(item.tipo) === normalize(tipoFilter);
+
+      const matchesAtivo =
+        ativoFilter === "Todos" ||
+        (ativoFilter === "Ativos" && item.ativo !== false) ||
+        (ativoFilter === "Inativos" && item.ativo === false);
+
+      return matchesSearch && matchesStatus && matchesTipo && matchesAtivo;
+    });
+  }, [empreendimentos, search, statusFilter, tipoFilter, ativoFilter]);
+
+  function getConstrutoraName(id?: string | null) {
+    if (!id) return "Construtora não definida";
+    const construtora = construtoras.find((item) => item.id === id);
+    return construtora?.nome || construtora?.name || "Construtora não definida";
+  }
+
+  function openNew() {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setModalOpen(true);
+  }
+
+  function openEdit(item: Empreendimento) {
+    setEditing(item);
+    setForm({
+      nome: item.nome || item.titulo || "",
+      construtora_id: item.construtora_id || "",
+      cidade: item.cidade || "",
+      bairro: item.bairro || "",
+      endereco: item.endereco || "",
+      tipo: item.tipo || "",
+      status: item.status || "Lançamento",
+      entrega: item.entrega || "",
+      numero_torres: item.numero_torres != null ? String(item.numero_torres) : "",
+      numero_unidades: item.numero_unidades != null ? String(item.numero_unidades) : "",
+      area_minima: item.area_minima != null ? String(item.area_minima) : "",
+      area_maxima: item.area_maxima != null ? String(item.area_maxima) : "",
+      faixa_preco: item.faixa_preco != null ? String(item.faixa_preco) : "",
+      valorizacao_aa: item.valorizacao_aa != null ? String(item.valorizacao_aa) : "",
+      quartos_disponiveis: Array.isArray(item.quartos_disponiveis) ? item.quartos_disponiveis.join(", ") : "",
+      descricao: item.descricao || "",
+      imagem_url: item.imagem_url || "",
+      ativo: item.ativo ?? true,
+    });
+    setModalOpen(true);
+  }
+
+  function updateField<K extends keyof FormData>(field: K, value: FormData[K]) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function toggleAtivoRapido(item: Empreendimento, e: React.MouseEvent) {
+    e.stopPropagation();
+    const novoStatus = !(item.ativo ?? true);
+    
+    setEmpreendimentos((current) =>
+      current.map((emp) => (emp.id === item.id ? { ...emp, ativo: novoStatus } : emp))
+    );
+
+    try {
+      const { error } = await supabase
+        .from("empreendimentos")
+        .update({ ativo: novoStatus })
+        .eq("id", item.id);
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error(err);
+      setEmpreendimentos((current) =>
+        current.map((emp) => (emp.id === item.id ? { ...emp, ativo: !novoStatus } : emp))
+      );
+      setError("Não foi possível alterar o status de ativação.");
     }
-  };
+  }
 
-  const filteredEmpreendimentos = empreendimentos.filter((emp) => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch =
-      emp.nome?.toLowerCase().includes(term) ||
-      emp.cidade?.toLowerCase().includes(term) ||
-      emp.construtoras?.nome?.toLowerCase().includes(term) ||
-      emp.sku?.toLowerCase().includes(term);
+  async function save() {
+    if (!form.nome.trim()) {
+      setError("Informe o nome do empreendimento.");
+      return;
+    }
 
-    const matchesCity = selectedCidadeFilter ? emp.cidade === selectedCidadeFilter : true;
+    setSaving(true);
+    setError("");
 
-    return matchesSearch && matchesCity;
-  });
+    try {
+      const payload: Record<string, any> = {
+        nome: form.nome.trim(),
+        construtora_id: form.construtora_id || null,
+        cidade: form.cidade.trim() || null,
+        bairro: form.bairro.trim() || null,
+        endereco: form.endereco.trim() || null,
+        tipo: form.tipo.trim() || null,
+        status: form.status || null,
+        entrega: form.entrega.trim() || null,
+        descricao: form.descricao.trim() || null,
+        imagem_url: form.imagem_url.trim() || null,
+        ativo: form.ativo,
+      };
+
+      if (form.numero_torres) payload.numero_torres = Number(form.numero_torres);
+      if (form.numero_unidades) payload.numero_unidades = Number(form.numero_unidades);
+      if (form.area_minima) payload.area_minima = Number(form.area_minima);
+      if (form.area_maxima) payload.area_maxima = Number(form.area_maxima);
+      if (form.faixa_preco) payload.faixa_preco = Number(form.faixa_preco.replace(/\D/g, ""));
+      payload.valorizacao_aa = form.valorizacao_aa === "" ? null : Number(form.valorizacao_aa.replace(",", "."));
+      payload.quartos_disponiveis = form.quartos_disponiveis
+        .split(",")
+        .map((value) => Number(value.trim()))
+        .filter((value, index, list) => Number.isInteger(value) && value >= 0 && list.indexOf(value) === index)
+        .sort((a, b) => a - b);
+
+      if (editing) {
+        const { data, error } = await supabase
+          .from("empreendimentos")
+          .update(payload)
+          .eq("id", editing.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setEmpreendimentos((current) =>
+          current.map((item) => (item.id === editing.id ? (data as Empreendimento) : item))
+        );
+      } else {
+        const { data, error } = await supabase
+          .from("empreendimentos")
+          .insert(payload)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setEmpreendimentos((current) => [data as Empreendimento, ...current]);
+      }
+
+      setModalOpen(false);
+      setEditing(null);
+      setForm(EMPTY_FORM);
+      loadData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Não foi possível salvar o empreendimento.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove(item: Empreendimento) {
+    const confirmed = window.confirm(
+      `Excluir "${item.nome || item.titulo}"?\n\nEssa ação pode falhar caso existam registros vinculados.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setError("");
+      const { error } = await supabase.from("empreendimentos").delete().eq("id", item.id);
+      if (error) throw error;
+      setEmpreendimentos((current) => current.filter((entry) => entry.id !== item.id));
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Não foi possível excluir este empreendimento.");
+    }
+  }
+
+  async function openImages(item: Empreendimento) {
+    setSelectedForImages(item);
+    setImageModalOpen(true);
+    await carregarImagensGaleria(item.id);
+  }
+
+  async function carregarImagensGaleria(empreendimentoId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("empreendimento_imagens")
+        .select("*")
+        .eq("empreendimento_id", empreendimentoId)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setImagensGaleria(data as EmpreendimentoImagem[]);
+      } else {
+        setImagensGaleria([]);
+      }
+    } catch {
+      setImagensGaleria([]);
+    }
+  }
+
+  async function handleUploadMultiplo(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selectedForImages) return;
+
+    setUploadingImages(true);
+    setError("");
+
+    try {
+      await ensureBucketExists();
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const filePath = `${selectedForImages.id}/${Date.now()}-${i}-${cleanName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("empreendimentos")
+          .upload(filePath, file, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from("empreendimentos")
+          .getPublicUrl(filePath);
+
+        const urlFinal = publicUrlData?.publicUrl || "";
+
+        if (urlFinal) {
+          try {
+            await supabase.from("empreendimento_imagens").insert({
+              empreendimento_id: selectedForImages.id,
+              url: urlFinal,
+            });
+          } catch {}
+
+          if (!selectedForImages.imagem_url && i === 0) {
+            await definirComoCapa(urlFinal, false);
+          }
+        }
+      }
+
+      await carregarImagensGaleria(selectedForImages.id);
+      loadData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Erro ao fazer upload das imagens.");
+    } finally {
+      setUploadingImages(false);
+      e.target.value = "";
+    }
+  }
+
+  async function definirComoCapa(url: string, recarregar = true) {
+    if (!selectedForImages) return;
+
+    try {
+      const { error } = await supabase
+        .from("empreendimentos")
+        .update({ imagem_url: url })
+        .eq("id", selectedForImages.id);
+
+      if (error) throw error;
+
+      setSelectedForImages((prev) => (prev ? { ...prev, imagem_url: url } : prev));
+      setEmpreendimentos((current) =>
+        current.map((item) => (item.id === selectedForImages.id ? { ...item, imagem_url: url } : item))
+      );
+
+      loadData();
+      if (recarregar) alert("Imagem definida como capa com sucesso!");
+    } catch (err: any) {
+      console.error(err);
+      setError("Erro ao definir capa.");
+    }
+  }
+
+  async function excluirImagemGaleria(imgId: string, url: string) {
+    if (!window.confirm("Deseja remover esta imagem da galeria?")) return;
+
+    try {
+      await supabase.from("empreendimento_imagens").delete().eq("id", imgId);
+      setImagensGaleria((current) => current.filter((img) => img.id !== imgId));
+
+      if (selectedForImages?.imagem_url === url) {
+        await definirComoCapa("", false);
+      }
+      loadData();
+    } catch (err: any) {
+      console.error(err);
+      setError("Não foi possível excluir a imagem.");
+    }
+  }
+
+  function nextImage(id: string, total: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    setActiveImageIndexes((prev) => {
+      const current = prev[id] || 0;
+      const nextIndex = (current + 1) % total;
+      return { ...prev, [id]: nextIndex };
+    });
+  }
+
+  function prevImage(id: string, total: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    setActiveImageIndexes((prev) => {
+      const current = prev[id] || 0;
+      const prevIndex = (current - 1 + total) % total;
+      return { ...prev, [id]: prevIndex };
+    });
+  }
 
   return (
-    <div style={{ color: "#e4e4e7", fontFamily: "sans-serif", fontSize: "0.85rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderBottom: "1px solid #222", paddingBottom: "0.75rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.1rem", fontWeight: "600", color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Building2 style={{ width: "18px", height: "18px", color: "#c5a059" }} /> Empreendimentos
-            <span style={{ fontSize: "0.7rem", backgroundColor: "#1f1f23", color: "#c5a059", border: "1px solid #27272a", padding: "0.1rem 0.4rem", borderRadius: "10px", marginLeft: "0.5rem" }}>
-              {filteredEmpreendimentos.length} cadastrados
-            </span>
-          </h1>
-        </div>
+    <div className="empreendimentos-page">
+      <style>{`
+        .empreendimentos-page { min-height: calc(100vh - 48px); padding: 28px clamp(16px, 3vw, 36px) 48px; color: #f4f4f5; background: #09090b; box-sizing: border-box; }
+        .emp-shell { width: 100%; max-width: 1500px; margin: 0 auto; }
+        .emp-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 24px; }
+        .emp-kicker { color: #c5a059; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 7px; }
+        .emp-title { margin: 0; font-size: clamp(26px, 3vw, 38px); line-height: 1; font-weight: 700; letter-spacing: -.04em; }
+        .emp-subtitle { margin: 9px 0 0; color: #71717a; font-size: 13px; }
+        .emp-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 15px; border: 1px solid #d4aa5d; border-radius: 7px; background: #c5a059; color: #09090b; font-weight: 800; font-size: 12px; cursor: pointer; transition: .18s ease; white-space: nowrap; }
+        .emp-primary:hover { background: #d5b06a; transform: translateY(-1px); }
+        
+        .emp-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) repeat(3, 160px) auto; gap: 10px; padding: 12px; background: #101012; border: 1px solid #242428; border-radius: 10px; margin-bottom: 18px; }
+        .emp-search { position: relative; }
+        .emp-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #71717a; width: 16px; height: 16px; }
+        .emp-input, .emp-select { width: 100%; height: 40px; box-sizing: border-box; border: 1px solid #29292e; border-radius: 6px; outline: none; background: #09090b; color: #e4e4e7; padding: 0 12px; font-size: 12px; transition: border-color .18s ease; }
+        .emp-search .emp-input { padding-left: 38px; }
+        .emp-input:focus, .emp-select:focus, .emp-textarea:focus { border-color: #c5a059; }
+        .emp-refresh { height: 40px; width: 40px; display: grid; place-items: center; border: 1px solid #29292e; border-radius: 6px; background: #09090b; color: #a1a1aa; cursor: pointer; }
+        .emp-refresh:hover { color: #c5a059; border-color: #c5a059; }
+        
+        .emp-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 22px; }
+        .emp-stat { min-height: 72px; padding: 14px; box-sizing: border-box; border: 1px solid #202024; border-radius: 8px; background: #0f0f11; }
+        .emp-stat-label { color: #71717a; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+        .emp-stat-value { margin-top: 7px; font-size: 20px; font-weight: 700; color: #f4f4f5; }
+        .emp-stat-value.gold { color: #c5a059; }
+        
+        .emp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .emp-card { overflow: hidden; background: #101012; border: 1px solid #242428; border-radius: 10px; transition: border-color .18s ease, transform .18s ease; opacity: 1; }
+        .emp-card.inactive { opacity: 0.6; border-color: #1f1f23; }
+        .emp-card:hover { border-color: #4a4030; transform: translateY(-2px); }
+        
+        .emp-cover { position: relative; height: 195px; background: #151518; overflow: hidden; }
+        .emp-cover img { width: 100%; height: 100%; display: block; object-fit: cover; }
+        .emp-cover-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #52525b; gap: 8px; font-size: 11px; }
+        .emp-status { position: absolute; top: 10px; left: 10px; padding: 5px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; backdrop-filter: blur(10px); z-index: 2; }
+        .emp-status.launch { color: #e5c47c; background: rgba(60, 47, 25, .9); border: 1px solid rgba(197,160,89,.35); }
+        .emp-status.construction { color: #d4d4d8; background: rgba(39,39,42,.92); border: 1px solid #3f3f46; }
+        .emp-status.ready { color: #86efac; background: rgba(20,60,38,.9); border: 1px solid rgba(34,197,94,.25); }
+        .emp-status.sold { color: #fca5a5; background: rgba(70,25,25,.9); border: 1px solid rgba(239,68,68,.25); }
+        
+        .emp-image-action { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 9px; border: 1px solid rgba(255,255,255,.15); border-radius: 5px; background: rgba(9,9,11,.88); color: #e4e4e7; cursor: pointer; font-size: 10px; font-weight: 700; z-index: 2; }
+        .emp-image-action:hover { color: #c5a059; border-color: #c5a059; }
+        
+        .emp-slider-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(9,9,11,.75); color: #fff; display: grid; place-items: center; cursor: pointer; z-index: 3; opacity: 0; transition: opacity .2s, background .2s, border-color .2s; }
+        .emp-cover:hover .emp-slider-btn { opacity: 1; }
+        .emp-slider-btn:hover { background: #c5a059; border-color: #c5a059; color: #09090b; }
+        .emp-slider-prev { left: 8px; }
+        .emp-slider-next { right: 8px; }
+        .emp-slider-counter { position: absolute; bottom: 10px; left: 10px; background: rgba(9,9,11,.75); border: 1px solid rgba(255,255,255,.15); padding: 2px 7px; border-radius: 4px; font-size: 9px; font-weight: 700; color: #e4e4e7; z-index: 2; backdrop-filter: blur(4px); }
 
-        <button
-          onClick={() => handleOpenModal()}
-          style={{ backgroundColor: "#c5a059", color: "#000", fontWeight: "600", padding: "0.4rem 0.8rem", borderRadius: "4px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem" }}
-        >
-          <Plus style={{ width: "14px", height: "14px" }} /> Novo Empreendimento
-        </button>
-      </div>
+        .emp-card-body { padding: 15px; }
+        .emp-card-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        .emp-card-title { margin: 0; font-size: 16px; line-height: 1.2; font-weight: 700; }
+        
+        .emp-toggle-btn { background: transparent; border: none; cursor: pointer; color: #71717a; display: flex; align-items: center; gap: 4px; font-size: 10px; padding: 2px 4px; border-radius: 4px; transition: color .15s; }
+        .emp-toggle-btn.active { color: #4ade80; }
+        .emp-toggle-btn:hover { color: #f4f4f5; }
 
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.85rem" }}>
-        <div style={{ position: "relative", flex: 2 }}>
-          <Search style={{ position: "absolute", left: "0.6rem", top: "50%", transform: "translateY(-50%)", width: "14px", height: "14px", color: "#71717a" }} />
-          <input
-            type="text"
-            placeholder="Buscar por nome, construtora, cidade ou SKU..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.4rem 0.6rem 0.4rem 2rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
-          />
-        </div>
+        .emp-builder { margin-top: 5px; color: #71717a; font-size: 10px; }
+        .emp-location { display: flex; align-items: center; gap: 6px; margin-top: 13px; color: #a1a1aa; font-size: 11px; }
+        .emp-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; padding-top: 13px; border-top: 1px solid #222225; }
+        .emp-info { min-width: 0; }
+        .emp-info-label { display: block; color: #52525b; font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+        .emp-info-value { display: block; margin-top: 4px; color: #d4d4d8; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .emp-card-footer { display: flex; align-items: center; gap: 7px; margin-top: 14px; }
+        .emp-action { flex: 1; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #29292e; border-radius: 5px; background: #151518; color: #a1a1aa; font-size: 10px; font-weight: 700; cursor: pointer; }
+        .emp-action:hover { color: #f4f4f5; border-color: #52525b; }
+        .emp-action.gold:hover { color: #c5a059; border-color: #c5a059; }
+        .emp-action.delete:hover { color: #f87171; border-color: #7f1d1d; }
+        
+        .emp-empty { grid-column: 1 / -1; min-height: 260px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; border: 1px dashed #29292e; border-radius: 10px; background: #0d0d0f; color: #71717a; text-align: center; }
+        .emp-empty strong { color: #d4d4d8; font-size: 14px; }
+        .emp-empty span { font-size: 11px; }
+        .emp-error { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 10px 12px; border: 1px solid #572222; border-radius: 6px; background: #1b0f0f; color: #fca5a5; font-size: 11px; }
+        
+        .emp-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.72); backdrop-filter: blur(5px); }
+        .emp-modal { width: min(900px, 100%); max-height: calc(100vh - 40px); overflow: auto; background: #111113; border: 1px solid #2b2b30; border-radius: 10px; box-shadow: 0 25px 80px rgba(0,0,0,.5); }
+        .emp-modal-header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 17px 18px; border-bottom: 1px solid #242428; background: #111113; }
+        .emp-modal-title { margin: 0; font-size: 15px; }
+        .emp-modal-subtitle { margin: 4px 0 0; color: #71717a; font-size: 10px; }
+        .emp-close { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #29292e; border-radius: 5px; background: #18181b; color: #a1a1aa; cursor: pointer; }
+        .emp-close:hover { color: #fff; }
+        .emp-modal-body { padding: 18px; }
+        .emp-section-title { margin: 0 0 12px; color: #c5a059; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+        .emp-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .emp-field { min-width: 0; }
+        .emp-field.full { grid-column: 1 / -1; }
+        .emp-label { display: block; margin-bottom: 5px; color: #a1a1aa; font-size: 10px; }
+        .emp-textarea { width: 100%; min-height: 100px; resize: vertical; box-sizing: border-box; padding: 10px; border: 1px solid #29292e; border-radius: 6px; outline: none; background: #09090b; color: #e4e4e7; font: inherit; font-size: 12px; }
+        .emp-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 18px; border-top: 1px solid #242428; background: #111113; }
+        .emp-secondary { height: 38px; padding: 0 14px; border: 1px solid #29292e; border-radius: 6px; background: #18181b; color: #a1a1aa; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .emp-secondary:hover { color: #fff; border-color: #52525b; }
+        .emp-save { height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 0 16px; border: none; border-radius: 6px; background: #c5a059; color: #09090b; font-size: 11px; font-weight: 800; cursor: pointer; }
+        .emp-save:disabled { opacity: .55; cursor: wait; }
+        .emp-image-modal { width: min(850px, 100%); }
 
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-          <Filter style={{ width: "14px", height: "14px", color: "#71717a" }} />
-          <select
-            value={selectedCidadeFilter}
-            onChange={(e) => setSelectedCidadeFilter(e.target.value)}
-            style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#a1a1aa", padding: "0.4rem 0.5rem", borderRadius: "4px", fontSize: "0.8rem" }}
-          >
-            <option value="">Todas as Cidades</option>
-            {cidadesList.map((cid, idx) => (
-              <option key={idx} value={cid}>{cid}</option>
+        .gallery-upload-box { border: 2px dashed #2b2b30; padding: 24px; border-radius: 8px; text-align: center; background: #0d0d0f; margin-bottom: 20px; cursor: pointer; transition: border-color .2s; }
+        .gallery-upload-box:hover { border-color: #c5a059; }
+        
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-top: 15px; }
+        .gallery-item { position: relative; background: #151518; border: 1px solid #242428; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        .gallery-delete-btn { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.2); color: #f87171; display: grid; place-items: center; cursor: pointer; z-index: 3; transition: background .15s, color .15s, transform .15s; }
+        .gallery-delete-btn:hover { background: #ef4444; color: #fff; transform: scale(1.08); }
+
+        .gallery-cover-btn { position: absolute; bottom: 6px; left: 6px; right: 6px; height: 24px; background: rgba(9,9,11,0.85); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; color: #d4d4d8; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; z-index: 3; backdrop-filter: blur(4px); transition: color .15s, border-color .15s; }
+        .gallery-cover-btn:hover { color: #c5a059; border-color: #c5a059; }
+        .gallery-cover-btn.is-cover { background: #c5a059; color: #09090b; border-color: #c5a059; }
+
+        @media (max-width: 1200px) { .emp-toolbar { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 1100px) { .emp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 760px) {
+          .empreendimentos-page { padding: 20px 14px 40px; }
+          .emp-header { align-items: stretch; flex-direction: column; }
+          .emp-primary, .emp-refresh { width: 100%; }
+          .emp-toolbar, .emp-summary, .emp-grid, .emp-form-grid { grid-template-columns: 1fr; }
+          .emp-field.full { grid-column: auto; }
+          .emp-modal-footer { flex-direction: column-reverse; }
+          .emp-secondary, .emp-save { width: 100%; justify-content: center; }
+        }
+      `}</style>
+
+      <div className="emp-shell">
+        <header className="emp-header">
+          <div className="emp-title-wrap">
+            <div className="emp-kicker">Gestão imobiliária</div>
+            <h1 className="emp-title">Empreendimentos</h1>
+            <p className="emp-subtitle">Gerencie empreendimentos, mídias e informações comerciais.</p>
+          </div>
+          <button type="button" className="emp-primary" onClick={openNew}>
+            <Plus size={15} />
+            Novo empreendimento
+          </button>
+        </header>
+
+        {error && (
+          <div className="emp-error">
+            <AlertCircle size={15} />
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError("")}
+              style={{ marginLeft: "auto", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        <section className="emp-toolbar">
+          <div className="emp-search">
+            <Search />
+            <input
+              className="emp-input"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Pesquisar nome, cidade, bairro..."
+            />
+          </div>
+          
+          <select className="emp-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                Status: {status}
+              </option>
             ))}
           </select>
-        </div>
-      </div>
 
-      <div style={{ backgroundColor: "#121212", border: "1px solid #222", borderRadius: "6px", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.8rem" }}>
-          <thead>
-            <tr style={{ backgroundColor: "#18181b", borderBottom: "1px solid #27272a", color: "#71717a", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: "0.05em" }}>
-              <th style={{ padding: "0.55rem 0.8rem", fontWeight: "600", width: "50px" }}>Img</th>
-              <th style={{ padding: "0.55rem 0.8rem", fontWeight: "600" }}>Empreendimento</th>
-              <th style={{ padding: "0.55rem 0.8rem", fontWeight: "600" }}>Construtora</th>
-              <th style={{ padding: "0.55rem 0.8rem", fontWeight: "600" }}>Localização / Cidade</th>
-              <th style={{ padding: "0.55rem 0.8rem", fontWeight: "600" }}>Entrega</th>
-              <th style={{ padding: "0.55rem 0.8rem", fontWeight: "600" }}>Lazer / Valorização</th>
-              <th style={{ padding: "0.55rem 0.8rem", fontWeight: "600" }}>SKU</th>
-              <th style={{ padding: "0.55rem 0.8rem", fontWeight: "600", textAlign: "right" }}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEmpreendimentos.length === 0 ? (
-              <tr>
-                <td colSpan={8} style={{ padding: "1.5rem", textAlign: "center", color: "#52525b", fontStyle: "italic" }}>
-                  Nenhum empreendimento encontrado.
-                </td>
-              </tr>
-            ) : (
-              filteredEmpreendimentos.map((emp) => (
-                <tr key={emp.id} style={{ borderBottom: "1px solid #1a1a1e" }}>
-                  <td style={{ padding: "0.4rem 0.8rem" }}>
-                    {emp.imagem_url ? (
-                      <img src={emp.imagem_url} alt="" style={{ width: "32px", height: "32px", objectFit: "cover", borderRadius: "4px", border: "1px solid #27272a" }} />
+          <select className="emp-select" value={tipoFilter} onChange={(e) => setTipoFilter(e.target.value)}>
+            {tiposDisponiveis.map((tipo) => (
+              <option key={tipo} value={tipo}>
+                Tipo: {tipo}
+              </option>
+            ))}
+          </select>
+
+          <select className="emp-select" value={ativoFilter} onChange={(e) => setAtivoFilter(e.target.value)}>
+            <option value="Todos">Exibição: Todos</option>
+            <option value="Ativos">Apenas Ativos</option>
+            <option value="Inativos">Apenas Inativos</option>
+          </select>
+
+          <button type="button" className="emp-refresh" title="Atualizar" onClick={loadData}>
+            <RefreshCw size={15} style={{ animation: loading ? "spin 1s linear infinite" : undefined }} />
+          </button>
+        </section>
+
+        <section className="emp-summary">
+          <div className="emp-stat">
+            <div className="emp-stat-label">Total cadastrados</div>
+            <div className="emp-stat-value">{empreendimentos.length}</div>
+          </div>
+          <div className="emp-stat">
+            <div className="emp-stat-label">Em exibição nos filtros</div>
+            <div className="emp-stat-value gold">{filtered.length}</div>
+          </div>
+          <div className="emp-stat">
+            <div className="emp-stat-label">Ativos no sistema</div>
+            <div className="emp-stat-value">{empreendimentos.filter(i => i.ativo !== false).length}</div>
+          </div>
+        </section>
+
+        {loading ? (
+          <div className="emp-empty">
+            <RefreshCw size={22} style={{ color: "#c5a059", animation: "spin 1s linear infinite" }} />
+            <strong>Carregando empreendimentos...</strong>
+            <span>Consultando os dados da plataforma.</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="emp-empty">
+            <Building2 size={28} />
+            <strong>{empreendimentos.length === 0 ? "Nenhum empreendimento cadastrado" : "Nenhum resultado encontrado"}</strong>
+            <span>{empreendimentos.length === 0 ? "Comece cadastrando o primeiro empreendimento." : "Tente alterar os filtros selecionados acima."}</span>
+            {empreendimentos.length === 0 && (
+              <button type="button" className="emp-primary" onClick={openNew} style={{ marginTop: 5 }}>
+                <Plus size={14} />
+                Cadastrar empreendimento
+              </button>
+            )}
+          </div>
+        ) : (
+          <section className="emp-grid">
+            {filtered.map((item) => {
+              const title = item.nome || item.titulo || "Empreendimento sem nome";
+              const location = [item.bairro, item.cidade].filter(Boolean).join(" · ");
+              const isAtivo = item.ativo ?? true;
+              
+              const imagensList = galeriasMap[item.id] || (item.imagem_url ? [item.imagem_url] : []);
+              const currentIndex = activeImageIndexes[item.id] || 0;
+              const currentImageUrl = imagensList[currentIndex] || item.imagem_url;
+
+              return (
+                <article className={`emp-card ${!isAtivo ? "inactive" : ""}`} key={item.id}>
+                  <div className="emp-cover">
+                    {currentImageUrl ? (
+                      <img src={currentImageUrl} alt={title} loading="lazy" />
                     ) : (
-                      <div style={{ width: "32px", height: "32px", backgroundColor: "#18181b", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <ImageIcon style={{ width: "14px", height: "14px", color: "#52525b" }} />
+                      <div className="emp-cover-empty">
+                        <ImageIcon size={28} />
+                        <span>Sem imagem de capa</span>
                       </div>
                     )}
-                  </td>
-                  <td style={{ padding: "0.5rem 0.8rem", fontWeight: "600", color: "#fff" }}>
-                    {emp.nome}
-                  </td>
-                  <td style={{ padding: "0.5rem 0.8rem", color: "#d4d4d8" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                      <Building style={{ width: "12px", height: "12px", color: "#c5a059" }} />
-                      {emp.construtoras?.nome || <span style={{ color: "#52525b" }}>Sem Construtora</span>}
-                    </div>
-                  </td>
-                  <td style={{ padding: "0.5rem 0.8rem", color: "#a1a1aa" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                      <MapPin style={{ width: "12px", height: "12px", color: "#71717a" }} />
-                      {emp.cidade ? emp.cidade : <span style={{ color: "#52525b", fontStyle: "italic" }}>Não informada</span>}
-                    </div>
-                  </td>
-                  <td style={{ padding: "0.5rem 0.8rem", color: "#d4d4d8" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                      <Calendar style={{ width: "12px", height: "12px", color: "#c5a059" }} />
-                      {emp.data_entrega ? emp.data_entrega : <span style={{ color: "#52525b", fontStyle: "italic" }}>—</span>}
-                    </div>
-                  </td>
-                  <td style={{ padding: "0.5rem 0.8rem", color: "#a1a1aa" }}>
-                    <div style={{ fontSize: "0.72rem" }}>
-                      {emp.lazer && Array.isArray(emp.lazer) ? `${emp.lazer.length} itens` : "0 itens"}
-                      {emp.valorizacao_aa ? <span style={{ color: "#22c55e", marginLeft: "0.4rem", fontWeight: "bold" }}>({emp.valorizacao_aa}% a.a.)</span> : ""}
-                    </div>
-                  </td>
-                  <td style={{ padding: "0.5rem 0.8rem" }}>
-                    {emp.sku ? (
-                      <span style={{ fontFamily: "monospace", fontSize: "0.7rem", backgroundColor: "#1c1c20", color: "#c5a059", padding: "0.1rem 0.35rem", borderRadius: "3px", border: "1px solid #27272a" }}>
-                        {emp.sku}
-                      </span>
-                    ) : (
-                      <span style={{ color: "#3f3f46", fontSize: "0.75rem" }}>—</span>
+
+                    {item.status && <span className={`emp-status ${getStatusClass(item.status)}`}>{item.status}</span>}
+
+                    {imagensList.length > 1 && (
+                      <>
+                        <button 
+                          type="button" 
+                          className="emp-slider-btn emp-slider-prev" 
+                          onClick={(e) => prevImage(item.id, imagensList.length, e)}
+                          title="Imagem anterior"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button 
+                          type="button" 
+                          className="emp-slider-btn emp-slider-next" 
+                          onClick={(e) => nextImage(item.id, imagensList.length, e)}
+                          title="Próxima imagem"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                        <span className="emp-slider-counter">
+                          {currentIndex + 1} / {imagensList.length}
+                        </span>
+                      </>
                     )}
-                  </td>
-                  <td style={{ padding: "0.5rem 0.8rem", textAlign: "right" }}>
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem" }}>
-                      <button onClick={() => handleOpenModal(emp)} title="Editar" style={{ background: "none", border: "none", color: "#a1a1aa", cursor: "pointer", padding: "0.2rem" }}>
-                        <Edit3 style={{ width: "14px", height: "14px" }} />
-                      </button>
-                      <button onClick={() => handleDelete(emp.id, emp.nome)} title="Excluir" style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "0.2rem" }}>
-                        <Trash2 style={{ width: "14px", height: "14px" }} />
+
+                    <button type="button" className="emp-image-action" onClick={() => openImages(item)}>
+                      <ImageIcon size={12} />
+                      Mídias ({imagensList.length})
+                    </button>
+                  </div>
+
+                  <div className="emp-card-body">
+                    <div className="emp-card-header-row">
+                      <h2 className="emp-card-title">{title}</h2>
+                      <button
+                        type="button"
+                        className={`emp-toggle-btn ${isAtivo ? "active" : ""}`}
+                        onClick={(e) => toggleAtivoRapido(item, e)}
+                        title={isAtivo ? "Desativar empreendimento" : "Ativar empreendimento"}
+                      >
+                        {isAtivo ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+                        <span style={{ fontSize: 9 }}>{isAtivo ? "Ativo" : "Inativo"}</span>
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+
+                    <div className="emp-builder">{getConstrutoraName(item.construtora_id)}</div>
+                    {location && (
+                      <div className="emp-location">
+                        <MapPin size={13} />
+                        {location}
+                      </div>
+                    )}
+
+                    <div className="emp-info-grid">
+                      <div className="emp-info">
+                        <span className="emp-info-label">Entrega</span>
+                        <span className="emp-info-value">{item.entrega || "—"}</span>
+                      </div>
+                      <div className="emp-info">
+                        <span className="emp-info-label">Unidades</span>
+                        <span className="emp-info-value">{item.numero_unidades ?? "—"}</span>
+                      </div>
+                      <div className="emp-info">
+                        <span className="emp-info-label">A partir</span>
+                        <span className="emp-info-value">{formatCurrency(item.faixa_preco)}</span>
+                      </div>
+                      <div className="emp-info">
+                        <span className="emp-info-label">Valorização projetada</span>
+                        <span className="emp-info-value">{item.valorizacao_aa != null ? `${Number(item.valorizacao_aa).toLocaleString("pt-BR")}% a.a.` : "—"}</span>
+                      </div>
+                      <div className="emp-info">
+                        <span className="emp-info-label">Quartos</span>
+                        <span className="emp-info-value">{Array.isArray(item.quartos_disponiveis) && item.quartos_disponiveis.length ? item.quartos_disponiveis.map((q) => q === 0 ? "Studio" : `${q}Q`).join(" · ") : "—"}</span>
+                      </div>
+                    </div>
+
+                    <div className="emp-card-footer">
+                      <button type="button" className="emp-action gold" onClick={() => openEdit(item)}>
+                        <Edit3 size={12} />
+                        Editar
+                      </button>
+                      <button type="button" className="emp-action" onClick={() => openImages(item)}>
+                        <Upload size={12} />
+                        Imagens
+                      </button>
+                      <button type="button" className="emp-action delete" onClick={() => remove(item)} title="Excluir">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
       </div>
 
-      {isModalOpen && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 999, padding: "1rem" }}>
-          <div style={{ backgroundColor: "#121212", border: "1px solid #27272a", borderRadius: "8px", width: "100%", maxWidth: "680px", maxHeight: "90vh", overflowY: "auto", padding: "1.2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #222", paddingBottom: "0.5rem" }}>
-              <h3 style={{ margin: 0, color: "#fff", fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <Building2 style={{ width: "18px", height: "18px", color: "#c5a059" }} />
-                {editingItem ? "Editar Empreendimento" : "Cadastrar Empreendimento"}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: "none", border: "none", color: "#a1a1aa", cursor: "pointer" }}>
-                <X style={{ width: "18px", height: "18px" }} />
+      {modalOpen && (
+        <div className="emp-overlay" onMouseDown={(e) => e.target === e.currentTarget && setModalOpen(false)}>
+          <div className="emp-modal">
+            <div className="emp-modal-header">
+              <div>
+                <h2 className="emp-modal-title">{editing ? "Editar empreendimento" : "Novo empreendimento"}</h2>
+                <p className="emp-modal-subtitle">Informações principais do empreendimento.</p>
+              </div>
+              <button type="button" className="emp-close" onClick={() => setModalOpen(false)}>
+                <X size={15} />
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <span style={{ fontSize: "0.68rem", fontWeight: "bold", color: "#c5a059", textTransform: "uppercase" }}>1. Informações Principais</span>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.7rem", marginBottom: "0.2rem" }}>Construtora Responsável *</label>
+            <div className="emp-modal-body">
+              <h3 className="emp-section-title">Informações principais</h3>
+              <div className="emp-form-grid">
+                <div className="emp-field">
+                  <label className="emp-label">Nome *</label>
+                  <input
+                    className="emp-input"
+                    value={form.nome}
+                    onChange={(e) => updateField("nome", e.target.value)}
+                    placeholder="Ex.: Ocean View Residence"
+                  />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Construtora</label>
                   <select
-                    value={formConstrutoraId}
-                    onChange={(e) => setFormConstrutoraId(e.target.value)}
-                    style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px", fontSize: "0.8rem" }}
+                    className="emp-select"
+                    value={form.construtora_id}
+                    onChange={(e) => updateField("construtora_id", e.target.value)}
                   >
-                    <option value="">Selecione uma Construtora...</option>
-                    {construtoras.map((c) => (
-                      <option key={c.id} value={c.id}>{c.nome}</option>
+                    <option value="">Selecione</option>
+                    {construtoras.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.nome || item.name || item.id}
+                      </option>
                     ))}
                   </select>
                 </div>
-
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.7rem", marginBottom: "0.2rem" }}>Nome do Empreendimento *</label>
+                <div className="emp-field">
+                  <label className="emp-label">Cidade</label>
                   <input
-                    type="text"
-                    placeholder="Ex: Azure Palm Club"
-                    value={formNome}
-                    onChange={(e) => setFormNome(e.target.value)}
-                    style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
+                    className="emp-input"
+                    value={form.cidade}
+                    onChange={(e) => updateField("cidade", e.target.value)}
+                    placeholder="Ex.: Penha"
                   />
                 </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
-                    <label style={{ color: "#a1a1aa", fontSize: "0.7rem" }}>Cidade / Localização</label>
-                    {!isAddingNewCity && (
-                      <button type="button" onClick={() => setIsAddingNewCity(true)} style={{ background: "none", border: "none", color: "#c5a059", fontSize: "0.65rem", cursor: "pointer" }}>+ Cadastrar</button>
-                    )}
-                  </div>
-
-                  {isAddingNewCity ? (
-                    <div style={{ display: "flex", gap: "0.3rem" }}>
-                      <input
-                        type="text"
-                        placeholder="Guaramirim - SC"
-                        value={newCityInput}
-                        onChange={(e) => setNewCityInput(e.target.value)}
-                        style={{ flex: 1, backgroundColor: "#18181b", border: "1px solid #c5a059", color: "#fff", padding: "0.4rem", borderRadius: "4px", fontSize: "0.75rem" }}
-                      />
-                      <button type="button" onClick={handleAddNewCity} style={{ backgroundColor: "#c5a059", color: "#000", border: "none", padding: "0 0.4rem", borderRadius: "4px" }}><Check style={{ width: "12px", height: "12px" }} /></button>
-                      <button type="button" onClick={() => setIsAddingNewCity(false)} style={{ backgroundColor: "#27272a", color: "#a1a1aa", border: "none", padding: "0 0.4rem", borderRadius: "4px" }}><X style={{ width: "12px", height: "12px" }} /></button>
-                    </div>
-                  ) : (
-                    <select
-                      value={formCidade}
-                      onChange={(e) => setFormCidade(e.target.value)}
-                      style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px", fontSize: "0.8rem" }}
-                    >
-                      <option value="">Selecione...</option>
-                      {cidadesList.map((cid, idx) => (
-                        <option key={idx} value={cid}>{cid}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.7rem", marginBottom: "0.2rem" }}>Bairro / Praia</label>
+                <div className="emp-field">
+                  <label className="emp-label">Bairro</label>
                   <input
-                    type="text"
-                    placeholder="Ex: Armação"
-                    value={formBairro}
-                    onChange={(e) => setFormBairro(e.target.value)}
-                    style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
+                    className="emp-input"
+                    value={form.bairro}
+                    onChange={(e) => updateField("bairro", e.target.value)}
+                    placeholder="Ex.: Armação"
                   />
                 </div>
-
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
-                    <label style={{ color: "#a1a1aa", fontSize: "0.7rem" }}>SKU (Editável)</label>
-                    {skuManual && <span style={{ fontSize: "0.6rem", color: "#c5a059" }}>Manual</span>}
-                  </div>
+                <div className="emp-field full">
+                  <label className="emp-label">Endereço</label>
                   <input
-                    type="text"
-                    placeholder="EMP-AZUR-PEN"
-                    value={formSku}
-                    onChange={(e) => {
-                      setSkuManual(true);
-                      setFormSku(e.target.value.toUpperCase());
-                    }}
-                    style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#c5a059", padding: "0.45rem", borderRadius: "4px", fontSize: "0.8rem", fontFamily: "monospace", boxSizing: "border-box" }}
+                    className="emp-input"
+                    value={form.endereco}
+                    onChange={(e) => updateField("endereco", e.target.value)}
+                    placeholder="Endereço completo"
                   />
                 </div>
-              </div>
-
-              {/* Componente de Imagem Integrado */}
-              <EmpreendimentoImagens 
-                empreendimentoId={editingItem?.id} 
-                imagemAtual={formImagemUrl} 
-                onImageUploaded={(url) => setFormImagemUrl(url)} 
-              />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", backgroundColor: "#18181b", padding: "0.75rem", borderRadius: "6px", border: "1px solid #27272a" }}>
-              <span style={{ fontSize: "0.68rem", fontWeight: "bold", color: "#c5a059", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                <TrendingUp style={{ width: "13px", height: "13px" }} /> 2. Comparativos de Ativos & Previsões
-              </span>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.68rem", marginBottom: "0.2rem" }}>Previsão de Entrega *</label>
+                <div className="emp-field">
+                  <label className="emp-label">Tipo</label>
                   <input
-                    type="text"
-                    placeholder="Ex: Dez/2028"
-                    value={formDataEntrega}
-                    onChange={(e) => setFormDataEntrega(e.target.value)}
-                    style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.4rem", borderRadius: "4px", fontSize: "0.75rem", boxSizing: "border-box" }}
+                    className="emp-input"
+                    value={form.tipo}
+                    onChange={(e) => updateField("tipo", e.target.value)}
+                    placeholder="Ex.: Residencial"
                   />
                 </div>
-
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.68rem", marginBottom: "0.2rem" }}>Área de Lazer (m²)</label>
+                <div className="emp-field">
+                  <label className="emp-label">Status</label>
+                  <select
+                    className="emp-select"
+                    value={form.status}
+                    onChange={(e) => updateField("status", e.target.value)}
+                  >
+                    {STATUS_OPTIONS.filter((s) => s !== "Todos").map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Entrega</label>
                   <input
+                    className="emp-input"
+                    value={form.entrega}
+                    onChange={(e) => updateField("entrega", e.target.value)}
+                    placeholder="Ex.: Dezembro/2031"
+                  />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Número de torres</label>
+                  <input
+                    className="emp-input"
                     type="number"
-                    placeholder="Ex: 800"
-                    value={formAreaLazerM2}
-                    onChange={(e) => setFormAreaLazerM2(e.target.value)}
-                    style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.4rem", borderRadius: "4px", fontSize: "0.75rem" }}
+                    min="0"
+                    value={form.numero_torres}
+                    onChange={(e) => updateField("numero_torres", e.target.value)}
                   />
                 </div>
-
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.68rem", marginBottom: "0.2rem" }}>Valorização (% a.a.)</label>
+                <div className="emp-field">
+                  <label className="emp-label">Número de unidades</label>
                   <input
+                    className="emp-input"
                     type="number"
-                    step="0.1"
-                    placeholder="Ex: 12"
-                    value={formValorizacaoAa}
-                    onChange={(e) => setFormValorizacaoAa(e.target.value)}
-                    style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#22c55e", fontWeight: "bold", padding: "0.4rem", borderRadius: "4px", fontSize: "0.75rem" }}
+                    min="0"
+                    value={form.numero_unidades}
+                    onChange={(e) => updateField("numero_unidades", e.target.value)}
+                  />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Área mínima (m²)</label>
+                  <input
+                    className="emp-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.area_minima}
+                    onChange={(e) => updateField("area_minima", e.target.value)}
+                  />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Área máxima (m²)</label>
+                  <input
+                    className="emp-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.area_maxima}
+                    onChange={(e) => updateField("area_maxima", e.target.value)}
+                  />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Valor inicial</label>
+                  <input
+                    className="emp-input"
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={form.faixa_preco}
+                    onChange={(e) => updateField("faixa_preco", e.target.value)}
+                    placeholder="Ex.: 450000"
+                  />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Valorização projetada (% a.a.)</label>
+                  <input className="emp-input" type="number" min="0" step="0.01" value={form.valorizacao_aa} onChange={(e) => updateField("valorizacao_aa", e.target.value)} placeholder="Ex.: 12,5" />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Quartos disponíveis</label>
+                  <input className="emp-input" value={form.quartos_disponiveis} onChange={(e) => updateField("quartos_disponiveis", e.target.value)} placeholder="0, 1, 2, 3 (0 = Studio)" />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Status Ativo no Site</label>
+                  <select
+                    className="emp-select"
+                    value={form.ativo ? "true" : "false"}
+                    onChange={(e) => updateField("ativo", e.target.value === "true")}
+                  >
+                    <option value="true">Ativo (Visível)</option>
+                    <option value="false">Inativo (Oculto)</option>
+                  </select>
+                </div>
+                <div className="emp-field full">
+                  <label className="emp-label">URL da imagem de capa principal</label>
+                  <input
+                    className="emp-input"
+                    value={form.imagem_url}
+                    onChange={(e) => updateField("imagem_url", e.target.value)}
+                    placeholder="Gerenciada automaticamente pelo painel de mídias"
+                  />
+                </div>
+                <div className="emp-field full">
+                  <label className="emp-label">Descrição</label>
+                  <textarea
+                    className="emp-textarea"
+                    value={form.descricao}
+                    onChange={(e) => updateField("descricao", e.target.value)}
+                    placeholder="Descrição comercial do empreendimento..."
                   />
                 </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.68rem", fontWeight: "bold", color: "#c5a059", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                <Sparkles style={{ width: "13px", height: "13px" }} /> 3. Estrutura & Área de Lazer ({lazerSelecionado.length} selecionados)
-              </span>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.4rem", maxHeight: "180px", overflowY: "auto", padding: "0.5rem", border: "1px solid #27272a", borderRadius: "4px", backgroundColor: "#18181b" }}>
-                {listaLazerCustom.map((item) => {
-                  const checked = lazerSelecionado.includes(item);
-                  return (
-                    <div
-                      key={item}
-                      onClick={() => toggleLazer(item)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.4rem",
-                        padding: "0.3rem 0.5rem",
-                        borderRadius: "3px",
-                        backgroundColor: checked ? "rgba(197, 160, 89, 0.15)" : "#121212",
-                        border: checked ? "1px solid #c5a059" : "1px solid #27272a",
-                        cursor: "pointer"
-                      }}
-                    >
-                      {checked ? <CheckSquare style={{ width: "12px", height: "12px", color: "#c5a059" }} /> : <Square style={{ width: "12px", height: "12px", color: "#71717a" }} />}
-                      <span style={{ fontSize: "0.7rem", color: checked ? "#fff" : "#a1a1aa" }}>{item}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ display: "flex", gap: "0.4rem" }}>
-                <input
-                  type="text"
-                  placeholder="Cadastrar novo item de lazer..."
-                  value={novoItemLazer}
-                  onChange={(e) => setNovoItemLazer(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCustomLazer(); } }}
-                  style={{ flex: 1, backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.35rem 0.5rem", color: "#fff", fontSize: "0.75rem" }}
-                />
-                <button type="button" onClick={handleAddCustomLazer} style={{ backgroundColor: "#27272a", border: "1px solid #3f3f46", color: "#fff", padding: "0.35rem 0.7rem", borderRadius: "4px", fontSize: "0.72rem", cursor: "pointer" }}>
-                  + Adicionar
-                </button>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.68rem", fontWeight: "bold", color: "#c5a059", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                <ShieldCheck style={{ width: "13px", height: "13px" }} /> 4. Índices Financeiros
-              </span>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.68rem", marginBottom: "0.2rem" }}>Índice Pré-Chaves</label>
-                  <input type="text" value={indicePre} onChange={(e) => setIndicePre(e.target.value)} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.4rem", borderRadius: "4px", fontSize: "0.75rem" }} />
-                </div>
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.68rem", marginBottom: "0.2rem" }}>Índice Pós-Chaves</label>
-                  <input type="text" value={indicePos} onChange={(e) => setIndicePos(e.target.value)} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.4rem", borderRadius: "4px", fontSize: "0.75rem" }} />
-                </div>
-                <div>
-                  <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.68rem", marginBottom: "0.2rem" }}>Juros Pós (% a.m.)</label>
-                  <input type="text" value={jurosPos} onChange={(e) => setJurosPos(e.target.value)} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.4rem", borderRadius: "4px", fontSize: "0.75rem" }} />
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem", borderTop: "1px solid #222", paddingTop: "0.75rem" }}>
-              <button onClick={() => setIsModalOpen(false)} style={{ backgroundColor: "transparent", color: "#a1a1aa", border: "1px solid #27272a", padding: "0.45rem 1rem", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem" }}>
+            <div className="emp-modal-footer">
+              <button type="button" className="emp-secondary" onClick={() => setModalOpen(false)}>
                 Cancelar
               </button>
-              <button onClick={handleSave} disabled={loading} style={{ backgroundColor: "#c5a059", color: "#000", fontWeight: "bold", border: "none", padding: "0.45rem 1.2rem", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem" }}>
-                {loading ? "Salvando..." : "Salvar Empreendimento"}
+              <button type="button" className="emp-save" disabled={saving} onClick={save}>
+                {saving ? <RefreshCw size={13} style={{ animation: "spin 1s linear infinite" }} /> : <Save size={13} />}
+                {saving ? "Salvando..." : "Salvar empreendimento"}
               </button>
             </div>
-
           </div>
         </div>
       )}
+
+      {imageModalOpen && selectedForImages && (
+        <div className="emp-overlay" onMouseDown={(e) => e.target === e.currentTarget && setImageModalOpen(false)}>
+          <div className="emp-modal emp-image-modal">
+            <div className="emp-modal-header">
+              <div>
+                <h2 className="emp-modal-title">Galeria de Mídias</h2>
+                <p className="emp-modal-subtitle">{selectedForImages.nome || selectedForImages.titulo}</p>
+              </div>
+              <button type="button" className="emp-close" onClick={() => setImageModalOpen(false)}>
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="emp-modal-body">
+              <label className="gallery-upload-box" style={{ display: "block" }}>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleUploadMultiplo}
+                  disabled={uploadingImages}
+                />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <Upload size={24} color="#c5a059" />
+                  <strong style={{ fontSize: 13, color: "#f4f4f5" }}>
+                    {uploadingImages ? "Enviando imagens..." : "Clique aqui para selecionar várias imagens de uma vez"}
+                  </strong>
+                  <span style={{ fontSize: 11, color: "#71717a" }}>
+                    Todas as fotos selecionadas serão enviadas e adicionadas à galeria
+                  </span>
+                </div>
+              </label>
+
+              <h3 className="emp-section-title" style={{ marginTop: 20 }}>
+                Imagens cadastradas ({imagensGaleria.length})
+              </h3>
+
+              {imagensGaleria.length === 0 ? (
+                <p style={{ color: "#71717a", fontSize: 12, textAlign: "center", padding: "20px 0" }}>
+                  Nenhuma imagem extra na galeria ainda. Faça o upload acima.
+                </p>
+              ) : (
+                <div className="gallery-grid">
+                  {imagensGaleria.map((img) => {
+                    const isCover = selectedForImages.imagem_url === img.url;
+                    return (
+                      <div className="gallery-item" key={img.id}>
+                        <img src={img.url} alt="Galeria" />
+                        
+                        <button
+                          type="button"
+                          className="gallery-delete-btn"
+                          onClick={() => excluirImagemGaleria(img.id, img.url)}
+                          title="Excluir imagem"
+                        >
+                          <X size={14} />
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`gallery-cover-btn ${isCover ? "is-cover" : ""}`}
+                          onClick={() => definirComoCapa(img.url)}
+                          title={isCover ? "Esta é a imagem de capa" : "Definir como capa"}
+                        >
+                          <Star size={10} fill={isCover ? "#09090b" : "none"} />
+                          {isCover ? "Capa" : "Tornar capa"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
-};
+}

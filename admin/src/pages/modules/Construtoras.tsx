@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import type { FC } from "react";
 import { supabase } from "@/lib/supabase";
 import { 
   Building, 
@@ -8,16 +9,14 @@ import {
   MapPin, 
   ChevronDown, 
   ChevronUp, 
-  KeyRound, 
   Lock, 
   Unlock, 
   Layers, 
-  AlertTriangle,
   X,
   Search
 } from "lucide-react";
 
-export const ConstrutorasModule: React.FC = () => {
+export const ConstrutorasModule: FC = () => {
   const [construtoras, setConstrutoras] = useState<any[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
