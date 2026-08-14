@@ -1,39 +1,27 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "../components/layout/Sidebar";
 import { Header } from "../components/layout/Header";
 import { 
-  TrendingUp, 
   Target, 
   Zap, 
   Sparkles, 
   ArrowRight, 
   Plus, 
-  FileText, 
-  Users, 
   Building2, 
-  Layers, 
-  AlertCircle,
-  X,
-  Calculator
+  X
 } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
 
-import * as ConstrutorasImport from "./modules/Construtoras";
-import * as EmpreendimentosImport from "./modules/Empreendimentos";
-import * as UnidadesImport from "./modules/Unidades";
-import * as FluxosImport from "./modules/Fluxos";
-import * as ImportarIAImport from "./modules/ImportarIA";
-import * as IndicadoresImport from "./modules/indicadores";
-import * as ConfiguracoesImport from "./modules/Configuracoes";
-
-const ConstrutorasModule = ConstrutorasImport.ConstrutorasModule || ConstrutorasImport.default;
-const EmpreendimentosModule = EmpreendimentosImport.EmpreendimentosModule || EmpreendimentosImport.default;
-const UnidadesModule = UnidadesImport.UnidadesModule || UnidadesImport.default;
-const FluxosModule = FluxosImport.FluxosModule || FluxosImport.default;
-const ImportarIAModule = ImportarIAImport.ImportarIAModule || ImportarIAImport.default;
-const IndicadoresModule = IndicadoresImport.IndicadoresModule || IndicadoresImport.default;
-const ConfiguracoesModule = ConfiguracoesImport.ConfiguracoesModule || ConfiguracoesImport.default;
+import { ConstrutorasModule } from "./modules/Construtoras";
+import EmpreendimentosModule from "./modules/Empreendimentos";
+import { UnidadesModule } from "./modules/Unidades";
+import FluxosModule from "./modules/Fluxos";
+import { ImportarIAModule } from "./modules/ImportarIA";
+import IndicadoresModule from "./modules/indicadores";
+import ConfiguracoesModule from "./modules/Configuracoes";
+import ApresentacoesModule from "./modules/Apresentacoes";
+import ClientesModule from "./modules/Clientes";
 
 interface DashboardProps {
   userEmail?: string;
@@ -42,6 +30,7 @@ interface DashboardProps {
 export default function Dashboard({ userEmail }: DashboardProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedTicker, setSelectedTicker] = useState<any | null>(null);
+  const [selectedEmpreendimentoId] = useState<string | undefined>();
 
   const [metrics, setMetrics] = useState({
     empreendimentos: 0,
@@ -168,7 +157,7 @@ export default function Dashboard({ userEmail }: DashboardProps) {
                   {/* INSIGHT 1 */}
                   <div style={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "6px", padding: "0.85rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyBetween: "space-between", gap: "0.4rem", marginBottom: "0.4rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", marginBottom: "0.4rem" }}>
                         <span style={{ backgroundColor: "rgba(34, 197, 94, 0.1)", color: "#22c55e", padding: "0.15rem 0.4rem", borderRadius: "4px", fontSize: "0.65rem", fontWeight: "bold" }}>Alavancagem Crédito</span>
                       </div>
                       <strong style={{ color: "#fff", fontSize: "0.85rem", display: "block" }}>Arbitragem: Carta de Crédito vs. Rentabilidade</strong>
@@ -254,13 +243,15 @@ export default function Dashboard({ userEmail }: DashboardProps) {
 
           {activeTab === "construtoras" && ConstrutorasModule && <ConstrutorasModule />}
           {activeTab === "empreendimentos" && EmpreendimentosModule && <EmpreendimentosModule />}
-          {activeTab === "unidades" && UnidadesModule && <UnidadesModule />}
+          {activeTab === "unidades" && UnidadesModule && <UnidadesModule empreendimentoId={selectedEmpreendimentoId} />}
+          {activeTab === "apresentacoes" && <ApresentacoesModule />}
           {activeTab === "importar-ia" && ImportarIAModule && <ImportarIAModule />}
           {activeTab === "fluxos" && FluxosModule && <FluxosModule />}
+          {activeTab === "clientes" && <ClientesModule />}
           {activeTab === "indicadores" && IndicadoresModule && <IndicadoresModule />}
           {activeTab === "configuracoes" && ConfiguracoesModule && <ConfiguracoesModule />}
 
-          {["clientes", "afiliados", "links"].includes(activeTab) && (
+          {["afiliados", "links"].includes(activeTab) && (
             <div style={{ backgroundColor: "#121212", border: "1px solid #222", borderRadius: "8px", padding: "2rem", textAlign: "center" }}>
               <h2 style={{ color: "#c5a059", textTransform: "capitalize" }}>Módulo {activeTab}</h2>
               <p style={{ color: "#71717a" }}>Em breve este módulo estará ativo.</p>

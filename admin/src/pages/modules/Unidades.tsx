@@ -43,7 +43,7 @@ export const sanitizeAndar = (rawAndar: any, codigoUnidade: string): number | nu
   return null;
 };
 
-export function UnidadesModule({ onSimular }: { onSimular?: (unidades: any[]) => void }) {
+export function UnidadesModule({ onSimular, empreendimentoId }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string }) {
   const [unidades, setUnidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export function UnidadesModule({ onSimular }: { onSimular?: (unidades: any[]) =>
 
   useEffect(() => {
     fetchUnidades();
-  }, []);
+  }, [empreendimentoId]);
 
   // Atalho para fechar/cancelar edição ao pressionar a tecla ESC
   useEffect(() => {
@@ -88,10 +88,16 @@ export function UnidadesModule({ onSimular }: { onSimular?: (unidades: any[]) =>
   const fetchUnidades = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("unidades")
         .select("*, empreendimentos(*, construtoras(nome))")
         .order("created_at", { ascending: false });
+
+      if (empreendimentoId) {
+        query = query.eq("empreendimento_id", empreendimentoId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       if (data) setUnidades(data);

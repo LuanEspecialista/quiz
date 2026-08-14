@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { User, Settings, Zap, ArrowUpRight, ChevronDown } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -26,13 +26,13 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
   };
 
   const formatValor = (val: number, cat?: string) => {
-    if (val === undefined || val === null) return "ó";
+    if (val === undefined || val === null) return "‚Äî";
     const categoria = cat ? cat.toUpperCase() : "";
-    if (categoria === "MOEDA" || categoria.includes("D”LAR")) {
+    if (categoria === "MOEDA" || categoria.includes("D√ìLAR")) {
       return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     if (categoria === "IMOBILIARIO_M2") {
-      return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/m≤`;
+      return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/m¬≤`;
     }
     return `${val.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}%`;
   };
@@ -60,7 +60,7 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
         }
         .header-ticker-track {
           display: flex;
-          gap: 1.2rem;
+          gap: 0;
           width: max-content;
           animation: tickerHeader 30s linear infinite;
         }
@@ -69,11 +69,11 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
         }
       `}</style>
 
-      {/* TICKER DE COTA«’ES INTEGRADO NO CABE«ALHO */}
+      {/* TICKER DE COTA√á√ïES INTEGRADO NO CABE√áALHO */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", overflow: "hidden", height: "100%", marginRight: "1.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", paddingRight: "0.8rem", color: "#c5a059", fontWeight: "bold", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
           <Zap style={{ width: "13px", height: "13px" }} />
-          <span>Live:</span>
+          <span>Mercado</span><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e" }} />
         </div>
 
         <div style={{ overflow: "hidden", width: "100%", height: "100%", display: "flex", alignItems: "center" }}>
@@ -90,15 +90,17 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
                     display: "flex",
                     alignItems: "center",
                     gap: "0.3rem",
-                    padding: "0.15rem 0.5rem",
+                    padding: "0 1rem",
+                    height: "55px",
+                    minWidth: "145px",
                     borderRadius: "4px",
                     backgroundColor: "#141414",
                     border: "1px solid #222",
                     fontSize: "0.72rem"
                   }}
                 >
-                  <span style={{ color: "#a1a1aa" }}>{ind.nome}:</span>
-                  <strong style={{ color: "#fff" }}>{formatValor(ind.valor_atual ?? ind.valor, ind.categoria)}</strong>
+                  <span style={{ color: "#8b8b95", textTransform: "uppercase", fontSize: "0.62rem", letterSpacing: "0.5px" }}>{ind.nome}</span>
+                  <strong style={{ color: "#fff", fontFamily: "ui-monospace, Consolas, monospace" }}>{formatValor(ind.valor_atual ?? ind.valor, ind.categoria)}</strong>
                   <ArrowUpRight style={{ width: "11px", height: "11px", color: "#22c55e" }} />
                 </div>
               ))}
@@ -107,7 +109,7 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
         </div>
       </div>
 
-      {/* USU¡RIO / CONFIGURA«’ES DISCRETO */}
+      {/* USU√ÅRIO / CONFIGURA√á√ïES DISCRETO */}
       <div style={{ position: "relative" }}>
         <button
           onClick={() => setMenuOpen(!menuOpen)}
@@ -127,7 +129,7 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
           <div style={{ width: "26px", height: "26px", borderRadius: "50%", backgroundColor: "#1e1e24", border: "1px solid #27272a", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <User style={{ width: "14px", height: "14px", color: "#c5a059" }} />
           </div>
-          <span style={{ color: "#e4e4e7", fontWeight: "500" }}>{userEmail ? userEmail.split("@")[0] : "Usu·rio"}</span>
+          <span style={{ color: "#e4e4e7", fontWeight: "500" }}>{userEmail ? userEmail.split("@")[0] : "Usu√°rio"}</span>
           <ChevronDown style={{ width: "13px", height: "13px", color: "#71717a" }} />
         </button>
 
@@ -166,7 +168,7 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
               }}
             >
               <Settings style={{ width: "14px", height: "14px", color: "#c5a059" }} />
-              ConfiguraÁıes
+              Configura√ß√µes
             </button>
           </div>
         )}
