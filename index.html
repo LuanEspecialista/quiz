@@ -127,6 +127,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       transform:translateY(-1px);
     }
 
+    .top-actions{display:flex;gap:10px;align-items:center}
+    .top-btn.restricted{color:rgba(255,255,255,.72);border-color:rgba(255,255,255,.18)}
+
     /* HERO */
 
     .hero-content{
@@ -567,7 +570,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     }
 
   </style>
-</head>
+<script src="/assets/site-config.js"></script><script defer src="/assets/site-runtime.js"></script></head>
 
 <body>
 
@@ -586,9 +589,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <img class="logo" src="./imagens/logo.png" alt="Luan Especialista">
 
-      <a class="top-btn" href="https://wa.me/5547992120915">
+      <div class="top-actions">
+      <a class="top-btn restricted" href="./painel/" data-i18n="restrictedAccess">Acesso restrito</a>
+      <a class="top-btn" href="https://wa.me/5547992120915" data-i18n="talkSpecialist">
         Falar com especialista
       </a>
+      </div>
 
     </header>
 
@@ -600,11 +606,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         LUAN <span class="gold">ESPECIALISTA</span>
       </h1>
 
-      <div class="subtitle">
+      <div class="subtitle" data-i18n="heroSubtitle">
         Estratégias patrimoniais inteligentes
       </div>
 
-      <div class="description">
+      <div class="description" data-i18n="heroDescription">
         Brasil e exterior conectados através de oportunidades estratégicas.
       </div>
 
@@ -677,13 +683,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
           </div>
 
-          <h2>Estratégias Patrimoniais</h2>
+          <h2 data-i18n="strategyTitle">Estratégias Patrimoniais</h2>
 
-          <p>
+          <p data-i18n="strategyDescription">
             Soluções para construir, proteger e multiplicar patrimônio no Brasil.
           </p>
 
-          <a class="card-btn" href="./estrategias-patrimoniais">
+          <a class="card-btn" href="./estrategias-patrimoniais" data-i18n="strategyCta">
             Conhecer estratégia →
           </a>
 
@@ -728,16 +734,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
           </div>
 
-          <h2>
+          <h2 data-i18n="mobilityTitle">
             Mobilidade &<br>
             Experiências
           </h2>
 
-          <p>
+          <p data-i18n="mobilityDescription">
             Frotas, lazer e operações comerciais transformadas em possibilidades reais.
           </p>
 
-          <a class="card-btn" href="./mobilidade-experiencias">
+          <a class="card-btn" href="./mobilidade-experiencias" data-i18n="mobilityCta">
             Explorar possibilidades →
           </a>
 
@@ -769,13 +775,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
           </div>
 
-          <h2>Imóveis</h2>
+          <h2 data-i18n="propertiesTitle">Imóveis</h2>
 
-          <p>
+          <p data-i18n="propertiesDescription">
             Oportunidades selecionadas no litoral de Santa Catarina para morar e investir.
           </p>
 
-          <a class="card-btn" href="./imoveis">
+          <a class="card-btn" href="./imoveis" data-i18n="propertiesCta">
             Ver oportunidades →
           </a>
 
@@ -821,7 +827,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       </div>
 
-      <div class="footer-copy">
+      <div class="footer-copy" data-i18n="copyright">
         © 2026 Luan Especialista. Todos os direitos reservados.
       </div>
 

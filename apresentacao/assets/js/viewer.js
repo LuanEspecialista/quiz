@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         empreendimentoSelecionado = empreendimento;
         document.title = `${empreendimento.nome} | Luan Especialista`;
         if (btnUnidades) {
-            btnUnidades.href = `/admin/?tab=unidades&empreendimento=${encodeURIComponent(empreendimento.id)}&disponibilidade=DISPONIVEL`;
+            btnUnidades.href = `/painel/?tab=unidades&empreendimento=${encodeURIComponent(empreendimento.id)}&disponibilidade=DISPONIVEL`;
             btnUnidades.classList.remove('hidden');
         }
         carregarApresentacao();

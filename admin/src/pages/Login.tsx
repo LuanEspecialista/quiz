@@ -10,6 +10,9 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [forgotMode, setForgotMode] = useState(false);
+  const [requestMode, setRequestMode] = useState(false);
+  const [requestName, setRequestName] = useState("");
+  const [accessType, setAccessType] = useState<"cliente" | "afiliado">("cliente");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +49,12 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     if (error) setError(error.message); else { setNotice("Senha atualizada com sucesso."); onPasswordUpdated?.(); }
   };
 
+  const handleAccessRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    const message = ["Olá, Luan! Gostaria de solicitar acesso à plataforma.", `Nome: ${requestName.trim()}`, `E-mail: ${email.trim()}`, `Tipo de acesso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Se aprovado, aguardo as instruções para entrar."].join("\n");
+    window.open(`https://wa.me/5547992120915?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", padding: "1rem" }}>
       <div style={{ width: "100%", maxWidth: "400px", backgroundColor: "#121212", border: "1px solid #222", borderRadius: "12px", padding: "2.5rem", boxShadow: "0 10px 25px rgba(0,0,0,0.5)" }}>
@@ -63,7 +72,8 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
 
         {notice && <div style={{ backgroundColor: "rgba(34,197,94,.1)", border: "1px solid rgba(34,197,94,.35)", color: "#4ade80", padding: "0.75rem", borderRadius: "6px", fontSize: "0.875rem", marginBottom: "1.5rem" }}>{notice}</div>}
 
-        <form onSubmit={recoveryMode ? handleNewPassword : forgotMode ? handleForgotPassword : handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <form onSubmit={requestMode ? handleAccessRequest : recoveryMode ? handleNewPassword : forgotMode ? handleForgotPassword : handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          {requestMode && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Nome completo</label><input required value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome" style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px", boxSizing: "border-box" }} /></div>}
           {!recoveryMode && (
           <div>
             <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>E-mail</label>
@@ -81,7 +91,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
           </div>
           )}
 
-          {!forgotMode && <div>
+          {!forgotMode && !requestMode && <div>
             <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{recoveryMode ? "Nova senha" : "Senha"}</label>
             <div style={{ position: "relative" }}>
               <Lock style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} />
@@ -105,16 +115,18 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
             </div>
           </div>}
 
-          {!recoveryMode && !forgotMode && <button type="button" onClick={() => { setForgotMode(true); setError(null); }} style={{ alignSelf: "flex-end", background: "none", border: 0, color: "#c5a059", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>Esqueci minha senha</button>}
+          {requestMode && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Quero acesso como</label><select value={accessType} onChange={(e) => setAccessType(e.target.value as "cliente" | "afiliado")} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px" }}><option value="cliente">Cliente</option><option value="afiliado">Afiliado</option></select><p style={{ color: "#71717a", fontSize: "0.75rem", lineHeight: 1.5 }}>A solicitação não cria uma conta. O acesso só será liberado após sua aprovação.</p></div>}
+          {!recoveryMode && !forgotMode && !requestMode && <button type="button" onClick={() => { setForgotMode(true); setError(null); }} style={{ alignSelf: "flex-end", background: "none", border: 0, color: "#c5a059", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>Esqueci minha senha</button>}
 
           <button
             type="submit"
             disabled={loading}
             style={{ width: "100%", backgroundColor: "#c5a059", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: loading ? "not-allowed" : "pointer", marginTop: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
           >
-            {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : recoveryMode ? "Salvar nova senha" : forgotMode ? "Enviar link de recuperação" : "Entrar no Painel"}
+            {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : requestMode ? "Enviar solicitação pelo WhatsApp" : recoveryMode ? "Salvar nova senha" : forgotMode ? "Enviar link de recuperação" : "Entrar no Painel"}
           </button>
           {forgotMode && <button type="button" onClick={() => { setForgotMode(false); setError(null); setNotice(null); }} style={{ background: "none", border: 0, color: "#a1a1aa", cursor: "pointer" }}>Voltar ao login</button>}
+          {!recoveryMode && !forgotMode && <button type="button" onClick={() => { setRequestMode((value) => !value); setError(null); setNotice(null); }} style={{ background: "none", border: "1px solid #3f3524", color: "#d7ab63", padding: "0.7rem", borderRadius: "6px", cursor: "pointer" }}>{requestMode ? "Voltar ao login" : "Solicitar acesso"}</button>}
         </form>
       </div>
     </div>

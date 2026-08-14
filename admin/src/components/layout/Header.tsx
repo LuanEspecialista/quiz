@@ -13,13 +13,28 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    loadIndicadores();
+    void loadIndicadores();
+    const refresh = () => void loadIndicadores();
+    const intervalId = window.setInterval(refresh, 5 * 60_000);
+    window.addEventListener("luan:cotacao-atualizada", refresh);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("luan:cotacao-atualizada", refresh);
+    };
   }, []);
 
   const loadIndicadores = async () => {
     try {
-      const { data } = await supabase.from("indicadores").select("*");
-      if (data) setIndicadores(data);
+      const [{ data }, { data: cotacao }] = await Promise.all([
+        supabase.from("indicadores").select("*"),
+        supabase.from("cotacao_usd_brl_atual").select("cotacao, data_cotacao").maybeSingle(),
+      ]);
+      if (data) {
+        const next = [...data];
+        const dollarIndex = next.findIndex((item) => String(item.nome || "").toLocaleUpperCase("pt-BR").includes("DÓLAR"));
+        if (cotacao?.cotacao && dollarIndex >= 0) next[dollarIndex] = { ...next[dollarIndex], valor_atual: Number(cotacao.cotacao), data_atualizacao: cotacao.data_cotacao };
+        setIndicadores(next);
+      }
     } catch (err) {
       console.error("Erro ao carregar ticker no header:", err);
     }
