@@ -7,6 +7,24 @@ export type ExchangeRate = {
   source: "supabase" | "cache";
 };
 
+export function isUsdBrlIndicator(indicator: { nome?: unknown; sku?: unknown }): boolean {
+  const identity = `${indicator.nome || ""} ${indicator.sku || ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+  return /(^|[^A-Z])(DOLAR|USD|PTAX)([^A-Z]|$)/.test(identity);
+}
+
+export function applyExchangeRate<T extends { nome?: unknown; sku?: unknown; valor_atual?: unknown; data_atualizacao?: unknown }>(
+  indicators: T[],
+  rate: ExchangeRate | null,
+): T[] {
+  if (!rate?.value) return indicators;
+  return indicators.map((indicator) => isUsdBrlIndicator(indicator)
+    ? { ...indicator, valor_atual: rate.value, data_atualizacao: rate.date }
+    : indicator);
+}
+
 const VALUE_KEY = "luan.usdBrl";
 const DATE_KEY = "luan.usdBrlDate";
 

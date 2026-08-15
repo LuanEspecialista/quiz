@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { getExchangeRate, refreshExchangeRate, type ExchangeRate } from "@/lib/exchangeRate";
+import { applyExchangeRate, getExchangeRate, refreshExchangeRate, type ExchangeRate } from "@/lib/exchangeRate";
 import { 
   TrendingUp, 
   Plus, 
@@ -109,7 +109,7 @@ export default function Indicadores() {
       if (error) {
         console.error("Erro no Supabase ao buscar:", error);
       } else if (data) {
-        setIndicadores(data);
+        setIndicadores(applyExchangeRate(data, rate));
       }
     } catch (err) {
       console.error("Erro inesperado:", err);
@@ -121,7 +121,9 @@ export default function Indicadores() {
   const updateDollar = async () => {
     setRefreshingRate(true);
     try {
-      setExchangeRate(await refreshExchangeRate());
+      const rate = await refreshExchangeRate();
+      setExchangeRate(rate);
+      setIndicadores((current) => applyExchangeRate(current, rate));
       window.dispatchEvent(new Event("luan:cotacao-atualizada"));
     } catch (error) {
       console.error("Erro ao atualizar cotação:", error);

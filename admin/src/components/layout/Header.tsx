@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, Settings, Zap, ArrowUpRight, ChevronDown, Save, LogOut } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { getExchangeRate } from "../../lib/exchangeRate";
+import { applyExchangeRate, getExchangeRate, isUsdBrlIndicator } from "../../lib/exchangeRate";
 import LanguageSelector from "../LanguageSelector";
 
 interface HeaderProps {
@@ -36,10 +36,8 @@ export function Header({ userName, setActiveTab, onTickerSelect }: HeaderProps) 
         getExchangeRate(),
       ]);
       if (data) {
-        const next = [...data];
-        const dollarIndex = next.findIndex((item) => String(item.nome || "").toLocaleUpperCase("pt-BR").includes("DÓLAR"));
-        if (cotacao?.value && dollarIndex >= 0) next[dollarIndex] = { ...next[dollarIndex], valor_atual: cotacao.value, data_atualizacao: cotacao.date };
-        if (cotacao?.value && dollarIndex < 0) next.unshift({ id: "ptax-usd-brl", nome: "Dólar PTAX", categoria: "MOEDA", valor_atual: cotacao.value, data_atualizacao: cotacao.date });
+        const next = applyExchangeRate([...data], cotacao);
+        if (cotacao?.value && !next.some(isUsdBrlIndicator)) next.unshift({ id: "ptax-usd-brl", nome: "Dólar PTAX", categoria: "MOEDA", valor_atual: cotacao.value, data_atualizacao: cotacao.date });
         setIndicadores(next);
       }
     } catch (err) {
