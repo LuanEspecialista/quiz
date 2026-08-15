@@ -1,0 +1,24 @@
+# Integração da área de Apresentações
+
+## Estrutura encontrada
+
+- Empreendimentos: tabela `public.empreendimentos`.
+- Identificação: `id` textual.
+- Nome: `nome`.
+- Cidade: `cidade` (há também `cidade_id` no modelo legado).
+- PDF legado: `pdf_apresentacao_url` em `empreendimentos`.
+- Storage: bucket público `pdfs`, pasta `apresentacoes`.
+- Apresentações: tabela `public.apresentacoes`, vazia, com estrutura genérica (`id`, `pdf_url`, `created_at`) e sem relação com empreendimentos.
+- Interface: `src/pages/modules/Apresentacoes.tsx`, carregada por `Dashboard.tsx` e acessada pelo item existente do `Sidebar.tsx`.
+
+## Inconsistência corrigida
+
+A implementação anterior usava `empreendimentos.ativo` para o toggle da apresentação. Esse campo representa a disponibilidade do próprio empreendimento e não deve ser alterado pela área de apresentações.
+
+A migração adapta `public.apresentacoes` com `empreendimento_id`, `ativo`, `storage_path` e `updated_at`, cria uma relação única com `empreendimentos.id` e reaproveita os URLs legados. Nenhuma tabela de empreendimentos ou bucket adicional é criado.
+
+## Aplicação
+
+Execute `supabase/migrations/20260812_integrar_apresentacoes_empreendimentos.sql` no projeto Supabase antes de publicar o frontend atualizado. A credencial pública usada pelo frontend não tem permissão para alterar o esquema.
+
+Novos uploads usam o caminho determinístico `apresentacoes/{empreendimento_id}/apresentacao.pdf` no bucket `pdfs`, com `upsert`, mantendo uma única referência atual por empreendimento.
