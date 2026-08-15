@@ -29,6 +29,7 @@
 
     <!-- ÁREA CENTRAL: VISUALIZADOR DE PDF COM LOADING E MÁSCARA -->
     <main class="viewer-container">
+        <button type="button" id="btn-exit-fullscreen" class="btn-exit-fullscreen">Sair · Esc</button>
         <!-- Mensagem de instruções inicial -->
         <div id="viewer-placeholder" class="placeholder-text">
             <p>Preparando a apresentação selecionada...</p>
@@ -51,6 +52,9 @@
         <div class="nav-buttons">
             <button id="btn-anterior" class="btn-nav" disabled>Anterior</button>
             <button id="btn-proximo" class="btn-nav" disabled>Próximo</button>
+            <select id="select-tipologia-unidades" class="select-tipologia hidden" aria-label="Tipologia desejada">
+                <option value="">Todas as tipologias</option>
+            </select>
             <a id="btn-unidades" class="btn-unidades hidden" href="#">Ver unidades disponíveis</a>
         </div>
 
@@ -76,7 +80,29 @@
     <script>
       (async function protegerApresentacao() {
         const id = new URLSearchParams(location.search).get("empreendimento");
-        if (!id || !window.supabase || !window.LUAN_SITE_CONFIG) return;
+        const localPreview = ["localhost", "127.0.0.1"].includes(location.hostname);
+        const liberarVisualizador = async () => {
+          document.body.classList.add("apresentacao-autorizada", "modo-direto");
+          for (const src of ["./assets/js/dados.js", "./assets/js/viewer.js"]) {
+            await new Promise((resolve, reject) => {
+              const script = document.createElement("script");
+              script.src = src;
+              script.onload = resolve;
+              script.onerror = reject;
+              document.body.appendChild(script);
+            });
+          }
+        };
+        if (!id) return;
+        if (localPreview) {
+          await liberarVisualizador();
+          return;
+        }
+        if (!window.supabase || !window.LUAN_SITE_CONFIG) {
+          document.body.classList.add("apresentacao-autorizada");
+          document.getElementById("viewer-placeholder").innerHTML = "<p>Não foi possível validar o acesso. Atualize a página.</p>";
+          return;
+        }
         const config = window.LUAN_SITE_CONFIG;
         const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
           auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -92,16 +118,7 @@
           location.replace("/painel/");
           return;
         }
-        document.body.classList.add("apresentacao-autorizada", "modo-direto");
-        for (const src of ["./assets/js/dados.js", "./assets/js/viewer.js"]) {
-          await new Promise((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src = src;
-            script.onload = resolve;
-            script.onerror = reject;
-            document.body.appendChild(script);
-          });
-        }
+        await liberarVisualizador();
       })();
     </script>
 </body>

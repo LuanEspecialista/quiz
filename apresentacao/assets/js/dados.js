@@ -60,7 +60,8 @@ async function carregarDadosDoSupabase() {
                 orientacao: emp.orientacao || 'horizontal',
                 pdfApresentacao: apresentacao?.pdf_url || emp.pdf_apresentacao_url,
                 apresentacaoAtualizadaEm: apresentacao?.updated_at || emp.updated_at,
-                tabelaId: tabelaFinal
+                tabelaId: tabelaFinal,
+                tipologias: Array.isArray(emp.caracteristicas?.tipologias) ? emp.caracteristicas.tipologias : []
             };
         });
 
@@ -74,4 +75,8 @@ async function carregarDadosDoSupabase() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', carregarDadosDoSupabase);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', carregarDadosDoSupabase, { once: true });
+} else {
+    carregarDadosDoSupabase();
+}

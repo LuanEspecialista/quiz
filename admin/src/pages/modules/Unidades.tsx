@@ -55,7 +55,7 @@ const parseTipologia = (unit: any): TipologiaInfo => {
 type InitialSmartFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean; prazoMeses: number };
 const initialMoney = (value?: number) => value ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value) : "";
 
-export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeInicial, filtrosIniciais }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string; disponibilidadeInicial?: string; filtrosIniciais?: InitialSmartFilters }) {
+export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeInicial, tipologiaInicial, filtrosIniciais }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string; disponibilidadeInicial?: string; tipologiaInicial?: string; filtrosIniciais?: InitialSmartFilters }) {
   const [unidades, setUnidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   // Filtros
   const [searchTerm, setSearchTerm] = useState(filtrosIniciais?.cidade || "");
   const [disponibilidade, setDisponibilidade] = useState(disponibilidadeInicial || "TODAS");
-  const [tipologia, setTipologia] = useState(filtrosIniciais?.dormitorios ? `DORM:${filtrosIniciais.dormitorios}` : "TODAS");
+  const [tipologia, setTipologia] = useState(tipologiaInicial || (filtrosIniciais?.dormitorios ? `DORM:${filtrosIniciais.dormitorios}` : "TODAS"));
   const [suitesMinimas, setSuitesMinimas] = useState("0");
   const [vagasFiltro, setVagasFiltro] = useState("TODAS");
   const [incluirCompactos, setIncluirCompactos] = useState(Boolean(filtrosIniciais?.incluirCompactos));

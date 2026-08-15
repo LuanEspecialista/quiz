@@ -25,6 +25,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
   const [metrics, setMetrics] = useState({ empreendimentos: 0, unidades: 0, clientes: 0, propostasEmAndamento: 0 });
   const empreendimentoId = initialParams.get("empreendimento") || undefined;
   const disponibilidade = initialParams.get("disponibilidade") || undefined;
+  const tipologiaInicial = initialParams.get("tipologia") || undefined;
 
   useEffect(() => {
     if (activeTab !== "dashboard") return;
@@ -58,7 +59,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         {role !== "afiliado" && activeTab === "dashboard" && <SmartDashboard metrics={metrics} onSearch={searchUnits} onNavigate={setActiveTab} />}
         {role !== "afiliado" && activeTab === "construtoras" && <ConstrutorasModule />}
         {role !== "afiliado" && activeTab === "empreendimentos" && <EmpreendimentosModule />}
-        {role !== "afiliado" && activeTab === "unidades" && <UnidadesModule empreendimentoId={empreendimentoId} disponibilidadeInicial={disponibilidade} filtrosIniciais={smartUnitFilters} onSimular={openFlow} />}
+        {role !== "afiliado" && activeTab === "unidades" && <UnidadesModule empreendimentoId={empreendimentoId} disponibilidadeInicial={disponibilidade} tipologiaInicial={tipologiaInicial} filtrosIniciais={smartUnitFilters} onSimular={openFlow} />}
         {role !== "afiliado" && activeTab === "apresentacoes" && <ApresentacoesModule />}
         {role !== "afiliado" && activeTab === "importar-ia" && <ImportarIAModule />}
         {role !== "afiliado" && activeTab === "prompts" && <PromptsModule />}

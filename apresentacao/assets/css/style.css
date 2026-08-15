@@ -222,6 +222,32 @@ body.apresentacao-autorizada {
     color: #090909;
 }
 
+.select-tipologia {
+    height: 34px;
+    min-width: 150px;
+    max-width: 190px;
+    padding: 0 28px 0 10px;
+    border: 1px solid var(--borda);
+    border-radius: 5px;
+    background: #111;
+    color: #e4e4e7;
+    font-size: 12px;
+}
+
+.btn-exit-fullscreen {
+    display: none;
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 2147483647;
+    padding: 8px 12px;
+    border: 1px solid rgba(197, 160, 89, .55);
+    border-radius: 999px;
+    background: rgba(8, 8, 8, .82);
+    color: #f4f4f5;
+    cursor: pointer;
+}
+
 body.modo-direto .filters-container {
     display: none;
 }
@@ -367,6 +393,18 @@ body.modo-direto #btn-proximo {
 #pdf-viewer.modo-vertical {
     height: 100%;
     max-width: 850px;
+}
+
+:fullscreen .luan-language,
+:-webkit-full-screen .luan-language,
+:fullscreen .luan-currency,
+:-webkit-full-screen .luan-currency {
+    display: none !important;
+}
+
+:fullscreen .btn-exit-fullscreen,
+:-webkit-full-screen .btn-exit-fullscreen {
+    display: block !important;
 }
 
 @media (max-width: 980px) {

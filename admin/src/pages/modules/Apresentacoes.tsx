@@ -138,6 +138,11 @@ export default function Apresentacoes() {
       : window.location.origin);
     const viewerUrl = new URL("/apresentacao/", publicOrigin);
     viewerUrl.searchParams.set("empreendimento", item.id);
+    if (isLocalPanel) {
+      viewerUrl.searchParams.set("pdf", presentation.pdf_url || "");
+      viewerUrl.searchParams.set("nome", item.nome || "Apresentação");
+      viewerUrl.searchParams.set("painel", window.location.origin);
+    }
     window.open(viewerUrl.toString(), "_blank", "noopener,noreferrer");
   }
 

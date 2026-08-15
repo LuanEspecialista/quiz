@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+function iniciarViewer() {
     // Referências do DOM
     const selectCidade = document.getElementById('select-cidade');
     const selectConstrutora = document.getElementById('select-construtora');
@@ -11,12 +11,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAnterior = document.getElementById('btn-anterior');
     const btnProximo = document.getElementById('btn-proximo');
     const btnFullscreen = document.getElementById('btn-fullscreen');
+    const btnExitFullscreen = document.getElementById('btn-exit-fullscreen');
     const btnUnidades = document.getElementById('btn-unidades');
+    const selectTipologiaUnidades = document.getElementById('select-tipologia-unidades');
     const empreendimentoDiretoId = new URLSearchParams(window.location.search).get('empreendimento');
+    const previewPdf = new URLSearchParams(window.location.search).get('pdf');
+    const previewNome = new URLSearchParams(window.location.search).get('nome');
+    const painelOrigin = new URLSearchParams(window.location.search).get('painel') || window.location.origin;
 
     let estadoAtual = 'nenhuma'; 
     let empreendimentoSelecionado = null;
     let empreendimentoDiretoCarregado = false;
+    let loadingTimeout = null;
+
+    const tipologiasPadrao = ['Studio', 'Loft', '1Q', '1S', '1Q+1S', '2Q', '2S', '2Q+1S', '1Q+2S', '3Q', '3S', '3Q+1S', '2Q+2S', '4Q', '4S', 'Garden / Giardino', 'Duplex', 'Cobertura'];
+
+    function atualizarLinkUnidades() {
+        if (!btnUnidades || !empreendimentoSelecionado) return;
+        const url = new URL('/painel/', painelOrigin);
+        url.searchParams.set('tab', 'unidades');
+        url.searchParams.set('empreendimento', empreendimentoSelecionado.id);
+        url.searchParams.set('disponibilidade', 'DISPONIVEL');
+        if (selectTipologiaUnidades?.value) url.searchParams.set('tipologia', `EXACT:${selectTipologiaUnidades.value}`);
+        btnUnidades.href = url.toString();
+    }
+
+    function popularTipologiasUnidades() {
+        if (!selectTipologiaUnidades || !empreendimentoSelecionado) return;
+        const disponiveis = Array.isArray(empreendimentoSelecionado.tipologias) && empreendimentoSelecionado.tipologias.length
+            ? empreendimentoSelecionado.tipologias
+            : tipologiasPadrao;
+        selectTipologiaUnidades.innerHTML = '<option value="">Todas as tipologias</option>';
+        [...new Set(disponiveis)].forEach(tipo => {
+            const option = document.createElement('option');
+            option.value = tipo;
+            option.textContent = tipo;
+            selectTipologiaUnidades.appendChild(option);
+        });
+        selectTipologiaUnidades.classList.remove('hidden');
+        atualizarLinkUnidades();
+    }
+
+    selectTipologiaUnidades?.addEventListener('change', atualizarLinkUnidades);
 
     function obterUrlViewer(urlOriginal) {
         if (!urlOriginal) return '';
@@ -55,7 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function carregarEmpreendimentoDireto() {
         if (empreendimentoDiretoCarregado || !empreendimentoDiretoId || typeof EMPREENDIMENTOS === 'undefined') return;
         empreendimentoDiretoCarregado = true;
-        const empreendimento = EMPREENDIMENTOS.find(emp => String(emp.id) === empreendimentoDiretoId);
+        const empreendimento = EMPREENDIMENTOS.find(emp => String(emp.id) === empreendimentoDiretoId) || (previewPdf ? {
+            id: empreendimentoDiretoId,
+            nome: previewNome || 'Apresentação',
+            orientacao: 'horizontal',
+            pdfApresentacao: previewPdf,
+            tipologias: []
+        } : null);
         document.body.classList.add('modo-direto');
 
         if (!empreendimento) {
@@ -69,9 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
         empreendimentoSelecionado = empreendimento;
         document.title = `${empreendimento.nome} | Luan Especialista`;
         if (btnUnidades) {
-            btnUnidades.href = `/painel/?tab=unidades&empreendimento=${encodeURIComponent(empreendimento.id)}&disponibilidade=DISPONIVEL`;
             btnUnidades.classList.remove('hidden');
         }
+        popularTipologiasUnidades();
         carregarApresentacao();
     }
 
@@ -156,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pdfViewer) {
         pdfViewer.addEventListener('load', () => {
             if (pdfViewer.src && pdfViewer.src !== window.location.href && pdfViewer.src !== 'about:blank') {
+                if (loadingTimeout) window.clearTimeout(loadingTimeout);
                 if (loadingSpinner) loadingSpinner.classList.add('hidden');
                 pdfViewer.classList.remove('hidden');
             }
@@ -185,6 +228,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pdfViewer) pdfViewer.classList.add('hidden');
         if (viewerPlaceholder) viewerPlaceholder.classList.add('hidden');
         if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+
+        if (loadingTimeout) window.clearTimeout(loadingTimeout);
+        loadingTimeout = window.setTimeout(() => {
+            if (loadingSpinner) loadingSpinner.classList.add('hidden');
+            if (viewerPlaceholder) {
+                viewerPlaceholder.classList.remove('hidden');
+                viewerPlaceholder.innerHTML = '<p>A apresentação demorou para responder.</p><button type="button" id="retry-presentation" class="btn-nav">Tentar novamente</button>';
+                document.getElementById('retry-presentation')?.addEventListener('click', carregarApresentacao, { once: true });
+            }
+        }, 15000);
 
         const versao = encodeURIComponent(empreendimentoSelecionado.apresentacaoAtualizadaEm || Date.now());
         const separador = empreendimentoSelecionado.pdfApresentacao.includes('?') ? '&' : '?';
@@ -365,9 +418,9 @@ document.addEventListener('DOMContentLoaded', () => {
             fullscreenHint.classList.toggle('visible', active);
         };
 
-        btnFullscreen.addEventListener('click', async () => {
+        const toggleFullscreen = async () => {
             if (!document.fullscreenElement) {
-                const targetEl = mainViewerContainer || document.documentElement;
+                const targetEl = document.documentElement;
                 if (targetEl.requestFullscreen) {
                     await targetEl.requestFullscreen();
                 } else if (targetEl.webkitRequestFullscreen) {
@@ -380,9 +433,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.webkitExitFullscreen();
                 }
             }
-        });
+        };
+        btnFullscreen.addEventListener('click', toggleFullscreen);
+        btnExitFullscreen?.addEventListener('click', toggleFullscreen);
         document.addEventListener('fullscreenchange', syncFullscreenState);
         document.addEventListener('webkitfullscreenchange', syncFullscreenState);
         syncFullscreenState();
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarViewer, { once: true });
+} else {
+    iniciarViewer();
+}
