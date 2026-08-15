@@ -22,15 +22,15 @@ export default function App() {
       validationResult = await supabase.from("perfis_usuario").select("perfil,ativo").eq("user_id", nextSession.user.id).maybeSingle();
     }
     const { data, error } = validationResult;
-    const profileUnavailable = error?.code === "42P01" || error?.code === "PGRST205";
-    if (error && !profileUnavailable) {
+    if (error) {
       setAuthorized(false);
-      setAuthError("Sua sessão continua ativa, mas não foi possível validar o perfil agora. Atualize a página em alguns instantes.");
+      setAuthError("Não foi possível validar sua autorização. Por segurança, o acesso permaneceu bloqueado.");
+      await supabase.auth.signOut();
       return;
     }
     const allowedProfiles = ["admin", "equipe", "afiliado"];
-    const allowed = profileUnavailable || (!error && allowedProfiles.includes(data?.perfil || "") && data?.ativo === true);
-    if (allowed) setAccessRole(profileUnavailable ? "admin" : data?.perfil as "admin" | "equipe" | "afiliado");
+    const allowed = allowedProfiles.includes(data?.perfil || "") && data?.ativo === true;
+    if (allowed) setAccessRole(data?.perfil as "admin" | "equipe" | "afiliado");
     setAuthorized(allowed);
     setAuthError(allowed ? "" : error ? "Não foi possível validar o acesso agora." : "Esta conta não possui um perfil de acesso ativo.");
     if (!allowed) await supabase.auth.signOut();
@@ -72,7 +72,7 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted) {
-        if (event === "PASSWORD_RECOVERY") {
+        if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && new URLSearchParams(window.location.search).get("recovery") === "1")) {
           setSession(session);
           setRecoveringPassword(true);
           setLoading(false);

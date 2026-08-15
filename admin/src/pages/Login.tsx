@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react";
+import { clearAuthUrl, getPanelUrl } from "@/lib/authRedirect";
 
 export default function Login({ externalError = "", recoveryMode = false, onPasswordUpdated }: { externalError?: string; recoveryMode?: boolean; onPasswordUpdated?: () => void }) {
   const [email, setEmail] = useState("");
@@ -35,7 +36,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     e.preventDefault();
     if (!email.trim()) return setError("Informe seu e-mail.");
     setLoading(true); setError(null); setNotice(null);
-    const redirectTo = `${window.location.origin}/painel/`;
+    const redirectTo = getPanelUrl({ recovery: "1" });
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
     setLoading(false);
     if (error) setError(error.message); else setNotice("Enviamos o link de recuperação. Verifique também a caixa de spam.");
@@ -50,7 +51,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     if (!error) await supabase.auth.refreshSession();
     setLoading(false);
     if (error) setError(error.message); else {
-      window.history.replaceState({}, document.title, "/painel/");
+      clearAuthUrl();
       setNotice("Senha atualizada e acesso mantido neste dispositivo.");
       onPasswordUpdated?.();
     }
@@ -63,9 +64,10 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", padding: "1rem" }}>
-      <div style={{ width: "100%", maxWidth: "400px", backgroundColor: "#121212", border: "1px solid #222", borderRadius: "12px", padding: "2.5rem", boxShadow: "0 10px 25px rgba(0,0,0,0.5)" }}>
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+    <div className="login-page" style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", padding: "max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom))" }}>
+      <style>{`@media(max-width:480px){.login-card{padding:1.35rem !important;border-radius:10px !important}.login-brand{margin-bottom:1.25rem !important}.login-brand h1{font-size:1.3rem !important}.login-page{align-items:flex-start !important;overflow-y:auto}.login-card{margin:auto 0}}`}</style>
+      <div className="login-card" style={{ width: "100%", maxWidth: "400px", backgroundColor: "#121212", border: "1px solid #222", borderRadius: "12px", padding: "2.5rem", boxShadow: "0 10px 25px rgba(0,0,0,0.5)" }}>
+        <div className="login-brand" style={{ textAlign: "center", marginBottom: "2rem" }}>
           <a href="/" aria-label="Ir para a página inicial"><img src="/imagens/logo.png" alt="Luan Especialista" style={{ width: 58, height: 58, objectFit: "contain", marginBottom: 12, opacity: .92 }} /></a>
           <h1 style={{ color: "#c5a059", fontSize: "1.75rem", fontWeight: "bold", margin: "0 0 0.5rem 0", letterSpacing: "1px" }}>LUAN ESPECIALISTA</h1>
           <p style={{ color: "#a1a1aa", fontSize: "0.875rem", margin: 0 }}>Plataforma de Inteligência Patrimonial</p>
