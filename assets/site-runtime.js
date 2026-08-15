@@ -70,32 +70,80 @@
     selector.querySelectorAll("[data-locale]").forEach((button) => { button.hidden = !siteSettings.idiomas_ativos.includes(button.dataset.locale); });
   }
 
-  const remoteValue = Number(siteSettings?.cotacao_manual || rate?.cotacao);
-  const cachedValue = Number(localStorage.getItem("luan.usdBrl"));
-  const baseRate = Number.isFinite(remoteValue) && remoteValue > 0 ? remoteValue : cachedValue;
+  const fetchOfficialRate = async () => {
+    for (let offset = 0; offset < 8; offset += 1) {
+      const date = new Date();
+      date.setDate(date.getDate() - offset);
+      const dateQuery = [String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0"), date.getFullYear()].join("-");
+      const endpoint = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${dateQuery}'&$top=1&$format=json&$select=cotacaoVenda,dataHoraCotacao`;
+      try {
+        const response = await withTimeout(fetch(endpoint), 5000, "Tempo limite ao consultar a PTAX.");
+        if (!response.ok) continue;
+        const payload = await response.json();
+        const quotation = Number(payload?.value?.[0]?.cotacaoVenda);
+        if (Number.isFinite(quotation) && quotation > 0) {
+          return { quotation, date: payload.value[0].dataHoraCotacao || date.toISOString().slice(0, 10) };
+        }
+      } catch {
+        // Tenta o dia útil anterior; o cache local continua sendo a última proteção.
+      }
+    }
+    return null;
+  };
+
+  let liveBaseRate = Number(siteSettings?.cotacao_manual || rate?.cotacao);
+  if (!Number.isFinite(liveBaseRate) || liveBaseRate <= 0) {
+    const officialRate = await fetchOfficialRate();
+    if (officialRate) {
+      liveBaseRate = officialRate.quotation;
+      rate = { ...(rate || {}), data_cotacao: officialRate.date };
+    }
+  }
+
+  const cachedBaseRate = Number(localStorage.getItem("luan.usdBrlBase"));
+  const cachedAdjustedRate = Number(localStorage.getItem("luan.usdBrl"));
   const margin = Number(siteSettings?.margem_cambio_percentual || 0);
-  const usdBrl = baseRate > 0 ? baseRate * (1 + margin / 100) : null;
+  const hasLiveRate = Number.isFinite(liveBaseRate) && liveBaseRate > 0;
+  const baseRate = hasLiveRate ? liveBaseRate : cachedBaseRate;
+  const usdBrl = Number.isFinite(baseRate) && baseRate > 0
+    ? baseRate * (1 + margin / 100)
+    : (Number.isFinite(cachedAdjustedRate) && cachedAdjustedRate > 0 ? cachedAdjustedRate : null);
   const rateDate = rate?.data_cotacao || localStorage.getItem("luan.usdBrlDate");
   if (usdBrl) {
     localStorage.setItem("luan.usdBrl", String(usdBrl));
+    if (hasLiveRate) localStorage.setItem("luan.usdBrlBase", String(liveBaseRate));
     if (rateDate) localStorage.setItem("luan.usdBrlDate", rateDate);
   }
 
   const currency = locale === "pt-BR" ? "BRL" : "USD";
   const formatCurrency = (value) => new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(currency === "USD" && usdBrl ? value / usdBrl : value);
+  let convertedMoney = false;
   if (locale !== "pt-BR" && usdBrl) {
-    const moneyPattern = /R\$\s*([\d.]+(?:,\d{1,2})?)/g;
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    const nodes = [];
-    while (walker.nextNode()) {
-      const parent = walker.currentNode.parentElement;
-      if (parent && !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) && moneyPattern.test(walker.currentNode.nodeValue)) nodes.push(walker.currentNode);
-      moneyPattern.lastIndex = 0;
-    }
-    nodes.forEach((node) => { node.nodeValue = node.nodeValue.replace(moneyPattern, (_, raw) => formatCurrency(Number(raw.replace(/\./g, "").replace(",", ".")))); });
+    const convertTextNode = (node) => {
+      const parent = node.parentElement;
+      if (!parent || ["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) || !node.nodeValue.includes("R$")) return;
+      node.nodeValue = node.nodeValue.replace(/R\$\s*([\d.]+(?:,\d{1,2})?)/g, (_, raw) => {
+        convertedMoney = true;
+        return formatCurrency(Number(raw.replace(/\./g, "").replace(",", ".")));
+      });
+    };
+    const convertMoneyWithin = (root) => {
+      if (root.nodeType === Node.TEXT_NODE) {
+        convertTextNode(root);
+        return;
+      }
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) convertTextNode(walker.currentNode);
+    };
+
+    convertMoneyWithin(document.body);
+    const moneyObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => mutation.addedNodes.forEach(convertMoneyWithin));
+    });
+    moneyObserver.observe(document.body, { childList: true, subtree: true });
   }
 
-  if (usdBrl && document.body.textContent.match(/R\$|US\$/)) {
+  if (usdBrl && (convertedMoney || document.body.textContent.match(/R\$|US\$/))) {
     const note = document.createElement("p");
     note.className = "luan-rate-note";
     note.textContent = `${text.rate}${rateDate ? ` · ${rateDate}` : ""}`;

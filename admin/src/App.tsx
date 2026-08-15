@@ -16,8 +16,17 @@ export default function App() {
   const validateAdmin = async (nextSession: Session | null) => {
     setSession(nextSession);
     if (!nextSession) { setAuthorized(false); return; }
-    const { data, error } = await supabase.from("perfis_usuario").select("perfil,ativo").eq("user_id", nextSession.user.id).maybeSingle();
+    let validationResult = await supabase.from("perfis_usuario").select("perfil,ativo").eq("user_id", nextSession.user.id).maybeSingle();
+    if (validationResult.error && !["42P01", "PGRST205"].includes(validationResult.error.code || "")) {
+      validationResult = await supabase.from("perfis_usuario").select("perfil,ativo").eq("user_id", nextSession.user.id).maybeSingle();
+    }
+    const { data, error } = validationResult;
     const profileUnavailable = error?.code === "42P01" || error?.code === "PGRST205";
+    if (error && !profileUnavailable) {
+      setAuthorized(false);
+      setAuthError("Sua sessão continua ativa, mas não foi possível validar o perfil agora. Atualize a página em alguns instantes.");
+      return;
+    }
     const allowed = profileUnavailable || (!error && data?.perfil === "admin" && data?.ativo === true);
     setAuthorized(allowed);
     setAuthError(allowed ? "" : error ? "Não foi possível validar o acesso administrativo." : "Esta conta não possui acesso administrativo ativo.");
@@ -65,7 +74,7 @@ export default function App() {
           setRecoveringPassword(true);
           setLoading(false);
         } else {
-          void validateAdmin(session);
+          window.setTimeout(() => { void validateAdmin(session); }, 0);
         }
       }
     });

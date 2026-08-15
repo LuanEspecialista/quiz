@@ -5,6 +5,7 @@ import { Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react";
 export default function Login({ externalError = "", recoveryMode = false, onPasswordUpdated }: { externalError?: string; recoveryMode?: boolean; onPasswordUpdated?: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     setError(null);
 
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
@@ -34,8 +35,8 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     e.preventDefault();
     if (!email.trim()) return setError("Informe seu e-mail.");
     setLoading(true); setError(null); setNotice(null);
-    const redirectTo = `${window.location.origin}${window.location.pathname}`;
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    const redirectTo = `${window.location.origin}/painel/`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
     setLoading(false);
     if (error) setError(error.message); else setNotice("Enviamos o link de recuperação. Verifique também a caixa de spam.");
   };
@@ -43,10 +44,16 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
   const handleNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) return setError("A nova senha deve ter pelo menos 8 caracteres.");
+    if (password !== passwordConfirmation) return setError("As duas senhas precisam ser iguais.");
     setLoading(true); setError(null);
     const { error } = await supabase.auth.updateUser({ password });
+    if (!error) await supabase.auth.refreshSession();
     setLoading(false);
-    if (error) setError(error.message); else { setNotice("Senha atualizada com sucesso."); onPasswordUpdated?.(); }
+    if (error) setError(error.message); else {
+      window.history.replaceState({}, document.title, "/painel/");
+      setNotice("Senha atualizada e acesso mantido neste dispositivo.");
+      onPasswordUpdated?.();
+    }
   };
 
   const handleAccessRequest = (e: React.FormEvent) => {
@@ -115,8 +122,24 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
             </div>
           </div>}
 
+          {recoveryMode && <div>
+            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Confirmar nova senha</label>
+            <div style={{ position: "relative" }}>
+              <Lock style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} />
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={passwordConfirmation}
+                onChange={(e) => setPasswordConfirmation(e.target.value)}
+                placeholder="••••••••"
+                style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem 0.75rem 0.75rem 2.5rem", borderRadius: "6px", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+          </div>}
+
           {requestMode && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Quero acesso como</label><select value={accessType} onChange={(e) => setAccessType(e.target.value as "cliente" | "afiliado")} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px" }}><option value="cliente">Cliente</option><option value="afiliado">Afiliado</option></select><p style={{ color: "#71717a", fontSize: "0.75rem", lineHeight: 1.5 }}>A solicitação não cria uma conta. O acesso só será liberado após sua aprovação.</p></div>}
           {!recoveryMode && !forgotMode && !requestMode && <button type="button" onClick={() => { setForgotMode(true); setError(null); }} style={{ alignSelf: "flex-end", background: "none", border: 0, color: "#c5a059", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>Esqueci minha senha</button>}
+          {!recoveryMode && !forgotMode && !requestMode && <p style={{ color: "#71717a", fontSize: "0.75rem", lineHeight: 1.5, margin: 0 }}>Sua sessão permanece conectada neste dispositivo até você sair do painel.</p>}
 
           <button
             type="submit"
