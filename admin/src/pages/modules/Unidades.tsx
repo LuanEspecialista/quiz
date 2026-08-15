@@ -370,7 +370,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   });
 
   const unidadesCompativeis = filtrarUnidades(false);
-  const usandoCompactosComoAlternativa = unidadesCompativeis.length === 0 && incluirCompactos;
+  const usandoCompactosComoAlternativa = unidadesCompativeis.length === 0 && incluirCompactos && tipologia === "TODAS";
   const filteredUnidades = [...(usandoCompactosComoAlternativa ? filtrarUnidades(true) : unidadesCompativeis)].sort((a, b) => {
     if (!prazoMeses) return 0;
     const monthsFor = (unit: any) => {
@@ -501,7 +501,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Tipologia</label>
             <select 
               value={tipologia} 
-              onChange={(e) => { setTipologia(e.target.value); setVisibleCount(12); }}
+              onChange={(e) => { const value = e.target.value; setTipologia(value); if (value !== "TODAS") setIncluirCompactos(false); setVisibleCount(12); }}
               style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem" }}
             >
               <option value="TODAS">Todas as tipologias</option>
@@ -566,7 +566,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             <input type="text" placeholder="R$ 0,00" value={balaoMaxRaw} onChange={(e) => { setBalaoMaxRaw(formatCurrencyInput(e.target.value)); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }} />
           </div>
 
-          <label style={{ fontSize: "0.7rem", color: "#a1a1aa", display: "flex", alignItems: "center", gap: 7, alignSelf: "end", minHeight: 31 }}><input type="checkbox" checked={incluirCompactos} onChange={(e) => { setIncluirCompactos(e.target.checked); setVisibleCount(12); }} /> Aceitar Studio/Loft</label>
+          <label style={{ fontSize: "0.7rem", color: tipologia === "TODAS" ? "#a1a1aa" : "#52525b", display: "flex", alignItems: "center", gap: 7, alignSelf: "end", minHeight: 31 }}><input type="checkbox" disabled={tipologia !== "TODAS"} checked={incluirCompactos} onChange={(e) => { setIncluirCompactos(e.target.checked); setVisibleCount(12); }} /> Studio/Loft apenas sem tipologia exigida</label>
 
           <div>
             <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Valor Tabela Até</label>
