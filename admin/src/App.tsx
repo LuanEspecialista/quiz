@@ -106,5 +106,8 @@ export default function App() {
     return <><div style={{ position: "fixed", right: 18, top: 18, zIndex: 20 }}><LanguageSelector /></div><Login externalError={authError} /></>;
   }
 
-  return <Dashboard userEmail={session.user.email ?? ""} />;
+  const metadata = session.user.user_metadata || {};
+  const fallbackName = (session.user.email || "Usuário").split("@")[0].replace(/[._-]+/g, " ");
+  const userName = String(metadata.full_name || metadata.name || fallbackName).trim();
+  return <Dashboard userName={userName} />;
 }

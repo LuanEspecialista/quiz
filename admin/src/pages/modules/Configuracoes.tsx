@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Building2, CheckCircle2, Coins, Globe2, Plus, RefreshCw, Save, Settings, Shield, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { refreshExchangeRate } from "@/lib/exchangeRate";
 
 type Tab = "financeiro" | "imobiliario" | "idiomas" | "cambio" | "paginas";
 type Feedback = { type: "success" | "error"; msg: string } | null;
@@ -27,7 +28,7 @@ export default function Configuracoes(){
  const normalizePath=(value:string)=>{const clean=`/${value.trim().replace(/^\/+|\/+$/g,"")}`;return clean==="/"?"/":`${clean}/`};
  const savePage=async(page:SitePage)=>{if(!page.titulo.trim())return setFeedback({type:"error",msg:"Informe o título da página."});const payload={...page,titulo:page.titulo.trim(),caminho:normalizePath(page.caminho),exige_login:page.protecao_obrigatoria||page.exige_login,updated_at:new Date().toISOString()};const{error}=page.id?await supabase.from("site_paginas").update(payload).eq("id",page.id):await supabase.from("site_paginas").insert(payload);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Página salva."});if(!error){setDraft(emptyPage);void load()}};
  const removePage=async(page:SitePage)=>{if(page.protecao_obrigatoria)return setFeedback({type:"error",msg:"Esta página possui proteção obrigatória."});if(!page.id||!confirm(`Excluir ${page.titulo}?`))return;const{error}=await supabase.from("site_paginas").delete().eq("id",page.id);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Página excluída."});if(!error)void load()};
- const refreshPtax=async()=>{setSaving(true);const{error}=await supabase.functions.invoke("atualizar-ptax");setSaving(false);setFeedback(error?{type:"error",msg:`A atualização automática ainda não está publicada no Supabase. Informe a cotação manual abaixo.` }:{type:"success",msg:"Cotação do dólar atualizada."});if(!error){await load();window.dispatchEvent(new Event("luan:cotacao-atualizada"))}};
+ const refreshPtax=async()=>{setSaving(true);try{await refreshExchangeRate();setFeedback({type:"success",msg:"Cotação do dólar atualizada."});await load();window.dispatchEvent(new Event("luan:cotacao-atualizada"))}catch(error){setFeedback({type:"error",msg:`A atualização automática não respondeu: ${error instanceof Error?error.message:"use a última cotação válida ou informe uma cotação manual."}`})}finally{setSaving(false)}};
  const toggleLocale=(locale:string)=>setSite(old=>({...old,idiomas_ativos:old.idiomas_ativos.includes(locale)?old.idiomas_ativos.filter(x=>x!==locale):[...old.idiomas_ativos,locale]}));
  const numberField=(label:string,key:keyof BusinessConfig,step="0.1")=><label style={{color:"#aaa"}}>{label}<input style={{...fieldStyle,marginTop:6}} type="number" min="0" step={step} value={business[key]} onChange={e=>setBusiness({...business,[key]:Number(e.target.value)})}/></label>;
  const tabs:[Tab,string,typeof Settings][]=[["financeiro","Financeiro",Coins],["imobiliario","Imobiliário",Building2],["idiomas","Idiomas e moedas",Globe2],["cambio","Cotação do dólar",RefreshCw],["paginas","Páginas e acesso",Shield]];

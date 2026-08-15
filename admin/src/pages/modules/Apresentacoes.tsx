@@ -131,7 +131,12 @@ export default function Apresentacoes() {
   function present(item: Empreendimento) {
     const presentation = apresentacoes[item.id];
     if (!presentation?.ativo || !presentation.pdf_url) return;
-    const viewerUrl = new URL("/apresentacao/", window.location.origin);
+    const configuredOrigin = String(import.meta.env.VITE_PUBLIC_SITE_URL || "").trim();
+    const isLocalPanel = ["localhost", "127.0.0.1"].includes(window.location.hostname) && window.location.port !== "5500";
+    const publicOrigin = configuredOrigin || (isLocalPanel
+      ? `${window.location.protocol}//${window.location.hostname}:5500`
+      : window.location.origin);
+    const viewerUrl = new URL("/apresentacao/", publicOrigin);
     viewerUrl.searchParams.set("empreendimento", item.id);
     window.open(viewerUrl.toString(), "_blank", "noopener,noreferrer");
   }

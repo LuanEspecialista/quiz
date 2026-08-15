@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let estadoAtual = 'nenhuma'; 
     let empreendimentoSelecionado = null;
+    let empreendimentoDiretoCarregado = false;
 
     function obterUrlViewer(urlOriginal) {
         if (!urlOriginal) return '';
@@ -52,7 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     popularCidades();
 
     function carregarEmpreendimentoDireto() {
-        if (!empreendimentoDiretoId || typeof EMPREENDIMENTOS === 'undefined') return;
+        if (empreendimentoDiretoCarregado || !empreendimentoDiretoId || typeof EMPREENDIMENTOS === 'undefined') return;
+        empreendimentoDiretoCarregado = true;
         const empreendimento = EMPREENDIMENTOS.find(emp => String(emp.id) === empreendimentoDiretoId);
         document.body.classList.add('modo-direto');
 
@@ -350,23 +352,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnFullscreen) {
         const mainViewerContainer = document.querySelector('.viewer-container') || document.querySelector('main');
 
-        btnFullscreen.addEventListener('click', () => {
+        const fullscreenHint = document.createElement('div');
+        fullscreenHint.className = 'fullscreen-hint';
+        fullscreenHint.textContent = 'Pressione Esc para sair da tela cheia';
+        (mainViewerContainer || document.body).appendChild(fullscreenHint);
+
+        const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+        const syncFullscreenState = () => {
+            const active = Boolean(fullscreenElement());
+            btnFullscreen.textContent = active ? 'Sair da tela cheia' : 'Tela cheia';
+            btnFullscreen.setAttribute('aria-pressed', String(active));
+            fullscreenHint.classList.toggle('visible', active);
+        };
+
+        btnFullscreen.addEventListener('click', async () => {
             if (!document.fullscreenElement) {
                 const targetEl = mainViewerContainer || document.documentElement;
                 if (targetEl.requestFullscreen) {
-                    targetEl.requestFullscreen();
+                    await targetEl.requestFullscreen();
                 } else if (targetEl.webkitRequestFullscreen) {
                     targetEl.webkitRequestFullscreen();
                 }
-                btnFullscreen.textContent = "Sair da Tela Cheia";
             } else {
                 if (document.exitFullscreen) {
-                    document.exitFullscreen();
+                    await document.exitFullscreen();
                 } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
                 }
-                btnFullscreen.textContent = "Tela cheia";
             }
         });
+        document.addEventListener('fullscreenchange', syncFullscreenState);
+        document.addEventListener('webkitfullscreenchange', syncFullscreenState);
+        syncFullscreenState();
     }
 });

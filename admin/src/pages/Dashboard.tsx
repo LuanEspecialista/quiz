@@ -22,12 +22,13 @@ import IndicadoresModule from "./modules/indicadores";
 import ConfiguracoesModule from "./modules/Configuracoes";
 import ApresentacoesModule from "./modules/Apresentacoes";
 import ClientesModule from "./modules/Clientes";
+import CommercialJourney from "../components/CommercialJourney";
 
 interface DashboardProps {
-  userEmail?: string;
+  userName?: string;
 }
 
-export default function Dashboard({ userEmail }: DashboardProps) {
+export default function Dashboard({ userName }: DashboardProps) {
   const initialParams = new URLSearchParams(window.location.search);
   const [activeTab, setActiveTab] = useState(initialParams.get("tab") || "dashboard");
   const [selectedTicker, setSelectedTicker] = useState<any | null>(null);
@@ -89,14 +90,15 @@ export default function Dashboard({ userEmail }: DashboardProps) {
       
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
         <Header 
-          userEmail={userEmail} 
+          userName={userName}
           setActiveTab={setActiveTab} 
           onTickerSelect={handleSelectTickerFromHeader} 
         />
 
-        <main style={{ marginTop: "56px", padding: "1.5rem 2rem", width: "100%", boxSizing: "border-box", flex: 1 }}>
+        <main className="app-main" style={{ marginTop: "56px", padding: "1.5rem 2rem", width: "100%", boxSizing: "border-box", flex: 1 }}>
           {activeTab === "dashboard" && (
             <div style={{ color: "#e4e4e7", fontFamily: "sans-serif", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              <CommercialJourney onNavigate={setActiveTab} />
               
               {/* CABEÇALHO COM ATALHOS RÁPIDOS DE OPERAÇÃO */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1f1f23", paddingBottom: "1rem" }}>

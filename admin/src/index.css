@@ -7,6 +7,14 @@
   --accent: #c5a059;
   --accent-bg: rgba(197, 160, 89, 0.1);
   --accent-border: rgba(197, 160, 89, 0.5);
+  --surface: #121214;
+  --surface-raised: #18181b;
+  --surface-soft: #0f0f11;
+  --border-strong: #29292e;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --radius-sm: 6px;
+  --radius-md: 10px;
   --social-bg: rgba(24, 24, 27, 0.5);
   --shadow: rgba(0, 0, 0, 0.5) 0 10px 15px -3px;
 
@@ -29,6 +37,13 @@
   margin: 0;
   padding: 0;
 }
+
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { outline: none; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px var(--accent);
+}
+button:disabled { cursor: not-allowed !important; opacity: .55; }
 
 html, body {
   width: 100%;
@@ -94,4 +109,14 @@ code {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #c5a059;
+}
+
+.app-main { min-width: 0; }
+
+@media (max-width: 767px) {
+  .app-main { padding: 1rem !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

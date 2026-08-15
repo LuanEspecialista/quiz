@@ -222,6 +222,28 @@ body {
     color: var(--texto-escuro) !important;
 }
 
+.fullscreen-hint {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    z-index: 10000;
+    transform: translate(-50%, 16px);
+    padding: 8px 13px;
+    border: 1px solid rgba(197, 160, 89, .55);
+    border-radius: 999px;
+    background: rgba(8, 8, 8, .88);
+    color: #f4f4f5;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+}
+
+.fullscreen-hint.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
 .btn-unidades {
     height: 34px;
     display: inline-flex;

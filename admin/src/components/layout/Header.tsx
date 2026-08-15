@@ -1,16 +1,22 @@
 import { useState, useEffect } from "react";
-import { User, Settings, Zap, ArrowUpRight, ChevronDown } from "lucide-react";
+import { User, Settings, Zap, ArrowUpRight, ChevronDown, Save, LogOut } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { getExchangeRate } from "../../lib/exchangeRate";
+import LanguageSelector from "../LanguageSelector";
 
 interface HeaderProps {
-  userEmail?: string;
+  userName?: string;
   setActiveTab?: (tab: string) => void;
   onTickerSelect?: (ticker: any) => void;
 }
 
-export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps) {
+export function Header({ userName, setActiveTab, onTickerSelect }: HeaderProps) {
   const [indicadores, setIndicadores] = useState<any[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(userName || "");
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => setDisplayName(userName || ""), [userName]);
 
   useEffect(() => {
     void loadIndicadores();
@@ -25,14 +31,15 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
 
   const loadIndicadores = async () => {
     try {
-      const [{ data }, { data: cotacao }] = await Promise.all([
+      const [{ data }, cotacao] = await Promise.all([
         supabase.from("indicadores").select("*"),
-        supabase.from("cotacao_usd_brl_atual").select("cotacao, data_cotacao").maybeSingle(),
+        getExchangeRate(),
       ]);
       if (data) {
         const next = [...data];
         const dollarIndex = next.findIndex((item) => String(item.nome || "").toLocaleUpperCase("pt-BR").includes("DÓLAR"));
-        if (cotacao?.cotacao && dollarIndex >= 0) next[dollarIndex] = { ...next[dollarIndex], valor_atual: Number(cotacao.cotacao), data_atualizacao: cotacao.data_cotacao };
+        if (cotacao?.value && dollarIndex >= 0) next[dollarIndex] = { ...next[dollarIndex], valor_atual: cotacao.value, data_atualizacao: cotacao.date };
+        if (cotacao?.value && dollarIndex < 0) next.unshift({ id: "ptax-usd-brl", nome: "Dólar PTAX", categoria: "MOEDA", valor_atual: cotacao.value, data_atualizacao: cotacao.date });
         setIndicadores(next);
       }
     } catch (err) {
@@ -52,12 +59,22 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
     return `${val.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}%`;
   };
 
+  const saveDisplayName = async () => {
+    const fullName = displayName.trim();
+    if (!fullName) return;
+    setSavingName(true);
+    const { error } = await supabase.auth.updateUser({ data: { full_name: fullName } });
+    setSavingName(false);
+    if (error) alert(`Não foi possível salvar o nome: ${error.message}`);
+    else window.location.reload();
+  };
+
   return (
-    <header style={{
+    <header className="app-header" style={{
       position: "fixed",
       top: 0,
       right: 0,
-      left: "260px", // Largura da Sidebar
+      left: "250px",
       height: "56px",
       backgroundColor: "#0d0d0d",
       borderBottom: "1px solid #1f1f23",
@@ -69,6 +86,10 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
       boxSizing: "border-box"
     }}>
       <style>{`
+        @media (max-width: 767px) {
+          .app-header { left: 0 !important; padding: 0 .75rem !important; }
+          .app-header-user-name, .app-header-market-label { display: none; }
+        }
         @keyframes tickerHeader {
           0% { transform: translateX(0%); }
           100% { transform: translateX(-50%); }
@@ -88,7 +109,7 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
       <div style={{ flex: 1, display: "flex", alignItems: "center", overflow: "hidden", height: "100%", marginRight: "1.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", paddingRight: "0.8rem", color: "#c5a059", fontWeight: "bold", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
           <Zap style={{ width: "13px", height: "13px" }} />
-          <span>Mercado</span><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e" }} />
+          <span className="app-header-market-label">Mercado</span><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e" }} />
         </div>
 
         <div style={{ overflow: "hidden", width: "100%", height: "100%", display: "flex", alignItems: "center" }}>
@@ -125,7 +146,8 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
       </div>
 
       {/* USUÁRIO / CONFIGURAÇÕES DISCRETO */}
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>
+        <LanguageSelector />
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           style={{
@@ -144,7 +166,7 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
           <div style={{ width: "26px", height: "26px", borderRadius: "50%", backgroundColor: "#1e1e24", border: "1px solid #27272a", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <User style={{ width: "14px", height: "14px", color: "#c5a059" }} />
           </div>
-          <span style={{ color: "#e4e4e7", fontWeight: "500" }}>{userEmail ? userEmail.split("@")[0] : "Usuário"}</span>
+          <span className="app-header-user-name" style={{ color: "#d4d4d8", fontWeight: "500", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName || "Usuário"}</span>
           <ChevronDown style={{ width: "13px", height: "13px", color: "#71717a" }} />
         </button>
 
@@ -158,10 +180,17 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
             border: "1px solid #27272a",
             borderRadius: "6px",
             padding: "0.4rem",
-            minWidth: "160px",
+            minWidth: "230px",
             boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
             zIndex: 100
           }}>
+            <div style={{ padding: ".45rem .5rem .6rem", borderBottom: "1px solid #27272a", marginBottom: 4 }}>
+              <label style={{ display: "block", color: "#71717a", fontSize: 10, marginBottom: 5 }}>Nome de exibição</label>
+              <div style={{ display: "flex", gap: 5 }}>
+                <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void saveDisplayName(); }} style={{ minWidth: 0, flex: 1, background: "#18181b", border: "1px solid #34343a", color: "#fff", borderRadius: 5, padding: "7px 8px", fontSize: 12 }} />
+                <button onClick={() => void saveDisplayName()} disabled={savingName || !displayName.trim()} title="Salvar nome" style={{ border: "1px solid #4a3a20", borderRadius: 5, background: "#211c13", color: "#d7ab63", padding: "0 8px", cursor: "pointer" }}><Save size={13} /></button>
+              </div>
+            </div>
             <button
               onClick={() => {
                 if (setActiveTab) setActiveTab("configuracoes");
@@ -185,6 +214,7 @@ export function Header({ userEmail, setActiveTab, onTickerSelect }: HeaderProps)
               <Settings style={{ width: "14px", height: "14px", color: "#c5a059" }} />
               Configurações
             </button>
+            <button onClick={() => void supabase.auth.signOut()} style={{ width: "100%", background: "none", border: "none", color: "#a1a1aa", display: "flex", alignItems: "center", gap: ".5rem", padding: ".5rem", fontSize: ".78rem", cursor: "pointer", borderRadius: 4 }}><LogOut size={14} /> Sair</button>
           </div>
         )}
       </div>

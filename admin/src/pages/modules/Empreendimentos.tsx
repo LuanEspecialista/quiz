@@ -43,6 +43,7 @@ type Empreendimento = {
   faixa_preco?: number | null;
   valorizacao_aa?: number | null;
   quartos_disponiveis?: number[] | null;
+  caracteristicas?: Record<string, unknown> | null;
   imagem_url?: string | null;
   ativo?: boolean | null;
   created_at?: string | null;
@@ -72,7 +73,7 @@ type FormData = {
   area_maxima: string;
   faixa_preco: string;
   valorizacao_aa: string;
-  quartos_disponiveis: string;
+  tipologias_disponiveis: string[];
   descricao: string;
   imagem_url: string;
   ativo: boolean;
@@ -80,12 +81,45 @@ type FormData = {
 
 const STATUS_OPTIONS = [
   "Todos",
+  "Pré-lançamento",
   "Lançamento",
   "Em obras",
   "Pronto",
   "Entregue",
   "Esgotado",
 ];
+
+const TIPOLOGIA_OPTIONS = [
+  "Studio",
+  "Loft",
+  "1Q",
+  "1S",
+  "1Q + 1S",
+  "2Q",
+  "2S",
+  "2Q + 1S",
+  "2S + 1Q",
+  "3Q",
+  "3S",
+  "3Q + 1S",
+  "3S + 1Q",
+  "4Q",
+  "4S",
+  "Cobertura",
+] as const;
+
+function tipologiaBedrooms(value: string) {
+  if (["Studio", "Loft"].includes(value)) return 0;
+  return Array.from(value.matchAll(/(\d+)\s*[QS]/gi)).reduce((total, match) => total + Number(match[1]), 0);
+}
+
+function storedTipologias(item: Empreendimento) {
+  const configured = item.caracteristicas && Array.isArray(item.caracteristicas.tipologias)
+    ? item.caracteristicas.tipologias.filter((value): value is string => typeof value === "string")
+    : [];
+  if (configured.length) return configured;
+  return (item.quartos_disponiveis || []).map((value) => value === 0 ? "Studio" : `${value}Q`);
+}
 
 const EMPTY_FORM: FormData = {
   nome: "",
@@ -102,7 +136,7 @@ const EMPTY_FORM: FormData = {
   area_maxima: "",
   faixa_preco: "",
   valorizacao_aa: "",
-  quartos_disponiveis: "",
+  tipologias_disponiveis: [],
   descricao: "",
   imagem_url: "",
   ativo: true,
@@ -294,7 +328,7 @@ export default function Empreendimentos() {
       area_maxima: item.area_maxima != null ? String(item.area_maxima) : "",
       faixa_preco: item.faixa_preco != null ? String(item.faixa_preco) : "",
       valorizacao_aa: item.valorizacao_aa != null ? String(item.valorizacao_aa) : "",
-      quartos_disponiveis: Array.isArray(item.quartos_disponiveis) ? item.quartos_disponiveis.join(", ") : "",
+      tipologias_disponiveis: storedTipologias(item),
       descricao: item.descricao || "",
       imagem_url: item.imagem_url || "",
       ativo: item.ativo ?? true,
@@ -360,11 +394,14 @@ export default function Empreendimentos() {
       if (form.area_maxima) payload.area_maxima = Number(form.area_maxima);
       if (form.faixa_preco) payload.faixa_preco = Number(form.faixa_preco.replace(/\D/g, ""));
       payload.valorizacao_aa = form.valorizacao_aa === "" ? null : Number(form.valorizacao_aa.replace(",", "."));
-      payload.quartos_disponiveis = form.quartos_disponiveis
-        .split(",")
-        .map((value) => Number(value.trim()))
+      payload.quartos_disponiveis = form.tipologias_disponiveis
+        .map(tipologiaBedrooms)
         .filter((value, index, list) => Number.isInteger(value) && value >= 0 && list.indexOf(value) === index)
         .sort((a, b) => a - b);
+      payload.caracteristicas = {
+        ...(editing?.caracteristicas && typeof editing.caracteristicas === "object" ? editing.caracteristicas : {}),
+        tipologias: form.tipologias_disponiveis,
+      };
 
       if (editing) {
         const { data, error } = await supabase
@@ -870,8 +907,8 @@ export default function Empreendimentos() {
                         <span className="emp-info-value">{item.valorizacao_aa != null ? `${Number(item.valorizacao_aa).toLocaleString("pt-BR")}% a.a.` : "—"}</span>
                       </div>
                       <div className="emp-info">
-                        <span className="emp-info-label">Quartos</span>
-                        <span className="emp-info-value">{Array.isArray(item.quartos_disponiveis) && item.quartos_disponiveis.length ? item.quartos_disponiveis.map((q) => q === 0 ? "Studio" : `${q}Q`).join(" · ") : "—"}</span>
+                        <span className="emp-info-label">Tipologias</span>
+                        <span className="emp-info-value">{storedTipologias(item).length ? storedTipologias(item).join(" · ") : "—"}</span>
                       </div>
                     </div>
 
@@ -1054,8 +1091,13 @@ export default function Empreendimentos() {
                   <input className="emp-input" type="number" min="0" step="0.01" value={form.valorizacao_aa} onChange={(e) => updateField("valorizacao_aa", e.target.value)} placeholder="Ex.: 12,5" />
                 </div>
                 <div className="emp-field">
-                  <label className="emp-label">Quartos disponíveis</label>
-                  <input className="emp-input" value={form.quartos_disponiveis} onChange={(e) => updateField("quartos_disponiveis", e.target.value)} placeholder="0, 1, 2, 3 (0 = Studio)" />
+                  <label className="emp-label">Tipologias disponíveis</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 7, padding: 10, border: "1px solid #27272a", borderRadius: 7, background: "#101012" }}>
+                    {TIPOLOGIA_OPTIONS.map((option) => {
+                      const selected = form.tipologias_disponiveis.includes(option);
+                      return <button key={option} type="button" aria-pressed={selected} onClick={() => updateField("tipologias_disponiveis", selected ? form.tipologias_disponiveis.filter((value) => value !== option) : [...form.tipologias_disponiveis, option])} style={{ border: `1px solid ${selected ? "#c5a059" : "#34343a"}`, background: selected ? "#3a2d17" : "#18181b", color: selected ? "#f3d28d" : "#a1a1aa", borderRadius: 999, padding: "7px 10px", fontSize: 12, cursor: "pointer" }}>{option}</button>;
+                    })}
+                  </div>
                 </div>
                 <div className="emp-field">
                   <label className="emp-label">Status Ativo no Site</label>

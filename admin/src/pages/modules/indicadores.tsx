@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { getExchangeRate, refreshExchangeRate, type ExchangeRate } from "@/lib/exchangeRate";
 import { 
   TrendingUp, 
   Plus, 
@@ -8,7 +9,8 @@ import {
   Trash2, 
   X, 
   Calculator, 
-  PlusCircle
+  PlusCircle,
+  RefreshCw
 } from "lucide-react";
 
 // 1. Função de formatação universal por Categoria
@@ -64,6 +66,8 @@ export default function Indicadores() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("TODAS");
+  const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
+  const [refreshingRate, setRefreshingRate] = useState(false);
 
   // Estado do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -96,9 +100,11 @@ export default function Indicadores() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("indicadores")
-        .select();
+      const [{ data, error }, rate] = await Promise.all([
+        supabase.from("indicadores").select(),
+        getExchangeRate(),
+      ]);
+      setExchangeRate(rate);
 
       if (error) {
         console.error("Erro no Supabase ao buscar:", error);
@@ -109,6 +115,19 @@ export default function Indicadores() {
       console.error("Erro inesperado:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateDollar = async () => {
+    setRefreshingRate(true);
+    try {
+      setExchangeRate(await refreshExchangeRate());
+      window.dispatchEvent(new Event("luan:cotacao-atualizada"));
+    } catch (error) {
+      console.error("Erro ao atualizar cotação:", error);
+      alert("Não foi possível atualizar a cotação agora. A última cotação válida continuará em uso.");
+    } finally {
+      setRefreshingRate(false);
     }
   };
 
@@ -333,6 +352,15 @@ export default function Indicadores() {
           <Plus style={{ width: "14px", height: "14px" }} /> Cadastrar Indicador Dinâmico
         </button>
       </div>
+
+      <section style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "0.9rem 1rem", marginBottom: "0.9rem", background: "linear-gradient(135deg,#15130e,#101012)", border: "1px solid #3f3524", borderRadius: 8 }}>
+        <div>
+          <small style={{ color: "#8b8b93", textTransform: "uppercase", letterSpacing: ".08em" }}>Dólar PTAX em uso</small>
+          <strong style={{ display: "block", color: "#d7ab63", fontSize: "1.45rem", marginTop: 3 }}>{exchangeRate ? `R$ ${exchangeRate.value.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}` : "Indisponível"}</strong>
+          <small style={{ color: "#71717a" }}>{exchangeRate?.manual ? "Cotação manual" : "Banco Central do Brasil"} · {exchangeRate?.date || "última cotação válida não encontrada"}{exchangeRate?.source === "cache" ? " · cache local" : ""}</small>
+        </div>
+        <button onClick={() => void updateDollar()} disabled={refreshingRate} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "#1c1a15", color: "#d7ab63", border: "1px solid #5b4828", borderRadius: 6, padding: "8px 11px", cursor: refreshingRate ? "wait" : "pointer" }}><RefreshCw size={14} /> {refreshingRate ? "Atualizando..." : "Atualizar agora"}</button>
+      </section>
 
       {/* FILTROS E BUSCA */}
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.85rem", flexWrap: "wrap" }}>

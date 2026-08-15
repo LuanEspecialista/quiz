@@ -101,14 +101,13 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           boxSizing: "border-box"
         }}
       >
-        <div style={{ marginBottom: "2rem", paddingLeft: "0.5rem" }}>
-          <h1 style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#c5a059", letterSpacing: "1px", margin: 0 }}>
-            LUAN ESPECIALISTA
-          </h1>
-          <span style={{ fontSize: "0.65rem", color: "#71717a", textTransform: "uppercase" }}>
-            Painel Administrativo
+        <a href="/" aria-label="Ir para a página inicial" title="Página inicial" style={{ marginBottom: "1.6rem", padding: "0 0.5rem", display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <img src="/imagens/logo.png" alt="Luan Especialista" style={{ width: 34, height: 34, objectFit: "contain", opacity: .9 }} />
+          <span style={{ display: "grid", gap: 2 }}>
+            <strong style={{ fontSize: ".78rem", color: "#d7ab63", letterSpacing: ".08em" }}>LUAN ESPECIALISTA</strong>
+            <small style={{ fontSize: ".58rem", color: "#71717a", textTransform: "uppercase", letterSpacing: ".08em" }}>Inteligência imobiliária</small>
           </span>
-        </div>
+        </a>
 
         <nav style={{ display: "flex", flexDirection: "column", gap: "0.25rem", flex: 1, overflowY: "auto" }}>
           {menuItems.map((item) => {

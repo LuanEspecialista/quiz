@@ -59,7 +59,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", padding: "1rem" }}>
       <div style={{ width: "100%", maxWidth: "400px", backgroundColor: "#121212", border: "1px solid #222", borderRadius: "12px", padding: "2.5rem", boxShadow: "0 10px 25px rgba(0,0,0,0.5)" }}>
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <img src="/imagens/logo.png" alt="Luan Especialista" style={{ width: 82, height: 82, objectFit: "contain", marginBottom: 12 }} />
+          <a href="/" aria-label="Ir para a página inicial"><img src="/imagens/logo.png" alt="Luan Especialista" style={{ width: 58, height: 58, objectFit: "contain", marginBottom: 12, opacity: .92 }} /></a>
           <h1 style={{ color: "#c5a059", fontSize: "1.75rem", fontWeight: "bold", margin: "0 0 0.5rem 0", letterSpacing: "1px" }}>LUAN ESPECIALISTA</h1>
           <p style={{ color: "#a1a1aa", fontSize: "0.875rem", margin: 0 }}>Plataforma de Inteligência Patrimonial</p>
         </div>

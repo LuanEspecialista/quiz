@@ -68,6 +68,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   const [valorTabelaMaxRaw, setValorTabelaMaxRaw] = useState<string>("");
 
   const [visibleCount, setVisibleCount] = useState(12);
+  const empreendimentoNome = unidades[0]?.empreendimentos?.nome || null;
 
   useEffect(() => {
     fetchUnidades();
@@ -344,11 +345,12 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Layers style={{ width: "20px", height: "20px", color: "#c5a059" }} /> Gestão & Comparador de Unidades
+            <Layers style={{ width: "20px", height: "20px", color: "#c5a059" }} /> {empreendimentoId ? `Unidades disponíveis${empreendimentoNome ? ` — ${empreendimentoNome}` : ""}` : "Gestão & Comparador de Unidades"}
           </h1>
           <p style={{ color: "#71717a", fontSize: "0.75rem", margin: "0.2rem 0 0 0" }}>
             Exibindo {visibleUnidades.length} de {filteredUnidades.length} unidades encontradas ({unidades.length} totais).
           </p>
+          {empreendimentoId && <a href="/painel/?tab=unidades" style={{ color: "#c5a059", fontSize: "0.72rem", textDecoration: "none", display: "inline-block", marginTop: 5 }}>Ver unidades de todos os empreendimentos</a>}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
