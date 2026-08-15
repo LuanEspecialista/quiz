@@ -125,7 +125,6 @@ export default function App() {
   }
 
   const metadata = session.user.user_metadata || {};
-  const fallbackName = (session.user.email || "Usuário").split("@")[0].replace(/[._-]+/g, " ");
-  const userName = String(metadata.full_name || metadata.name || fallbackName).trim();
+  const userName = String(metadata.full_name || metadata.name || "").trim();
   return <Dashboard userName={userName} role={accessRole} />;
 }

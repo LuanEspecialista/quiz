@@ -35,7 +35,7 @@ function deliveryDate(value: unknown) {
   return month === undefined ? null : new Date(year, month, 1, 12);
 }
 
-function monthsUntil(value: unknown) {
+export function monthsUntilDelivery(value: unknown) {
   const date = deliveryDate(value);
   if (!date) return 0;
   const today = new Date();
@@ -59,7 +59,8 @@ export function analyzeFlow(unit: any, client: ClientCapacity): FlowCompatibilit
   const rules = enterprise.regras_correcao || {};
   const commercial = readCommercialFlow(enterprise);
   const price = n(unit.valor_tabela, unit.preco);
-  const months = Math.round(n(flow.meses_ate_chaves, flow.quantidade_parcelas_ate_chaves, flow.numero_parcelas, monthsUntil(enterprise.entrega || enterprise.previsao_entrega || enterprise.data_entrega || unit.data_entrega)));
+  const deliveryMonths = monthsUntilDelivery(enterprise.entrega || enterprise.previsao_entrega || enterprise.data_entrega || unit.data_entrega || unit.data_entrega_unidade);
+  const months = Math.round(n(deliveryMonths, flow.meses_ate_chaves, flow.quantidade_parcelas_ate_chaves, flow.numero_parcelas));
   const financingPercent = n(flow.percentual_financiamento, rules.percentual_financiamento);
   const preKeysPercent = n(flow.percentual_ate_chaves, flow.percentual_pre_chaves, flow.percentual_durante_obra, commercial.percentual_ate_chaves, rules.percentual_ate_chaves, rules.percentual_pre_chaves, financingPercent ? 100 - financingPercent : 0, percentFromRule(flow.regra_pagamento, flow.regra_pos_chaves, rules.regra_pagamento, rules.regra_pos_chaves));
   const annualBalloons = n(commercial.baloes_por_ano);

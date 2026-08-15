@@ -36,6 +36,17 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
     ]).then(([empreendimentos, unidades, clientes, propostas]) => setMetrics({ empreendimentos: empreendimentos.count ?? 0, unidades: unidades.count ?? 0, clientes: clientes.count ?? 0, propostasEmAndamento: propostas.count ?? 0 })).catch((error) => console.error("Erro ao carregar métricas:", error));
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab !== "fluxos") return;
+    const leaveSimulation = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setFlowUnitIds([]);
+      setActiveTab("unidades");
+    };
+    window.addEventListener("keydown", leaveSimulation);
+    return () => window.removeEventListener("keydown", leaveSimulation);
+  }, [activeTab]);
+
   const searchUnits = (filters: SmartUnitFilters) => { setSmartUnitFilters(filters); setActiveTab("unidades"); };
   const openFlow = (units: any[]) => { setFlowUnitIds(units.map((unit) => unit.id)); setActiveTab("fluxos"); };
 

@@ -18,6 +18,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
   const [menuOpen, setMenuOpen] = useState(false);
   const [displayName, setDisplayName] = useState(userName || "");
   const [savingName, setSavingName] = useState(false);
+  const firstName = String(userName || "").trim().split(/\s+/)[0];
 
   useEffect(() => setDisplayName(userName || ""), [userName]);
 
@@ -187,7 +188,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
           <div style={{ width: "26px", height: "26px", borderRadius: "50%", backgroundColor: "#1e1e24", border: "1px solid #27272a", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <User style={{ width: "14px", height: "14px", color: "#c5a059" }} />
           </div>
-          <span className="app-header-user-name" style={{ color: "#d4d4d8", fontWeight: "500", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName || "Usuário"}</span>
+          {firstName && <span className="app-header-user-name" style={{ color: "#d4d4d8", fontWeight: "500", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName}</span>}
           <ChevronDown style={{ width: "13px", height: "13px", color: "#71717a" }} />
         </button>
 

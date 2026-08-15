@@ -20,7 +20,7 @@ import {
   Calendar
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { analyzeFlow } from "../../lib/flowCompatibility";
+import { analyzeFlow, monthsUntilDelivery } from "../../lib/flowCompatibility";
 import { parseStandardTypology } from "../../lib/realEstateStandard";
 
 // ============================================================================
@@ -52,7 +52,7 @@ const parseTipologia = (unit: any): TipologiaInfo => {
   return parseStandardTypology(unit.tipologia_dados?.original || unit.tipologia, Number.isFinite(fallback) ? fallback : 0);
 };
 
-type InitialSmartFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean };
+type InitialSmartFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean; prazoMeses: number };
 const initialMoney = (value?: number) => value ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value) : "";
 
 export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeInicial, filtrosIniciais }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string; disponibilidadeInicial?: string; filtrosIniciais?: InitialSmartFilters }) {
@@ -82,6 +82,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   const [balaoMaxRaw, setBalaoMaxRaw] = useState<string>(initialMoney(filtrosIniciais?.balao));
   const [parcelaMaxRaw, setParcelaMaxRaw] = useState<string>(initialMoney(filtrosIniciais?.parcela));
   const [valorTabelaMaxRaw, setValorTabelaMaxRaw] = useState<string>("");
+  const [prazoMeses, setPrazoMeses] = useState<number>(filtrosIniciais?.prazoMeses || 0);
 
   const [visibleCount, setVisibleCount] = useState(12);
   const empreendimentoNome = unidades[0]?.empreendimentos?.nome || null;
@@ -90,13 +91,29 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     fetchUnidades();
   }, [empreendimentoId]);
 
-  // Atalho para fechar/cancelar edição ao pressionar a tecla ESC
+  // ESC cancela a edição; fora dela, encerra a seleção e limpa a busca.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && editingId !== null) {
+      if (e.key !== "Escape") return;
+      if (editingId !== null) {
         setEditingId(null);
         setEditForm({});
+        return;
       }
+      setSearchTerm("");
+      setDisponibilidade("TODAS");
+      setTipologia("TODAS");
+      setSuitesMinimas("0");
+      setIncluirCompactos(false);
+      setVagasFiltro("TODAS");
+      setEntradaMaxRaw("");
+      setParcelaMaxRaw("");
+      setBalaoMaxRaw("");
+      setValorTabelaMaxRaw("");
+      setPrazoMeses(0);
+      setSelectedUnits([]);
+      setExpandedId(null);
+      setVisibleCount(12);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -341,16 +358,31 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     const compatibility = analyzeFlow(u, { entrada: maxEnt, parcela: maxParcela, balao: maxBalao });
     const matchesFinancial = !hasFinancialCapacity || compatibility.status === "compativel";
 
+    const emp = u.empreendimentos || {};
+    const mesesAteEntrega = monthsUntilDelivery(emp.entrega || emp.previsao_entrega || emp.data_entrega || u.data_entrega || u.data_entrega_unidade);
+    const matchesPrazo = prazoMeses === 0 || (mesesAteEntrega > 0 && mesesAteEntrega <= prazoMeses + 6);
+
     const valTabela = Number(u.valor_tabela || u.preco || 0);
     const maxTab = parseCurrencyValue(valorTabelaMaxRaw);
     const matchesTabela = maxTab === 0 || valTabela <= maxTab;
 
-    return matchesSearch && matchesDisp && matchesTipo && matchesVagas && matchesFinancial && matchesTabela;
+    return matchesSearch && matchesDisp && matchesTipo && matchesVagas && matchesFinancial && matchesTabela && matchesPrazo;
   });
 
   const unidadesCompativeis = filtrarUnidades(false);
   const usandoCompactosComoAlternativa = unidadesCompativeis.length === 0 && incluirCompactos;
-  const filteredUnidades = usandoCompactosComoAlternativa ? filtrarUnidades(true) : unidadesCompativeis;
+  const filteredUnidades = [...(usandoCompactosComoAlternativa ? filtrarUnidades(true) : unidadesCompativeis)].sort((a, b) => {
+    if (!prazoMeses) return 0;
+    const monthsFor = (unit: any) => {
+      const enterprise = unit.empreendimentos || {};
+      return monthsUntilDelivery(enterprise.entrega || enterprise.previsao_entrega || enterprise.data_entrega || unit.data_entrega || unit.data_entrega_unidade);
+    };
+    const aMonths = monthsFor(a);
+    const bMonths = monthsFor(b);
+    const aNearby = aMonths > prazoMeses ? 1 : 0;
+    const bNearby = bMonths > prazoMeses ? 1 : 0;
+    return aNearby - bNearby || aMonths - bMonths;
+  });
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -363,6 +395,9 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     setParcelaMaxRaw("");
     setBalaoMaxRaw("");
     setValorTabelaMaxRaw("");
+    setPrazoMeses(0);
+    setSelectedUnits([]);
+    setExpandedId(null);
     setVisibleCount(12);
   };
 
@@ -423,7 +458,8 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             <Filter style={{ width: "12px", height: "12px" }} /> Filtros Dinâmicos
           </span>
           
-          {(searchTerm || disponibilidade !== "TODAS" || tipologia !== "TODAS" || suitesMinimas !== "0" || incluirCompactos || vagasFiltro !== "TODAS" || entradaMaxRaw || parcelaMaxRaw || balaoMaxRaw || valorTabelaMaxRaw) && (
+          <span style={{ marginLeft: "auto", marginRight: 10, color: "#22c55e", fontSize: "0.68rem" }}>Busca automática</span>
+          {(searchTerm || disponibilidade !== "TODAS" || tipologia !== "TODAS" || suitesMinimas !== "0" || incluirCompactos || vagasFiltro !== "TODAS" || entradaMaxRaw || parcelaMaxRaw || balaoMaxRaw || valorTabelaMaxRaw || prazoMeses > 0) && (
             <button 
               onClick={clearFilters} 
               style={{ background: "none", border: "none", color: "#ef4444", fontSize: "0.7rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
@@ -544,6 +580,13 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
               }}
               style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }}
             />
+          </div>
+          <div>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Prazo desejado (+6 meses flexíveis)</label>
+            <select value={prazoMeses} onChange={(e) => { setPrazoMeses(Number(e.target.value)); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }}>
+              <option value={0}>Qualquer prazo</option>
+              {Array.from({ length: 12 }, (_, index) => (index + 1) * 6).map((months) => <option key={months} value={months}>{months} meses</option>)}
+            </select>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Search, Users, Building2, Layers, Presentation, Sparkles } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
-export type SmartUnitFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean };
+export type SmartUnitFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean; prazoMeses: number };
 
 const field = { width: "100%", boxSizing: "border-box" as const, background: "#0b0b0d", color: "#fff", border: "1px solid #34343a", borderRadius: 7, padding: "10px 11px", marginTop: 6 };
 const moneyInput = (raw: string) => {
@@ -19,12 +19,13 @@ export default function SmartDashboard({ metrics, onSearch, onNavigate }: { metr
   const [cidade, setCidade] = useState("");
   const [dormitorios, setDormitorios] = useState(0);
   const [incluirCompactos, setIncluirCompactos] = useState(true);
+  const [prazoMeses, setPrazoMeses] = useState(0);
 
   useEffect(() => {
     void supabase.from("empreendimentos").select("cidade").then(({ data }) => setCities(Array.from(new Set((data || []).map((item: any) => String(item.cidade || "").trim()).filter(Boolean))).sort()));
   }, []);
 
-  const search = () => onSearch({ entrada: numberFromMoney(entrada), balao: numberFromMoney(balao), parcela: numberFromMoney(parcela), cidade, dormitorios, incluirCompactos });
+  const search = () => onSearch({ entrada: numberFromMoney(entrada), balao: numberFromMoney(balao), parcela: numberFromMoney(parcela), cidade, dormitorios, incluirCompactos, prazoMeses });
 
   return <div style={{ display: "grid", gap: 18 }}>
     <header><small style={{ color: "#c5a059", textTransform: "uppercase", letterSpacing: ".12em" }}>Inteligência comercial</small><h1 style={{ margin: "5px 0", fontSize: 24 }}>Encontre a unidade certa para o cliente</h1><p style={{ color: "#8b8b95", margin: 0 }}>Cruze capacidade de pagamento, localização e perfil do imóvel em uma única busca.</p></header>
@@ -36,6 +37,7 @@ export default function SmartDashboard({ metrics, onSearch, onNavigate }: { metr
         <label style={{ color: "#a1a1aa", fontSize: 12 }}>Parcela máxima<input value={parcela} onChange={(e)=>setParcela(moneyInput(e.target.value))} placeholder="R$ 2.000,00" style={field}/></label>
         <label style={{ color: "#a1a1aa", fontSize: 12 }}>Cidade<select value={cidade} onChange={(e)=>setCidade(e.target.value)} style={field}><option value="">Todas as cidades</option>{cities.map((item)=><option key={item}>{item}</option>)}</select></label>
         <label style={{ color: "#a1a1aa", fontSize: 12 }}>Dormitórios mínimos (Q+S)<select value={dormitorios} onChange={(e)=>setDormitorios(Number(e.target.value))} style={field}><option value={0}>Qualquer tipologia</option><option value={1}>1+ dormitório (Q+S)</option><option value={2}>2+ dormitórios (Q+S)</option><option value={3}>3+ dormitórios (ex.: 2Q+1S)</option><option value={4}>4+ dormitórios (Q+S)</option></select></label>
+        <label style={{ color: "#a1a1aa", fontSize: 12 }}>Prazo desejado para entrega<select value={prazoMeses} onChange={(e)=>setPrazoMeses(Number(e.target.value))} style={field}><option value={0}>Qualquer prazo</option>{Array.from({ length: 12 }, (_, index) => (index + 1) * 6).map((months)=><option key={months} value={months}>{months} meses</option>)}</select><small style={{ display: "block", marginTop: 5, color: "#71717a" }}>Inclui oportunidades até 6 meses próximas do prazo.</small></label>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "center", marginTop: 14, flexWrap: "wrap" }}><label style={{ color: "#a1a1aa", fontSize: 12, display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={incluirCompactos} onChange={(e)=>setIncluirCompactos(e.target.checked)}/> Se não houver resultado, sugerir Studio/Loft</label><button onClick={search} style={{ background: "#d6a94f", color: "#090909", border: 0, borderRadius: 7, padding: "10px 18px", fontWeight: 800, cursor: "pointer", display: "flex", gap: 7, alignItems: "center" }}><Search size={16}/>Pesquisar unidades</button></div>
     </section>
