@@ -5,6 +5,8 @@ export type ExchangeRate = {
   date: string | null;
   manual: boolean;
   source: "supabase" | "cache";
+  trend?: number;
+  variation?: number | null;
 };
 
 export function isUsdBrlIndicator(indicator: { nome?: unknown; sku?: unknown }): boolean {
@@ -21,7 +23,7 @@ export function applyExchangeRate<T extends { nome?: unknown; sku?: unknown; val
 ): T[] {
   if (!rate?.value) return indicators;
   return indicators.map((indicator) => isUsdBrlIndicator(indicator)
-    ? { ...indicator, valor_atual: rate.value, data_atualizacao: rate.date }
+    ? { ...indicator, valor_atual: rate.value, data_atualizacao: rate.date, tendencia: rate.trend ?? 0, variacao_periodo: rate.variation ?? null }
     : indicator);
 }
 
@@ -41,14 +43,16 @@ function remember(rate: ExchangeRate) {
 
 export async function getExchangeRate(): Promise<ExchangeRate | null> {
   try {
-    const { data, error } = await supabase
-      .from("cotacao_usd_brl_atual")
-      .select("cotacao, data_cotacao, manual")
-      .maybeSingle();
+    const [{ data, error }, { data: historico }] = await Promise.all([
+      supabase.from("cotacao_usd_brl_atual").select("cotacao, data_cotacao, manual").maybeSingle(),
+      supabase.from("cotacoes_cambio").select("cotacao_venda, data_cotacao").eq("par", "USD/BRL").order("data_cotacao", { ascending: false }).limit(2),
+    ]);
     if (error) throw error;
     const value = Number(data?.cotacao);
     if (Number.isFinite(value) && value > 0) {
-      const rate = { value, date: data?.data_cotacao || null, manual: Boolean(data?.manual), source: "supabase" as const };
+      const previous = Number(historico?.[1]?.cotacao_venda);
+      const variation = Number.isFinite(previous) && previous > 0 ? ((value - previous) / previous) * 100 : null;
+      const rate = { value, date: data?.data_cotacao || null, manual: Boolean(data?.manual), source: "supabase" as const, variation, trend: variation === null ? 0 : Math.sign(variation) };
       remember(rate);
       return rate;
     }

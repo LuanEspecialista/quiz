@@ -44,6 +44,7 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
     { id: "apresentacoes", label: "Apresentações", icon: FileText },
     { id: "unidades", label: "Unidades", icon: Layers },
     { id: "importar-ia", label: "Importar IA", icon: Bot },
+    { id: "prompts", label: "Prompts", icon: FileText },
     { id: "fluxos", label: "Fluxos Financeiros", icon: GitBranch },
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "afiliados", label: "Afiliados", icon: UserCheck },

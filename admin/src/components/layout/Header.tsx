@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { User, Settings, Zap, ArrowUpRight, ChevronDown, Save, LogOut } from "lucide-react";
+import { User, Settings, Zap, ArrowUpRight, ArrowDownRight, Minus, ChevronDown, Save, LogOut } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { applyExchangeRate, getExchangeRate, isUsdBrlIndicator } from "../../lib/exchangeRate";
+import { getCryptoIndicators } from "../../lib/cryptoRates";
+import { getEuroIndicator, isEuroIndicator } from "../../lib/fiatRates";
 import LanguageSelector from "../LanguageSelector";
 
 interface HeaderProps {
@@ -32,14 +34,31 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
 
   const loadIndicadores = async () => {
     try {
-      const [{ data }, cotacao] = await Promise.all([
+      const [{ data }, { data: historico }, cotacao, crypto, euro, { data: tickerConfig }] = await Promise.all([
         supabase.from("indicadores").select("*"),
+        supabase.from("indicadores_historico").select("indicador_id, valor, data_referencia").order("data_referencia", { ascending: false }),
         getExchangeRate(),
+        getCryptoIndicators(),
+        getEuroIndicator(),
+        supabase.from("indicadores_ticker_config").select("sku, ativo"),
       ]);
       if (data) {
-        const next = applyExchangeRate([...data], cotacao);
-        if (cotacao?.value && !next.some(isUsdBrlIndicator)) next.unshift({ id: "ptax-usd-brl", nome: "Dólar PTAX", categoria: "MOEDA", valor_atual: cotacao.value, data_atualizacao: cotacao.date });
-        setIndicadores(next);
+        const historyByIndicator = (historico || []).reduce((map: Record<string, any[]>, item: any) => {
+          (map[item.indicador_id] ||= []).push(item);
+          return map;
+        }, {});
+        const withTrend = data.map((item: any) => {
+          const current = Number(item.valor_atual ?? item.valor);
+          const previous = (historyByIndicator[item.id] || []).find((entry: any) => Number(entry.valor) !== current);
+          return { ...item, tendencia: previous ? Math.sign(current - Number(previous.valor)) : 0 };
+        });
+        const next = applyExchangeRate(withTrend.filter((item: any) => !isEuroIndicator(item)), cotacao);
+        if (cotacao?.value && !next.some(isUsdBrlIndicator)) next.unshift({ id: "ptax-usd-brl", sku: "USD-BRL", nome: "Dólar PTAX", categoria: "MOEDA", valor_atual: cotacao.value, data_atualizacao: cotacao.date, tendencia: cotacao.trend ?? 0, variacao_periodo: cotacao.variation ?? null, indexador_base: "Banco Central do Brasil" });
+        const preferencias = new Map((tickerConfig || []).map((item: any) => [item.sku, item.ativo]));
+        setIndicadores([...next, ...(euro ? [euro] : []), ...crypto].filter((item: any) => {
+          const valor = Number(item.valor_atual ?? item.valor);
+          return Number.isFinite(valor) && valor > 0 && preferencias.get(item.sku) !== false;
+        }));
       }
     } catch (err) {
       console.error("Erro ao carregar ticker no header:", err);
@@ -53,8 +72,10 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
       return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     if (categoria === "IMOBILIARIO_M2") {
-      return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/m²`;
+      if (val <= 0) return "A definir";
+      return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/m²`;
     }
+    if (categoria === "CRIPTO") return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     return `${val.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}%`;
   };
 
@@ -97,7 +118,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
           display: flex;
           gap: 0;
           width: max-content;
-          animation: tickerHeader 30s linear infinite;
+          animation: tickerHeader 75s linear infinite;
         }
         .header-ticker-track:hover {
           animation-play-state: paused;
@@ -108,7 +129,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
       <div style={{ flex: 1, display: "flex", alignItems: "center", overflow: "hidden", height: "100%", marginRight: "1.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", paddingRight: "0.8rem", color: "#c5a059", fontWeight: "bold", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
           <Zap style={{ width: "13px", height: "13px" }} />
-          <span className="app-header-market-label">Mercado</span><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e" }} />
+          <span className="app-header-market-label">Mercado</span><span title="Indicadores com fontes e datas diferentes" style={{ width: 6, height: 6, borderRadius: "50%", background: "#c5a059", boxShadow: "0 0 8px #c5a059" }} />
         </div>
 
         <div style={{ overflow: "hidden", width: "100%", height: "100%", display: "flex", alignItems: "center" }}>
@@ -120,6 +141,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
                 <div
                   key={`${ind.id}-${idx}`}
                   onClick={() => onTickerSelect && onTickerSelect(ind)}
+                  title={`${ind.indexador_base || "Fonte não informada"}${ind.data_atualizacao ? ` · Atualizado em ${ind.data_atualizacao}` : " · Sem data de atualização"}`}
                   style={{
                     cursor: "pointer",
                     display: "flex",
@@ -127,16 +149,16 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
                     gap: "0.3rem",
                     padding: "0 1rem",
                     height: "55px",
-                    minWidth: "145px",
+                    minWidth: "max-content",
                     borderRadius: "4px",
                     backgroundColor: "#141414",
                     border: "1px solid #222",
                     fontSize: "0.72rem"
                   }}
                 >
-                  <span style={{ color: "#8b8b95", textTransform: "uppercase", fontSize: "0.62rem", letterSpacing: "0.5px" }}>{ind.nome}</span>
-                  <strong style={{ color: "#fff", fontFamily: "ui-monospace, Consolas, monospace" }}>{formatValor(ind.valor_atual ?? ind.valor, ind.categoria)}</strong>
-                  <ArrowUpRight style={{ width: "11px", height: "11px", color: "#22c55e" }} />
+                  <span style={{ color: "#8b8b95", textTransform: "uppercase", fontSize: "0.62rem", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>{ind.nome}</span>
+                  <strong style={{ color: "#fff", fontFamily: "ui-monospace, Consolas, monospace", whiteSpace: "nowrap" }}>{formatValor(ind.valor_atual ?? ind.valor, ind.categoria)}</strong>
+                  {ind.tendencia > 0 ? <ArrowUpRight aria-label="Alta" style={{ width: "11px", height: "11px", color: "#22c55e" }} /> : ind.tendencia < 0 ? <ArrowDownRight aria-label="Baixa" style={{ width: "11px", height: "11px", color: "#ef4444" }} /> : <Minus aria-label="Sem histórico comparável" style={{ width: "11px", height: "11px", color: "#71717a" }} />}
                 </div>
               ))}
             </div>

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "../../lib/supabase";
+import { mergeEnterpriseStandard, parseStandardTypology, STANDARD_VERSION, TYPOLOGY_OPTIONS, type CommercialFlow } from "../../lib/realEstateStandard";
 
 type Empreendimento = {
   id: string;
@@ -44,10 +45,15 @@ type Empreendimento = {
   valorizacao_aa?: number | null;
   quartos_disponiveis?: number[] | null;
   caracteristicas?: Record<string, unknown> | null;
+  regras_correcao?: Record<string, unknown> | null;
   imagem_url?: string | null;
   ativo?: boolean | null;
   created_at?: string | null;
   updated_at?: string | null;
+  unidades_cadastradas?: number;
+  menor_preco_disponivel?: number | null;
+  maior_preco_disponivel?: number | null;
+  tipologias_estoque?: string[];
 };
 
 type EmpreendimentoImagem = {
@@ -67,6 +73,18 @@ type FormData = {
   tipo: string;
   status: string;
   entrega: string;
+  inicio_comercial: string;
+  percentual_ate_chaves: string;
+  percentual_ato: string;
+  baloes_por_ano: string;
+  responsavel_pre_chaves: string;
+  indice_pre_chaves: string;
+  juros_pre_chaves: string;
+  modelo_pos_chaves: string;
+  parcelas_pos_chaves: string;
+  indice_pos_chaves: string;
+  juros_pos_chaves: string;
+  permite_banco_pos_chaves: boolean;
   numero_torres: string;
   numero_unidades: string;
   area_minima: string;
@@ -89,24 +107,7 @@ const STATUS_OPTIONS = [
   "Esgotado",
 ];
 
-const TIPOLOGIA_OPTIONS = [
-  "Studio",
-  "Loft",
-  "1Q",
-  "1S",
-  "1Q + 1S",
-  "2Q",
-  "2S",
-  "2Q + 1S",
-  "2S + 1Q",
-  "3Q",
-  "3S",
-  "3Q + 1S",
-  "3S + 1Q",
-  "4Q",
-  "4S",
-  "Cobertura",
-] as const;
+const TIPOLOGIA_OPTIONS = TYPOLOGY_OPTIONS;
 
 function tipologiaBedrooms(value: string) {
   if (["Studio", "Loft"].includes(value)) return 0;
@@ -130,6 +131,18 @@ const EMPTY_FORM: FormData = {
   tipo: "",
   status: "Lançamento",
   entrega: "",
+  inicio_comercial: "",
+  percentual_ate_chaves: "",
+  percentual_ato: "",
+  baloes_por_ano: "1",
+  responsavel_pre_chaves: "construtora",
+  indice_pre_chaves: "CUB",
+  juros_pre_chaves: "",
+  modelo_pos_chaves: "financiamento_bancario",
+  parcelas_pos_chaves: "",
+  indice_pos_chaves: "IPCA",
+  juros_pos_chaves: "",
+  permite_banco_pos_chaves: true,
   numero_torres: "",
   numero_unidades: "",
   area_minima: "",
@@ -156,8 +169,15 @@ function formatCurrency(value?: number | null) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
+}
+
+function formatCompactCurrency(value: number) {
+  if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`;
+  if (value >= 1_000) return `R$ ${(value / 1_000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil`;
+  return formatCurrency(value);
 }
 
 function getStatusClass(status?: string | null) {
@@ -213,7 +233,7 @@ export default function Empreendimentos() {
     try {
       await ensureBucketExists();
 
-      const [empRes, constRes, imgRes] = await Promise.all([
+      const [empRes, constRes, imgRes, unitsRes] = await Promise.all([
         supabase
           .from("empreendimentos")
           .select("*")
@@ -224,12 +244,40 @@ export default function Empreendimentos() {
           .order("nome", { ascending: true }),
         supabase
           .from("empreendimento_imagens")
-          .select("*")
+          .select("*"),
+        supabase
+          .from("unidades")
+          .select("empreendimento_id, tipologia, tipologia_dados, valor_tabela, status")
       ]);
 
       if (empRes.error) throw empRes.error;
 
-      const listaEmps = (empRes.data || []) as Empreendimento[];
+      const unitMetrics = new Map<string, { total: number; minAvailable: number | null; maxAvailable: number | null; typologies: Set<string> }>();
+      (unitsRes.data || []).forEach((unit: any) => {
+        const id = String(unit.empreendimento_id || "");
+        if (!id) return;
+        const metric = unitMetrics.get(id) || { total: 0, minAvailable: null, maxAvailable: null, typologies: new Set<string>() };
+        metric.total += 1;
+        const parsed = parseStandardTypology(unit.tipologia_dados?.original || unit.tipologia);
+        if (parsed.label && parsed.label !== "Não informado") metric.typologies.add(parsed.label);
+        const available = ["disponivel", "disponível"].includes(normalize(unit.status));
+        const price = Number(unit.valor_tabela);
+        if (available && Number.isFinite(price) && price > 0) {
+          metric.minAvailable = metric.minAvailable == null ? price : Math.min(metric.minAvailable, price);
+          metric.maxAvailable = metric.maxAvailable == null ? price : Math.max(metric.maxAvailable, price);
+        }
+        unitMetrics.set(id, metric);
+      });
+      const listaEmps = ((empRes.data || []) as Empreendimento[]).map((emp) => {
+        const metric = unitMetrics.get(String(emp.id));
+        return metric ? {
+          ...emp,
+          unidades_cadastradas: metric.total,
+          menor_preco_disponivel: metric.minAvailable,
+          maior_preco_disponivel: metric.maxAvailable,
+          tipologias_estoque: Array.from(metric.typologies).sort(),
+        } : emp;
+      });
       const todasImagens = (imgRes.data || []) as EmpreendimentoImagem[];
 
       const map: Record<string, string[]> = {};
@@ -312,6 +360,9 @@ export default function Empreendimentos() {
   }
 
   function openEdit(item: Empreendimento) {
+    const fluxoComercial = item.caracteristicas && typeof item.caracteristicas.fluxo_comercial === "object"
+      ? item.caracteristicas.fluxo_comercial as Record<string, unknown>
+      : {};
     setEditing(item);
     setForm({
       nome: item.nome || item.titulo || "",
@@ -322,6 +373,18 @@ export default function Empreendimentos() {
       tipo: item.tipo || "",
       status: item.status || "Lançamento",
       entrega: item.entrega || "",
+      inicio_comercial: String(fluxoComercial.inicio_comercial || ""),
+      percentual_ate_chaves: fluxoComercial.percentual_ate_chaves != null ? String(fluxoComercial.percentual_ate_chaves) : "",
+      percentual_ato: fluxoComercial.percentual_ato != null ? String(fluxoComercial.percentual_ato) : "",
+      baloes_por_ano: fluxoComercial.baloes_por_ano != null ? String(fluxoComercial.baloes_por_ano) : "1",
+      responsavel_pre_chaves: String(fluxoComercial.responsavel_pre_chaves || "construtora"),
+      indice_pre_chaves: String(fluxoComercial.indice_pre_chaves || item.regras_correcao?.indice_pre_chaves || "CUB"),
+      juros_pre_chaves: fluxoComercial.juros_pre_chaves != null ? String(fluxoComercial.juros_pre_chaves) : "",
+      modelo_pos_chaves: String(fluxoComercial.modelo_pos_chaves || "financiamento_bancario"),
+      parcelas_pos_chaves: fluxoComercial.parcelas_pos_chaves != null ? String(fluxoComercial.parcelas_pos_chaves) : "",
+      indice_pos_chaves: String(fluxoComercial.indice_pos_chaves || item.regras_correcao?.indice_pos_chaves || "IPCA"),
+      juros_pos_chaves: fluxoComercial.juros_pos_chaves != null ? String(fluxoComercial.juros_pos_chaves) : String(item.regras_correcao?.juros_pos_chaves_am || ""),
+      permite_banco_pos_chaves: fluxoComercial.permite_banco_pos_chaves !== false,
       numero_torres: item.numero_torres != null ? String(item.numero_torres) : "",
       numero_unidades: item.numero_unidades != null ? String(item.numero_unidades) : "",
       area_minima: item.area_minima != null ? String(item.area_minima) : "",
@@ -398,8 +461,42 @@ export default function Empreendimentos() {
         .map(tipologiaBedrooms)
         .filter((value, index, list) => Number.isInteger(value) && value >= 0 && list.indexOf(value) === index)
         .sort((a, b) => a - b);
+      const commercialFlow: CommercialFlow = {
+          versao: STANDARD_VERSION,
+          nome: form.percentual_ate_chaves ? `${form.percentual_ate_chaves}% até as chaves` : "Fluxo comercial",
+          moeda: "BRL",
+          inicio_comercial: form.inicio_comercial || null,
+          percentual_ate_chaves: form.percentual_ate_chaves === "" ? null : Number(form.percentual_ate_chaves.replace(",", ".")),
+          percentual_pos_chaves: form.percentual_ate_chaves === "" ? undefined : 100 - Number(form.percentual_ate_chaves.replace(",", ".")),
+          percentual_ato: form.percentual_ato === "" ? null : Number(form.percentual_ato.replace(",", ".")),
+          baloes_por_ano: form.baloes_por_ano === "" ? 0 : Number(form.baloes_por_ano),
+          responsavel_pre_chaves: form.responsavel_pre_chaves,
+          indice_pre_chaves: form.indice_pre_chaves || null,
+          juros_pre_chaves: form.juros_pre_chaves === "" ? null : Number(form.juros_pre_chaves.replace(",", ".")),
+          modelo_pos_chaves: form.modelo_pos_chaves,
+          parcelas_pos_chaves: form.parcelas_pos_chaves === "" ? null : Number(form.parcelas_pos_chaves),
+          indice_pos_chaves: form.indice_pos_chaves || null,
+          juros_pos_chaves: form.juros_pos_chaves === "" ? null : Number(form.juros_pos_chaves.replace(",", ".")),
+          permite_banco_pos_chaves: form.permite_banco_pos_chaves,
+          permite_financiamento_bancario: form.permite_banco_pos_chaves,
+          entrega: form.entrega || undefined,
+          fases: [],
+      } as CommercialFlow;
       payload.caracteristicas = {
-        ...(editing?.caracteristicas && typeof editing.caracteristicas === "object" ? editing.caracteristicas : {}),
+        ...mergeEnterpriseStandard(editing?.caracteristicas, {
+          versao: STANDARD_VERSION,
+          identidade: { nome_comercial: form.nome, categoria: form.tipo },
+          localizacao: { endereco: form.endereco, bairro: form.bairro, cidade: form.cidade },
+          cronograma: { inicio_comercial: form.inicio_comercial || undefined, entrega: form.entrega || undefined },
+          produto: {
+            torres: form.numero_torres === "" ? undefined : Number(form.numero_torres),
+            unidades: form.numero_unidades === "" ? undefined : Number(form.numero_unidades),
+            tipologias: form.tipologias_disponiveis,
+            area_minima_m2: form.area_minima === "" ? undefined : Number(form.area_minima.replace(",", ".")),
+            area_maxima_m2: form.area_maxima === "" ? undefined : Number(form.area_maxima.replace(",", ".")),
+          },
+          fluxo_comercial: commercialFlow,
+        }),
         tipologias: form.tipologias_disponiveis,
       };
 
@@ -896,11 +993,17 @@ export default function Empreendimentos() {
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Unidades</span>
-                        <span className="emp-info-value">{item.numero_unidades ?? "—"}</span>
+                        <span className="emp-info-value">{item.unidades_cadastradas ?? item.numero_unidades ?? "—"}</span>
                       </div>
                       <div className="emp-info">
-                        <span className="emp-info-label">A partir</span>
-                        <span className="emp-info-value">{formatCurrency(item.faixa_preco)}</span>
+                        <span className="emp-info-label">Faixa de valores</span>
+                        <span className="emp-info-value" title={item.menor_preco_disponivel != null && item.maior_preco_disponivel != null ? `${formatCurrency(item.menor_preco_disponivel)} a ${formatCurrency(item.maior_preco_disponivel)}` : undefined}>
+                          {item.menor_preco_disponivel != null && item.maior_preco_disponivel != null
+                            ? item.menor_preco_disponivel === item.maior_preco_disponivel
+                              ? formatCompactCurrency(item.menor_preco_disponivel)
+                              : `${formatCompactCurrency(item.menor_preco_disponivel)} – ${formatCompactCurrency(item.maior_preco_disponivel)}`
+                            : formatCurrency(item.faixa_preco)}
+                        </span>
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Valorização projetada</span>
@@ -908,7 +1011,7 @@ export default function Empreendimentos() {
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Tipologias</span>
-                        <span className="emp-info-value">{storedTipologias(item).length ? storedTipologias(item).join(" · ") : "—"}</span>
+                        <span className="emp-info-value">{item.tipologias_estoque?.length ? item.tipologias_estoque.join(" · ") : storedTipologias(item).length ? storedTipologias(item).join(" · ") : "—"}</span>
                       </div>
                     </div>
 
@@ -1042,6 +1145,81 @@ export default function Empreendimentos() {
                     onChange={(e) => updateField("numero_torres", e.target.value)}
                   />
                 </div>
+                <div className="emp-field full" style={{ marginTop: 8 }}>
+                  <div style={{ borderTop: "1px solid #2c2418", paddingTop: 16 }}>
+                    <strong style={{ color: "#e2b45e", fontSize: 13 }}>Inteligência de fluxo comercial</strong>
+                    <p style={{ color: "#8d8d96", fontSize: 11, margin: "5px 0 0" }}>Essas regras permitem encontrar unidades pela capacidade real de pagamento do cliente.</p>
+                  </div>
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Início comercial</label>
+                  <input className="emp-input" type="date" value={form.inicio_comercial} onChange={(e) => updateField("inicio_comercial", e.target.value)} />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Percentual exigido até as chaves</label>
+                  <input className="emp-input" type="number" min="0" max="100" step="0.01" value={form.percentual_ate_chaves} onChange={(e) => updateField("percentual_ate_chaves", e.target.value)} placeholder="Ex.: 30 ou 50" />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Entrada mínima (% do imóvel)</label>
+                  <input className="emp-input" type="number" min="0" max="100" step="0.01" value={form.percentual_ato} onChange={(e) => updateField("percentual_ato", e.target.value)} placeholder="Ex.: 10" />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Balões por ano</label>
+                  <input className="emp-input" type="number" min="0" step="1" value={form.baloes_por_ano} onChange={(e) => updateField("baloes_por_ano", e.target.value)} placeholder="Ex.: 1" />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Responsável antes das chaves</label>
+                  <select className="emp-select" value={form.responsavel_pre_chaves} onChange={(e) => updateField("responsavel_pre_chaves", e.target.value)}>
+                    <option value="construtora">Direto com a construtora</option>
+                    <option value="banco">Financiamento bancário</option>
+                  </select>
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Correção antes das chaves</label>
+                  <select className="emp-select" value={form.indice_pre_chaves} onChange={(e) => updateField("indice_pre_chaves", e.target.value)}>
+                    <option value="SEM_CORRECAO">Sem correção</option>
+                    <option value="CUB">CUB</option>
+                    <option value="INCC">INCC</option>
+                    <option value="IPCA">IPCA</option>
+                    <option value="IGPM">IGP-M</option>
+                    <option value="BANCO">Condições do banco</option>
+                  </select>
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Juros antes das chaves (% a.m.)</label>
+                  <input className="emp-input" type="number" min="0" step="0.01" value={form.juros_pre_chaves} onChange={(e) => updateField("juros_pre_chaves", e.target.value)} placeholder="0 se não houver" />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Saldo após as chaves</label>
+                  <select className="emp-select" value={form.modelo_pos_chaves} onChange={(e) => updateField("modelo_pos_chaves", e.target.value)}>
+                    <option value="financiamento_bancario">Financiamento bancário</option>
+                    <option value="direto_construtora">Direto com a construtora</option>
+                    <option value="quitacao_chaves">Quitação nas chaves</option>
+                  </select>
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Parcelas após as chaves</label>
+                  <input className="emp-input" type="number" min="0" step="1" value={form.parcelas_pos_chaves} onChange={(e) => updateField("parcelas_pos_chaves", e.target.value)} placeholder="Ex.: 100 (se direto)" />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Correção após as chaves</label>
+                  <select className="emp-select" value={form.indice_pos_chaves} onChange={(e) => updateField("indice_pos_chaves", e.target.value)}>
+                    <option value="SEM_CORRECAO">Sem correção</option>
+                    <option value="CUB">CUB</option>
+                    <option value="INCC">INCC</option>
+                    <option value="IPCA">IPCA</option>
+                    <option value="IGPM">IGP-M</option>
+                    <option value="BANCO">Condições do banco</option>
+                  </select>
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Juros após as chaves (% a.m.)</label>
+                  <input className="emp-input" type="number" min="0" step="0.01" value={form.juros_pos_chaves} onChange={(e) => updateField("juros_pos_chaves", e.target.value)} placeholder="Ex.: 0,8" />
+                </div>
+                <label className="emp-field full" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 9, color: "#d4d4d8", fontSize: 12 }}>
+                  <input type="checkbox" checked={form.permite_banco_pos_chaves} onChange={(e) => updateField("permite_banco_pos_chaves", e.target.checked)} />
+                  Permitir financiamento bancário como alternativa após as chaves
+                </label>
                 <div className="emp-field">
                   <label className="emp-label">Número de unidades</label>
                   <input

@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { applyExchangeRate, getExchangeRate, refreshExchangeRate, type ExchangeRate } from "@/lib/exchangeRate";
+import { getCryptoIndicators } from "@/lib/cryptoRates";
+import { getEuroIndicator, isEuroIndicator } from "@/lib/fiatRates";
 import { 
   TrendingUp, 
+  TrendingDown,
+  Minus,
   Plus, 
   Search, 
   Edit3, 
@@ -38,6 +42,7 @@ const formatarValorPorCategoria = (valor: number | string, cat?: string) => {
 
   // 2. Preço por m²
   if (categoriaSegura === "IMOBILIARIO_M2") {
+    if (num <= 0) return "A definir";
     const formatado = new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -45,6 +50,10 @@ const formatarValorPorCategoria = (valor: number | string, cat?: string) => {
       maximumFractionDigits: 2
     }).format(num);
     return `${formatado}/m²`;
+  }
+
+  if (categoriaSegura === "CRIPTO") {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
   }
 
   // 3. Taxas / Porcentagens (Selic, CUB, Renda Fixa, etc.)
@@ -61,6 +70,31 @@ interface SerieHistorica {
   valor: number;
 }
 
+const ultimosMeses = (quantidade = 12): SerieHistorica[] => {
+  const hoje = new Date();
+  return Array.from({ length: quantidade }, (_, index) => {
+    const data = new Date(hoje.getFullYear(), hoje.getMonth() - (quantidade - 1 - index), 1);
+    return { mesAno: `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`, valor: 0 };
+  });
+};
+
+const REFERENCIAS_LITORAL = [
+  { sku: "M2-PENHA-FM", nome: "M² Penha", cidade: "Penha", valor: 16000 },
+  { sku: "M2-BARRA-VELHA-FM", nome: "M² Barra Velha", cidade: "Barra Velha", valor: 14000 },
+  { sku: "M2-PICARRAS-FM", nome: "M² Bal. Piçarras", cidade: "Balneário Piçarras", valor: 20000 },
+  { sku: "M2-BC-FM", nome: "M² Bal. Camboriú", cidade: "Balneário Camboriú", valor: 0 },
+  { sku: "M2-ITAPEMA-FM", nome: "M² Itapema", cidade: "Itapema", valor: 0 },
+] as const;
+
+const INCC_MENSAL_2026 = [
+  { data_referencia: "2026-01", valor: 0.63 },
+  { data_referencia: "2026-02", valor: 0.34 },
+  { data_referencia: "2026-03", valor: 0.36 },
+  { data_referencia: "2026-04", valor: 1.04 },
+  { data_referencia: "2026-05", valor: 0.77 },
+  { data_referencia: "2026-06", valor: 0.85 },
+] as const;
+
 export default function Indicadores() {
   const [indicadores, setIndicadores] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +102,7 @@ export default function Indicadores() {
   const [selectedCategoria, setSelectedCategoria] = useState("TODAS");
   const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
   const [refreshingRate, setRefreshingRate] = useState(false);
+  const [tickerConfigReady, setTickerConfigReady] = useState(true);
 
   // Estado do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,11 +122,7 @@ export default function Indicadores() {
   const [aliquotaFixa, setAliquotaFixa] = useState(15);
 
   // Lançamento Dinâmico de Série de Histórico
-  const [historicoEntradas, setHistoricoEntradas] = useState<SerieHistorica[]>([
-    { mesAno: "2026-01", valor: 0 },
-    { mesAno: "2026-02", valor: 0 },
-    { mesAno: "2026-03", valor: 0 }
-  ]);
+  const [historicoEntradas, setHistoricoEntradas] = useState<SerieHistorica[]>(ultimosMeses());
 
   useEffect(() => {
     fetchData();
@@ -100,22 +131,82 @@ export default function Indicadores() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [{ data, error }, rate] = await Promise.all([
+      const { data: cadastrados } = await supabase.from("indicadores").select("sku").in("sku", REFERENCIAS_LITORAL.map((item) => item.sku));
+      const existentes = new Set((cadastrados || []).map((item: any) => item.sku));
+      const faltantes = REFERENCIAS_LITORAL.filter((item) => !existentes.has(item.sku)).map((item) => ({
+        sku: item.sku,
+        nome: item.nome,
+        cidade: item.cidade,
+        categoria: "IMOBILIARIO_M2",
+        valor: item.valor,
+        valor_atual: item.valor,
+        indexador_base: "Referência comercial · alto padrão frente-mar",
+      }));
+      if (faltantes.length) {
+        const { error: seedError } = await supabase.from("indicadores").insert(faltantes);
+        if (seedError) console.warn("Não foi possível cadastrar todas as referências regionais:", seedError);
+      }
+      const [{ data, error }, { data: historico }, rate, crypto, euro, { data: tickerConfig, error: tickerConfigError }] = await Promise.all([
         supabase.from("indicadores").select(),
+        supabase.from("indicadores_historico").select("indicador_id, valor, data_referencia").order("data_referencia", { ascending: false }),
         getExchangeRate(),
+        getCryptoIndicators(),
+        getEuroIndicator(),
+        supabase.from("indicadores_ticker_config").select("sku, ativo"),
       ]);
       setExchangeRate(rate);
 
       if (error) {
         console.error("Erro no Supabase ao buscar:", error);
       } else if (data) {
-        setIndicadores(applyExchangeRate(data, rate));
+        const historicoCompleto = [...(historico || [])];
+        const incc = data.find((item: any) => /INCC-M/i.test(`${item.sku || ""} ${item.nome || ""}`));
+        if (incc) {
+          const existentes = new Set(historicoCompleto.filter((item: any) => item.indicador_id === incc.id).map((item: any) => item.data_referencia));
+          const faltantes: any[] = INCC_MENSAL_2026.filter((item) => !existentes.has(item.data_referencia)).map((item) => ({ ...item, indicador_id: incc.id }));
+          const valorAtualIncc = Number(incc.valor_atual ?? incc.valor);
+          if (!existentes.has("2026-07") && Number.isFinite(valorAtualIncc) && valorAtualIncc > 0) faltantes.push({ indicador_id: incc.id, data_referencia: "2026-07", valor: valorAtualIncc });
+          if (faltantes.length) {
+            const { error: historyError } = await supabase.from("indicadores_historico").insert(faltantes);
+            if (historyError) console.warn("Não foi possível completar o histórico mensal do INCC-M:", historyError);
+            else historicoCompleto.push(...faltantes);
+          }
+          incc.indexador_base = "FGV IBRE · variação mensal";
+        }
+        const porIndicador = historicoCompleto.reduce((map: Record<string, any[]>, item: any) => {
+          (map[item.indicador_id] ||= []).push(item);
+          return map;
+        }, {});
+        Object.values(porIndicador).forEach((serie) => serie.sort((a: any, b: any) => String(b.data_referencia).localeCompare(String(a.data_referencia))));
+        const enriquecidos = data.map((item: any) => {
+          const serie = porIndicador[item.id] || [];
+          const atual = Number(serie[0]?.valor ?? item.valor_atual ?? item.valor);
+          const anterior = Number(serie[1]?.valor);
+          const variacao = Number.isFinite(anterior) && anterior !== 0 ? ((atual - anterior) / anterior) * 100 : null;
+          return { ...item, valor_atual: atual, variacao_periodo: variacao, tendencia: variacao === null ? 0 : Math.sign(variacao) };
+        });
+        setTickerConfigReady(!tickerConfigError);
+        const preferencias = new Map((tickerConfig || []).map((item: any) => [item.sku, item.ativo]));
+        const base = applyExchangeRate(enriquecidos.filter((item: any) => !isEuroIndicator(item)), rate);
+        setIndicadores([...base, ...(euro ? [euro] : []), ...crypto].map((item: any) => ({ ...item, ticker_ativo: preferencias.get(item.sku) !== false })));
       }
     } catch (err) {
       console.error("Erro inesperado:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleTicker = async (item: any) => {
+    const ativo = item.ticker_ativo === false;
+    setIndicadores((current) => current.map((indicator) => indicator.sku === item.sku ? { ...indicator, ticker_ativo: ativo } : indicator));
+    const { error } = await supabase.from("indicadores_ticker_config").upsert({ sku: item.sku, ativo, updated_at: new Date().toISOString() }, { onConflict: "sku" });
+    if (error) {
+      setIndicadores((current) => current.map((indicator) => indicator.sku === item.sku ? { ...indicator, ticker_ativo: !ativo } : indicator));
+      alert("Execute primeiro o arquivo CONFIGURAR_CONTROLE_GLOBAL_TICKER.sql no Supabase para ativar este controle em todos os dispositivos.");
+      return;
+    }
+    window.dispatchEvent(new Event("luan:cotacao-atualizada"));
   };
 
   const updateDollar = async () => {
@@ -224,11 +315,7 @@ export default function Indicadores() {
       setIndexadorBase("");
       setTributacaoTipo("isento");
       setAliquotaFixa(15);
-      setHistoricoEntradas([
-        { mesAno: "2026-01", valor: 0 },
-        { mesAno: "2026-02", valor: 0 },
-        { mesAno: "2026-03", valor: 0 }
-      ]);
+      setHistoricoEntradas(ultimosMeses());
     }
     setIsModalOpen(true);
   };
@@ -245,7 +332,8 @@ export default function Indicadores() {
       const valorLimpo = valorAtual.toString().replace(/\s/g, "").replace(",", ".");
       valorTratado = parseFloat(valorLimpo);
     } else {
-      valorTratado = calcularMedia12Meses();
+      const ultimoValor = [...historicoEntradas].reverse().find((item) => Number(item.valor) > 0)?.valor;
+      valorTratado = Number(ultimoValor || calcularMedia12Meses());
     }
 
     if (isNaN(valorTratado)) {
@@ -385,6 +473,7 @@ export default function Indicadores() {
             { id: "RENDA_FIXA", label: "LCI / LCA / CDB / CDI" },
             { id: "IMOBILIARIO_M2", label: "Preço m²" },
             { id: "MOEDA", label: "Dólar / Moedas" }
+            ,{ id: "CRIPTO", label: "BTC / ETH" }
           ].map((cat) => (
             <button
               key={cat.id}
@@ -407,6 +496,7 @@ export default function Indicadores() {
       </div>
 
       {/* LISTAGEM PRINCIPAL */}
+      {!tickerConfigReady && <div style={{ marginBottom: 8, padding: "8px 10px", border: "1px solid #5b4828", borderRadius: 6, color: "#d7ab63", background: "#17130d", fontSize: "0.72rem" }}>O controle global do ticker aguarda a configuração no Supabase.</div>}
       <div style={{ backgroundColor: "#121212", border: "1px solid #222", borderRadius: "6px", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.8rem" }}>
           <thead>
@@ -415,13 +505,14 @@ export default function Indicadores() {
               <th style={{ padding: "0.55rem 0.8rem" }}>Nome / Cidade</th>
               <th style={{ padding: "0.55rem 0.8rem" }}>Categoria</th>
               <th style={{ padding: "0.55rem 0.8rem" }}>Valor / Taxa Atual</th>
+              <th style={{ padding: "0.55rem 0.8rem", textAlign: "center" }}>No ticker</th>
               <th style={{ padding: "0.55rem 0.8rem", textAlign: "right" }}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: "1.5rem", textAlign: "center", color: "#52525b", fontStyle: "italic" }}>
+                <td colSpan={6} style={{ padding: "1.5rem", textAlign: "center", color: "#52525b", fontStyle: "italic" }}>
                   Nenhum indicador cadastrado ainda.
                 </td>
               </tr>
@@ -441,16 +532,20 @@ export default function Indicadores() {
                   <td style={{ padding: "0.5rem 0.8rem", color: "#c5a059", fontWeight: "bold" }}>
                     {formatarValorPorCategoria(item.valor_atual ?? item.valor, item.categoria)}
                     {item.indexador_base && <span style={{ fontSize: "0.68rem", color: "#71717a", marginLeft: "0.3rem" }}>({item.indexador_base})</span>}
+                    {(item.variacao_periodo !== null && item.variacao_periodo !== undefined) && <span title="Variação entre os dois últimos registros" style={{ marginLeft: 7, display: "inline-flex", alignItems: "center", gap: 2, color: item.tendencia > 0 ? "#22c55e" : item.tendencia < 0 ? "#ef4444" : "#71717a", fontSize: "0.68rem" }}>{item.tendencia > 0 ? <TrendingUp size={12} /> : item.tendencia < 0 ? <TrendingDown size={12} /> : <Minus size={12} />}{item.variacao_periodo > 0 ? "+" : ""}{item.variacao_periodo.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%</span>}
+                  </td>
+                  <td style={{ padding: "0.5rem 0.8rem", textAlign: "center" }}>
+                    <button type="button" role="switch" aria-checked={item.ticker_ativo !== false} onClick={() => void toggleTicker(item)} title={item.ticker_ativo !== false ? "Remover do ticker" : "Exibir no ticker"} style={{ width: 34, height: 19, padding: 2, border: 0, borderRadius: 999, background: item.ticker_ativo !== false ? "#22c55e" : "#3f3f46", cursor: "pointer", display: "inline-flex", justifyContent: item.ticker_ativo !== false ? "flex-end" : "flex-start", alignItems: "center" }}><span style={{ width: 15, height: 15, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px #0008" }} /></button>
                   </td>
                   <td style={{ padding: "0.5rem 0.8rem", textAlign: "right" }}>
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem" }}>
+                    {item.automatico ? <span title={`${item.indexador_base} · ${item.data_atualizacao}`} style={{ color: "#22c55e", fontSize: "0.68rem" }}>Automático · {item.variacao_24h >= 0 ? "+" : ""}{item.variacao_24h.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% 24h</span> : <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem" }}>
                       <button onClick={() => handleOpenModal(item)} style={{ background: "none", border: "none", color: "#a1a1aa", cursor: "pointer" }}>
                         <Edit3 style={{ width: "14px", height: "14px" }} />
                       </button>
                       <button onClick={() => handleDelete(item.id, item.nome)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer" }}>
                         <Trash2 style={{ width: "14px", height: "14px" }} />
                       </button>
-                    </div>
+                    </div>}
                   </td>
                 </tr>
               ))

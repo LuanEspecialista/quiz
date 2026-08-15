@@ -20,6 +20,8 @@ import {
   Calendar
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { analyzeFlow } from "../../lib/flowCompatibility";
+import { parseStandardTypology } from "../../lib/realEstateStandard";
 
 // ============================================================================
 // HIGIENIZAÇÃO DO ANDAR (EVITA ERRO INTEGER NO POSTGRES / SUPABASE)
@@ -43,7 +45,17 @@ export const sanitizeAndar = (rawAndar: any, codigoUnidade: string): number | nu
   return null;
 };
 
-export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeInicial }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string; disponibilidadeInicial?: string }) {
+type TipologiaInfo = { key: string; label: string; quartos: number; suites: number; dormitorios: number; studio: boolean };
+
+const parseTipologia = (unit: any): TipologiaInfo => {
+  const fallback = Number(unit.dormitorios ?? unit.quarto_count ?? unit.quartos ?? 0);
+  return parseStandardTypology(unit.tipologia_dados?.original || unit.tipologia, Number.isFinite(fallback) ? fallback : 0);
+};
+
+type InitialSmartFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean };
+const initialMoney = (value?: number) => value ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value) : "";
+
+export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeInicial, filtrosIniciais }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string; disponibilidadeInicial?: string; filtrosIniciais?: InitialSmartFilters }) {
   const [unidades, setUnidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -58,13 +70,17 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   const [selectedUnits, setSelectedUnits] = useState<any[]>([]);
 
   // Filtros
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(filtrosIniciais?.cidade || "");
   const [disponibilidade, setDisponibilidade] = useState(disponibilidadeInicial || "TODAS");
-  const [tipologia, setTipologia] = useState("TODAS");
+  const [tipologia, setTipologia] = useState(filtrosIniciais?.dormitorios ? `DORM:${filtrosIniciais.dormitorios}` : "TODAS");
+  const [suitesMinimas, setSuitesMinimas] = useState("0");
   const [vagasFiltro, setVagasFiltro] = useState("TODAS");
+  const [incluirCompactos, setIncluirCompactos] = useState(Boolean(filtrosIniciais?.incluirCompactos));
   
   // Valores monetários formatados
-  const [entradaMaxRaw, setEntradaMaxRaw] = useState<string>("");
+  const [entradaMaxRaw, setEntradaMaxRaw] = useState<string>(initialMoney(filtrosIniciais?.entrada));
+  const [balaoMaxRaw, setBalaoMaxRaw] = useState<string>(initialMoney(filtrosIniciais?.balao));
+  const [parcelaMaxRaw, setParcelaMaxRaw] = useState<string>(initialMoney(filtrosIniciais?.parcela));
   const [valorTabelaMaxRaw, setValorTabelaMaxRaw] = useState<string>("");
 
   const [visibleCount, setVisibleCount] = useState(12);
@@ -268,7 +284,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     }
   };
 
-  const filteredUnidades = unidades.filter((u) => {
+  const filtrarUnidades = (aceitarCompactos: boolean) => unidades.filter((u) => {
     const empNome = u.empreendimentos?.nome || "";
     const constNome = u.empreendimentos?.construtoras?.nome || "";
     const cidadeNome = u.empreendimentos?.cidade || "";
@@ -291,19 +307,22 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       matchesDisp = isIndisp;
     }
 
-    const tipoStr = String(u.tipologia || "").toLowerCase();
-    const qts = u.quarto_count !== null && u.quarto_count !== undefined ? Number(u.quarto_count) : null;
+    const tipoInfo = parseTipologia(u);
 
     let matchesTipo = false;
     if (tipologia === "TODAS") {
       matchesTipo = true;
     } else if (tipologia === "STUDIO") {
-      matchesTipo = tipoStr.includes("studio") || tipoStr.includes("loft") || tipoStr.includes("integrada") || qts === 0;
-    } else if (tipologia === "4+") {
-      matchesTipo = (qts !== null && qts >= 4) || tipoStr.includes("4 quarto") || tipoStr.includes("cobertura");
+      matchesTipo = tipoInfo.studio;
+    } else if (tipologia.startsWith("DORM:")) {
+      matchesTipo = tipoInfo.dormitorios >= Number(tipologia.split(":")[1]);
+    } else if (tipologia.startsWith("EXACT:")) {
+      matchesTipo = tipoInfo.key === tipologia.slice(6);
     } else {
-      matchesTipo = qts === Number(tipologia) || tipoStr.includes(`${tipologia} quarto`) || tipoStr.includes(`${tipologia} dormitório`);
+      matchesTipo = true;
     }
+    if (!matchesTipo && aceitarCompactos && tipoInfo.studio) matchesTipo = true;
+    matchesTipo = matchesTipo && tipoInfo.suites >= Number(suitesMinimas);
 
     const numVagas = u.vagas !== null && u.vagas !== undefined ? Number(u.vagas) : 1;
     let matchesVagas = true;
@@ -315,28 +334,46 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       matchesVagas = numVagas >= 3;
     }
 
-    const valEntrada = getEntradaValor(u);
     const maxEnt = parseCurrencyValue(entradaMaxRaw);
-    const matchesEntrada = maxEnt === 0 || valEntrada <= maxEnt;
+    const maxParcela = parseCurrencyValue(parcelaMaxRaw);
+    const maxBalao = parseCurrencyValue(balaoMaxRaw);
+    const hasFinancialCapacity = maxEnt > 0 || maxParcela > 0 || maxBalao > 0;
+    const compatibility = analyzeFlow(u, { entrada: maxEnt, parcela: maxParcela, balao: maxBalao });
+    const matchesFinancial = !hasFinancialCapacity || compatibility.status === "compativel";
 
     const valTabela = Number(u.valor_tabela || u.preco || 0);
     const maxTab = parseCurrencyValue(valorTabelaMaxRaw);
     const matchesTabela = maxTab === 0 || valTabela <= maxTab;
 
-    return matchesSearch && matchesDisp && matchesTipo && matchesVagas && matchesEntrada && matchesTabela;
+    return matchesSearch && matchesDisp && matchesTipo && matchesVagas && matchesFinancial && matchesTabela;
   });
+
+  const unidadesCompativeis = filtrarUnidades(false);
+  const usandoCompactosComoAlternativa = unidadesCompativeis.length === 0 && incluirCompactos;
+  const filteredUnidades = usandoCompactosComoAlternativa ? filtrarUnidades(true) : unidadesCompativeis;
 
   const clearFilters = () => {
     setSearchTerm("");
     setDisponibilidade("TODAS");
     setTipologia("TODAS");
+    setSuitesMinimas("0");
+    setIncluirCompactos(false);
     setVagasFiltro("TODAS");
     setEntradaMaxRaw("");
+    setParcelaMaxRaw("");
+    setBalaoMaxRaw("");
     setValorTabelaMaxRaw("");
     setVisibleCount(12);
   };
 
   const visibleUnidades = filteredUnidades.slice(0, visibleCount);
+  const tipologiasDisponiveis = Array.from(
+    new Map(
+      unidades.map(parseTipologia)
+        .filter((tipo) => !tipo.studio && tipo.key && tipo.label !== "Não informado")
+        .map((tipo) => [tipo.key, tipo])
+    ).values()
+  ).sort((a, b) => a.dormitorios - b.dormitorios || a.suites - b.suites || a.label.localeCompare(b.label));
 
   return (
     <div style={{ color: "#e4e4e7", fontFamily: "sans-serif", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "1.25rem", position: "relative", paddingBottom: "5rem" }}>
@@ -350,6 +387,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
           <p style={{ color: "#71717a", fontSize: "0.75rem", margin: "0.2rem 0 0 0" }}>
             Exibindo {visibleUnidades.length} de {filteredUnidades.length} unidades encontradas ({unidades.length} totais).
           </p>
+          {usandoCompactosComoAlternativa && <p style={{ color: "#d7ab63", fontSize: "0.72rem", margin: "0.3rem 0 0" }}>Nenhuma unidade atendeu à composição solicitada. Exibindo Studio/Loft como alternativa.</p>}
           {empreendimentoId && <a href="/painel/?tab=unidades" style={{ color: "#c5a059", fontSize: "0.72rem", textDecoration: "none", display: "inline-block", marginTop: 5 }}>Ver unidades de todos os empreendimentos</a>}
         </div>
 
@@ -385,7 +423,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             <Filter style={{ width: "12px", height: "12px" }} /> Filtros Dinâmicos
           </span>
           
-          {(searchTerm || disponibilidade !== "TODAS" || tipologia !== "TODAS" || vagasFiltro !== "TODAS" || entradaMaxRaw || valorTabelaMaxRaw) && (
+          {(searchTerm || disponibilidade !== "TODAS" || tipologia !== "TODAS" || suitesMinimas !== "0" || incluirCompactos || vagasFiltro !== "TODAS" || entradaMaxRaw || parcelaMaxRaw || balaoMaxRaw || valorTabelaMaxRaw) && (
             <button 
               onClick={clearFilters} 
               style={{ background: "none", border: "none", color: "#ef4444", fontSize: "0.7rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
@@ -430,12 +468,27 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
               onChange={(e) => { setTipologia(e.target.value); setVisibleCount(12); }}
               style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem" }}
             >
-              <option value="TODAS">Todas as Tipologias</option>
+              <option value="TODAS">Todas as tipologias</option>
               <option value="STUDIO">Studio / Loft</option>
-              <option value="1">1 Quarto</option>
-              <option value="2">2 Quartos</option>
-              <option value="3">3 Quartos</option>
-              <option value="4+">4+ Quartos / Cobertura</option>
+              <optgroup label="Mínimo de dormitórios">
+                <option value="DORM:1">1+ dormitório</option>
+                <option value="DORM:2">2+ dormitórios</option>
+                <option value="DORM:3">3+ dormitórios</option>
+                <option value="DORM:4">4+ dormitórios</option>
+              </optgroup>
+              {tipologiasDisponiveis.length > 0 && <optgroup label="Composição exata">
+                {tipologiasDisponiveis.map((tipo) => <option key={tipo.key} value={`EXACT:${tipo.key}`}>{tipo.label}</option>)}
+              </optgroup>}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Suítes mínimas</label>
+            <select value={suitesMinimas} onChange={(e) => { setSuitesMinimas(e.target.value); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem" }}>
+              <option value="0">Qualquer quantidade</option>
+              <option value="1">1+ suíte</option>
+              <option value="2">2+ suítes</option>
+              <option value="3">3+ suítes</option>
             </select>
           </div>
 
@@ -466,6 +519,18 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
               style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }}
             />
           </div>
+
+          <div>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Parcela Até</label>
+            <input type="text" placeholder="R$ 0,00" value={parcelaMaxRaw} onChange={(e) => { setParcelaMaxRaw(formatCurrencyInput(e.target.value)); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }} />
+          </div>
+
+          <div>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Balão Até</label>
+            <input type="text" placeholder="R$ 0,00" value={balaoMaxRaw} onChange={(e) => { setBalaoMaxRaw(formatCurrencyInput(e.target.value)); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }} />
+          </div>
+
+          <label style={{ fontSize: "0.7rem", color: "#a1a1aa", display: "flex", alignItems: "center", gap: 7, alignSelf: "end", minHeight: 31 }}><input type="checkbox" checked={incluirCompactos} onChange={(e) => { setIncluirCompactos(e.target.checked); setVisibleCount(12); }} /> Aceitar Studio/Loft</label>
 
           <div>
             <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Valor Tabela Até</label>
@@ -502,7 +567,9 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
               const entradaVal = getEntradaValor(u);
               const tabelaVal = Number(u.valor_tabela || u.preco || 0);
               const numUnidade = u.codigo_unidade || u.numero_unidade || u.unit_number || u.unidade || "S/N";
-              const tipoExibicao = u.tipologia || (u.quarto_count === 0 ? "Studio" : `${u.quarto_count || "—"} Quartos`);
+              const tipoExibicao = parseTipologia(u).label;
+              const capacidadeInformada = parseCurrencyValue(entradaMaxRaw) > 0 || parseCurrencyValue(parcelaMaxRaw) > 0 || parseCurrencyValue(balaoMaxRaw) > 0;
+              const analiseFluxo = analyzeFlow(u, { entrada: parseCurrencyValue(entradaMaxRaw), parcela: parseCurrencyValue(parcelaMaxRaw), balao: parseCurrencyValue(balaoMaxRaw) });
               
               const statusClean = String(u.status || "").toLowerCase();
               const isDisponivel = statusClean === "disponivel" || statusClean === "disponível" || u.disponivel === true;
@@ -729,6 +796,8 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                         <strong style={{ color: "#fff", fontSize: "0.85rem" }}>{formatCurrency(tabelaVal)}</strong>
                       </div>
                     </div>
+
+                    {capacidadeInformada && analiseFluxo.status === "compativel" && <div style={{ marginTop: 10, padding: 9, borderRadius: 6, border: "1px solid #14532d", background: "#052e162b", fontSize: 11, lineHeight: 1.55 }}><strong style={{ color: "#34d399", display: "block", marginBottom: 3 }}>Fluxo compatível · {analiseFluxo.preKeysPercent.toLocaleString("pt-BR")}% até as chaves</strong><span style={{ color: "#d4d4d8" }}>{formatCurrency(analiseFluxo.suggestedEntry)} de entrada · {analiseFluxo.months}x {formatCurrency(analiseFluxo.suggestedInstallment)}{analiseFluxo.balloonCount > 0 ? ` · ${analiseFluxo.balloonCount} balões de ${formatCurrency(analiseFluxo.suggestedBalloon)}` : ""}</span><span style={{ color: "#8b8b95", display: "block" }}>Total até as chaves: {formatCurrency(analiseFluxo.preKeysTarget)} · saldo nas chaves: {formatCurrency(analiseFluxo.balanceAtKeys)}</span></div>}
 
                     {/* EXPANSÃO COM FLUXO DETALHADO */}
                     {isExpanded && (

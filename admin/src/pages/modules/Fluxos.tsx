@@ -8,7 +8,7 @@ type Indicador = { id: string; nome?: string; sku?: string; categoria?: string; 
 type Cenario = "conservador" | "base" | "otimista";
 
 const colors = ["#d6a94f", "#38bdf8", "#34d399", "#c084fc", "#fb7185", "#f97316"];
-const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value || 0);
+const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 const pct = (value: number) => `${Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% a.a.`;
 const n = (value: unknown) => Number(value) || 0;
 
@@ -59,10 +59,10 @@ function ProjectionChart({ series, years }: { series: Array<{ name: string; rate
   </div>;
 }
 
-export function Fluxos() {
+export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
   const [units, setUnits] = useState<Unidade[]>([]);
   const [indicators, setIndicators] = useState<Indicador[]>([]);
-  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
+  const [selectedUnits, setSelectedUnits] = useState<string[]>(initialUnitIds.slice(0, 4));
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>([]);
   const [scenarioValues, setScenarioValues] = useState<Record<Cenario, Record<string, number>>>({ conservador: {}, base: {}, otimista: {} });
   const [lockedRates, setLockedRates] = useState<Record<Cenario, Record<string, boolean>>>({ conservador: {}, base: {}, otimista: {} });

@@ -7,7 +7,7 @@ type Property={id:string;nome?:string|null;cidade?:string|null;bairro?:string|nu
 type Selection={cliente_id:string;empreendimento_id:string;ordem:number;motivo?:string|null};
 type Form={nome:string;telefone:string;email:string;cidade:string;objetivo:string;faixa_investimento:string;entrada_disponivel:string;capacidade_mensal:string;aceita_baloes:boolean;balao_maximo:string;cidades_preferencia:string;status:string;proximo_contato:string;observacoes:string};
 const empty:Form={nome:"",telefone:"",email:"",cidade:"",objetivo:"investimento",faixa_investimento:"",entrada_disponivel:"",capacidade_mensal:"",aceita_baloes:false,balao_maximo:"",cidades_preferencia:"",status:"novo",proximo_contato:"",observacoes:""};
-const money=(value?:number|null)=>value?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0}).format(value):"Não informado";
+const money=(value?:number|null)=>value?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2,maximumFractionDigits:2}).format(value):"Não informado";
 const panel={background:"#101012",border:"1px solid #27272a",borderRadius:11,padding:16} as const;
 const input={width:"100%",boxSizing:"border-box",background:"#09090b",border:"1px solid #3f3f46",borderRadius:7,padding:10,color:"#fff"} as const;
 const button={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,background:"#c5a059",color:"#09090b",border:0,borderRadius:7,padding:"10px 13px",fontWeight:800,cursor:"pointer"} as const;
