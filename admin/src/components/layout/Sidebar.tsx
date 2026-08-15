@@ -19,9 +19,10 @@ import {
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  role?: "admin" | "equipe" | "afiliado";
 }
 
-export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProps) {
   const [isOpenMobile, setIsOpenMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -34,7 +35,9 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const menuItems = [
+  const menuItems = role === "afiliado" ? [
+    { id: "afiliados", label: "Meu catálogo", icon: UserCheck },
+  ] : [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "construtoras", label: "Construtoras", icon: Building2 },
     { id: "empreendimentos", label: "Empreendimentos", icon: Building },

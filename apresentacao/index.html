@@ -4,43 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luan Especialista - Apresentações</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
+    <script>
+      if (!new URLSearchParams(location.search).get("empreendimento")) {
+        location.replace("/painel/?tab=apresentacoes");
+      }
+    </script>
 <script src="/assets/site-config.js"></script><script defer src="/assets/site-runtime.js"></script></head>
 <body>
 
-    <!-- CABEÇALHO COM FILTROS -->
     <header class="main-header">
         <a class="logo-container" href="/" aria-label="Ir para a página inicial" style="text-decoration:none">
-            <img src="assets/img/logo.png" alt="Luan Especialista" class="logo-img">
+            <img src="/imagens/logo.png" alt="Luan Especialista" class="logo-img">
             <div class="logo-text">
-                <h1>LUAN <span>ESPECIALISTA</span></h1>
-                <p>APRESENTAÇÕES</p>
+                <h1>Luan Especialista</h1>
+                <p>CURADORIA PATRIMONIAL</p>
             </div>
         </a>
-
-        <div class="filters-container">
-            <div class="filter-box">
-                <label>CIDADE</label>
-                <select id="select-cidade">
-                    <option value="">Selecione...</option>
-                </select>
-            </div>
-            
-            <div class="filter-box">
-                <label>CONSTRUTORA</label>
-                <select id="select-construtora" disabled>
-                    <option value="">Selecione a cidade...</option>
-                </select>
-            </div>
-
-            <div class="filter-box">
-                <label>EMPREENDIMENTO</label>
-                <select id="select-empreendimento" disabled>
-                    <option value="">Selecione a construtora...</option>
-                </select>
-            </div>
-        </div>
-
         <button class="btn-fullscreen" id="btn-fullscreen">Tela cheia</button>
     </header>
 
@@ -48,7 +31,7 @@
     <main class="viewer-container">
         <!-- Mensagem de instruções inicial -->
         <div id="viewer-placeholder" class="placeholder-text">
-            <p>Selecione os filtros acima para iniciar a apresentação...</p>
+            <p>Preparando a apresentação selecionada...</p>
         </div>
 
         <!-- Animação de Carregamento -->
@@ -89,11 +72,37 @@
         </div>
     </footer>
 
-   <!-- 1. Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- 2. Arquivos JS unificados e em ordem correta -->
-    <script src="./assets/js/dados.js"></script>
-    <script src="./assets/js/viewer.js"></script>
+    <script>
+      (async function protegerApresentacao() {
+        const id = new URLSearchParams(location.search).get("empreendimento");
+        if (!id || !window.supabase || !window.LUAN_SITE_CONFIG) return;
+        const config = window.LUAN_SITE_CONFIG;
+        const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+        const { data } = await client.auth.getSession();
+        if (!data.session) {
+          const retorno = encodeURIComponent(location.pathname + location.search);
+          location.replace("/painel/?return=" + retorno);
+          return;
+        }
+        const { data: perfil } = await client.from("perfis_usuario").select("perfil,ativo").eq("user_id", data.session.user.id).maybeSingle();
+        if (!perfil?.ativo || !["admin", "equipe"].includes(perfil.perfil)) {
+          location.replace("/painel/");
+          return;
+        }
+        document.body.classList.add("apresentacao-autorizada", "modo-direto");
+        for (const src of ["./assets/js/dados.js", "./assets/js/viewer.js"]) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+          });
+        }
+      })();
+    </script>
 </body>
 </html>

@@ -10,6 +10,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  const [accessRole, setAccessRole] = useState<"admin" | "equipe" | "afiliado">("admin");
   const [authError, setAuthError] = useState("");
   const [recoveringPassword, setRecoveringPassword] = useState(false);
 
@@ -27,9 +28,11 @@ export default function App() {
       setAuthError("Sua sessão continua ativa, mas não foi possível validar o perfil agora. Atualize a página em alguns instantes.");
       return;
     }
-    const allowed = profileUnavailable || (!error && data?.perfil === "admin" && data?.ativo === true);
+    const allowedProfiles = ["admin", "equipe", "afiliado"];
+    const allowed = profileUnavailable || (!error && allowedProfiles.includes(data?.perfil || "") && data?.ativo === true);
+    if (allowed) setAccessRole(profileUnavailable ? "admin" : data?.perfil as "admin" | "equipe" | "afiliado");
     setAuthorized(allowed);
-    setAuthError(allowed ? "" : error ? "Não foi possível validar o acesso administrativo." : "Esta conta não possui acesso administrativo ativo.");
+    setAuthError(allowed ? "" : error ? "Não foi possível validar o acesso agora." : "Esta conta não possui um perfil de acesso ativo.");
     if (!allowed) await supabase.auth.signOut();
   };
 
@@ -85,6 +88,12 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!session || !authorized) return;
+    const returnTo = new URLSearchParams(window.location.search).get("return");
+    if (returnTo?.startsWith("/apresentacao/")) window.location.replace(returnTo);
+  }, [session, authorized]);
+
   if (loading) {
     return (
       <div
@@ -118,5 +127,5 @@ export default function App() {
   const metadata = session.user.user_metadata || {};
   const fallbackName = (session.user.email || "Usuário").split("@")[0].replace(/[._-]+/g, " ");
   const userName = String(metadata.full_name || metadata.name || fallbackName).trim();
-  return <Dashboard userName={userName} />;
+  return <Dashboard userName={userName} role={accessRole} />;
 }

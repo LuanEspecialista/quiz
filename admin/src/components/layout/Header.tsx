@@ -6,11 +6,12 @@ import LanguageSelector from "../LanguageSelector";
 
 interface HeaderProps {
   userName?: string;
+  role?: "admin" | "equipe" | "afiliado";
   setActiveTab?: (tab: string) => void;
   onTickerSelect?: (ticker: any) => void;
 }
 
-export function Header({ userName, setActiveTab, onTickerSelect }: HeaderProps) {
+export function Header({ userName, role = "admin", setActiveTab, onTickerSelect }: HeaderProps) {
   const [indicadores, setIndicadores] = useState<any[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [displayName, setDisplayName] = useState(userName || "");
@@ -189,7 +190,7 @@ export function Header({ userName, setActiveTab, onTickerSelect }: HeaderProps) 
                 <button onClick={() => void saveDisplayName()} disabled={savingName || !displayName.trim()} title="Salvar nome" style={{ border: "1px solid #4a3a20", borderRadius: 5, background: "#211c13", color: "#d7ab63", padding: "0 8px", cursor: "pointer" }}><Save size={13} /></button>
               </div>
             </div>
-            <button
+            {role !== "afiliado" && <button
               onClick={() => {
                 if (setActiveTab) setActiveTab("configuracoes");
                 setMenuOpen(false);
@@ -211,7 +212,7 @@ export function Header({ userName, setActiveTab, onTickerSelect }: HeaderProps) 
             >
               <Settings style={{ width: "14px", height: "14px", color: "#c5a059" }} />
               Configurações
-            </button>
+            </button>}
             <button onClick={() => void supabase.auth.signOut()} style={{ width: "100%", background: "none", border: "none", color: "#a1a1aa", display: "flex", alignItems: "center", gap: ".5rem", padding: ".5rem", fontSize: ".78rem", cursor: "pointer", borderRadius: 4 }}><LogOut size={14} /> Sair</button>
           </div>
         )}

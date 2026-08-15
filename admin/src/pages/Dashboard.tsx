@@ -22,15 +22,17 @@ import IndicadoresModule from "./modules/indicadores";
 import ConfiguracoesModule from "./modules/Configuracoes";
 import ApresentacoesModule from "./modules/Apresentacoes";
 import ClientesModule from "./modules/Clientes";
+import AfiliadosModule from "./modules/Afiliados";
 import CommercialJourney from "../components/CommercialJourney";
 
 interface DashboardProps {
   userName?: string;
+  role?: "admin" | "equipe" | "afiliado";
 }
 
-export default function Dashboard({ userName }: DashboardProps) {
+export default function Dashboard({ userName, role = "admin" }: DashboardProps) {
   const initialParams = new URLSearchParams(window.location.search);
-  const [activeTab, setActiveTab] = useState(initialParams.get("tab") || "dashboard");
+  const [activeTab, setActiveTab] = useState(role === "afiliado" ? "afiliados" : initialParams.get("tab") || "dashboard");
   const [selectedTicker, setSelectedTicker] = useState<any | null>(null);
   const [selectedEmpreendimentoId] = useState<string | undefined>(initialParams.get("empreendimento") || undefined);
   const [initialDisponibilidade] = useState(initialParams.get("disponibilidade") || undefined);
@@ -86,17 +88,18 @@ export default function Dashboard({ userName }: DashboardProps) {
 
   return (
     <div style={{ minHeight: "100vh", width: "100%", backgroundColor: "#0a0a0a", color: "#fff", display: "flex", overflowX: "hidden" }}>
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} role={role} />
       
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
         <Header 
           userName={userName}
+          role={role}
           setActiveTab={setActiveTab} 
           onTickerSelect={handleSelectTickerFromHeader} 
         />
 
         <main className="app-main" style={{ marginTop: "56px", padding: "1.5rem 2rem", width: "100%", boxSizing: "border-box", flex: 1 }}>
-          {activeTab === "dashboard" && (
+          {role !== "afiliado" && activeTab === "dashboard" && (
             <div style={{ color: "#e4e4e7", fontFamily: "sans-serif", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               <CommercialJourney onNavigate={setActiveTab} />
               
@@ -245,17 +248,18 @@ export default function Dashboard({ userName }: DashboardProps) {
             </div>
           )}
 
-          {activeTab === "construtoras" && ConstrutorasModule && <ConstrutorasModule />}
-          {activeTab === "empreendimentos" && EmpreendimentosModule && <EmpreendimentosModule />}
-          {activeTab === "unidades" && UnidadesModule && <UnidadesModule empreendimentoId={selectedEmpreendimentoId} disponibilidadeInicial={initialDisponibilidade} />}
-          {activeTab === "apresentacoes" && <ApresentacoesModule />}
-          {activeTab === "importar-ia" && ImportarIAModule && <ImportarIAModule />}
-          {activeTab === "fluxos" && FluxosModule && <FluxosModule />}
-          {activeTab === "clientes" && <ClientesModule />}
-          {activeTab === "indicadores" && IndicadoresModule && <IndicadoresModule />}
-          {activeTab === "configuracoes" && ConfiguracoesModule && <ConfiguracoesModule />}
+          {role !== "afiliado" && activeTab === "construtoras" && ConstrutorasModule && <ConstrutorasModule />}
+          {role !== "afiliado" && activeTab === "empreendimentos" && EmpreendimentosModule && <EmpreendimentosModule />}
+          {role !== "afiliado" && activeTab === "unidades" && UnidadesModule && <UnidadesModule empreendimentoId={selectedEmpreendimentoId} disponibilidadeInicial={initialDisponibilidade} />}
+          {role !== "afiliado" && activeTab === "apresentacoes" && <ApresentacoesModule />}
+          {role !== "afiliado" && activeTab === "importar-ia" && ImportarIAModule && <ImportarIAModule />}
+          {role !== "afiliado" && activeTab === "fluxos" && FluxosModule && <FluxosModule />}
+          {role !== "afiliado" && activeTab === "clientes" && <ClientesModule />}
+          {activeTab === "afiliados" && <AfiliadosModule role={role} />}
+          {role !== "afiliado" && activeTab === "indicadores" && IndicadoresModule && <IndicadoresModule />}
+          {role !== "afiliado" && activeTab === "configuracoes" && ConfiguracoesModule && <ConfiguracoesModule />}
 
-          {["afiliados", "links"].includes(activeTab) && (
+          {activeTab === "links" && role !== "afiliado" && (
             <div style={{ backgroundColor: "#121212", border: "1px solid #222", borderRadius: "8px", padding: "2rem", textAlign: "center" }}>
               <h2 style={{ color: "#c5a059", textTransform: "capitalize" }}>Módulo {activeTab}</h2>
               <p style={{ color: "#71717a" }}>Em breve este módulo estará ativo.</p>
