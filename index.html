@@ -871,21 +871,5 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 </section>
 
-<script>
-  (function () {
-    const selector = document.getElementById('site-language');
-    const supported = ['pt-BR', 'en-US', 'es'];
-    const saved = localStorage.getItem('luan.locale');
-    const initial = supported.includes(saved) ? saved : 'pt-BR';
-    selector.value = initial;
-    document.documentElement.lang = initial;
-    selector.addEventListener('change', function () {
-      localStorage.setItem('luan.locale', selector.value);
-      document.documentElement.lang = selector.value;
-      window.dispatchEvent(new CustomEvent('luan:locale', { detail: selector.value }));
-      location.reload();
-    });
-  })();
-</script>
 </body>
 </html>
