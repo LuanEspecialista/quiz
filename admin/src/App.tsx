@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import ClientPortal from "./pages/ClientPortal";
 import { Loader2 } from "lucide-react";
 import LanguageSelector from "./components/LanguageSelector";
 
@@ -10,11 +11,11 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
-  const [accessRole, setAccessRole] = useState<"admin" | "equipe" | "afiliado">("admin");
+  const [accessRole, setAccessRole] = useState<"admin" | "cliente" | "afiliado">("admin");
   const [authError, setAuthError] = useState("");
   const [recoveringPassword, setRecoveringPassword] = useState(false);
 
-  const validateAdmin = async (nextSession: Session | null) => {
+  const validateAccess = async (nextSession: Session | null) => {
     setSession(nextSession);
     if (!nextSession) { setAuthorized(false); return; }
     let validationResult = await supabase.from("perfis_usuario").select("perfil,ativo").eq("user_id", nextSession.user.id).maybeSingle();
@@ -28,9 +29,9 @@ export default function App() {
       await supabase.auth.signOut();
       return;
     }
-    const allowedProfiles = ["admin", "equipe", "afiliado"];
+    const allowedProfiles = ["admin", "cliente", "afiliado"];
     const allowed = allowedProfiles.includes(data?.perfil || "") && data?.ativo === true;
-    if (allowed) setAccessRole(data?.perfil as "admin" | "equipe" | "afiliado");
+    if (allowed) setAccessRole(data?.perfil as "admin" | "cliente" | "afiliado");
     setAuthorized(allowed);
     setAuthError(allowed ? "" : error ? "Não foi possível validar o acesso agora." : "Esta conta não possui um perfil de acesso ativo.");
     if (!allowed) await supabase.auth.signOut();
@@ -51,7 +52,7 @@ export default function App() {
         }
 
         if (mounted) {
-          await validateAdmin(session);
+          await validateAccess(session);
         }
       } catch (error) {
         console.error("Erro de autenticação:", error);
@@ -77,7 +78,7 @@ export default function App() {
           setRecoveringPassword(true);
           setLoading(false);
         } else {
-          window.setTimeout(() => { void validateAdmin(session); }, 0);
+          window.setTimeout(() => { void validateAccess(session); }, 0);
         }
       }
     });
@@ -117,7 +118,7 @@ export default function App() {
   }
 
   if (recoveringPassword) {
-    return <><div style={{ position: "fixed", right: 18, top: 18, zIndex: 20 }}><LanguageSelector /></div><Login recoveryMode onPasswordUpdated={() => { setRecoveringPassword(false); void validateAdmin(session); }} /></>;
+    return <><div style={{ position: "fixed", right: 18, top: 18, zIndex: 20 }}><LanguageSelector /></div><Login recoveryMode onPasswordUpdated={() => { setRecoveringPassword(false); void validateAccess(session); }} /></>;
   }
 
   if (!session || !authorized) {
@@ -126,5 +127,6 @@ export default function App() {
 
   const metadata = session.user.user_metadata || {};
   const userName = String(metadata.full_name || metadata.name || "").trim();
+  if (accessRole === "cliente") return <ClientPortal userName={userName} />;
   return <Dashboard userName={userName} role={accessRole} />;
 }

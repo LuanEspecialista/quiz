@@ -113,8 +113,62 @@ code {
 
 .app-main { min-width: 0; }
 
+/* Base responsiva do painel: as telas mantêm a leitura em qualquer largura. */
+img, video, canvas {
+  max-width: 100%;
+}
+
+.app-main table {
+  max-width: 100%;
+}
+
 @media (max-width: 767px) {
-  .app-main { padding: 1rem !important; }
+  html { font-size: 15px; }
+
+  .app-main {
+    padding: 1rem 1rem 5.5rem !important;
+    overflow-x: hidden;
+  }
+
+  .app-main > * {
+    min-width: 0;
+  }
+
+  .app-main header {
+    flex-wrap: wrap;
+    align-items: flex-start !important;
+  }
+
+  /* Formulários, cards e comparações em colunas passam para uma coluna. */
+  .app-main [style*="grid-template-columns"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-main [style*="grid-column"] {
+    grid-column: auto !important;
+  }
+
+  .app-main table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-main input,
+  .app-main select,
+  .app-main textarea,
+  .app-main button {
+    max-width: 100%;
+  }
+
+  .app-main [style*="position: fixed"][style*="inset: 0"] {
+    padding: 12px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-main { padding: 1.25rem !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

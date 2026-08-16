@@ -36,10 +36,37 @@ function annualRate(base: number, scenario: Cenario) {
 
 function taxRate(indicator: Indicador | undefined, days: number) {
   const rule = indicator?.tributacao;
-  if (!rule || rule.tipo === "isento") return 0;
-  if (rule.tipo === "fixo") return n(rule.aliquota_fixa);
-  const ranges = rule.faixas?.length ? rule.faixas : [{ ate_dias: 180, aliquota: 22.5 }, { ate_dias: 360, aliquota: 20 }, { ate_dias: 720, aliquota: 17.5 }, { ate_dias: null, aliquota: 15 }];
+  const taxableFixedIncome = /CDI|CDB|RENDA[_ ]FIXA/i.test(`${indicator?.nome || ""} ${indicator?.sku || ""} ${indicator?.categoria || ""}`);
+  if (!rule && !taxableFixedIncome) return 0;
+  if (rule?.tipo === "isento") return 0;
+  if (rule?.tipo === "fixo") return n(rule.aliquota_fixa);
+  const ranges = rule?.faixas?.length ? rule.faixas : [{ ate_dias: 180, aliquota: 22.5 }, { ate_dias: 360, aliquota: 20 }, { ate_dias: 720, aliquota: 17.5 }, { ate_dias: null, aliquota: 15 }];
   return n(ranges.find((range) => range.ate_dias == null || days <= range.ate_dias)?.aliquota);
+}
+
+function FinancialReading({ unit, indicator, years, propertyRate, indicatorRate, capital, acquisitionCost, saleCost, rentYield }: { unit: Unidade; indicator?: Indicador; years: number; propertyRate: number; indicatorRate: number; capital: number; acquisitionCost: number; saleCost: number; rentYield: number }) {
+  const price=n(unit.valor_tabela), initialCapital=capital||price, propertyGross=price*Math.pow(1+propertyRate/100,years);
+  const acquisition=price*acquisitionCost/100, saleExpense=propertyGross*saleCost/100, rent=propertyGross*rentYield/100*12;
+  const propertyNet=propertyGross-saleExpense, propertyGain=propertyNet-price-acquisition+rent;
+  const fixedGross=initialCapital*Math.pow(1+indicatorRate/100,years), fixedGrossGain=fixedGross-initialCapital;
+  const irRate=taxRate(indicator,years*365), ir=fixedGrossGain*irRate/100, fixedNet=fixedGross-ir;
+  const propertyCagr=price+acquisition>0?(Math.pow((propertyNet+rent)/(price+acquisition),1/years)-1)*100:0;
+  const cards=[
+    ["Capital integral para renda fixa",money(initialCapital),"Disponível desde o primeiro dia"],
+    ["Custo estimado do imóvel",money(price+acquisition),`${money(acquisition)} em aquisição/documentação`],
+    ["Imóvel líquido no horizonte",money(propertyNet+rent),`${money(saleExpense)} de custo de saída · TIR simplificada ${propertyCagr.toLocaleString("pt-BR",{maximumFractionDigits:2})}% a.a.`],
+    [`${indicator?.nome||"Renda fixa"} líquido`,money(fixedNet),`${money(ir)} de IR (${irRate.toLocaleString("pt-BR")}% sobre o rendimento)`],
+  ];
+  return <div style={{marginTop:16}}><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:9}}>{cards.map(([label,value,detail])=><article key={label} style={{background:"#0b0b0d",border:"1px solid #29292e",borderRadius:8,padding:12}}><small style={{color:"#8b8b95"}}>{label}</small><strong style={{display:"block",fontSize:18,color:"#fff",margin:"5px 0"}}>{value}</strong><span style={{color:"#71717a",fontSize:11}}>{detail}</span></article>)}</div><p style={{fontSize:11,color:"#71717a",lineHeight:1.55,margin:"10px 0 0"}}>Leitura indicativa: valorização, aluguel, custos e tributação são premissas editáveis. A TIR completa dependerá das datas e valores reais de entrada, parcelas, reforços, chaves, financiamento e venda. Ganho imobiliário estimado após custos: {money(propertyGain)}.</p></div>;
+}
+
+function ConsortiumGuarantee({ propertyValue, acceptedPct, existingDebt, consortiumBalance, creditValue, fees, stage }: { propertyValue:number; acceptedPct:number; existingDebt:number; consortiumBalance:number; creditValue:number; fees:number; stage:string }) {
+  const accepted=propertyValue*acceptedPct/100, available=Math.max(0,accepted-existingDebt), obligation=consortiumBalance+fees;
+  const coverage=obligation>0?available/obligation*100:0, margin=available-obligation;
+  const status=!propertyValue||!acceptedPct||!consortiumBalance?"pendente":coverage>=120?"confortavel":coverage>=100?"atencao":"insuficiente";
+  const style=status==="confortavel"?{color:"#34d399",border:"#14532d",bg:"#052e162b"}:status==="atencao"?{color:"#fbbf24",border:"#854d0e",bg:"#451a032b"}:status==="insuficiente"?{color:"#f87171",border:"#7f1d1d",bg:"#450a0a33"}:{color:"#a1a1aa",border:"#3f3f46",bg:"#18181b"};
+  const label=status==="confortavel"?"Margem de garantia confortável":status==="atencao"?"Garantia no limite informado":status==="insuficiente"?"Garantia insuficiente nesta premissa":"Informe os dados da operação";
+  return <div style={{marginTop:12}}><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:8}}>{[["Garantia considerada",accepted],["Garantia líquida",available],["Obrigação coberta",obligation],["Carta de crédito",creditValue]].map(([label,value])=><article key={String(label)} style={{background:"#0b0b0d",border:"1px solid #29292e",borderRadius:8,padding:11}}><small style={{color:"#8b8b95"}}>{label}</small><strong style={{display:"block",fontSize:17,color:"#fff",marginTop:4}}>{money(Number(value))}</strong></article>)}</div><div style={{marginTop:9,padding:12,border:`1px solid ${style.border}`,background:style.bg,borderRadius:8}}><strong style={{color:style.color}}>{label}</strong><span style={{display:"block",fontSize:12,color:"#d4d4d8",marginTop:4}}>Cobertura: {coverage.toLocaleString("pt-BR",{maximumFractionDigits:1})}% · Margem: {money(margin)}</span><small style={{display:"block",color:"#8b8b95",marginTop:6}}>Imóvel pretendido: {stage}. Para imóvel na planta, confirme a garantia substituta, o cronograma de liberação e as regras contratuais da administradora.</small></div></div>;
 }
 
 function ProjectionChart({ series, years }: { series: Array<{ name: string; rate: number; capital: number; indicator?: Indicador }>; years: number }) {
@@ -49,8 +76,8 @@ function ProjectionChart({ series, years }: { series: Array<{ name: string; rate
   const max = Math.max(...points.flatMap((item) => item.values), 1);
   const x = (year: number) => pad + (year / Math.max(1, years)) * (width - pad * 2);
   const y = (value: number) => height - pad - ((value - min) / Math.max(1, max - min)) * (height - pad * 2);
-  return <div style={{ overflowX: "auto" }}>
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", minWidth: 680, display: "block" }} role="img" aria-label="Comparação de crescimento com capital inicial igual">
+  return <div style={{ width: "100%", overflowX: "hidden" }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", maxWidth: 980, height: "auto", display: "block" }} role="img" aria-label="Comparação de crescimento com capital inicial igual">
       {[0, .25, .5, .75, 1].map((step) => { const value = min + (max - min) * step; return <g key={step}><line x1={pad} x2={width-pad} y1={y(value)} y2={y(value)} stroke="#27272a" /><text x={4} y={y(value)+4} fill="#71717a" fontSize="11">{money(value)}</text></g>; })}
       {points.map((item, index) => <polyline key={item.name} fill="none" stroke={colors[index % colors.length]} strokeWidth="3" points={item.values.map((value, year) => `${x(year)},${y(value)}`).join(" ")} />)}
       {Array.from({ length: years + 1 }, (_, year) => <text key={year} x={x(year)} y={height-14} textAnchor="middle" fill="#71717a" fontSize="11">{year === 0 ? "Hoje" : `${year}a`}</text>)}
@@ -70,6 +97,19 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
   const [years, setYears] = useState(5);
   const [query, setQuery] = useState("");
   const [budget, setBudget] = useState(0);
+  const [availableCapital,setAvailableCapital]=useState(500000);
+  const [acquisitionCost,setAcquisitionCost]=useState(4);
+  const [saleCost,setSaleCost]=useState(6);
+  const [rentYield,setRentYield]=useState(0);
+  const [guaranteeValue,setGuaranteeValue]=useState(0);
+  const [guaranteePct,setGuaranteePct]=useState(0);
+  const [guaranteeDebt,setGuaranteeDebt]=useState(0);
+  const [consortiumBalance,setConsortiumBalance]=useState(0);
+  const [consortiumCredit,setConsortiumCredit]=useState(0);
+  const [consortiumFees,setConsortiumFees]=useState(0);
+  const [propertyStage,setPropertyStage]=useState("Na planta / sem Habite-se");
+  const [consortiumAdministrator,setConsortiumAdministrator]=useState("Embracon");
+  const [ruleSource,setRuleSource]=useState("");
   const [rangePct, setRangePct] = useState(20);
   const [now, setNow] = useState(new Date());
   const [official, setOfficial] = useState(false);
@@ -123,7 +163,17 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 10, margin: "12px 0" }}>{series.map((item, index) => { const key = index < chosenUnits.length ? `u:${chosenUnits[index].id}` : `i:${chosenIndicators[index-chosenUnits.length].id}`; const locked=Boolean(lockedRates[scenario][key]); return <label key={key} style={{ fontSize: 12, color: "#a1a1aa" }}>{item.name}<span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 5 }}><SlidersHorizontal size={14} /><input type="number" step="0.1" value={item.rate} disabled={locked} onChange={(event) => setScenarioValues((old) => ({ ...old, [scenario]: { ...old[scenario], [key]: n(event.target.value) } }))} style={{ width: 90, background: "#09090b", border: "1px solid #3f3f46", color: locked ? "#71717a" : "#fff", borderRadius: 6, padding: 7 }} /> % a.a.<button type="button" title={locked ? "Destravar taxa neste cenário" : "Travar taxa neste cenário"} onClick={() => setLockedRates((old) => ({ ...old, [scenario]: { ...old[scenario], [key]: !locked } }))} style={{ ...button, padding: 7, color: locked ? "#d6a94f" : "#71717a" }}>{locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button></span></label>; })}</div>
         <label style={{ color: "#a1a1aa", fontSize: 12 }}>Horizonte: <select value={years} onChange={(event) => setYears(Number(event.target.value))} style={{ ...button, marginLeft: 7 }}>{[1,2,3,5,10].map((value) => <option key={value} value={value}>{value} {value === 1 ? "ano" : "anos"}</option>)}</select></label>
         <ProjectionChart series={series} years={years} />
+        <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #27272a"}}><h3 style={{fontSize:14,margin:"0 0 5px"}}>Premissas para uma comparação honesta</h3><p style={{color:"#8b8b95",fontSize:12,margin:"0 0 11px"}}>Separe o capital que estaria disponível integralmente para investir dos custos e do fluxo parcelado do imóvel.</p><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:9}}>{[["Capital disponível",availableCapital,setAvailableCapital,10000],["Aquisição/documentação (%)",acquisitionCost,setAcquisitionCost,.1],["Venda/corretagem (%)",saleCost,setSaleCost,.1],["Renda líquida mensal (%)",rentYield,setRentYield,.01]] .map(([label,value,setter,step])=><label key={String(label)} style={{fontSize:11,color:"#a1a1aa"}}>{String(label)}<input type="number" min="0" step={Number(step)} value={Number(value)||""} onChange={(event)=>(setter as React.Dispatch<React.SetStateAction<number>>)(Math.max(0,n(event.target.value)))} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",border:"1px solid #3f3f46",color:"#fff",borderRadius:6,padding:8}}/></label>)}</div></div>
+        {chosenUnits[0]&&<FinancialReading unit={chosenUnits[0]} indicator={chosenIndicators[0]} years={years} propertyRate={series[0]?.rate||0} indicatorRate={series[chosenUnits.length]?.rate||0} capital={availableCapital} acquisitionCost={acquisitionCost} saleCost={saleCost} rentYield={rentYield}/>}
       </section>
+      <section style={{...card,marginTop:16}}><div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><div><h2 style={{fontSize:15,margin:0}}>5. Consórcio com imóvel próprio em garantia</h2><p style={{fontSize:12,color:"#a1a1aa",margin:"5px 0 0"}}>Modele uma carta contemplada sem tratar 100% da avaliação como garantia disponível.</p></div><span style={{fontSize:11,color:"#fbbf24",border:"1px solid #854d0e",borderRadius:99,padding:"5px 9px"}}>Sujeito à administradora</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(205px,1fr))",gap:9,marginTop:13}}>{[
+        ["Imóvel próprio avaliado",guaranteeValue,setGuaranteeValue,10000],
+        ["Percentual aceito (%)",guaranteePct,setGuaranteePct,.1],
+        ["Dívida atual do imóvel",guaranteeDebt,setGuaranteeDebt,1000],
+        ["Saldo devedor do consórcio",consortiumBalance,setConsortiumBalance,1000],
+        ["Carta contemplada",consortiumCredit,setConsortiumCredit,1000],
+        ["Custos e taxas da operação",consortiumFees,setConsortiumFees,100],
+      ].map(([label,value,setter,step])=><label key={String(label)} style={{fontSize:11,color:"#a1a1aa"}}>{String(label)}<input type="number" min="0" step={Number(step)} value={Number(value)||""} onChange={(event)=>(setter as React.Dispatch<React.SetStateAction<number>>)(Math.max(0,n(event.target.value)))} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",border:"1px solid #3f3f46",color:"#fff",borderRadius:6,padding:8}}/></label>)}<label style={{fontSize:11,color:"#a1a1aa"}}>Administradora<select value={consortiumAdministrator} onChange={(event)=>setConsortiumAdministrator(event.target.value)} style={{...button,width:"100%",marginTop:5}}><option>Embracon</option><option>Outra administradora</option></select></label><label style={{fontSize:11,color:"#a1a1aa"}}>Estágio do imóvel pretendido<select value={propertyStage} onChange={(event)=>setPropertyStage(event.target.value)} style={{...button,width:"100%",marginTop:5}}><option>Na planta / sem Habite-se</option><option>Em construção com garantia aceita</option><option>Pronto / com matrícula individual</option></select></label><label style={{fontSize:11,color:"#a1a1aa"}}>Origem do percentual<input value={ruleSource} onChange={(event)=>setRuleSource(event.target.value)} placeholder="Contrato, proposta ou aprovação de crédito" style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",border:"1px solid #3f3f46",color:"#fff",borderRadius:6,padding:8}}/></label></div><ConsortiumGuarantee propertyValue={guaranteeValue} acceptedPct={guaranteePct} existingDebt={guaranteeDebt} consortiumBalance={consortiumBalance} creditValue={consortiumCredit} fees={consortiumFees} stage={propertyStage}/><p style={{fontSize:11,color:ruleSource?"#71717a":"#fbbf24",margin:"9px 0 0"}}>{ruleSource?`${consortiumAdministrator} · premissa documentada como: ${ruleSource}.`:`${consortiumAdministrator}: o regulamento público exige imóvel de valor compatível com a liquidez definida pela administradora, mas não publica um percentual único. Confirme o percentual na análise da operação antes de apresentar ao cliente.`}</p></section>
     </>}
   </div>;
 }

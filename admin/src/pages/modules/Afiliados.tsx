@@ -7,7 +7,7 @@ type Role = "admin" | "equipe" | "afiliado";
 type Affiliate = { id:string; user_id?:string|null; nome:string; email?:string|null; telefone?:string|null; ativo:boolean };
 type Rule = { id:string; tipo_produto:string; percentual:number; ativo:boolean };
 type Product = { id:string; nome?:string|null; cidade?:string|null; bairro?:string|null; status?:string|null; descricao?:string|null; imagem_url?:string|null; tipo?:string|null; categoria_afiliado?:string|null; faixa_preco?:number|null; area_minima?:number|null; area_maxima?:number|null; numero_torres?:number|null; numero_unidades?:number|null; entrada_afiliado?:number|null; parcela_afiliado?:number|null; quantidade_elevadores?:number|null; quantidade_areas_lazer?:number|null; caracteristicas?:Record<string,any>|null; percentual_comissao?:number|null; confidencial?:boolean; instrucoes?:string|null };
-type Grant = { afiliado_id:string; empreendimento_id:string; liberado:boolean; confidencial:boolean; instrucoes?:string|null };
+type Grant = { afiliado_id:string; empreendimento_id:string; liberado:boolean; confidencial:boolean; instrucoes?:string|null; exibir_imagens?:boolean; exibir_descricao?:boolean; exibir_preco?:boolean; exibir_entrada_parcelas?:boolean; exibir_comissao?:boolean; exibir_especificacoes?:boolean };
 
 const money=(value?:number|null)=>value?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2,maximumFractionDigits:2}).format(value):"Sob consulta";
 const panel={background:"#101012",border:"1px solid #27272a",borderRadius:12,padding:16} as const;
