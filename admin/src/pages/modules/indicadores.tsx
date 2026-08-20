@@ -28,7 +28,7 @@ const formatarValorPorCategoria = (valor: number | string, cat?: string) => {
   
   if (isNaN(num)) return valor.toString();
 
-  const categoriaSegura = cat ? cat.toUpperCase() : "";
+  const categoriaSegura = String(cat || "").toUpperCase();
 
   // 1. Moedas (Dólar, Euro, etc.)
   if (categoriaSegura === "MOEDA" || categoriaSegura.includes("DÓLAR")) {
@@ -103,6 +103,7 @@ export default function Indicadores() {
   const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
   const [refreshingRate, setRefreshingRate] = useState(false);
   const [tickerConfigReady, setTickerConfigReady] = useState(true);
+  const [loadWarning, setLoadWarning] = useState("");
 
   // Estado do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -130,6 +131,7 @@ export default function Indicadores() {
 
   const fetchData = async () => {
     setLoading(true);
+    setLoadWarning("");
     try {
       const { data: cadastrados } = await supabase.from("indicadores").select("sku").in("sku", REFERENCIAS_LITORAL.map((item) => item.sku));
       const existentes = new Set((cadastrados || []).map((item: any) => item.sku));
@@ -146,7 +148,7 @@ export default function Indicadores() {
         const { error: seedError } = await supabase.from("indicadores").insert(faltantes);
         if (seedError) console.warn("Não foi possível cadastrar todas as referências regionais:", seedError);
       }
-      const [{ data, error }, { data: historico }, rate, crypto, euro, { data: tickerConfig, error: tickerConfigError }] = await Promise.all([
+      const [indicatorsResult, historyResult, rateResult, cryptoResult, euroResult, tickerResult] = await Promise.allSettled([
         supabase.from("indicadores").select(),
         supabase.from("indicadores_historico").select("indicador_id, valor, data_referencia").order("data_referencia", { ascending: false }),
         getExchangeRate(),
@@ -154,10 +156,20 @@ export default function Indicadores() {
         getEuroIndicator(),
         supabase.from("indicadores_ticker_config").select("sku, ativo"),
       ]);
+      const indicatorResponse:any = indicatorsResult.status === "fulfilled" ? indicatorsResult.value : { data: [], error: indicatorsResult.reason };
+      const historyResponse:any = historyResult.status === "fulfilled" ? historyResult.value : { data: [], error: historyResult.reason };
+      const tickerResponse:any = tickerResult.status === "fulfilled" ? tickerResult.value : { data: [], error: tickerResult.reason };
+      const { data, error } = indicatorResponse;
+      const historico = historyResponse.data || [];
+      const rate = rateResult.status === "fulfilled" ? rateResult.value : null;
+      const crypto = cryptoResult.status === "fulfilled" && Array.isArray(cryptoResult.value) ? cryptoResult.value : [];
+      const euro = euroResult.status === "fulfilled" ? euroResult.value : null;
+      const { data: tickerConfig, error: tickerConfigError } = tickerResponse;
       setExchangeRate(rate);
 
       if (error) {
         console.error("Erro no Supabase ao buscar:", error);
+        setLoadWarning(`Não foi possível carregar os indicadores do banco: ${error.message || "erro não identificado"}.`);
       } else if (data) {
         const historicoCompleto = [...(historico || [])];
         const incc = data.find((item: any) => /INCC-M/i.test(`${item.sku || ""} ${item.nome || ""}`));
@@ -180,7 +192,8 @@ export default function Indicadores() {
         Object.values(porIndicador).forEach((serie) => serie.sort((a: any, b: any) => String(b.data_referencia).localeCompare(String(a.data_referencia))));
         const enriquecidos = data.map((item: any) => {
           const serie = porIndicador[item.id] || [];
-          const atual = Number(serie[0]?.valor ?? item.valor_atual ?? item.valor);
+          const atualBruto = Number(serie[0]?.valor ?? item.valor_atual ?? item.valor);
+          const atual = Number.isFinite(atualBruto) ? atualBruto : 0;
           const anterior = Number(serie[1]?.valor);
           const variacao = Number.isFinite(anterior) && anterior !== 0 ? ((atual - anterior) / anterior) * 100 : null;
           return { ...item, valor_atual: atual, variacao_periodo: variacao, tendencia: variacao === null ? 0 : Math.sign(variacao) };
@@ -192,6 +205,7 @@ export default function Indicadores() {
       }
     } catch (err) {
       console.error("Erro inesperado:", err);
+      setLoadWarning(`Parte dos indicadores não pôde ser carregada: ${err instanceof Error ? err.message : String(err)}.`);
     } finally {
       setLoading(false);
     }
@@ -453,6 +467,7 @@ export default function Indicadores() {
         </div>
         <button onClick={() => void updateDollar()} disabled={refreshingRate} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "#1c1a15", color: "#d7ab63", border: "1px solid #5b4828", borderRadius: 6, padding: "8px 11px", cursor: refreshingRate ? "wait" : "pointer" }}><RefreshCw size={14} /> {refreshingRate ? "Atualizando..." : "Atualizar agora"}</button>
       </section>
+      {loadWarning && <div role="alert" style={{marginBottom:12,padding:"10px 12px",border:"1px solid #7f1d1d",borderRadius:7,background:"#250d0d",color:"#fecaca"}}>{loadWarning} A tela permanece disponível com a última informação válida.</div>}
 
       {/* FILTROS E BUSCA */}
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.85rem", flexWrap: "wrap" }}>

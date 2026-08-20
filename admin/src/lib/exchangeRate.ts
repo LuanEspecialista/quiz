@@ -63,7 +63,10 @@ export async function getExchangeRate(): Promise<ExchangeRate | null> {
 }
 
 export async function refreshExchangeRate(): Promise<ExchangeRate | null> {
-  const { error } = await supabase.functions.invoke("atualizar-ptax");
-  if (error) throw error;
-  return getExchangeRate();
+  const { data, error } = await supabase.functions.invoke("atualizar-ptax", { body: {} });
+  if (error) throw new Error((data as any)?.error || error.message || "A função de atualização PTAX não respondeu.");
+  if ((data as any)?.error) throw new Error((data as any).error);
+  const rate = await getExchangeRate();
+  if (!rate) throw new Error("A atualização terminou, mas nenhuma cotação válida foi encontrada.");
+  return rate;
 }

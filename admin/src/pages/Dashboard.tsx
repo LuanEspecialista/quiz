@@ -66,7 +66,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         {role !== "afiliado" && activeTab === "importar-ia" && <ImportarIAModule />}
         {role !== "afiliado" && activeTab === "prompts" && <PromptsModule />}
         {role !== "afiliado" && activeTab === "fluxos" && <FluxosModule initialUnitIds={flowUnitIds} />}
-        {role !== "afiliado" && activeTab === "clientes" && <ClientesModule />}
+        {role !== "afiliado" && activeTab === "clientes" && <ClientesModule onOpenFlow={(ids) => { setFlowUnitIds(ids); setActiveTab("fluxos"); }} />}
         {activeTab === "afiliados" && <AfiliadosModule role={role} />}
         {role !== "afiliado" && activeTab === "indicadores" && <ModuleErrorBoundary moduleName="Indicadores"><IndicadoresModule /></ModuleErrorBoundary>}
         {role !== "afiliado" && activeTab === "configuracoes" && <ConfiguracoesModule />}
