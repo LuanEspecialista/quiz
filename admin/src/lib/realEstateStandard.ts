@@ -231,9 +231,15 @@ export function parseStandardTypology(value: unknown, fallbackBedrooms = 0) {
     return 0;
   };
   const suites = count([/(\d+)\s*(?:suite|suites)/, /(?:^|[+\s])(\d+)\s*s(?:$|[+\s])/]);
-  const quartosDescritos = count([/(\d+)\s*(?:quarto|quartos|dorm|dormitorios)/, /(?:^|[+\s])(\d+)\s*q(?:$|[+\s])/]);
-  const dormitorios = quartosDescritos + suites || fallbackBedrooms;
-  const quartos = quartosDescritos || Math.max(0, dormitorios - suites);
+  const totalDormitorios = count([/(\d+)\s*(?:dormitorio|dormitorios)/]);
+  const totalQuartos = count([/(\d+)\s*(?:quarto|quartos)/]);
+  const quartosAbreviados = count([/(?:^|[+\s])(\d+)\s*q(?:$|[+\s])/]);
+  // "3 dormitórios, sendo 2 suítes" significa três dormitórios no total.
+  // Só somamos quartos + suítes quando não houver um total explícito.
+  const dormitorios = totalDormitorios || totalQuartos || (quartosAbreviados + suites) || fallbackBedrooms;
+  const quartos = totalDormitorios || totalQuartos
+    ? Math.max(0, dormitorios - suites)
+    : (quartosAbreviados || Math.max(0, dormitorios - suites));
   const composition = [`${quartos}Q`, `${suites}S`].filter((item) => !item.startsWith("0")).join("+");
   const qualifiers = [
     /garden|giardino/.test(raw) ? "Garden" : "",

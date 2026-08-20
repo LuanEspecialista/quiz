@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
+import { parseStandardTypology } from "../../lib/realEstateStandard";
 import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks } from "lucide-react";
 
 const UnidadesImporter: React.FC = () => {
@@ -32,6 +33,45 @@ const UnidadesImporter: React.FC = () => {
       .trim();
   };
 
+  const parseBrazilNumber = (value: unknown) => {
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    const raw = String(value ?? "").replace(/R\$|\s/g, "").trim();
+    if (!raw) return 0;
+    const normalized = raw.includes(",")
+      ? raw.replace(/\./g, "").replace(",", ".")
+      : raw.replace(/,/g, "");
+    const result = Number(normalized.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(result) ? result : 0;
+  };
+
+  // Aceita tanto o JSON compacto antigo quanto o JSON técnico dos prompts atuais.
+  const normalizeUnit = (unit: any, index: number) => {
+    const identification = unit.identificacao || {};
+    const product = unit.produto || {};
+    const commercial = unit.comercial || {};
+    const rawTypology = unit.tipologia || product.tipologia_original || product.tipologia_padrao || identification.tipo_ativo || "";
+    const typology = parseStandardTypology(rawTypology, Number(unit.quartos ?? product.dormitorios ?? product.quartos ?? 0));
+    const phases = commercial.alternativas_fluxo?.[0]?.fases || unit.fluxo_dados?.fases || [];
+    const flow = unit.fluxo_dados || { fases: phases };
+    const firstValue = (names: string[]) => phases.find((phase: any) => names.some((name) => String(phase.momento || phase.nome || "").toLowerCase().includes(name)));
+    const ato = firstValue(["ato", "entrada", "reserva"]);
+    if (ato && !flow.ato) flow.ato = parseBrazilNumber(ato.valor_total || ato.valor_unitario);
+    return {
+      ...unit,
+      codigo_unidade: unit.codigo_unidade || identification.numero || unit.numero || `IMPORT-${index + 1}`,
+      torre: unit.torre || identification.torre || identification.bloco || "Única",
+      tipologia: rawTypology || typology.label,
+      quartos: Number(unit.quartos ?? product.dormitorios ?? typology.dormitorios ?? 0),
+      suites: Number(unit.suites ?? product.suites ?? typology.suites ?? 0),
+      area_privativa: unit.area_privativa ?? product.area_privativa_m2,
+      vagas: unit.vagas ?? (Array.isArray(product.vagas) ? product.vagas.length : product.vagas),
+      valor_tabela: unit.valor_tabela ?? commercial.valor_tabela,
+      status: unit.status ?? commercial.status ?? "disponivel",
+      fluxo_dados: flow,
+      _tipology: typology,
+    };
+  };
+
   const handleParseJson = () => {
     setImportStatus(null);
     try {
@@ -62,38 +102,19 @@ const UnidadesImporter: React.FC = () => {
         return;
       }
 
-      if (!data.unidades || !Array.isArray(data.unidades)) {
+      if (!data.unidades || !Array.isArray(data.unidades) || data.unidades.length === 0) {
         setImportStatus({ error: "Formato inválido: O JSON precisa conter a lista 'unidades'." });
         return;
       }
-
-      const camposObrigatorios = [
-        ["empreendimento.nome", data.empreendimento?.nome],
-        ["empreendimento.cidade", data.empreendimento?.cidade],
-        ["empreendimento.inicio_obras", data.empreendimento?.inicio_obras],
-        ["empreendimento.previsao_entrega", data.empreendimento?.previsao_entrega],
-        ["regras_correcao.indice_pre_chaves", data.regras_correcao?.indice_pre_chaves],
-        ["regras_correcao.regra_pos_chaves", data.regras_correcao?.regra_pos_chaves || data.regras_correcao?.indice_pos_chaves],
-      ];
-      const pendencias = camposObrigatorios
-        .filter(([, valor]) => valor === undefined || valor === null || valor === "")
-        .map(([campo]) => campo);
-
-      data.unidades.forEach((unidade: any, indice: number) => {
-        ["codigo_unidade", "torre", "tipologia", "quartos", "valor_tabela", "status", "fluxo_dados"].forEach((campo) => {
-          if (unidade[campo] === undefined || unidade[campo] === null || unidade[campo] === "") {
-            pendencias.push(`unidades[${indice}].${campo}`);
-          }
-        });
-      });
-
-      if (pendencias.length > 0) {
+      const normalizedUnits = data.unidades.map(normalizeUnit);
+      const invalid = normalizedUnits.filter((unit: any) => !unit.codigo_unidade || parseBrazilNumber(unit.valor_tabela) <= 0);
+      if (invalid.length) {
         setParsedData(null);
-        setImportStatus({ error: `Importação bloqueada: faltam dados obrigatórios (${pendencias.join(", ")}). Peça à IA para esclarecer antes de gerar o JSON.` });
+        setImportStatus({ error: `Importação bloqueada: ${invalid.length} unidade(s) não têm código ou valor de tabela válido. Datas, índices, quartos e detalhes comerciais podem ficar vazios e ser ajustados depois.` });
         return;
       }
-
-      setParsedData(data);
+      const normalizedData = { ...data, unidades: normalizedUnits };
+      setParsedData(normalizedData);
 
       if (data.empreendimento?.nome) {
         const empMatch = empreendimentos.find(
@@ -123,7 +144,7 @@ const UnidadesImporter: React.FC = () => {
       const unidadesParaInserir = parsedData.unidades.map((u: any) => {
         const cod = (u.codigo_unidade || u.numero || "S/N").toString().trim();
         const torreClean = String(u.torre).trim();
-        const valorTabela = parseFloat(u.valor_tabela) || 0;
+        const valorTabela = parseBrazilNumber(u.valor_tabela);
 
         let fluxo = u.fluxo_dados || {};
         if ((!fluxo.ato || fluxo.ato === 0) && pctAtoCabecalho && valorTabela > 0) {
@@ -138,12 +159,18 @@ const UnidadesImporter: React.FC = () => {
           numero: cod,
           sku: `${selectedEmpId}-${torreClean}-${cod}`.replace(/\s+/g, ""),
           tipologia: u.tipologia,
-          quartos: Number(u.quartos),
-          area_privativa: parseFloat(u.area_privativa) || null,
-          vagas: parseInt(u.vagas) || 0,
+          tipologia_dados: {
+            original: u.tipologia,
+            dormitorios: u._tipology?.dormitorios || Number(u.quartos) || 0,
+            suites: u.suites || u._tipology?.suites || 0,
+            studio: Boolean(u._tipology?.studio),
+          },
+          quartos: Number(u.quartos) || u._tipology?.dormitorios || 0,
+          area_privativa: parseBrazilNumber(u.area_privativa) || null,
+          vagas: parseBrazilNumber(u.vagas) || 0,
           valor_tabela: valorTabela,
           status: (u.status || "disponivel").toLowerCase(),
-          fluxo_dados: fluxo,
+          fluxo_dados: { ...fluxo, tipologia_extraida: { dormitorios: u._tipology?.dormitorios || 0, suites: u.suites || u._tipology?.suites || 0 } },
         };
       });
 
@@ -200,7 +227,9 @@ const UnidadesImporter: React.FC = () => {
       }
 
       setImportStatus({
-        success: `Sucesso! ${unidadesParaInserir.length} unidades atualizadas e histórico salvo para ${mesReferencia}/${anoReferencia}.`,
+        success: histError
+          ? `${unidadesParaInserir.length} unidades atualizadas. O histórico não foi salvo: ${histError.message}`
+          : `Sucesso! ${unidadesParaInserir.length} unidades atualizadas e histórico salvo para ${mesReferencia}/${anoReferencia}.`,
       });
       setJsonInput("");
       setParsedData(null);
@@ -421,6 +450,50 @@ function cleanJson(raw: string) {
   return raw.replace(/```json/gi, "").replace(/```/g, "").trim();
 }
 
+// O prompt atual entrega um cadastro rico, agrupado por assunto. O painel antigo
+// usa campos planos; este adaptador evita que um PDF bem lido seja rejeitado só
+// por causa dessa diferença de formato.
+function normalizeEnterpriseDocument(raw: any): EmpreendimentoIA {
+  const source = raw?.empreendimento;
+  if (!source?.identidade) return raw as EmpreendimentoIA;
+  const identity = source.identidade || {};
+  const location = source.localizacao || {};
+  const timeline = source.cronograma || {};
+  const product = source.produto || {};
+  const leisure = source.lazer || {};
+  const characteristics: CaracteristicaExtra[] = [
+    leisure.area_total_m2 != null ? { categoria: "lazer", nome: "Área total de lazer", valor: leisure.area_total_m2, unidade: "m²" } : null,
+    product.area_terreno_m2 != null ? { categoria: "produto", nome: "Área do terreno", valor: product.area_terreno_m2, unidade: "m²" } : null,
+    product.area_construida_m2 != null ? { categoria: "produto", nome: "Área construída", valor: product.area_construida_m2, unidade: "m²" } : null,
+  ].filter(Boolean) as CaracteristicaExtra[];
+  return {
+    status: raw.status || "PRONTO_PARA_IMPORTAR",
+    empreendimento: {
+      nome: identity.nome_comercial,
+      construtora: identity.construtora,
+      cidade: location.cidade,
+      bairro: location.bairro,
+      endereco: location.endereco,
+      tipo: product.tipo,
+      status_obra: source.comercial?.status,
+      previsao_entrega: timeline.entrega,
+      quantidade_torres: product.torres,
+      quantidade_unidades: product.unidades,
+      total_pavimentos: product.pavimentos,
+      area_lazer_m2: leisure.area_total_m2,
+      area_minima: product.area_minima_m2,
+      area_maxima: product.area_maxima_m2,
+      quartos_disponiveis: (product.tipologias || []).map((item: any) => parseStandardTypology(item?.tipologia_original || item?.nome || item).dormitorios).filter((value: number) => value >= 0),
+    },
+    lazer: leisure.areas || [],
+    diferenciais: source.diferenciais || [],
+    caracteristicas: characteristics,
+    observacoes: source.comercial?.observacoes?.join(" · ") || null,
+    fontes: source.fontes || [],
+    campos_nao_encontrados: raw.validacao?.campos_ausentes_importantes || [],
+  };
+}
+
 function present(value: unknown) {
   return value !== undefined && value !== null && value !== "";
 }
@@ -456,15 +529,15 @@ const EmpreendimentoImporter: React.FC = () => {
   function parse() {
     setStatus(null);
     try {
-      const data = JSON.parse(cleanJson(jsonInput)) as EmpreendimentoIA;
+      const data = normalizeEnterpriseDocument(JSON.parse(cleanJson(jsonInput)));
       if (data.status === "PENDENTE_INFORMACAO") {
         const questions = (data.perguntas || []).map((item) => item.pergunta || item.motivo).filter(Boolean);
         setParsed(null);
         setStatus({ error: questions.length ? questions.join(" ") : "A leitura precisa de esclarecimentos antes de ser importada." });
         return;
       }
-      if (data.status !== "PRONTO_PARA_IMPORTAR" || !data.empreendimento?.nome || !data.empreendimento?.construtora) {
-        throw new Error("O JSON precisa ter status PRONTO_PARA_IMPORTAR, empreendimento.nome e empreendimento.construtora.");
+      if (data.status !== "PRONTO_PARA_IMPORTAR" || !data.empreendimento?.nome) {
+        throw new Error("O JSON precisa ter status PRONTO_PARA_IMPORTAR e o nome do empreendimento.");
       }
       if (!Array.isArray(data.caracteristicas) || !Array.isArray(data.lazer) || !Array.isArray(data.diferenciais)) {
         throw new Error("O JSON precisa conter as listas caracteristicas, lazer e diferenciais, mesmo quando vazias.");
@@ -473,7 +546,7 @@ const EmpreendimentoImporter: React.FC = () => {
       if (invalid) throw new Error("Cada característica precisa ter categoria, nome e valor confirmado.");
 
       setParsed(data);
-      const builderName = normalizeBuilderName(data.empreendimento.construtora);
+      const builderName = normalizeBuilderName(data.empreendimento.construtora || "");
       const builderMatch = construtoras.find((item) => normalizeBuilderName(item.nome) === builderName);
       setSelectedConstrutoraId(builderMatch?.id || "");
     } catch (error) {

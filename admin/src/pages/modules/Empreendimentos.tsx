@@ -38,6 +38,7 @@ type Empreendimento = {
   latitude?: number | null;
   longitude?: number | null;
   numero_torres?: number | null;
+  numero_pavimentos?: number | null;
   numero_unidades?: number | null;
   area_minima?: number | null;
   area_maxima?: number | null;
@@ -60,7 +61,13 @@ type EmpreendimentoImagem = {
   id: string;
   empreendimento_id: string;
   url: string;
+  storage_path?: string | null;
   ordem?: number;
+  titulo?: string | null;
+  categoria?: string | null;
+  tipologia_referencia?: string | null;
+  visivel_cliente?: boolean;
+  visivel_afiliado?: boolean;
   created_at?: string;
 };
 
@@ -86,6 +93,7 @@ type FormData = {
   juros_pos_chaves: string;
   permite_banco_pos_chaves: boolean;
   numero_torres: string;
+  numero_pavimentos: string;
   numero_unidades: string;
   area_minima: string;
   area_maxima: string;
@@ -144,6 +152,7 @@ const EMPTY_FORM: FormData = {
   juros_pos_chaves: "",
   permite_banco_pos_chaves: true,
   numero_torres: "",
+  numero_pavimentos: "",
   numero_unidades: "",
   area_minima: "",
   area_maxima: "",
@@ -220,10 +229,10 @@ export default function Empreendimentos() {
       const exists = buckets?.some((b) => b.name === "empreendimentos");
       if (!exists) {
         await supabase.storage.createBucket("empreendimentos", {
-          public: true,
+          public: false,
         });
       }
-    } catch (e) {}
+    } catch (error) { throw error; }
   }
 
   async function loadData() {
@@ -278,7 +287,11 @@ export default function Empreendimentos() {
           tipologias_estoque: Array.from(metric.typologies).sort(),
         } : emp;
       });
-      const todasImagens = (imgRes.data || []) as EmpreendimentoImagem[];
+      const todasImagens = await Promise.all(((imgRes.data || []) as EmpreendimentoImagem[]).map(async(img)=>{
+        if(!img.storage_path)return img;
+        const{data}=await supabase.storage.from("empreendimentos").createSignedUrl(img.storage_path,3600);
+        return data?.signedUrl?{...img,url:data.signedUrl}:img;
+      }));
 
       const map: Record<string, string[]> = {};
       listaEmps.forEach((emp) => {
@@ -386,6 +399,7 @@ export default function Empreendimentos() {
       juros_pos_chaves: fluxoComercial.juros_pos_chaves != null ? String(fluxoComercial.juros_pos_chaves) : String(item.regras_correcao?.juros_pos_chaves_am || ""),
       permite_banco_pos_chaves: fluxoComercial.permite_banco_pos_chaves !== false,
       numero_torres: item.numero_torres != null ? String(item.numero_torres) : "",
+      numero_pavimentos: item.numero_pavimentos != null ? String(item.numero_pavimentos) : "",
       numero_unidades: item.numero_unidades != null ? String(item.numero_unidades) : "",
       area_minima: item.area_minima != null ? String(item.area_minima) : "",
       area_maxima: item.area_maxima != null ? String(item.area_maxima) : "",
@@ -452,6 +466,7 @@ export default function Empreendimentos() {
       };
 
       if (form.numero_torres) payload.numero_torres = Number(form.numero_torres);
+      payload.numero_pavimentos = form.numero_pavimentos === "" ? null : Number(form.numero_pavimentos);
       if (form.numero_unidades) payload.numero_unidades = Number(form.numero_unidades);
       if (form.area_minima) payload.area_minima = Number(form.area_minima);
       if (form.area_maxima) payload.area_maxima = Number(form.area_maxima);
@@ -567,7 +582,8 @@ export default function Empreendimentos() {
         .order("created_at", { ascending: false });
 
       if (!error && data) {
-        setImagensGaleria(data as EmpreendimentoImagem[]);
+        const signed=await Promise.all((data as EmpreendimentoImagem[]).map(async(img)=>{if(!img.storage_path)return img;const{data:url}=await supabase.storage.from("empreendimentos").createSignedUrl(img.storage_path,3600);return url?.signedUrl?{...img,url:url.signedUrl}:img}));
+        setImagensGaleria(signed);
       } else {
         setImagensGaleria([]);
       }
@@ -576,18 +592,21 @@ export default function Empreendimentos() {
     }
   }
 
-  async function handleUploadMultiplo(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
+  async function enviarImagens(files: FileList | File[]) {
     if (!files || files.length === 0 || !selectedForImages) return;
 
     setUploadingImages(true);
     setError("");
 
+    let enviadas = 0;
+    const falhas: string[] = [];
     try {
       await ensureBucketExists();
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        if(!file.type.startsWith("image/")){falhas.push(`${file.name}: tipo de arquivo não permitido.`);continue}
+        if(file.size>15*1024*1024){falhas.push(`${file.name}: excede o limite de 15 MB.`);continue}
         const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const filePath = `${selectedForImages.id}/${Date.now()}-${i}-${cleanName}`;
 
@@ -595,21 +614,30 @@ export default function Empreendimentos() {
           .from("empreendimentos")
           .upload(filePath, file, { upsert: true });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          falhas.push(`${file.name}: ${uploadError.message}`);
+          continue;
+        }
 
-        const { data: publicUrlData } = supabase.storage
-          .from("empreendimentos")
-          .getPublicUrl(filePath);
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage.from("empreendimentos").createSignedUrl(filePath,3600);
+        const urlFinal = signedUrlData?.signedUrl || "";
 
-        const urlFinal = publicUrlData?.publicUrl || "";
-
-        if (urlFinal) {
-          try {
-            await supabase.from("empreendimento_imagens").insert({
-              empreendimento_id: selectedForImages.id,
-              url: urlFinal,
-            });
-          } catch {}
+        if (urlFinal && !signedUrlError) {
+          const { error: imageError } = await supabase.from("empreendimento_imagens").insert({
+            empreendimento_id: selectedForImages.id,
+            url: urlFinal,
+            storage_path: filePath,
+            titulo: file.name.replace(/\.[^.]+$/, ""),
+            categoria: "outro",
+            visivel_cliente: false,
+            visivel_afiliado: false,
+          });
+          if (imageError) {
+            await supabase.storage.from("empreendimentos").remove([filePath]);
+            falhas.push(`${file.name}: não entrou na galeria (${imageError.message}); o arquivo foi removido do armazenamento.`);
+            continue;
+          }
+          enviadas++;
 
           if (!selectedForImages.imagem_url && i === 0) {
             await definirComoCapa(urlFinal, false);
@@ -619,13 +647,27 @@ export default function Empreendimentos() {
 
       await carregarImagensGaleria(selectedForImages.id);
       loadData();
+      if (falhas.length) setError(`${enviadas} imagem(ns) enviada(s). ${falhas.join(" ")}`);
     } catch (err: any) {
       console.error(err);
       setError(err?.message || "Erro ao fazer upload das imagens.");
     } finally {
       setUploadingImages(false);
-      e.target.value = "";
     }
+  }
+
+  async function handleUploadMultiplo(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) await enviarImagens(e.target.files);
+    e.target.value = "";
+  }
+
+  async function atualizarImagem(img: EmpreendimentoImagem, patch: Partial<EmpreendimentoImagem>) {
+    const { error } = await supabase.from("empreendimento_imagens").update(patch).eq("id", img.id);
+    if (error) {
+      setError(`Não foi possível atualizar a mídia: ${error.message}`);
+      return;
+    }
+    setImagensGaleria((atual) => atual.map((item) => item.id === img.id ? { ...item, ...patch } : item));
   }
 
   async function definirComoCapa(url: string, recarregar = true) {
@@ -656,7 +698,10 @@ export default function Empreendimentos() {
     if (!window.confirm("Deseja remover esta imagem da galeria?")) return;
 
     try {
-      await supabase.from("empreendimento_imagens").delete().eq("id", imgId);
+      const media=imagensGaleria.find((img)=>img.id===imgId);
+      if(media?.storage_path){const{error:storageError}=await supabase.storage.from("empreendimentos").remove([media.storage_path]);if(storageError)throw storageError}
+      const{error:dbError}=await supabase.from("empreendimento_imagens").delete().eq("id", imgId);
+      if(dbError)throw dbError;
       setImagensGaleria((current) => current.filter((img) => img.id !== imgId));
 
       if (selectedForImages?.imagem_url === url) {
@@ -788,8 +833,11 @@ export default function Empreendimentos() {
         .gallery-upload-box:hover { border-color: #c5a059; }
         
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-top: 15px; }
-        .gallery-item { position: relative; background: #151518; border: 1px solid #242428; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; }
-        .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .gallery-item { position: relative; background: #151518; border: 1px solid #242428; border-radius: 8px; overflow: hidden; }
+        .gallery-item img { width: 100%; height: 115px; object-fit: cover; display: block; }
+        .gallery-meta { padding: 8px; display: grid; gap: 6px; }
+        .gallery-meta input, .gallery-meta select { width: 100%; box-sizing: border-box; min-height: 30px; border: 1px solid #303036; border-radius: 5px; background: #0d0d0f; color: #e4e4e7; padding: 0 7px; font-size: 11px; }
+        .gallery-visibility { display: flex; gap: 8px; color: #c4c4cb; font-size: 10px; align-items: center; }
         
         .gallery-delete-btn { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.2); color: #f87171; display: grid; place-items: center; cursor: pointer; z-index: 3; transition: background .15s, color .15s, transform .15s; }
         .gallery-delete-btn:hover { background: #ef4444; color: #fff; transform: scale(1.08); }
@@ -996,6 +1044,10 @@ export default function Empreendimentos() {
                         <span className="emp-info-value">{item.unidades_cadastradas ?? item.numero_unidades ?? "—"}</span>
                       </div>
                       <div className="emp-info">
+                        <span className="emp-info-label">Pavimentos</span>
+                        <span className="emp-info-value">{item.numero_pavimentos ?? "—"}</span>
+                      </div>
+                      <div className="emp-info">
                         <span className="emp-info-label">Faixa de valores</span>
                         <span className="emp-info-value" title={item.menor_preco_disponivel != null && item.maior_preco_disponivel != null ? `${formatCurrency(item.menor_preco_disponivel)} a ${formatCurrency(item.maior_preco_disponivel)}` : undefined}>
                           {item.menor_preco_disponivel != null && item.maior_preco_disponivel != null
@@ -1143,6 +1195,18 @@ export default function Empreendimentos() {
                     min="0"
                     value={form.numero_torres}
                     onChange={(e) => updateField("numero_torres", e.target.value)}
+                  />
+                </div>
+                <div className="emp-field">
+                  <label className="emp-label">Número de pavimentos</label>
+                  <input
+                    className="emp-input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.numero_pavimentos}
+                    onChange={(e) => updateField("numero_pavimentos", e.target.value)}
+                    placeholder="Ex.: 24"
                   />
                 </div>
                 <div className="emp-field full" style={{ marginTop: 8 }}>
@@ -1336,7 +1400,7 @@ export default function Empreendimentos() {
             </div>
 
             <div className="emp-modal-body">
-              <label className="gallery-upload-box" style={{ display: "block" }}>
+              <label className="gallery-upload-box" style={{ display: "block" }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void enviarImagens(e.dataTransfer.files); }}>
                 <input
                   type="file"
                   multiple
@@ -1348,10 +1412,10 @@ export default function Empreendimentos() {
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                   <Upload size={24} color="#c5a059" />
                   <strong style={{ fontSize: 13, color: "#f4f4f5" }}>
-                    {uploadingImages ? "Enviando imagens..." : "Clique aqui para selecionar várias imagens de uma vez"}
+                    {uploadingImages ? "Enviando imagens..." : "Arraste várias imagens aqui ou clique para selecionar"}
                   </strong>
                   <span style={{ fontSize: 11, color: "#71717a" }}>
-                    Todas as fotos selecionadas serão enviadas e adicionadas à galeria
+                    Nomeie, classifique e escolha o que clientes e afiliados podem visualizar em cada mídia.
                   </span>
                 </div>
               </label>
@@ -1370,7 +1434,7 @@ export default function Empreendimentos() {
                     const isCover = selectedForImages.imagem_url === img.url;
                     return (
                       <div className="gallery-item" key={img.id}>
-                        <img src={img.url} alt="Galeria" />
+                        <img src={img.url} alt={img.titulo || "Galeria"} />
                         
                         <button
                           type="button"
@@ -1390,6 +1454,17 @@ export default function Empreendimentos() {
                           <Star size={10} fill={isCover ? "#09090b" : "none"} />
                           {isCover ? "Capa" : "Tornar capa"}
                         </button>
+                        <div className="gallery-meta">
+                          <input value={img.titulo || ""} onChange={(e) => atualizarImagem(img, { titulo: e.target.value })} placeholder="Nome da imagem (ex.: Planta 3 suítes)" />
+                          <select value={img.categoria || "outro"} onChange={(e) => atualizarImagem(img, { categoria: e.target.value })}>
+                            <option value="planta">Planta / tipologia</option><option value="fachada">Fachada</option><option value="lazer">Lazer</option><option value="localizacao">Localização</option><option value="decorado">Decorado</option><option value="outro">Outro</option>
+                          </select>
+                          <input value={img.tipologia_referencia || ""} onChange={(e) => atualizarImagem(img, { tipologia_referencia: e.target.value })} placeholder="Tipologia relacionada (opcional)" />
+                          <div className="gallery-visibility">
+                            <label><input type="checkbox" checked={Boolean(img.visivel_cliente)} onChange={(e) => atualizarImagem(img, { visivel_cliente: e.target.checked })} /> Cliente</label>
+                            <label><input type="checkbox" checked={Boolean(img.visivel_afiliado)} onChange={(e) => atualizarImagem(img, { visivel_afiliado: e.target.checked })} /> Afiliado</label>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}

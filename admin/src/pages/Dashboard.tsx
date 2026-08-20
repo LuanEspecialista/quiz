@@ -14,6 +14,8 @@ import ClientesModule from "./modules/Clientes";
 import AfiliadosModule from "./modules/Afiliados";
 import SmartDashboard, { type SmartUnitFilters } from "../components/SmartDashboard";
 import PromptsModule from "./modules/Prompts";
+import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
+import LinksTemporariosModule from "./modules/LinksTemporarios";
 
 interface DashboardProps { userName?: string; role?: "admin" | "equipe" | "afiliado" }
 
@@ -66,9 +68,9 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         {role !== "afiliado" && activeTab === "fluxos" && <FluxosModule initialUnitIds={flowUnitIds} />}
         {role !== "afiliado" && activeTab === "clientes" && <ClientesModule />}
         {activeTab === "afiliados" && <AfiliadosModule role={role} />}
-        {role !== "afiliado" && activeTab === "indicadores" && <IndicadoresModule />}
+        {role !== "afiliado" && activeTab === "indicadores" && <ModuleErrorBoundary moduleName="Indicadores"><IndicadoresModule /></ModuleErrorBoundary>}
         {role !== "afiliado" && activeTab === "configuracoes" && <ConfiguracoesModule />}
-        {role !== "afiliado" && activeTab === "links" && <div style={{ background: "#121212", border: "1px solid #222", borderRadius: 8, padding: "2rem", textAlign: "center" }}><h2 style={{ color: "#c5a059" }}>Links temporários</h2><p style={{ color: "#71717a" }}>Em breve este módulo estará ativo.</p></div>}
+        {role !== "afiliado" && activeTab === "links" && <LinksTemporariosModule />}
       </main>
     </div>
   </div>;

@@ -22,7 +22,7 @@ async function carregarDadosDoSupabase() {
             supabaseClient.from('cidades').select('*'),
             supabaseClient.from('construtoras').select('*'),
             supabaseClient.from('empreendimentos').select('*'),
-            supabaseClient.from('apresentacoes').select('empreendimento_id, ativo, pdf_url, updated_at').eq('ativo', true)
+            supabaseClient.from('apresentacoes').select('empreendimento_id, ativo, storage_path, updated_at').eq('ativo', true)
         ]);
 
         if (resCidades.error) console.error('Erro Cidades:', resCidades.error);
@@ -33,9 +33,13 @@ async function carregarDadosDoSupabase() {
         CIDADES = resCidades.data || [];
         CONSTRUTORAS = resConstrutoras.data || [];
         
-        const apresentacoesPorEmpreendimento = new Map(
-            (resApresentacoes.data || []).map(item => [item.empreendimento_id, item])
-        );
+        const apresentacoesAssinadas = await Promise.all((resApresentacoes.data || []).map(async (item) => {
+            if (!item.storage_path) return { ...item, pdf_url: null };
+            const { data, error } = await supabaseClient.storage.from('pdfs').createSignedUrl(item.storage_path, 3600);
+            if (error) console.error('Erro ao assinar apresentação:', error);
+            return { ...item, pdf_url: data?.signedUrl || null };
+        }));
+        const apresentacoesPorEmpreendimento = new Map(apresentacoesAssinadas.map(item => [item.empreendimento_id, item]));
 
         EMPREENDIMENTOS = (resEmpreendimentos.data || []).map(emp => {
             const apresentacao = apresentacoesPorEmpreendimento.get(emp.id);
@@ -58,7 +62,7 @@ async function carregarDadosDoSupabase() {
                 cidadeId: emp.cidade_id,
                 construtoraId: emp.construtora_id,
                 orientacao: emp.orientacao || 'horizontal',
-                pdfApresentacao: apresentacao?.pdf_url || emp.pdf_apresentacao_url,
+                pdfApresentacao: apresentacao?.pdf_url || null,
                 apresentacaoAtualizadaEm: apresentacao?.updated_at || emp.updated_at,
                 tabelaId: tabelaFinal,
                 tipologias: Array.isArray(emp.caracteristicas?.tipologias) ? emp.caracteristicas.tipologias : []

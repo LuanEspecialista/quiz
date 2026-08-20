@@ -54,6 +54,29 @@ const parseTipologia = (unit: any): TipologiaInfo => {
 
 type InitialSmartFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean; prazoMeses: number };
 const initialMoney = (value?: number) => value ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value) : "";
+const MONEY_FILTER_LIMIT = 10_000_000;
+const MONEY_FILTER_STEP = 20_000;
+
+function MoneyRangeFilter({ label, minRaw, maxRaw, onMinChange, onMaxChange }: { label: string; minRaw: string; maxRaw: string; onMinChange: (value: string) => void; onMaxChange: (value: string) => void }) {
+  const toNumber = (value: string) => Number(value.replace(/\D/g, "")) / 100 || 0;
+  const toMoney = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  const normalizeInput = (value: string) => value.replace(/\D/g, "") ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value.replace(/\D/g, "")) / 100) : "";
+  const min = Math.min(toNumber(minRaw), MONEY_FILTER_LIMIT);
+  const max = Math.max(min, Math.min(toNumber(maxRaw) || MONEY_FILTER_LIMIT, MONEY_FILTER_LIMIT));
+  const inputStyle: React.CSSProperties = { width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" };
+  return <div style={{ display: "grid", gap: 6 }}>
+    <label style={{ fontSize: "0.7rem", color: "#71717a" }}>{label}</label>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+      <input type="text" inputMode="numeric" placeholder="De" value={minRaw} onChange={(event) => onMinChange(normalizeInput(event.target.value))} style={inputStyle} />
+      <input type="text" inputMode="numeric" placeholder="Até" value={maxRaw} onChange={(event) => onMaxChange(normalizeInput(event.target.value))} style={inputStyle} />
+    </div>
+    <div style={{ display: "grid", gap: 2 }}>
+      <input aria-label={`${label} de`} type="range" min="0" max={MONEY_FILTER_LIMIT} step={MONEY_FILTER_STEP} value={min} onChange={(event) => onMinChange(toMoney(Math.min(Number(event.target.value), max)))} />
+      <input aria-label={`${label} até`} type="range" min="0" max={MONEY_FILTER_LIMIT} step={MONEY_FILTER_STEP} value={max} onChange={(event) => onMaxChange(toMoney(Math.max(Number(event.target.value), min)))} />
+    </div>
+    <small style={{ color: "#52525b", fontSize: "0.62rem" }}>0 a R$ 10 mi · controles de R$ 20 mil; digite um valor exato se necessário.</small>
+  </div>;
+}
 
 export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeInicial, tipologiaInicial, filtrosIniciais }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string; disponibilidadeInicial?: string; tipologiaInicial?: string; filtrosIniciais?: InitialSmartFilters }) {
   const [unidades, setUnidades] = useState<any[]>([]);
@@ -74,12 +97,16 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   const [disponibilidade, setDisponibilidade] = useState(disponibilidadeInicial || "TODAS");
   const [tipologia, setTipologia] = useState(tipologiaInicial || (filtrosIniciais?.dormitorios ? `DORM:${filtrosIniciais.dormitorios}` : "TODAS"));
   const [suitesMinimas, setSuitesMinimas] = useState("0");
+  const [composicaoExata, setComposicaoExata] = useState(false);
   const [vagasFiltro, setVagasFiltro] = useState("TODAS");
   const [incluirCompactos, setIncluirCompactos] = useState(Boolean(filtrosIniciais?.incluirCompactos));
   
   // Valores monetários formatados
+  const [entradaMinRaw, setEntradaMinRaw] = useState<string>("");
   const [entradaMaxRaw, setEntradaMaxRaw] = useState<string>(initialMoney(filtrosIniciais?.entrada));
+  const [balaoMinRaw, setBalaoMinRaw] = useState<string>("");
   const [balaoMaxRaw, setBalaoMaxRaw] = useState<string>(initialMoney(filtrosIniciais?.balao));
+  const [parcelaMinRaw, setParcelaMinRaw] = useState<string>("");
   const [parcelaMaxRaw, setParcelaMaxRaw] = useState<string>(initialMoney(filtrosIniciais?.parcela));
   const [valorTabelaMinRaw, setValorTabelaMinRaw] = useState<string>("");
   const [valorTabelaMaxRaw, setValorTabelaMaxRaw] = useState<string>("");
@@ -105,11 +132,12 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       setDisponibilidade("TODAS");
       setTipologia("TODAS");
       setSuitesMinimas("0");
+      setComposicaoExata(false);
       setIncluirCompactos(false);
       setVagasFiltro("TODAS");
-      setEntradaMaxRaw("");
-      setParcelaMaxRaw("");
-      setBalaoMaxRaw("");
+      setEntradaMinRaw(""); setEntradaMaxRaw("");
+      setParcelaMinRaw(""); setParcelaMaxRaw("");
+      setBalaoMinRaw(""); setBalaoMaxRaw("");
       setValorTabelaMinRaw("");
       setValorTabelaMaxRaw("");
       setPrazoMeses(0);
@@ -277,6 +305,17 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     return Number(u.entrada_sugerida || u.entrada || u.fluxo_dados?.ato || 0);
   };
 
+  const getPaymentValues = (u: any) => {
+    const flow = u.fluxo_dados || {};
+    const commercial = u.empreendimentos?.caracteristicas?.fluxo_comercial || u.empreendimentos?.caracteristicas?.padrao_empreendimento?.fluxo_comercial || {};
+    const positive = (...values: unknown[]) => values.map(Number).find((value) => Number.isFinite(value) && value > 0) || 0;
+    return {
+      entrada: positive(u.entrada_sugerida, u.entrada, flow.ato, flow.entrada),
+      parcela: positive(flow.mensais_obra_val, flow.mensal_obra, flow.parcela, flow.valor_parcela, commercial.mensal),
+      balao: positive(flow.baloes_obra_val, flow.balao, flow.reforco, flow.valor_balao, commercial.balao),
+    };
+  };
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val || 0);
   };
@@ -333,14 +372,14 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     } else if (tipologia === "STUDIO") {
       matchesTipo = tipoInfo.studio;
     } else if (tipologia.startsWith("DORM:")) {
-      matchesTipo = tipoInfo.dormitorios >= Number(tipologia.split(":")[1]);
-    } else if (tipologia.startsWith("EXACT:")) {
-      matchesTipo = tipoInfo.key === tipologia.slice(6);
+      const dormitoriosDesejados = Number(tipologia.split(":")[1]);
+      matchesTipo = composicaoExata ? tipoInfo.dormitorios === dormitoriosDesejados : tipoInfo.dormitorios >= dormitoriosDesejados;
     } else {
       matchesTipo = true;
     }
     if (!matchesTipo && aceitarCompactos && tipoInfo.studio) matchesTipo = true;
-    matchesTipo = matchesTipo && tipoInfo.suites >= Number(suitesMinimas);
+    const suitesDesejadas = Number(suitesMinimas);
+    matchesTipo = matchesTipo && (suitesDesejadas === 0 || (composicaoExata ? tipoInfo.suites === suitesDesejadas : tipoInfo.suites >= suitesDesejadas));
 
     const numVagas = u.vagas !== null && u.vagas !== undefined ? Number(u.vagas) : 1;
     let matchesVagas = true;
@@ -352,12 +391,25 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       matchesVagas = numVagas >= 3;
     }
 
+    const minEnt = parseCurrencyValue(entradaMinRaw);
     const maxEnt = parseCurrencyValue(entradaMaxRaw);
+    const minParcela = parseCurrencyValue(parcelaMinRaw);
     const maxParcela = parseCurrencyValue(parcelaMaxRaw);
+    const minBalao = parseCurrencyValue(balaoMinRaw);
     const maxBalao = parseCurrencyValue(balaoMaxRaw);
     const hasFinancialCapacity = maxEnt > 0 || maxParcela > 0 || maxBalao > 0;
     const compatibility = analyzeFlow(u, { entrada: maxEnt, parcela: maxParcela, balao: maxBalao });
     const matchesFinancial = !hasFinancialCapacity || compatibility.status === "compativel";
+    const extractedPayment = getPaymentValues(u);
+    // Quando a planilha traz percentuais em vez de valores, usa a distribuição
+    // calculada do próprio fluxo para que a unidade não desapareça da busca.
+    const payment = {
+      entrada: extractedPayment.entrada || compatibility.suggestedEntry,
+      parcela: extractedPayment.parcela || compatibility.suggestedInstallment,
+      balao: extractedPayment.balao || compatibility.suggestedBalloon,
+    };
+    const inRange = (value: number, min: number, max: number) => !min && !max ? true : value > 0 && (!min || value >= min) && (!max || value <= max);
+    const matchesPaymentRange = inRange(payment.entrada, minEnt, maxEnt) && inRange(payment.parcela, minParcela, maxParcela) && inRange(payment.balao, minBalao, maxBalao);
 
     const emp = u.empreendimentos || {};
     const mesesAteEntrega = monthsUntilDelivery(emp.entrega || emp.previsao_entrega || emp.data_entrega || u.data_entrega || u.data_entrega_unidade);
@@ -370,7 +422,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       (minTab === 0 || valTabela >= minTab) && 
       (maxTab === 0 || valTabela <= maxTab);
 
-    return matchesSearch && matchesDisp && matchesTipo && matchesVagas && matchesFinancial && matchesTabela && matchesPrazo;
+    return matchesSearch && matchesDisp && matchesTipo && matchesVagas && matchesFinancial && matchesPaymentRange && matchesTabela && matchesPrazo;
   });
 
   const unidadesCompativeis = filtrarUnidades(false);
@@ -387,17 +439,32 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     const bNearby = bMonths > prazoMeses ? 1 : 0;
     return aNearby - bNearby || aMonths - bMonths;
   });
+  // O estoque não é uma vitrine aberta: só aparece quando a pessoa informa ao
+  // menos um critério de busca. Isso reduz ruído e protege a informação comercial.
+  const hasActiveSearch = Boolean(
+    searchTerm.trim() ||
+    disponibilidade !== "TODAS" ||
+    tipologia !== "TODAS" ||
+    suitesMinimas !== "0" ||
+    composicaoExata ||
+    incluirCompactos ||
+    vagasFiltro !== "TODAS" ||
+    entradaMinRaw || entradaMaxRaw || parcelaMinRaw || parcelaMaxRaw ||
+    balaoMinRaw || balaoMaxRaw || valorTabelaMinRaw || valorTabelaMaxRaw ||
+    prazoMeses > 0
+  );
 
   const clearFilters = () => {
     setSearchTerm("");
     setDisponibilidade("TODAS");
     setTipologia("TODAS");
     setSuitesMinimas("0");
+    setComposicaoExata(false);
     setIncluirCompactos(false);
     setVagasFiltro("TODAS");
-    setEntradaMaxRaw("");
-    setParcelaMaxRaw("");
-    setBalaoMaxRaw("");
+    setEntradaMinRaw(""); setEntradaMaxRaw("");
+    setParcelaMinRaw(""); setParcelaMaxRaw("");
+    setBalaoMinRaw(""); setBalaoMaxRaw("");
     setValorTabelaMinRaw("");
     setValorTabelaMaxRaw("");
     setPrazoMeses(0);
@@ -407,14 +474,6 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   };
 
   const visibleUnidades = filteredUnidades.slice(0, visibleCount);
-  const tipologiasDisponiveis = Array.from(
-    new Map(
-      unidades.map(parseTipologia)
-        .filter((tipo) => !tipo.studio && tipo.key && tipo.label !== "Não informado")
-        .map((tipo) => [tipo.key, tipo])
-    ).values()
-  ).sort((a, b) => a.dormitorios - b.dormitorios || a.suites - b.suites || a.label.localeCompare(b.label));
-
   return (
     <div style={{ color: "#e4e4e7", fontFamily: "sans-serif", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "1.25rem", position: "relative", paddingBottom: "5rem" }}>
       
@@ -425,7 +484,9 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             <Layers style={{ width: "20px", height: "20px", color: "#c5a059" }} /> {empreendimentoId ? `Unidades disponíveis${empreendimentoNome ? ` — ${empreendimentoNome}` : ""}` : "Gestão & Comparador de Unidades"}
           </h1>
           <p style={{ color: "#71717a", fontSize: "0.75rem", margin: "0.2rem 0 0 0" }}>
-            Exibindo {visibleUnidades.length} de {filteredUnidades.length} unidades encontradas ({unidades.length} totais).
+            {hasActiveSearch
+              ? `Exibindo ${visibleUnidades.length} de ${filteredUnidades.length} unidades encontradas.`
+              : "Informe ao menos um critério para consultar o estoque disponível."}
           </p>
           {usandoCompactosComoAlternativa && <p style={{ color: "#d7ab63", fontSize: "0.72rem", margin: "0.3rem 0 0" }}>Nenhuma unidade atendeu à composição solicitada. Exibindo Studio/Loft como alternativa.</p>}
           {empreendimentoId && <a href="/painel/?tab=unidades" style={{ color: "#c5a059", fontSize: "0.72rem", textDecoration: "none", display: "inline-block", marginTop: 5 }}>Ver unidades de todos os empreendimentos</a>}
@@ -464,7 +525,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
           </span>
           
           <span style={{ marginLeft: "auto", marginRight: 10, color: "#22c55e", fontSize: "0.68rem" }}>Busca automática</span>
-          {(searchTerm || disponibilidade !== "TODAS" || tipologia !== "TODAS" || suitesMinimas !== "0" || incluirCompactos || vagasFiltro !== "TODAS" || entradaMaxRaw || parcelaMaxRaw || balaoMaxRaw || valorTabelaMinRaw || valorTabelaMaxRaw || prazoMeses > 0) && (
+          {(searchTerm || disponibilidade !== "TODAS" || tipologia !== "TODAS" || suitesMinimas !== "0" || composicaoExata || incluirCompactos || vagasFiltro !== "TODAS" || entradaMinRaw || entradaMaxRaw || parcelaMinRaw || parcelaMaxRaw || balaoMinRaw || balaoMaxRaw || valorTabelaMinRaw || valorTabelaMaxRaw || prazoMeses > 0) && (
             <button 
               onClick={clearFilters} 
               style={{ background: "none", border: "none", color: "#ef4444", fontSize: "0.7rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
@@ -475,14 +536,14 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.75rem" }}>
-          {/* CAMPO SIMPLIFICADO: CÓDIGO OU EMPREENDIMENTO */}
+          {/* Busca curta: o campo também encontra empreendimento e cidade. */}
           <div>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Código ou Empreendimento</label>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Código</label>
             <div style={{ position: "relative" }}>
               <Search style={{ width: "13px", height: "13px", position: "absolute", left: "0.6rem", top: "50%", transform: "translateY(-50%)", color: "#71717a" }} />
               <input 
                 type="text" 
-                placeholder="Ex: Zuri, 101..." 
+                placeholder="Ex.: 101"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setVisibleCount(12); }}
                 style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem 0.5rem 0.4rem 1.8rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }}
@@ -504,35 +565,34 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
           </div>
 
           <div>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Tipologia</label>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Dormitórios</label>
             <select 
               value={tipologia} 
-              onChange={(e) => { const value = e.target.value; setTipologia(value); if (value !== "TODAS") setIncluirCompactos(false); setVisibleCount(12); }}
+              onChange={(e) => { const value = e.target.value; setTipologia(value); if (value !== "TODAS") setIncluirCompactos(false); if (!value.startsWith("DORM:")) setComposicaoExata(false); setVisibleCount(12); }}
               style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem" }}
             >
-              <option value="TODAS">Todas as tipologias</option>
+              <option value="TODAS">Qualquer quantidade</option>
               <option value="STUDIO">Studio / Loft</option>
-              <optgroup label="Mínimo de dormitórios">
-                <option value="DORM:1">1+ dormitório</option>
-                <option value="DORM:2">2+ dormitórios</option>
-                <option value="DORM:3">3+ dormitórios</option>
-                <option value="DORM:4">4+ dormitórios</option>
-              </optgroup>
-              {tipologiasDisponiveis.length > 0 && <optgroup label="Composição exata">
-                {tipologiasDisponiveis.map((tipo) => <option key={tipo.key} value={`EXACT:${tipo.key}`}>{tipo.label}</option>)}
-              </optgroup>}
+              <option value="DORM:1">1+</option>
+              <option value="DORM:2">2+</option>
+              <option value="DORM:3">3+</option>
+              <option value="DORM:4">4+</option>
+              <option value="DORM:5">5+</option>
             </select>
           </div>
 
           <div>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Suítes mínimas</label>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Suítes</label>
             <select value={suitesMinimas} onChange={(e) => { setSuitesMinimas(e.target.value); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem" }}>
               <option value="0">Qualquer quantidade</option>
-              <option value="1">1+ suíte</option>
-              <option value="2">2+ suítes</option>
-              <option value="3">3+ suítes</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
             </select>
           </div>
+
+          <label style={{ fontSize: "0.7rem", color: tipologia === "TODAS" || tipologia === "STUDIO" ? "#52525b" : "#a1a1aa", display: "flex", alignItems: "center", gap: 7, alignSelf: "end", minHeight: 31 }} title="Exemplo: 3 dormitórios e 2 suítes mostra apenas essa composição."><input type="checkbox" disabled={tipologia === "TODAS" || tipologia === "STUDIO"} checked={composicaoExata} onChange={(e) => { setComposicaoExata(e.target.checked); setVisibleCount(12); }} /> Composição exata</label>
 
           <div>
             <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Vagas de Garagem</label>
@@ -548,29 +608,11 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             </select>
           </div>
 
-          <div>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Entrada Até</label>
-            <input 
-              type="text" 
-              placeholder="R$ 0,00" 
-              value={entradaMaxRaw}
-              onChange={(e) => {
-                setEntradaMaxRaw(formatCurrencyInput(e.target.value));
-                setVisibleCount(12);
-              }}
-              style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }}
-            />
-          </div>
+          <MoneyRangeFilter label="Entrada no fluxo" minRaw={entradaMinRaw} maxRaw={entradaMaxRaw} onMinChange={(value) => { setEntradaMinRaw(value); setVisibleCount(12); }} onMaxChange={(value) => { setEntradaMaxRaw(value); setVisibleCount(12); }} />
 
-          <div>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Parcela Até</label>
-            <input type="text" placeholder="R$ 0,00" value={parcelaMaxRaw} onChange={(e) => { setParcelaMaxRaw(formatCurrencyInput(e.target.value)); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }} />
-          </div>
+          <MoneyRangeFilter label="Parcela no fluxo" minRaw={parcelaMinRaw} maxRaw={parcelaMaxRaw} onMinChange={(value) => { setParcelaMinRaw(value); setVisibleCount(12); }} onMaxChange={(value) => { setParcelaMaxRaw(value); setVisibleCount(12); }} />
 
-          <div>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Balão Até</label>
-            <input type="text" placeholder="R$ 0,00" value={balaoMaxRaw} onChange={(e) => { setBalaoMaxRaw(formatCurrencyInput(e.target.value)); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }} />
-          </div>
+          <MoneyRangeFilter label="Balão no fluxo" minRaw={balaoMinRaw} maxRaw={balaoMaxRaw} onMinChange={(value) => { setBalaoMinRaw(value); setVisibleCount(12); }} onMaxChange={(value) => { setBalaoMaxRaw(value); setVisibleCount(12); }} />
 
           <label style={{ fontSize: "0.7rem", color: tipologia === "TODAS" ? "#a1a1aa" : "#52525b", display: "flex", alignItems: "center", gap: 7, alignSelf: "end", minHeight: 31 }}><input type="checkbox" disabled={tipologia !== "TODAS"} checked={incluirCompactos} onChange={(e) => { setIncluirCompactos(e.target.checked); setVisibleCount(12); }} /> Studio/Loft</label>
 
@@ -643,6 +685,12 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       {/* LISTAGEM DE UNIDADES */}
       {loading ? (
         <div style={{ backgroundColor: "#121212", padding: "3rem", textAlign: "center", color: "#71717a" }}>Carregando unidades...</div>
+      ) : !hasActiveSearch ? (
+        <div style={{ backgroundColor: "#121212", padding: "3rem", textAlign: "center", border: "1px solid #27272a", borderRadius: "8px" }}>
+          <Search style={{ width: "28px", height: "28px", color: "#c5a059", marginBottom: "0.75rem" }} />
+          <p style={{ color: "#e4e4e7", margin: 0, fontWeight: 600 }}>Comece pelos filtros acima</p>
+          <p style={{ color: "#71717a", margin: "0.45rem 0 0", fontSize: "0.8rem" }}>Você pode buscar por código, empreendimento, cidade, tipologia, valores ou prazo.</p>
+        </div>
       ) : filteredUnidades.length === 0 ? (
         <div style={{ backgroundColor: "#121212", padding: "3rem", textAlign: "center" }}>
           <p style={{ color: "#a1a1aa" }}>Nenhuma unidade encontrada com os filtros atuais.</p>

@@ -46,7 +46,8 @@ export default function Apresentacoes() {
       if (empResult.error) throw empResult.error;
       if (presentationResult.error) throw presentationResult.error;
       setEmpreendimentos((empResult.data || []) as Empreendimento[]);
-      setApresentacoes(Object.fromEntries(((presentationResult.data || []) as Apresentacao[]).map((item) => [item.empreendimento_id, item])));
+      const signed=await Promise.all(((presentationResult.data || []) as Apresentacao[]).map(async(item)=>{if(!item.storage_path)return item;const{data}=await supabase.storage.from(BUCKET).createSignedUrl(item.storage_path,3600);return data?.signedUrl?{...item,pdf_url:data.signedUrl}:item}));
+      setApresentacoes(Object.fromEntries(signed.map((item) => [item.empreendimento_id, item])));
     } catch (error: unknown) {
       setMessage({ error: errorMessage(error, "Não foi possível carregar as apresentações.") });
     } finally {
@@ -112,9 +113,10 @@ export default function Apresentacoes() {
         }),
       ]);
       if (upload.error) throw upload.error;
-      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const { data: urlData, error: urlError } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
+      if(urlError)throw urlError;
       const current = apresentacoes[editing.id];
-      const payload = { empreendimento_id: editing.id, ativo: current?.ativo ?? true, pdf_url: urlData.publicUrl, storage_path: path, updated_at: new Date().toISOString() };
+      const payload = { empreendimento_id: editing.id, ativo: current?.ativo ?? true, pdf_url: urlData.signedUrl, storage_path: path, updated_at: new Date().toISOString() };
       const { data, error } = await supabase.from("apresentacoes").upsert(payload, { onConflict: "empreendimento_id" })
         .select("empreendimento_id, ativo, pdf_url, storage_path, updated_at").single();
       if (error) throw error;

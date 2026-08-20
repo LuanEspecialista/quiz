@@ -413,10 +413,12 @@ export default function Indicadores() {
   };
 
   const filtered = indicadores.filter((item) => {
+    const name = String(item?.nome || "").toLocaleLowerCase("pt-BR");
+    const code = String(item?.sku || "").toLocaleLowerCase("pt-BR");
+    const city = String(item?.cidade || "").toLocaleLowerCase("pt-BR");
+    const term = searchTerm.toLocaleLowerCase("pt-BR");
     const matchSearch =
-      (item.nome && item.nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.sku && item.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.cidade && item.cidade.toLowerCase().includes(searchTerm.toLowerCase()));
+      name.includes(term) || code.includes(term) || city.includes(term);
 
     const matchCat = selectedCategoria === "TODAS" || item.categoria === selectedCategoria;
     return matchSearch && matchCat;
@@ -538,7 +540,11 @@ export default function Indicadores() {
                     <button type="button" role="switch" aria-checked={item.ticker_ativo !== false} onClick={() => void toggleTicker(item)} title={item.ticker_ativo !== false ? "Remover do ticker" : "Exibir no ticker"} style={{ width: 34, height: 19, padding: 2, border: 0, borderRadius: 999, background: item.ticker_ativo !== false ? "#22c55e" : "#3f3f46", cursor: "pointer", display: "inline-flex", justifyContent: item.ticker_ativo !== false ? "flex-end" : "flex-start", alignItems: "center" }}><span style={{ width: 15, height: 15, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px #0008" }} /></button>
                   </td>
                   <td style={{ padding: "0.5rem 0.8rem", textAlign: "right" }}>
-                    {item.automatico ? <span title={`${item.indexador_base} · ${item.data_atualizacao}`} style={{ color: "#22c55e", fontSize: "0.68rem" }}>Automático · {item.variacao_24h >= 0 ? "+" : ""}{item.variacao_24h.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% 24h</span> : <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem" }}>
+                    {item.automatico ? (() => {
+                      const variation = Number(item.variacao_24h ?? item.variacao_periodo ?? 0);
+                      const label = item.variacao_24h !== undefined ? "24h" : "última variação";
+                      return <span title={`${item.indexador_base || "Fonte automática"} · ${item.data_atualizacao || "sem data"}`} style={{ color: "#22c55e", fontSize: "0.68rem" }}>Automático · {variation >= 0 ? "+" : ""}{variation.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% {label}</span>;
+                    })() : <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem" }}>
                       <button onClick={() => handleOpenModal(item)} style={{ background: "none", border: "none", color: "#a1a1aa", cursor: "pointer" }}>
                         <Edit3 style={{ width: "14px", height: "14px" }} />
                       </button>

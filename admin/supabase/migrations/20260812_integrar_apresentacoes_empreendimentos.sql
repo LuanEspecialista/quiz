@@ -1,9 +1,24 @@
 -- Adapta a tabela existente. Não cria uma segunda base de empreendimentos.
 alter table public.apresentacoes
-  add column if not exists empreendimento_id text,
   add column if not exists ativo boolean not null default false,
   add column if not exists storage_path text,
   add column if not exists updated_at timestamptz not null default now();
+
+-- Usa exatamente o tipo real de empreendimentos.id (text, integer, uuid etc.).
+do $$
+declare id_type text; current_type text;
+begin
+  select pg_catalog.format_type(a.atttypid,a.atttypmod) into id_type
+  from pg_catalog.pg_attribute a where a.attrelid='public.empreendimentos'::regclass and a.attname='id' and not a.attisdropped;
+  select pg_catalog.format_type(a.atttypid,a.atttypmod) into current_type
+  from pg_catalog.pg_attribute a where a.attrelid='public.apresentacoes'::regclass and a.attname='empreendimento_id' and not a.attisdropped;
+  if current_type is null then
+    execute format('alter table public.apresentacoes add column empreendimento_id %s',id_type);
+  elsif current_type <> id_type then
+    execute 'alter table public.apresentacoes drop constraint if exists apresentacoes_empreendimento_id_fkey';
+    execute format('alter table public.apresentacoes alter column empreendimento_id type %s using empreendimento_id::%s',id_type,id_type);
+  end if;
+end $$;
 
 -- A chave dos empreendimentos existentes é textual (ex.: "zaya").
 do $$

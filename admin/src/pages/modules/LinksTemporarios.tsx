@@ -1,0 +1,35 @@
+import { useEffect, useMemo, useState } from "react";
+import { Copy, Link2, Plus, RefreshCw, ShieldX } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+type TemporaryLink = { id:string; titulo:string; publico:"cliente"|"afiliado"|"investidor"; expira_em:string; max_acessos:number|null; acessos:number; revogado_em:string|null; created_at:string; permissoes:Record<string,boolean> };
+const panel={background:"#111113",border:"1px solid #29292e",borderRadius:10,padding:16} as const;
+const input={width:"100%",boxSizing:"border-box",background:"#09090b",border:"1px solid #3f3f46",borderRadius:7,padding:10,color:"#fff"} as const;
+const button={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:7,border:0,borderRadius:7,padding:"10px 13px",fontWeight:800,cursor:"pointer",background:"#c5a059",color:"#09090b"} as const;
+const defaultExpiry=()=>{const date=new Date(Date.now()+7*864e5);date.setMinutes(date.getMinutes()-date.getTimezoneOffset());return date.toISOString().slice(0,16)};
+
+export default function LinksTemporarios(){
+  const[items,setItems]=useState<TemporaryLink[]>([]),[message,setMessage]=useState(""),[saving,setSaving]=useState(false),[createdUrl,setCreatedUrl]=useState("");
+  const[form,setForm]=useState({titulo:"",publico:"investidor",expira_em:defaultExpiry(),senha:"",max_acessos:"",empreendimentos:"",preco:false,imagens:false,descricao:false,fluxo:false,pdf:false});
+  async function load(){const{data,error}=await supabase.from("links_temporarios").select("*").order("created_at",{ascending:false});if(error)setMessage(`Não foi possível carregar os links: ${error.message}`);else setItems((data||[]) as TemporaryLink[])}
+  useEffect(()=>{const id=window.setTimeout(()=>void load(),0);return()=>window.clearTimeout(id)},[]);
+  const active=useMemo(()=>items.filter((item)=>!item.revogado_em&&new Date(item.expira_em)>new Date()),[items]);
+  async function create(){
+    if(!form.titulo.trim())return setMessage("Informe um título para identificar o link.");
+    if(new Date(form.expira_em)<=new Date())return setMessage("A expiração precisa estar no futuro.");
+    setSaving(true);setCreatedUrl("");setMessage("");
+    const ids=form.empreendimentos.split(",").map((value)=>value.trim()).filter(Boolean);
+    const{data,error}=await supabase.rpc("criar_link_temporario",{p_titulo:form.titulo.trim(),p_publico:form.publico,p_expira_em:new Date(form.expira_em).toISOString(),p_empreendimento_ids:ids,p_permissoes:{preco:form.preco,imagens:form.imagens,descricao:form.descricao,fluxo:form.fluxo,pdf:form.pdf},p_senha:form.senha||null,p_max_acessos:Number(form.max_acessos)||null});
+    setSaving(false);if(error)return setMessage(error.message);
+    const token=Array.isArray(data)?data[0]?.token:data?.token;if(!token)return setMessage("O banco não devolveu o segredo do link.");
+    const url=new URL("/acesso/",window.location.origin);url.searchParams.set("token",token);setCreatedUrl(url.toString());setForm((old)=>({...old,titulo:"",senha:"",empreendimentos:""}));setMessage("Link criado. Copie-o agora: por segurança, o segredo não será exibido novamente.");void load();
+  }
+  async function revoke(id:string){if(!confirm("Revogar este link imediatamente?"))return;const{error}=await supabase.rpc("revogar_link_temporario",{p_id:id});setMessage(error?.message||"Link revogado.");if(!error)void load()}
+  return <div style={{color:"#f4f4f5",display:"grid",gap:15}}>
+    <header style={{display:"flex",justifyContent:"space-between",alignItems:"end",gap:12}}><div><h1 style={{margin:0,display:"flex",gap:8,alignItems:"center"}}><Link2 color="#c5a059"/>Links temporários</h1><p style={{color:"#8b8b95",fontSize:12}}>Acesso privado, expirável, revogável e limitado às permissões escolhidas.</p></div><button style={{...button,background:"#27272a",color:"#fff"}} onClick={()=>void load()}><RefreshCw size={15}/>Atualizar</button></header>
+    {message&&<div style={{...panel,color:message.startsWith("Não")?"#fca5a5":"#fbbf24"}}>{message}</div>}
+    {createdUrl&&<div style={{...panel,borderColor:"#166534",display:"flex",gap:9,alignItems:"center",flexWrap:"wrap"}}><code style={{flex:1,overflowWrap:"anywhere",color:"#86efac"}}>{createdUrl}</code><button style={button} onClick={()=>void navigator.clipboard.writeText(createdUrl)}><Copy size={15}/>Copiar</button></div>}
+    <section style={panel}><h2 style={{fontSize:16,marginTop:0}}><Plus size={16}/> Criar acesso</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:10}}><label>Título<input style={input} value={form.titulo} onChange={(e)=>setForm({...form,titulo:e.target.value})}/></label><label>Público<select style={input} value={form.publico} onChange={(e)=>setForm({...form,publico:e.target.value})}><option value="cliente">Cliente</option><option value="afiliado">Afiliado</option><option value="investidor">Investidor</option></select></label><label>Expira em<input type="datetime-local" style={input} value={form.expira_em} onChange={(e)=>setForm({...form,expira_em:e.target.value})}/></label><label>Senha opcional<input type="password" style={input} value={form.senha} onChange={(e)=>setForm({...form,senha:e.target.value})}/></label><label>Máximo de acessos<input type="number" min="1" style={input} value={form.max_acessos} onChange={(e)=>setForm({...form,max_acessos:e.target.value})}/></label><label>IDs dos empreendimentos, separados por vírgula<input style={input} value={form.empreendimentos} onChange={(e)=>setForm({...form,empreendimentos:e.target.value})}/></label></div><div style={{display:"flex",gap:12,flexWrap:"wrap",margin:"14px 0"}}>{([['preco','Preço'],['imagens','Imagens'],['descricao','Descrição'],['fluxo','Cálculos/fluxo'],['pdf','PDF']] as const).map(([key,label])=><label key={key}><input type="checkbox" checked={form[key]} onChange={(e)=>setForm({...form,[key]:e.target.checked})}/> {label}</label>)}</div><button disabled={saving} style={{...button,opacity:saving?.6:1}} onClick={()=>void create()}>{saving?"Criando...":"Criar link privado"}</button></section>
+    <section style={{display:"grid",gap:9}}><strong>{active.length} link(s) ativo(s)</strong>{items.map((item)=><article key={item.id} style={{...panel,opacity:item.revogado_em||new Date(item.expira_em)<=new Date()?.6:1,display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",flexWrap:"wrap"}}><div><strong>{item.titulo}</strong><small style={{display:"block",color:"#8b8b95",marginTop:4}}>{item.publico} · expira {new Date(item.expira_em).toLocaleString("pt-BR")} · {item.acessos}{item.max_acessos?`/${item.max_acessos}`:""} acesso(s)</small></div>{!item.revogado_em&&<button style={{...button,background:"#450a0a",color:"#fecaca"}} onClick={()=>void revoke(item.id)}><ShieldX size={15}/>Revogar</button>}</article>)}</section>
+  </div>
+}

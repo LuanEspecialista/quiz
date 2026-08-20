@@ -21,6 +21,15 @@ export default function Clientes(){
   const[form,setForm]=useState<Form>(empty),[query,setQuery]=useState(""),[open,setOpen]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState("");
   const[editingId,setEditingId]=useState<string|null>(null),[curating,setCurating]=useState<Client|null>(null),[comparing,setComparing]=useState<Client|null>(null);
 
+  useEffect(()=>{
+    if(!open&&!curating&&!comparing)return;
+    const dismiss=()=>{if(comparing)setComparing(null);else if(curating)setCurating(null);else setOpen(false)};
+    const close=(event:KeyboardEvent)=>{if(event.key==="Escape")dismiss()};
+    const outside=(event:MouseEvent)=>{const target=event.target;if(target instanceof HTMLElement&&target.style.position==="fixed"&&target.style.inset==="0px")dismiss()};
+    window.addEventListener("keydown",close);window.addEventListener("mousedown",outside);
+    return()=>{window.removeEventListener("keydown",close);window.removeEventListener("mousedown",outside)};
+  },[open,curating,comparing]);
+
   async function load(){
     const[c,p,s]=await Promise.all([
       supabase.from("clientes").select("*").order("created_at",{ascending:false}),
@@ -43,7 +52,7 @@ export default function Clientes(){
   async function toggleProperty(client:Client,property:Property){
     const current=selectedFor(client.id),existing=current.find((item)=>item.empreendimento_id===property.id);
     if(existing){const{error}=await supabase.from("cliente_empreendimentos").delete().eq("cliente_id",client.id).eq("empreendimento_id",property.id);if(error)return setMessage(error.message)}
-    else{if(current.length>=4)return setMessage("A comparação aceita no máximo quatro empreendimentos.");const used=new Set(current.map((item)=>item.ordem));const nextOrder=[1,2,3,4].find((value)=>!used.has(value))||4;const investor=client.modo_apresentacao==="investidor"||client.modo_apresentacao==="renda"||client.modo_apresentacao==="revenda";const{error}=await supabase.from("cliente_empreendimentos").insert({cliente_id:client.id,empreendimento_id:property.id,ordem:nextOrder,motivo:"Selecionado para a curadoria do cliente",exibir_investimento:investor,exibir_fluxo:investor});if(error)return setMessage(error.message)}
+    else{if(current.length>=4)return setMessage("A comparação aceita no máximo quatro empreendimentos.");const used=new Set(current.map((item)=>item.ordem));const nextOrder=[1,2,3,4].find((value)=>!used.has(value))||4;const{error}=await supabase.from("cliente_empreendimentos").insert({cliente_id:client.id,empreendimento_id:property.id,ordem:nextOrder,motivo:"Selecionado para a curadoria do cliente",exibir_imagens:false,exibir_descricao:false,exibir_preco:false,exibir_especificacoes:false,exibir_investimento:false,exibir_fluxo:false});if(error)return setMessage(error.message)}
     setMessage("");void load();
   }
 
