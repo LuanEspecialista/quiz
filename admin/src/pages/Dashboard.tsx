@@ -53,6 +53,12 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
   const searchUnits = (filters: SmartUnitFilters) => { setSmartUnitFilters(filters); setActiveTab("unidades"); };
   const openFlow = (units: any[]) => { setFlowUnitIds(units.map((unit) => unit.id)); setActiveTab("fluxos"); };
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", activeTab);
+    window.history.replaceState(null, "", url);
+  }, [activeTab]);
+
   return <div style={{ minHeight: "100vh", width: "100%", background: "#0a0a0a", color: "#fff", display: "flex", overflowX: "hidden" }}>
     <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} role={role} />
     <div style={{ flex: 1, minWidth: 0, width: "100%" }}>

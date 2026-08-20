@@ -127,7 +127,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
       `}</style>
 
       {/* TICKER DE COTAÇÕES INTEGRADO NO CABEÇALHO */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", overflow: "hidden", height: "100%", marginRight: "1.5rem" }}>
+      <div className="app-header-ticker" style={{ flex: 1, display: "flex", alignItems: "center", overflow: "hidden", height: "100%", marginRight: "1.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", paddingRight: "0.8rem", color: "#c5a059", fontWeight: "bold", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
           <Zap style={{ width: "13px", height: "13px" }} />
           <span className="app-header-market-label">Mercado</span><span title="Indicadores com fontes e datas diferentes" style={{ width: 6, height: 6, borderRadius: "50%", background: "#c5a059", boxShadow: "0 0 8px #c5a059" }} />

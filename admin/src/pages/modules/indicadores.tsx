@@ -104,6 +104,7 @@ export default function Indicadores() {
   const [refreshingRate, setRefreshingRate] = useState(false);
   const [tickerConfigReady, setTickerConfigReady] = useState(true);
   const [loadWarning, setLoadWarning] = useState("");
+  const [rateFeedback, setRateFeedback] = useState<{type:"success"|"error";message:string}|null>(null);
 
   // Estado do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -225,14 +226,16 @@ export default function Indicadores() {
 
   const updateDollar = async () => {
     setRefreshingRate(true);
+    setRateFeedback(null);
     try {
       const rate = await refreshExchangeRate();
       setExchangeRate(rate);
       setIndicadores((current) => applyExchangeRate(current, rate));
+      setRateFeedback({type:"success",message:`PTAX atualizada para ${rate ? `R$ ${rate.value.toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})}` : "a última cotação válida"} · ${rate?.date || "data não informada"}.`});
       window.dispatchEvent(new Event("luan:cotacao-atualizada"));
     } catch (error) {
       console.error("Erro ao atualizar cotação:", error);
-      alert("Não foi possível atualizar a cotação agora. A última cotação válida continuará em uso.");
+      setRateFeedback({type:"error",message:`Falha na atualização: ${error instanceof Error ? error.message : String(error)} A última cotação válida continuará em uso.`});
     } finally {
       setRefreshingRate(false);
     }
@@ -467,6 +470,7 @@ export default function Indicadores() {
         </div>
         <button onClick={() => void updateDollar()} disabled={refreshingRate} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "#1c1a15", color: "#d7ab63", border: "1px solid #5b4828", borderRadius: 6, padding: "8px 11px", cursor: refreshingRate ? "wait" : "pointer" }}><RefreshCw size={14} /> {refreshingRate ? "Atualizando..." : "Atualizar agora"}</button>
       </section>
+      {rateFeedback&&<div role={rateFeedback.type==="error"?"alert":"status"} style={{marginBottom:12,padding:"10px 12px",border:`1px solid ${rateFeedback.type==="error"?"#7f1d1d":"#166534"}`,borderRadius:7,background:rateFeedback.type==="error"?"#250d0d":"#062814",color:rateFeedback.type==="error"?"#fecaca":"#86efac"}}>{rateFeedback.message}</div>}
       {loadWarning && <div role="alert" style={{marginBottom:12,padding:"10px 12px",border:"1px solid #7f1d1d",borderRadius:7,background:"#250d0d",color:"#fecaca"}}>{loadWarning} A tela permanece disponível com a última informação válida.</div>}
 
       {/* FILTROS E BUSCA */}
