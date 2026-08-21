@@ -22,6 +22,7 @@ import {
 import { supabase } from "../../lib/supabase";
 import { mergeEnterpriseStandard, parseStandardTypology, STANDARD_VERSION, TYPOLOGY_OPTIONS, type CommercialFlow } from "../../lib/realEstateStandard";
 import { deliveryDateIso, deliveryLabelPt, normalizeDeliveryMonth } from "../../lib/deliveryDate";
+import CurrencyInput from "../../components/CurrencyInput";
 
 type Empreendimento = {
   id: string;
@@ -1321,14 +1322,10 @@ export default function Empreendimentos() {
                 </div>
                 <div className="emp-field">
                   <label className="emp-label">Valor inicial</label>
-                  <input
-                    className="emp-input"
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={form.faixa_preco}
-                    onChange={(e) => updateField("faixa_preco", e.target.value)}
-                    placeholder="Ex.: 450000"
+                  <CurrencyInput
+                    value={Number(form.faixa_preco) || 0}
+                    onChange={(value) => updateField("faixa_preco", String(value))}
+                    style={{ width:"100%", boxSizing:"border-box" }}
                   />
                 </div>
                 <div className="emp-field">

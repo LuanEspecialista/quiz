@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { applyExchangeRate, getExchangeRate, refreshExchangeRate, type ExchangeRate } from "@/lib/exchangeRate";
 import { getCryptoIndicators } from "@/lib/cryptoRates";
 import { getEuroIndicator, isEuroIndicator } from "@/lib/fiatRates";
+import CurrencyInput from "@/components/CurrencyInput";
 import { 
   TrendingUp, 
   TrendingDown,
@@ -657,13 +658,20 @@ export default function Indicadores() {
                 <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.7rem", marginBottom: "0.2rem" }}>
                   {categoria === "MOEDA" ? "Valor em Reais (R$)" : categoria === "IMOBILIARIO_M2" ? "Preço por m² (R$)" : "Taxa / Porcentagem (%)"}
                 </label>
-                <input
+                {categoria === "MOEDA" || categoria === "IMOBILIARIO_M2" || categoria === "CRIPTO" ? <CurrencyInput
+                  value={Number(valorAtual) || 0}
+                  onChange={(value) => setValorAtual(String(value))}
+                  fractionDigits={categoria === "MOEDA" ? 4 : 2}
+                  ariaLabel="Valor monetário atual"
+                  style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
+                /> : <input
                   type="text"
-                  placeholder={categoria === "MOEDA" ? "Ex: 5,12" : "Ex: 15,00"}
+                  inputMode="decimal"
+                  placeholder="Ex.: 15,00%"
                   value={valorAtual}
                   onChange={(e) => setValorAtual(e.target.value)}
                   style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.45rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }}
-                />
+                />}
               </div>
 
               {categoria === "RENDA_FIXA" && (
@@ -710,14 +718,23 @@ export default function Indicadores() {
                     onChange={(e) => handleHistoricoChange(idx, "mesAno", e.target.value)}
                     style={{ backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.35rem", borderRadius: "3px", fontSize: "0.75rem" }}
                   />
-                  <input
-                    type="number"
-                    step="0.0001"
-                    placeholder="Valor (R$ ou %)"
-                    value={item.valor}
-                    onChange={(e) => handleHistoricoChange(idx, "valor", parseFloat(e.target.value) || 0)}
-                    style={{ backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.35rem", borderRadius: "3px", fontSize: "0.75rem" }}
-                  />
+                  {categoria === "MOEDA" || categoria === "IMOBILIARIO_M2" || categoria === "CRIPTO" ? (
+                    <CurrencyInput
+                      value={item.valor}
+                      onChange={(value) => handleHistoricoChange(idx, "valor", value)}
+                      ariaLabel="Valor monetário do histórico"
+                      style={{ backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.35rem", borderRadius: "3px", fontSize: "0.75rem" }}
+                    />
+                  ) : (
+                    <input
+                      type="number"
+                      step="0.0001"
+                      placeholder="Taxa (%)"
+                      value={item.valor}
+                      onChange={(e) => handleHistoricoChange(idx, "valor", parseFloat(e.target.value) || 0)}
+                      style={{ backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.35rem", borderRadius: "3px", fontSize: "0.75rem" }}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => handleRemoveLinhaHistorico(idx)}

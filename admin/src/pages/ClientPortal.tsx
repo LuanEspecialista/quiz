@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 
 type Opportunity = {
   id: string; nome?: string; cidade?: string; bairro?: string; status?: string; descricao?: string;
-  imagem_url?: string; preco?: number | null; area_minima?: number | null; area_maxima?: number | null;
+  imagem_url?: string; imagem_storage_path?: string; preco?: number | null; area_minima?: number | null; area_maxima?: number | null;
   caracteristicas?: Record<string, unknown> | null; mensagem?: string | null; exibir_investimento?: boolean; exibir_fluxo?: boolean;
 };
 type Portal = { cliente?: { nome?: string; objetivo?: string; modo?: "moradia" | "investidor" | "renda" | "revenda"; horizonte?: string; cidade?: string }; oportunidades?: Opportunity[] };
@@ -17,9 +17,13 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    void supabase.rpc("portal_cliente").then(({ data, error: requestError }) => {
+    void supabase.rpc("portal_cliente").then(async ({ data, error: requestError }) => {
       if (requestError) setError("Sua curadoria ainda não foi liberada. Fale com seu especialista.");
-      else setPortal((data || {}) as Portal);
+      else {
+        const result=(data||{}) as Portal;
+        const oportunidades=await Promise.all((result.oportunidades||[]).map(async(item)=>{if(!item.imagem_storage_path)return item;const{data:signed}=await supabase.storage.from("empreendimentos").createSignedUrl(item.imagem_storage_path,1800);return signed?.signedUrl?{...item,imagem_url:signed.signedUrl}:item}));
+        setPortal({...result,oportunidades});
+      }
     });
   }, []);
 

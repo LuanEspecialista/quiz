@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Building2, CheckCircle2, Coins, Globe2, Plus, RefreshCw, Save, Settings, Shield, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { refreshExchangeRate } from "@/lib/exchangeRate";
+import CurrencyInput from "@/components/CurrencyInput";
 
 type Tab = "financeiro" | "imobiliario" | "idiomas" | "cambio" | "paginas";
 type Feedback = { type: "success" | "error"; msg: string } | null;
@@ -30,7 +31,7 @@ export default function Configuracoes(){
  const removePage=async(page:SitePage)=>{if(page.protecao_obrigatoria)return setFeedback({type:"error",msg:"Esta página possui proteção obrigatória."});if(!page.id||!confirm(`Excluir ${page.titulo}?`))return;const{error}=await supabase.from("site_paginas").delete().eq("id",page.id);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Página excluída."});if(!error)void load()};
  const refreshPtax=async()=>{setSaving(true);try{await refreshExchangeRate();setFeedback({type:"success",msg:"Cotação do dólar atualizada."});await load();window.dispatchEvent(new Event("luan:cotacao-atualizada"))}catch(error){setFeedback({type:"error",msg:`A atualização automática não respondeu: ${error instanceof Error?error.message:"use a última cotação válida ou informe uma cotação manual."}`})}finally{setSaving(false)}};
  const toggleLocale=(locale:string)=>setSite(old=>({...old,idiomas_ativos:old.idiomas_ativos.includes(locale)?old.idiomas_ativos.filter(x=>x!==locale):[...old.idiomas_ativos,locale]}));
- const numberField=(label:string,key:keyof BusinessConfig,step="0.1")=><label style={{color:"#aaa"}}>{label}<input style={{...fieldStyle,marginTop:6}} type="number" min="0" step={step} value={business[key]} onChange={e=>setBusiness({...business,[key]:Number(e.target.value)})}/></label>;
+ const numberField=(label:string,key:keyof BusinessConfig,step="0.1")=><label style={{color:"#aaa"}}>{label}{key==="valor_m2_referencia"?<CurrencyInput value={business[key]} onChange={value=>setBusiness({...business,[key]:value})} style={{...fieldStyle,marginTop:6}}/>:<input style={{...fieldStyle,marginTop:6}} type="number" min="0" step={step} value={business[key]} onChange={e=>setBusiness({...business,[key]:Number(e.target.value)})}/>}</label>;
  const tabs:[Tab,string,typeof Settings][]=[["financeiro","Financeiro",Coins],["imobiliario","Imobiliário",Building2],["idiomas","Idiomas e moedas",Globe2],["cambio","Cotação do dólar",RefreshCw],["paginas","Páginas e acesso",Shield]];
  return <div style={{color:"#eee",display:"grid",gap:16}}><header style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><h1 style={{margin:0,display:"flex",gap:8,alignItems:"center"}}><Settings color="#c5a059"/>Configurações</h1><p style={{color:"#85858d",marginTop:5}}>Parâmetros centrais da plataforma e do site público.</p></div><button onClick={()=>void load()} disabled={loading} style={{padding:9}}><RefreshCw size={16}/></button></header>
  {feedback&&<div style={{padding:12,borderRadius:7,border:`1px solid ${feedback.type==="success"?"#166534":"#991b1b"}`,color:feedback.type==="success"?"#4ade80":"#f87171",display:"flex",gap:8}}>{feedback.type==="success"?<CheckCircle2 size={18}/>:<AlertCircle size={18}/>} {feedback.msg}</div>}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Edit3, ExternalLink, FileText, Link2, Loader2, Play, RefreshCw, Save, Search, Upload, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-type Empreendimento = { id: string; nome?: string | null; cidade?: string | null; imagem_url?: string | null };
+type Empreendimento = { id: string; nome?: string | null; cidade?: string | null; imagem_url?: string | null; caracteristicas?: Record<string, unknown> | null };
 type Apresentacao = {
   empreendimento_id: string;
   ativo: boolean;
@@ -37,21 +37,27 @@ export default function Apresentacoes() {
   const [cityFilter, setCityFilter] = useState("Todas");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [supportsLinks, setSupportsLinks] = useState(true);
   const [message, setMessage] = useState<{ error?: string; success?: string } | null>(null);
 
   async function load() {
     setLoading(true);
     setMessage(null);
     try {
-      const [empResult, presentationResult] = await Promise.all([
-        supabase.from("empreendimentos").select("id, nome, cidade, imagem_url").order("nome"),
-        supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at"),
-      ]);
+      const empPromise = supabase.from("empreendimentos").select("id, nome, cidade, imagem_url, caracteristicas").order("nome");
+      let presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at");
+      const missingLinkColumns = Boolean(presentationResult.error && /link_url|tipo_preferido/i.test(presentationResult.error.message || ""));
+      if (missingLinkColumns) presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, updated_at");
+      const empResult = await empPromise;
+      setSupportsLinks(!missingLinkColumns);
       if (empResult.error) throw empResult.error;
       if (presentationResult.error) throw presentationResult.error;
-      setEmpreendimentos((empResult.data || []) as Empreendimento[]);
-      const signed=await Promise.all(((presentationResult.data || []) as Apresentacao[]).map(async(item)=>{if(!item.storage_path)return item;const{data}=await supabase.storage.from(BUCKET).createSignedUrl(item.storage_path,3600);return data?.signedUrl?{...item,pdf_url:data.signedUrl}:item}));
-      setApresentacoes(Object.fromEntries(signed.map((item) => [item.empreendimento_id, item])));
+      const loadedEnterprises=(empResult.data || []) as Empreendimento[];
+      setEmpreendimentos(loadedEnterprises);
+      const signed=await Promise.all(((presentationResult.data || []) as Apresentacao[]).map(async(item)=>{if(!item.storage_path)return {...item,pdf_url:null};const{data,error}=await supabase.storage.from(BUCKET).createSignedUrl(item.storage_path,3600);return {...item,pdf_url:error?null:(data?.signedUrl||null)}}));
+      const byEnterprise=Object.fromEntries(signed.map((item) => [item.empreendimento_id, item])) as Record<string,Apresentacao>;
+      loadedEnterprises.forEach((enterprise)=>{const fallback=enterprise.caracteristicas?.apresentacao as {link_url?:string;tipo_preferido?:"pdf"|"link"}|undefined;if(fallback?.link_url)byEnterprise[enterprise.id]={...byEnterprise[enterprise.id],empreendimento_id:enterprise.id,ativo:byEnterprise[enterprise.id]?.ativo??true,link_url:fallback.link_url,tipo_preferido:fallback.tipo_preferido||"link"}});
+      setApresentacoes(byEnterprise);
     } catch (error: unknown) {
       setMessage({ error: errorMessage(error, "Não foi possível carregar as apresentações.") });
     } finally {
@@ -97,9 +103,8 @@ export default function Apresentacoes() {
     const previous = apresentacoes[item.id];
     const ativo = !(previous?.ativo ?? false);
     setApresentacoes((state) => ({ ...state, [item.id]: { ...previous, empreendimento_id: item.id, ativo } }));
-    const { data, error } = await supabase.from("apresentacoes")
-      .upsert({ empreendimento_id: item.id, ativo }, { onConflict: "empreendimento_id" })
-      .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at").single();
+    const query = supabase.from("apresentacoes").upsert({ empreendimento_id: item.id, ativo }, { onConflict: "empreendimento_id" });
+    const { data, error } = await query.select(supportsLinks ? "empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at" : "empreendimento_id, ativo, pdf_url, storage_path, updated_at").single();
     if (error) {
       setApresentacoes((state) => {
         const next = { ...state };
@@ -108,7 +113,7 @@ export default function Apresentacoes() {
       });
       setMessage({ error: error.message || "Não foi possível atualizar o status." });
     } else {
-      setApresentacoes((state) => ({ ...state, [item.id]: data as Apresentacao }));
+      setApresentacoes((state) => ({ ...state, [item.id]: data as unknown as Apresentacao }));
     }
   }
 
@@ -136,11 +141,11 @@ export default function Apresentacoes() {
       const { data: urlData, error: urlError } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
       if(urlError)throw urlError;
       const current = apresentacoes[editing.id];
-      const payload = { empreendimento_id: editing.id, ativo: current?.ativo ?? true, pdf_url: urlData.signedUrl, storage_path: path, link_url: current?.link_url || linkUrl.trim() || null, tipo_preferido: current?.tipo_preferido || preferredType, updated_at: new Date().toISOString() };
+      const payload = { empreendimento_id: editing.id, ativo: current?.ativo ?? true, pdf_url: urlData.signedUrl, storage_path: path, ...(supportsLinks ? { link_url: current?.link_url || linkUrl.trim() || null, tipo_preferido: current?.tipo_preferido || preferredType } : {}), updated_at: new Date().toISOString() };
       const { data, error } = await supabase.from("apresentacoes").upsert(payload, { onConflict: "empreendimento_id" })
-        .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at").single();
+        .select(supportsLinks ? "empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at" : "empreendimento_id, ativo, pdf_url, storage_path, updated_at").single();
       if (error) throw error;
-      setApresentacoes((state) => ({ ...state, [editing.id]: data as Apresentacao }));
+      setApresentacoes((state) => ({ ...state, [editing.id]: { ...current, ...(data as unknown as Apresentacao) } }));
       setFile(null);
       setMessage({ success: "PDF atualizado. A apresentação anterior foi substituída." });
     } catch (error: unknown) {
@@ -172,6 +177,13 @@ export default function Apresentacoes() {
       return;
     }
     setSaving(true); setMessage(null);
+    if(!supportsLinks){
+      const characteristics={...(editing.caracteristicas||{}),apresentacao:{link_url:normalizedLink||null,tipo_preferido:preferredType}};
+      const{error}=await supabase.from("empreendimentos").update({caracteristicas:characteristics}).eq("id",editing.id);
+      setSaving(false);
+      if(error)setMessage({error:error.message});else{setEmpreendimentos(items=>items.map(item=>item.id===editing.id?{...item,caracteristicas:characteristics}:item));setEditing({...editing,caracteristicas:characteristics});setApresentacoes(state=>({...state,[editing.id]:{...current,empreendimento_id:editing.id,ativo:current?.ativo??true,link_url:normalizedLink||null,tipo_preferido:preferredType}}));setMessage({success:"Link e preferência salvos no empreendimento. PDF preservado."})}
+      return;
+    }
     const payload = { empreendimento_id: editing.id, ativo: current?.ativo ?? true, link_url: normalizedLink || null, tipo_preferido: preferredType, updated_at: new Date().toISOString() };
     const { data, error } = await supabase.from("apresentacoes").upsert(payload, { onConflict: "empreendimento_id" }).select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at").single();
     setSaving(false);
@@ -202,9 +214,9 @@ export default function Apresentacoes() {
       : window.location.origin);
     const viewerUrl = new URL("/apresentacao/", publicOrigin);
     viewerUrl.searchParams.set("empreendimento", item.id);
+    viewerUrl.searchParams.set("pdf", presentation.pdf_url || "");
+    viewerUrl.searchParams.set("nome", item.nome || "Apresentação");
     if (isLocalPanel) {
-      viewerUrl.searchParams.set("pdf", presentation.pdf_url || "");
-      viewerUrl.searchParams.set("nome", item.nome || "Apresentação");
       viewerUrl.searchParams.set("painel", window.location.origin);
     }
     window.open(viewerUrl.toString(), "_blank", "noopener,noreferrer");
@@ -228,7 +240,7 @@ export default function Apresentacoes() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 15 }}>
         {filtered.map((item) => {
           const presentation = apresentacoes[item.id];
-          const hasPdf = Boolean(presentation?.pdf_url);
+          const hasPdf = Boolean(presentation?.storage_path && presentation?.pdf_url);
           const hasLink = Boolean(presentation?.link_url);
           const active = Boolean(presentation?.ativo);
           const canPresent = active && (hasPdf || hasLink);
@@ -257,10 +269,12 @@ export default function Apresentacoes() {
         <button onClick={() => setEditing(null)} aria-label="Fechar" style={closeStyle}><X size={18} /></button>
         <h2 id="presentation-modal-title" style={{ margin: "0 36px 4px 0", color: "#fff", fontSize: 18 }}>Editar apresentação</h2>
         <p style={{ color: "#c5a059", fontWeight: 700, margin: "0 0 18px" }}>{editing.nome || "Empreendimento sem nome"}</p>
-        <div style={{ padding: 12, border: "1px solid #27272a", borderRadius: 8, background: "#18181b", marginBottom: 16 }}><span style={{ display: "block", color: "#a1a1aa", fontSize: 11 }}>Fontes disponíveis</span><strong style={{ color: apresentacoes[editing.id]?.pdf_url || apresentacoes[editing.id]?.link_url ? "#4ade80" : "#fbbf24", fontSize: 13 }}>{apresentacoes[editing.id]?.pdf_url ? "PDF" : "Sem PDF"} · {apresentacoes[editing.id]?.link_url ? "Link" : "Sem link"}</strong></div>
+        <div style={{ padding: 12, border: "1px solid #27272a", borderRadius: 8, background: "#18181b", marginBottom: 16 }}><span style={{ display: "block", color: "#a1a1aa", fontSize: 11 }}>Fontes disponíveis</span><strong style={{ color: apresentacoes[editing.id]?.pdf_url || apresentacoes[editing.id]?.link_url ? "#4ade80" : "#fbbf24", fontSize: 13 }}>{apresentacoes[editing.id]?.pdf_url ? "PDF" : "Sem PDF"} · {supportsLinks ? (apresentacoes[editing.id]?.link_url ? "Link" : "Sem link") : "Link aguardando atualização do banco"}</strong></div>
         <label style={labelStyle}>Link externo (Canva ou outra apresentação)<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="https://www.canva.com/design/..." style={inputStyle} /></div></label>
+        {!supportsLinks&&<p style={{color:"#a1a1aa",fontSize:11,margin:"7px 0 0"}}>Compatibilidade ativa: o link será salvo com segurança no cadastro do empreendimento e migrado depois para a coluna definitiva.</p>}
+        <>
         <label style={{ ...labelStyle, marginTop: 14 }}>Abrir por padrão<select value={preferredType} onChange={(event) => setPreferredType(event.target.value as "pdf" | "link")} style={selectStyle}><option value="pdf">PDF privado</option><option value="link">Link externo</option></select></label>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}><button disabled={saving} onClick={() => void saveSettings()} style={{ ...secondaryButtonStyle, opacity: saving ? .5 : 1 }}>{preferredType === "link" ? <ExternalLink size={15} /> : <Save size={15} />} Salvar link e preferência</button></div>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}><button disabled={saving} onClick={() => void saveSettings()} style={{ ...secondaryButtonStyle, opacity: saving ? .5 : 1 }}>{preferredType === "link" ? <ExternalLink size={15} /> : <Save size={15} />} Salvar link e preferência</button></div></>
         <hr style={{ border: 0, borderTop: "1px solid #27272a", margin: "18px 0" }} />
         <label style={labelStyle}>Novo PDF (até 250 MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "10px 0" }} /></label>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}><button onClick={() => setEditing(null)} style={secondaryButtonStyle}>Cancelar</button><button disabled={!file || saving} onClick={() => void uploadPdf()} style={{ ...primaryButtonStyle, opacity: !file || saving ? .5 : 1 }}>{saving ? <Loader2 size={16} /> : <Upload size={16} />}{saving ? "Enviando..." : "Salvar PDF"}</button></div>

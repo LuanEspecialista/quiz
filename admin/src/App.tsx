@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import ClientPortal from "./pages/ClientPortal";
 import { Loader2 } from "lucide-react";
 import LanguageSelector from "./components/LanguageSelector";
+import ModuleErrorBoundary from "./components/ModuleErrorBoundary";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -128,5 +129,5 @@ export default function App() {
   const metadata = session.user.user_metadata || {};
   const userName = String(metadata.full_name || metadata.name || "").trim();
   if (accessRole === "cliente") return <ClientPortal userName={userName} />;
-  return <Dashboard userName={userName} role={accessRole} />;
+  return <ModuleErrorBoundary><Dashboard userName={userName} role={accessRole} /></ModuleErrorBoundary>;
 }

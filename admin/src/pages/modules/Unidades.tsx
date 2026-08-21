@@ -22,6 +22,7 @@ import {
 import { supabase } from "../../lib/supabase";
 import { analyzeFlow, monthsUntilDelivery } from "../../lib/flowCompatibility";
 import { parseStandardTypology } from "../../lib/realEstateStandard";
+import CurrencyInput from "../../components/CurrencyInput";
 
 // ============================================================================
 // HIGIENIZAÇÃO DO ANDAR (EVITA ERRO INTEGER NO POSTGRES / SUPABASE)
@@ -294,17 +295,6 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     return Number(u.entrada_sugerida || u.entrada || u.fluxo_dados?.ato || 0);
   };
 
-  const getPaymentValues = (u: any) => {
-    const flow = u.fluxo_dados || {};
-    const commercial = u.empreendimentos?.caracteristicas?.fluxo_comercial || u.empreendimentos?.caracteristicas?.padrao_empreendimento?.fluxo_comercial || {};
-    const positive = (...values: unknown[]) => values.map(Number).find((value) => Number.isFinite(value) && value > 0) || 0;
-    return {
-      entrada: positive(u.entrada_sugerida, u.entrada, flow.ato, flow.entrada),
-      parcela: positive(flow.mensais_obra_val, flow.mensal_obra, flow.parcela, flow.valor_parcela, commercial.mensal),
-      balao: positive(flow.baloes_obra_val, flow.balao, flow.reforco, flow.valor_balao, commercial.balao),
-    };
-  };
-
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val || 0);
   };
@@ -380,25 +370,13 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       matchesVagas = numVagas >= 3;
     }
 
-    const minEnt = parseCurrencyValue(entradaMinRaw);
-    const maxEnt = parseCurrencyValue(entradaMaxRaw);
-    const minParcela = parseCurrencyValue(parcelaMinRaw);
-    const maxParcela = parseCurrencyValue(parcelaMaxRaw);
-    const minBalao = parseCurrencyValue(balaoMinRaw);
-    const maxBalao = parseCurrencyValue(balaoMaxRaw);
-    const hasFinancialCapacity = maxEnt > 0 || maxParcela > 0 || maxBalao > 0;
-    const compatibility = analyzeFlow(u, { entrada: maxEnt, parcela: maxParcela, balao: maxBalao });
-    const matchesFinancial = !hasFinancialCapacity || compatibility.status === "compativel";
-    const extractedPayment = getPaymentValues(u);
-    // Quando a planilha traz percentuais em vez de valores, usa a distribuição
-    // calculada do próprio fluxo para que a unidade não desapareça da busca.
-    const payment = {
-      entrada: extractedPayment.entrada || compatibility.suggestedEntry,
-      parcela: extractedPayment.parcela || compatibility.suggestedInstallment,
-      balao: extractedPayment.balao || compatibility.suggestedBalloon,
-    };
-    const inRange = (value: number, min: number, max: number) => !min && !max ? true : value > 0 && (!min || value >= min) && (!max || value <= max);
-    const matchesPaymentRange = inRange(payment.entrada, minEnt, maxEnt) && inRange(payment.parcela, minParcela, maxParcela) && inRange(payment.balao, minBalao, maxBalao);
+    // A capacidade financeira ajuda a ordenar e explicar, mas não elimina uma
+    // unidade quando o cadastro comercial está incompleto ou inconsistente.
+    // Os limites explícitos abaixo continuam sendo respeitados quando existem.
+    const matchesFinancial = true;
+    // Valores da tabela são uma referência comercial, não um veto: o motor
+    // redistribui entrada, parcelas e balões dentro da capacidade do cliente.
+    const matchesPaymentRange = true;
 
     const emp = u.empreendimentos || {};
     const mesesAteEntrega = monthsUntilDelivery(emp.entrega || emp.previsao_entrega || emp.data_entrega || u.data_entrega || u.data_entrega_unidade);
@@ -417,7 +395,12 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   const unidadesCompativeis = filtrarUnidades(false);
   const usandoCompactosComoAlternativa = unidadesCompativeis.length === 0 && incluirCompactos && tipologia === "TODAS";
   const filteredUnidades = [...(usandoCompactosComoAlternativa ? filtrarUnidades(true) : unidadesCompativeis)].sort((a, b) => {
-    if (!prazoMeses) return 0;
+    const limits={entrada:parseCurrencyValue(entradaMaxRaw),parcela:parseCurrencyValue(parcelaMaxRaw),balao:parseCurrencyValue(balaoMaxRaw)};
+    const hasCapacity=limits.entrada>0||limits.parcela>0||limits.balao>0;
+    const financialRank=(unit:any)=>{if(!hasCapacity)return 0;const result=analyzeFlow(unit,limits);if(result.status==="compativel")return 0;const price=Number(unit.valor_tabela||unit.preco||0);const coverage=price>0?result.capacity/price:0;return result.status==="incompleto"||coverage>=.2?1:2};
+    const rankDifference=financialRank(a)-financialRank(b);
+    if(rankDifference)return rankDifference;
+    if (!prazoMeses) return Number(a.valor_tabela||a.preco||0)-Number(b.valor_tabela||b.preco||0);
     const monthsFor = (unit: any) => {
       const enterprise = unit.empreendimentos || {};
       return monthsUntilDelivery(enterprise.entrega || enterprise.previsao_entrega || enterprise.data_entrega || unit.data_entrega || unit.data_entrega_unidade);
@@ -639,7 +622,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Prazo</label>
             <select value={prazoMeses} onChange={(e) => { setPrazoMeses(Number(e.target.value)); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }}>
               <option value={0}>Qualquer prazo</option>
-              {Array.from({ length: 12 }, (_, index) => (index + 1) * 6).map((months) => <option key={months} value={months}>{months} meses</option>)}
+              {Array.from({ length: 25 }, (_, index) => (index + 1) * 6).map((months) => <option key={months} value={months}>{months} meses</option>)}
             </select>
           </div>
 
@@ -861,10 +844,9 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                           </div>
                           <div>
                             <label style={{ fontSize: "0.62rem", color: "#a1a1aa" }}>Valor Tabela:</label>
-                            <input 
-                              type="number" 
-                              value={editForm.valor_tabela} 
-                              onChange={(e) => setEditForm({ ...editForm, valor_tabela: e.target.value })}
+                            <CurrencyInput
+                              value={Number(editForm.valor_tabela) || 0}
+                              onChange={(value) => setEditForm({ ...editForm, valor_tabela: value })}
                               style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.2rem 0.4rem", borderRadius: "4px", fontSize: "0.72rem" }} 
                             />
                           </div>
@@ -927,6 +909,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                     </div>
 
                     {capacidadeInformada && analiseFluxo.status === "compativel" && <div style={{ marginTop: 10, padding: 9, borderRadius: 6, border: "1px solid #14532d", background: "#052e162b", fontSize: 11, lineHeight: 1.55 }}><strong style={{ color: "#34d399", display: "block", marginBottom: 3 }}>Fluxo compatível · {analiseFluxo.preKeysPercent.toLocaleString("pt-BR")}% até as chaves</strong><span style={{ color: "#d4d4d8" }}>{formatCurrency(analiseFluxo.suggestedEntry)} de entrada · {analiseFluxo.months}x {formatCurrency(analiseFluxo.suggestedInstallment)}{analiseFluxo.balloonCount > 0 ? ` · ${analiseFluxo.balloonCount} balões de ${formatCurrency(analiseFluxo.suggestedBalloon)}` : ""}</span><span style={{ color: "#8b8b95", display: "block" }}>Total até as chaves: {formatCurrency(analiseFluxo.preKeysTarget)} · saldo nas chaves: {formatCurrency(analiseFluxo.balanceAtKeys)}</span></div>}
+                    {capacidadeInformada && analiseFluxo.status !== "compativel" && <div style={{marginTop:10,padding:9,borderRadius:6,border:"1px solid #854d0e",background:"#2a16082b",fontSize:11,lineHeight:1.5}}><strong style={{color:"#fbbf24",display:"block"}}>{tabelaVal>0&&analiseFluxo.capacity/tabelaVal>=.2?"Fluxo potencialmente negociável":"Dados do fluxo precisam de conferência"}</strong><span style={{color:"#d4d4d8"}}>{analiseFluxo.reason} Capacidade calculada até as chaves: {formatCurrency(analiseFluxo.capacity)} ({tabelaVal?`${(analiseFluxo.capacity/tabelaVal*100).toLocaleString("pt-BR",{maximumFractionDigits:1})}% do imóvel`:"percentual indisponível"}). A unidade permaneceu no resultado para ajuste da proposta.</span></div>}
 
                     {/* EXPANSÃO COM FLUXO DETALHADO */}
                     {isExpanded && (

@@ -53,10 +53,13 @@ create index if not exists clientes_status_idx on public.clientes(status);
 -- O módulo de clientes também pode ser instalado antes do módulo de simulações.
 -- Nesse caso, o vínculo será criado posteriormente quando fluxo_simulacoes existir.
 do $$
+declare cliente_id_type text;
 begin
   if to_regclass('public.fluxo_simulacoes') is not null then
-    alter table public.fluxo_simulacoes
-      add column if not exists cliente_id uuid references public.clientes(id) on delete set null;
+    select pg_catalog.format_type(a.atttypid, a.atttypmod) into cliente_id_type
+    from pg_catalog.pg_attribute a
+    where a.attrelid = 'public.clientes'::regclass and a.attname = 'id' and not a.attisdropped;
+    execute format('alter table public.fluxo_simulacoes add column if not exists cliente_id %s references public.clientes(id) on delete set null', cliente_id_type);
 
     create index if not exists fluxo_simulacoes_cliente_idx
       on public.fluxo_simulacoes(cliente_id);

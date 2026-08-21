@@ -6,6 +6,14 @@ alter table if exists public.apresentacoes
 alter table if exists public.empreendimentos
   add column if not exists entrega_date date;
 
+-- Preserva links cadastrados pelo modo de compatibilidade antes desta migração.
+update public.apresentacoes a
+set link_url = coalesce(a.link_url, nullif(e.caracteristicas->'apresentacao'->>'link_url','')),
+    tipo_preferido = coalesce(nullif(e.caracteristicas->'apresentacao'->>'tipo_preferido',''),a.tipo_preferido,'pdf')
+from public.empreendimentos e
+where e.id = a.empreendimento_id
+  and e.caracteristicas->'apresentacao' is not null;
+
 create or replace function public.normalizar_mes_entrega(valor text)
 returns date language plpgsql immutable as $$
 declare

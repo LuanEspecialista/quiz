@@ -24,6 +24,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
   const [activeTab, setActiveTab] = useState(role === "afiliado" ? "afiliados" : initialParams.get("tab") || "dashboard");
   const [smartUnitFilters, setSmartUnitFilters] = useState<SmartUnitFilters>();
   const [flowUnitIds, setFlowUnitIds] = useState<string[]>([]);
+  const [flowClientId, setFlowClientId] = useState<string>();
   const [metrics, setMetrics] = useState({ empreendimentos: 0, unidades: 0, clientes: 0, propostasEmAndamento: 0 });
   const empreendimentoId = initialParams.get("empreendimento") || undefined;
   const disponibilidade = initialParams.get("disponibilidade") || undefined;
@@ -44,6 +45,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
     const leaveSimulation = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setFlowUnitIds([]);
+      setFlowClientId(undefined);
       setActiveTab("unidades");
     };
     window.addEventListener("keydown", leaveSimulation);
@@ -51,7 +53,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
   }, [activeTab]);
 
   const searchUnits = (filters: SmartUnitFilters) => { setSmartUnitFilters(filters); setActiveTab("unidades"); };
-  const openFlow = (units: any[]) => { setFlowUnitIds(units.map((unit) => unit.id)); setActiveTab("fluxos"); };
+  const openFlow = (units: any[]) => { setFlowClientId(undefined); setFlowUnitIds(units.map((unit) => unit.id)); setActiveTab("fluxos"); };
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -71,8 +73,8 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         {role !== "afiliado" && activeTab === "apresentacoes" && <ApresentacoesModule />}
         {role !== "afiliado" && activeTab === "importar-ia" && <ImportarIAModule />}
         {role !== "afiliado" && activeTab === "prompts" && <PromptsModule />}
-        {role !== "afiliado" && activeTab === "fluxos" && <FluxosModule initialUnitIds={flowUnitIds} />}
-        {role !== "afiliado" && activeTab === "clientes" && <ClientesModule onOpenFlow={(ids) => { setFlowUnitIds(ids); setActiveTab("fluxos"); }} />}
+        {role !== "afiliado" && activeTab === "fluxos" && <FluxosModule initialUnitIds={flowUnitIds} initialClientId={flowClientId} />}
+        {role !== "afiliado" && activeTab === "clientes" && <ClientesModule onOpenFlow={(ids,clientId) => { setFlowClientId(clientId); setFlowUnitIds(ids); setActiveTab("fluxos"); }} />}
         {activeTab === "afiliados" && <AfiliadosModule role={role} />}
         {role !== "afiliado" && activeTab === "indicadores" && <ModuleErrorBoundary moduleName="Indicadores"><IndicadoresModule /></ModuleErrorBoundary>}
         {role !== "afiliado" && activeTab === "configuracoes" && <ConfiguracoesModule />}

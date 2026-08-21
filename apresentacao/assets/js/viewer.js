@@ -91,7 +91,8 @@ function iniciarViewer() {
     function carregarEmpreendimentoDireto() {
         if (empreendimentoDiretoCarregado || !empreendimentoDiretoId || typeof EMPREENDIMENTOS === 'undefined') return;
         empreendimentoDiretoCarregado = true;
-        const empreendimento = EMPREENDIMENTOS.find(emp => String(emp.id) === empreendimentoDiretoId) || (previewPdf ? {
+        const encontrado = EMPREENDIMENTOS.find(emp => String(emp.id) === empreendimentoDiretoId);
+        const empreendimento = encontrado ? { ...encontrado, pdfApresentacao: previewPdf || encontrado.pdfApresentacao } : (previewPdf ? {
             id: empreendimentoDiretoId,
             nome: previewNome || 'Apresentação',
             orientacao: 'horizontal',
