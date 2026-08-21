@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
+import { deliveryDateIso, normalizeDeliveryMonth } from "../../lib/deliveryDate";
 import { parseStandardTypology } from "../../lib/realEstateStandard";
 import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks } from "lucide-react";
 
@@ -563,6 +564,11 @@ const EmpreendimentoImporter: React.FC = () => {
       construtora_id: selectedConstrutoraId,
       ativo: true,
     };
+    const normalizedDelivery = normalizeDeliveryMonth(source.previsao_entrega);
+    if (normalizedDelivery) {
+      payload.entrega = normalizedDelivery;
+      payload.entrega_date = deliveryDateIso(normalizedDelivery);
+    }
     const mapping: Array<[string, unknown]> = [
       ["cidade", source.cidade], ["bairro", source.bairro], ["endereco", source.endereco],
       ["tipo", source.tipo], ["status", source.status_obra], ["previsao_entrega", source.previsao_entrega],

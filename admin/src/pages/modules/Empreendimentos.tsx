@@ -21,6 +21,7 @@ import {
 
 import { supabase } from "../../lib/supabase";
 import { mergeEnterpriseStandard, parseStandardTypology, STANDARD_VERSION, TYPOLOGY_OPTIONS, type CommercialFlow } from "../../lib/realEstateStandard";
+import { deliveryDateIso, deliveryLabelPt, normalizeDeliveryMonth } from "../../lib/deliveryDate";
 
 type Empreendimento = {
   id: string;
@@ -35,6 +36,7 @@ type Empreendimento = {
   status?: string | null;
   descricao?: string | null;
   entrega?: string | null;
+  entrega_date?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   numero_torres?: number | null;
@@ -385,7 +387,7 @@ export default function Empreendimentos() {
       endereco: item.endereco || "",
       tipo: item.tipo || "",
       status: item.status || "Lançamento",
-      entrega: item.entrega || "",
+      entrega: normalizeDeliveryMonth(item.entrega_date || item.entrega) || "",
       inicio_comercial: String(fluxoComercial.inicio_comercial || ""),
       percentual_ate_chaves: fluxoComercial.percentual_ate_chaves != null ? String(fluxoComercial.percentual_ate_chaves) : "",
       percentual_ato: fluxoComercial.percentual_ato != null ? String(fluxoComercial.percentual_ato) : "",
@@ -460,6 +462,7 @@ export default function Empreendimentos() {
         tipo: form.tipo.trim() || null,
         status: form.status || null,
         entrega: form.entrega.trim() || null,
+        entrega_date: deliveryDateIso(form.entrega),
         descricao: form.descricao.trim() || null,
         imagem_url: form.imagem_url.trim() || null,
         ativo: form.ativo,
@@ -1037,7 +1040,7 @@ export default function Empreendimentos() {
                     <div className="emp-info-grid">
                       <div className="emp-info">
                         <span className="emp-info-label">Entrega</span>
-                        <span className="emp-info-value">{item.entrega || "—"}</span>
+                        <span className="emp-info-value">{item.entrega_date || item.entrega ? deliveryLabelPt(item.entrega_date || item.entrega) : "—"}</span>
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Unidades</span>
@@ -1182,9 +1185,9 @@ export default function Empreendimentos() {
                   <label className="emp-label">Entrega</label>
                   <input
                     className="emp-input"
+                    type="month"
                     value={form.entrega}
                     onChange={(e) => updateField("entrega", e.target.value)}
-                    placeholder="Ex.: Dezembro/2031"
                   />
                 </div>
                 <div className="emp-field">

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, CalendarDays, Check, Lock, LockOpen, Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { deliveryDate, deliveryLabelPt } from "@/lib/deliveryDate";
 
-type Empreendimento = { id: string; nome?: string; cidade?: string; previsao_entrega?: string; valorizacao_aa?: number | null; diferenciais?: unknown[] };
+type Empreendimento = { id: string; nome?: string; cidade?: string; entrega?: string; entrega_date?: string; previsao_entrega?: string; valorizacao_aa?: number | null; diferenciais?: unknown[] };
 type Unidade = { id: string; codigo_unidade?: string; numero_unidade?: string; torre?: string; tipologia?: string; tipologia_dados?: Record<string, unknown>; area_privativa?: number; valor_tabela?: number; status?: string; fluxo_dados?: Record<string, unknown>; empreendimentos?: Empreendimento };
 type Indicador = { id: string; nome?: string; sku?: string; categoria?: string; valor?: number; valor_atual?: number; tributacao?: { tipo?: "isento" | "regressivo" | "fixo"; aliquota_fixa?: number; faixas?: Array<{ ate_dias?: number | null; aliquota: number }> } };
 type Cenario = "conservador" | "base" | "otimista";
@@ -20,9 +21,10 @@ async function officialNow() {
 
 function deliveryLabel(now: Date, raw?: string) {
   if (!raw) return "Entrega não informada";
-  const end = new Date(raw);
-  if (Number.isNaN(end.getTime())) return raw;
+  const end = deliveryDate(raw);
+  if (!end) return "Entrega não informada";
   const days = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
+  if (days === 0 && end.getTime() < now.getTime()) return `Entrega prevista para ${deliveryLabelPt(raw)}`;
   if (days < 31) return days === 1 ? "1 dia para entrega" : `${days} dias para entrega`;
   const months = Math.max(1, Math.round(days / 30.4375));
   return `${months} meses para entrega`;
@@ -120,7 +122,7 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
   const [rentYield,setRentYield]=useState(0);
   const [holdingCost,setHoldingCost]=useState(0);
   const [capitalGainsTax,setCapitalGainsTax]=useState(15);
-  const [showAllUnits,setShowAllUnits]=useState(initialUnitIds.length === 0);
+  const [showAllUnits,setShowAllUnits]=useState(false);
   const [guaranteeValue,setGuaranteeValue]=useState(0);
   const [guaranteePct,setGuaranteePct]=useState(0);
   const [guaranteeDebt,setGuaranteeDebt]=useState(0);
@@ -139,7 +141,7 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
   async function load() {
     setLoading(true); setError("");
     const [unitResult, indicatorResult, time] = await Promise.all([
-      supabase.from("unidades").select("id,codigo_unidade,numero_unidade,torre,tipologia,tipologia_dados,area_privativa,valor_tabela,status,fluxo_dados,empreendimentos(id,nome,cidade,previsao_entrega,valorizacao_aa,diferenciais)").order("created_at", { ascending: false }),
+      supabase.from("unidades").select("id,codigo_unidade,numero_unidade,torre,tipologia,tipologia_dados,area_privativa,valor_tabela,status,fluxo_dados,empreendimentos(id,nome,cidade,entrega,entrega_date,previsao_entrega,valorizacao_aa,diferenciais)").order("created_at", { ascending: false }),
       supabase.from("indicadores").select("id,nome,sku,categoria,valor,valor_atual,tributacao").order("nome"),
       officialNow(),
     ]);
@@ -157,6 +159,8 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
   }, [initialUnitIds]);
 
   const visibleUnits = useMemo(() => units.filter((unit) => {
+    const hasSearch = query.trim().length >= 2 || budget > 0 || initialUnitIds.length > 0;
+    if (!hasSearch) return false;
     if (!showAllUnits && initialUnitIds.length && !initialUnitIds.includes(unit.id)) return false;
     const matchesText = `${unit.empreendimentos?.nome} ${unit.codigo_unidade} ${unit.torre} ${unit.tipologia}`.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"));
     const status = String(unit.status || "").toLocaleLowerCase("pt-BR");
@@ -185,7 +189,7 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
       {loading ? <p>Carregando...</p> : visibleUnits.length ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 10 }}>{visibleUnits.map((unit) => { const selected = selectedUnits.includes(unit.id); const distance = budget ? Math.abs(n(unit.valor_tabela)-budget)/budget*100 : 0; return <button key={unit.id} onClick={() => toggleUnit(unit.id)} style={{ ...button, textAlign: "left", borderColor: selected ? "#d6a94f" : "#27272a", background: selected ? "#2a2113" : "#141416" }}><span style={{ float: "right" }}>{selected ? <Check size={16} /> : <Plus size={16} />}</span><strong>{unit.empreendimentos?.nome || "Sem empreendimento"}</strong><small style={{ display: "block", color: "#a1a1aa", marginTop: 5 }}>Un. {unit.codigo_unidade || unit.numero_unidade || "—"} · {unit.tipologia || String(unit.tipologia_dados?.nome_original || "Tipologia não informada")}</small><b style={{ display: "block", color: "#34d399", marginTop: 8 }}>{money(n(unit.valor_tabela))}</b>{budget > 0 && <small style={{ display: "block", marginTop: 4, color: distance <= 10 ? "#34d399" : "#d6a94f" }}>{distance <= 10 ? "Muito próxima da preferência" : "Alternativa na faixa ampliada"}</small>}</button>; })}</div> : <div style={{ color: "#a1a1aa", padding: 18, textAlign: "center" }}>Nenhuma unidade disponível nesta faixa. Amplie a busca ou ajuste o investimento.</div>}
     </section>
     {chosenUnits.length === 0 ? <section style={{ ...card, marginTop: 16, minHeight: 210, display: "grid", placeItems: "center", textAlign: "center", color: "#71717a" }}><div><BarChart3 size={42} style={{ margin: "0 auto 12px" }} /><strong style={{ color: "#d4d4d8" }}>Tela pronta para uma nova apresentação</strong><p>Escolha uma ou mais unidades acima para abrir fluxo, diferenças e gráficos.</p></div></section> : <>
-      <section style={{ ...card, marginTop: 16 }}><h2 style={{ fontSize: 15, marginTop: 0 }}>2. Compare diferenciais e prazo</h2><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10 }}>{chosenUnits.map((unit) => <article key={unit.id} style={{ border: "1px solid #27272a", borderRadius: 8, padding: 13 }}><button title="Remover" onClick={() => toggleUnit(unit.id)} style={{ ...button, float: "right", padding: 5 }}><X size={14} /></button><strong>{unit.empreendimentos?.nome}</strong><p style={{ color: "#a1a1aa", fontSize: 13 }}>{unit.tipologia || "Tipologia não informada"} · {unit.area_privativa || "—"} m² · {unit.torre || "Torre não informada"}</p><p style={{ color: "#d6a94f", fontSize: 13 }}>{deliveryLabel(now, unit.empreendimentos?.previsao_entrega)}</p><p style={{ fontSize: 12, color: "#a1a1aa" }}>{Array.isArray(unit.empreendimentos?.diferenciais) && unit.empreendimentos!.diferenciais!.length ? unit.empreendimentos!.diferenciais!.slice(0, 4).map((value) => typeof value === "string" ? value : JSON.stringify(value)).join(" · ") : "Diferenciais ainda não cadastrados"}</p></article>)}</div></section>
+      <section style={{ ...card, marginTop: 16 }}><h2 style={{ fontSize: 15, marginTop: 0 }}>2. Compare diferenciais e prazo</h2><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10 }}>{chosenUnits.map((unit) => <article key={unit.id} style={{ border: "1px solid #27272a", borderRadius: 8, padding: 13 }}><button title="Remover" onClick={() => toggleUnit(unit.id)} style={{ ...button, float: "right", padding: 5 }}><X size={14} /></button><strong>{unit.empreendimentos?.nome}</strong><p style={{ color: "#a1a1aa", fontSize: 13 }}>{unit.tipologia || "Tipologia não informada"} · {unit.area_privativa || "—"} m² · {unit.torre || "Torre não informada"}</p><p style={{ color: "#d6a94f", fontSize: 13 }}>{deliveryLabel(now, unit.empreendimentos?.entrega_date || unit.empreendimentos?.entrega || unit.empreendimentos?.previsao_entrega)}</p><p style={{ fontSize: 12, color: "#a1a1aa" }}>{Array.isArray(unit.empreendimentos?.diferenciais) && unit.empreendimentos!.diferenciais!.length ? unit.empreendimentos!.diferenciais!.slice(0, 4).map((value) => typeof value === "string" ? value : JSON.stringify(value)).join(" · ") : "Diferenciais ainda não cadastrados"}</p></article>)}</div></section>
       <section style={{ ...card, marginTop: 16 }}><h2 style={{ fontSize: 15, marginTop: 0 }}>3. Adicione referências financeiras</h2><p style={{ color: "#a1a1aa", fontSize: 12 }}>Os valores-base vêm de Indicadores. Alterações abaixo valem apenas nesta apresentação e não são salvas.</p><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{indicators.map((item) => <button key={item.id} onClick={() => toggleIndicator(item.id)} style={{ ...button, borderColor: selectedIndicators.includes(item.id) ? "#d6a94f" : "#3f3f46" }}>{selectedIndicators.includes(item.id) ? <Check size={13} /> : <Plus size={13} />} {item.nome || item.sku} · {pct(n(item.valor_atual ?? item.valor))}</button>)}</div></section>
       <section style={{ ...card, marginTop: 16 }}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}><div><h2 style={{ fontSize: 15, margin: 0 }}>4. Patrimônio projetado</h2><p style={{ color: "#a1a1aa", fontSize: 12 }}>Imóveis mostram o valor líquido caso a venda ocorra em cada ano: custos de compra, manutenção, saída e imposto ficam explícitos. Renda fixa mostra o valor líquido de resgate.</p></div><div style={{ display: "flex", gap: 7 }}>{(["conservador","base","otimista"] as Cenario[]).map((value) => <button key={value} onClick={() => setScenario(value)} style={{ ...button, borderColor: scenario === value ? "#d6a94f" : "#3f3f46", textTransform: "capitalize" }}>{value}</button>)}</div></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 10, margin: "12px 0" }}>{series.map((item, index) => { const key = index < chosenUnits.length ? `u:${chosenUnits[index].id}` : `i:${chosenIndicators[index-chosenUnits.length].id}`; const locked=Boolean(lockedRates[scenario][key]); return <label key={key} style={{ fontSize: 12, color: "#a1a1aa" }}>{item.name}<span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 5 }}><SlidersHorizontal size={14} /><input type="number" step="0.1" value={item.rate} disabled={locked} onChange={(event) => setScenarioValues((old) => ({ ...old, [scenario]: { ...old[scenario], [key]: n(event.target.value) } }))} style={{ width: 90, background: "#09090b", border: "1px solid #3f3f46", color: locked ? "#71717a" : "#fff", borderRadius: 6, padding: 7 }} /> % a.a.<button type="button" title={locked ? "Destravar taxa neste cenário" : "Travar taxa neste cenário"} onClick={() => setLockedRates((old) => ({ ...old, [scenario]: { ...old[scenario], [key]: !locked } }))} style={{ ...button, padding: 7, color: locked ? "#d6a94f" : "#71717a" }}>{locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button></span></label>; })}</div>
