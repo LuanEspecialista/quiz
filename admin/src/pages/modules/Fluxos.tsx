@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, CalendarDays, Check, Lock, LockOpen, Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { deliveryDate, deliveryLabelPt } from "@/lib/deliveryDate";
+import CurrencyInput from "@/components/CurrencyInput";
+import { analyzeFlow } from "@/lib/flowCompatibility";
 
-type Empreendimento = { id: string; nome?: string; cidade?: string; entrega?: string; entrega_date?: string; previsao_entrega?: string; valorizacao_aa?: number | null; diferenciais?: unknown[] };
+type Empreendimento = { id: string; nome?: string; cidade?: string; entrega?: string; entrega_date?: string; previsao_entrega?: string; valorizacao_aa?: number | null; diferenciais?: unknown[]; regras_correcao?: Record<string, unknown>; caracteristicas?: Record<string, unknown> };
 type Unidade = { id: string; codigo_unidade?: string; numero_unidade?: string; torre?: string; tipologia?: string; tipologia_dados?: Record<string, unknown>; area_privativa?: number; valor_tabela?: number; status?: string; fluxo_dados?: Record<string, unknown>; empreendimentos?: Empreendimento };
 type Indicador = { id: string; nome?: string; sku?: string; categoria?: string; valor?: number; valor_atual?: number; tributacao?: { tipo?: "isento" | "regressivo" | "fixo"; aliquota_fixa?: number; faixas?: Array<{ ate_dias?: number | null; aliquota: number }> } };
 type Cenario = "conservador" | "base" | "otimista";
@@ -12,6 +14,7 @@ const colors = ["#d6a94f", "#38bdf8", "#34d399", "#c084fc", "#fb7185", "#f97316"
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 const pct = (value: number) => `${Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% a.a.`;
 const n = (value: unknown) => Number(value) || 0;
+const firstPositive = (...values: unknown[]) => values.map(Number).find((value) => Number.isFinite(value) && value > 0) || 0;
 
 async function officialNow() {
   const { data, error } = await supabase.rpc("get_server_time");
@@ -44,6 +47,81 @@ function taxRate(indicator: Indicador | undefined, days: number) {
   if (rule?.tipo === "fixo") return n(rule.aliquota_fixa);
   const ranges = rule?.faixas?.length ? rule.faixas : [{ ate_dias: 180, aliquota: 22.5 }, { ate_dias: 360, aliquota: 20 }, { ate_dias: 720, aliquota: 17.5 }, { ate_dias: null, aliquota: 15 }];
   return n(ranges.find((range) => range.ate_dias == null || days <= range.ate_dias)?.aliquota);
+}
+
+type FlowField = "entrada" | "parcela" | "balao" | "chaves" | "posChaves";
+type NegotiatedFlow = Record<FlowField, number>;
+const flowLabels: Record<FlowField, string> = { entrada: "Entrada", parcela: "Parcela mensal", balao: "Balão", chaves: "Nas chaves", posChaves: "Pós-chaves" };
+
+function FlowTimeline({ price, months, balloonCount, flow, capital, annualRateValue }: { price: number; months: number; balloonCount: number; flow: NegotiatedFlow; capital: number; annualRateValue: number }) {
+  const width = 900, height = 270, pad = 56;
+  const balloonMonths = new Set(Array.from({ length: balloonCount }, (_, index) => Math.max(1, Math.round(((index + 1) * months) / Math.max(1, balloonCount + 1)))));
+  let contributed = flow.entrada;
+  const rows = Array.from({ length: months + 1 }, (_, month) => {
+    if (month > 0) contributed += flow.parcela;
+    if (balloonMonths.has(month)) contributed += flow.balao;
+    if (month === months) contributed += flow.chaves;
+    const propertyGross = price * Math.pow(1 + annualRateValue / 100, month / 12);
+    const debt = Math.max(0, price - contributed);
+    return { month, contributed: Math.min(price, contributed), freeCash: capital - contributed, equity: propertyGross - debt };
+  });
+  const values = rows.flatMap((row) => [row.freeCash, row.equity, row.contributed]);
+  const min = Math.min(0, ...values), max = Math.max(1, ...values);
+  const x = (month: number) => pad + month / Math.max(1, months) * (width - pad * 2);
+  const y = (value: number) => height - pad - (value - min) / Math.max(1, max - min) * (height - pad * 2);
+  const line = (key: "freeCash" | "equity" | "contributed") => rows.map((row) => `${x(row.month)},${y(row[key])}`).join(" ");
+  return <div style={{ marginTop: 14 }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "auto", display: "block" }} role="img" aria-label="Fluxo mensal de caixa, aportes e patrimônio líquido">
+      {[0,.25,.5,.75,1].map((step) => { const value=min+(max-min)*step; return <g key={step}><line x1={pad} x2={width-pad} y1={y(value)} y2={y(value)} stroke="#27272a"/><text x="3" y={y(value)+4} fill="#71717a" fontSize="10">{money(value)}</text></g>; })}
+      {Array.from(balloonMonths).map((month) => <line key={month} x1={x(month)} x2={x(month)} y1={pad-8} y2={height-pad} stroke="#f97316" strokeDasharray="3 5" opacity=".45" />)}
+      <polyline fill="none" stroke="#38bdf8" strokeWidth="3" points={line("freeCash")} />
+      <polyline fill="none" stroke="#d6a94f" strokeWidth="3" points={line("equity")} />
+      <polyline fill="none" stroke="#34d399" strokeWidth="2" strokeDasharray="6 4" points={line("contributed")} />
+      <text x={x(0)} y={height-14} textAnchor="start" fill="#71717a" fontSize="10">Entrada</text><text x={x(months)} y={height-14} textAnchor="end" fill="#71717a" fontSize="10">Chaves · {months} meses</text>
+    </svg>
+    <div style={{ display:"flex", flexWrap:"wrap", gap:14, fontSize:11, color:"#a1a1aa" }}><span><i style={{display:"inline-block",width:9,height:9,background:"#38bdf8",marginRight:5}}/>Caixa livre</span><span><i style={{display:"inline-block",width:9,height:9,background:"#d6a94f",marginRight:5}}/>Patrimônio líquido no imóvel</span><span><i style={{display:"inline-block",width:9,height:9,background:"#34d399",marginRight:5}}/>Aportes acumulados</span><span><i style={{display:"inline-block",width:9,height:2,background:"#f97316",marginRight:5}}/>Mês de balão</span></div>
+    {rows.some((row) => row.freeCash < 0) && <p style={{color:"#f87171",fontSize:11}}>O caixa disponível fica negativo neste cronograma. A negociação exige mais capital ou redistribuição dos pagamentos.</p>}
+  </div>;
+}
+
+function FlowNegotiator({ unit, availableCapital }: { unit: Unidade; availableCapital: number }) {
+  const price = n(unit.valor_tabela);
+  const analysis = analyzeFlow(unit, { entrada: price, parcela: price, balao: price });
+  const raw = unit.fluxo_dados || {};
+  const months = Math.max(1, analysis.months || 1);
+  const balloonCount = Math.max(0, analysis.balloonCount);
+  const preTarget = analysis.preKeysTarget || price;
+  const entryDefault = Math.min(preTarget, firstPositive(raw.ato, raw.entrada, price * .1));
+  const installmentDefault = firstPositive(raw.parcela_mensal, raw.valor_parcela, raw.parcela) || Math.min(2500, Math.max(0, preTarget-entryDefault) / months);
+  const postDefault = Math.max(0, price - preTarget);
+  const keysDefault = firstPositive(raw.chaves, raw.valor_chaves, raw.parcela_chaves);
+  const remainingForBalloons = Math.max(0, price - entryDefault - installmentDefault * months - keysDefault - postDefault);
+  const [values, setValues] = useState<NegotiatedFlow>({ entrada: entryDefault, parcela: installmentDefault, balao: balloonCount ? remainingForBalloons / balloonCount : 0, chaves: keysDefault, posChaves: postDefault });
+  const [locks, setLocks] = useState<Record<FlowField, boolean>>({ entrada:true, parcela:true, balao:false, chaves:true, posChaves:true });
+  const fields: FlowField[] = ["entrada","parcela","balao","chaves","posChaves"];
+  const factor = (field: FlowField) => field === "parcela" ? months : field === "balao" ? balloonCount : 1;
+  const autoField = fields.find((field) => !locks[field] && factor(field) > 0) || null;
+  const fixedTotal = fields.reduce((sum, field) => field === autoField ? sum : sum + values[field] * factor(field), 0);
+  const autoValue = autoField ? Math.max(0, (price - fixedTotal) / factor(autoField)) : 0;
+  const solved = autoField ? { ...values, [autoField]: autoValue } : values;
+  const total = fields.reduce((sum, field) => sum + solved[field] * factor(field), 0);
+  const paidBeforeKeys = solved.entrada + solved.parcela * months + solved.balao * balloonCount + solved.chaves;
+  const shortage = Math.max(0, preTarget - paidBeforeKeys);
+  const excess = Math.max(0, fixedTotal - price);
+  const valid = !shortage && !excess && Math.abs(total-price) < .02;
+  const toggleLock = (field: FlowField) => {
+    if (locks[field] && fields.filter((item) => !locks[item]).length === 1) return;
+    setValues((current) => ({ ...current, [field]: solved[field] }));
+    setLocks((current) => ({ ...current, [field]: !current[field] }));
+  };
+  const inputStyle: React.CSSProperties = { width:"100%", boxSizing:"border-box", background:"#09090b", border:"1px solid #3f3f46", color:"#fff", borderRadius:6, padding:8 };
+  return <section style={{ background:"#0b0b0d", border:"1px solid #29292e", borderRadius:9, padding:14, marginTop:12 }}>
+    <div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><div><h3 style={{fontSize:15,margin:0}}>Simulador inteligente · {unit.empreendimentos?.nome}</h3><p style={{fontSize:12,color:"#a1a1aa",margin:"5px 0 0"}}>Valor {money(price)} · mínimo até as chaves {money(preTarget)} ({(preTarget/Math.max(1,price)*100).toLocaleString("pt-BR",{maximumFractionDigits:1})}%) · {months} meses · {balloonCount} balão(ões)</p></div><span style={{alignSelf:"start",padding:"5px 9px",borderRadius:99,border:`1px solid ${valid?"#166534":shortage?"#854d0e":"#7f1d1d"}`,color:valid?"#4ade80":shortage?"#fbbf24":"#f87171",fontSize:11}}>{valid?"Fluxo fecha exatamente":shortage?`Proposta abaixo do mínimo em ${money(shortage)}`:`Excesso de ${money(excess)}`}</span></div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10,marginTop:14}}>{fields.map((field) => { const auto=field===autoField; const count=factor(field); return <div key={field} style={{border:`1px solid ${auto?"#d6a94f":"#27272a"}`,borderRadius:8,padding:10,background:auto?"#2a211333":"#121214"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}><label style={{fontSize:11,color:"#a1a1aa"}}>{flowLabels[field]}</label><button type="button" onClick={()=>toggleLock(field)} title={locks[field]?"Destravar e permitir ajuste automático":"Travar este valor"} style={{background:"transparent",border:0,color:auto?"#d6a94f":"#71717a",cursor:"pointer",padding:2}}>{locks[field]?<Lock size={14}/>:<LockOpen size={14}/>}</button></div><CurrencyInput value={solved[field]} disabled={auto} onChange={(value)=>setValues((current)=>({...current,[field]:value}))} ariaLabel={flowLabels[field]} style={{...inputStyle,marginTop:7,color:auto?"#f5d58b":"#fff"}}/><input type="range" min="0" max={Math.max(price,1)} step={1000} disabled={auto} value={Math.min(price,solved[field])} onChange={(event)=>setValues((current)=>({...current,[field]:Number(event.target.value)}))} style={{width:"100%",marginTop:8,accentColor:"#d6a94f",opacity:auto?.45:1}}/><small style={{display:"block",color:auto?"#d6a94f":"#71717a",fontSize:10}}>{auto?"AUTO · fecha o saldo":count>1?`${count} × ${money(solved[field])} = ${money(solved[field]*count)}`:"Valor total"}</small></div>; })}</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8,marginTop:12}}>{[["Pago até as chaves",paidBeforeKeys],["Saldo pós-chaves",solved.posChaves],["Total distribuído",total],["Caixa informado",availableCapital]].map(([label,value])=><div key={String(label)} style={{padding:10,border:"1px solid #27272a",borderRadius:7}}><small style={{color:"#71717a"}}>{label}</small><strong style={{display:"block",marginTop:4}}>{money(Number(value))}</strong></div>)}</div>
+    <FlowTimeline price={price} months={months} balloonCount={balloonCount} flow={solved} capital={availableCapital} annualRateValue={n(unit.empreendimentos?.valorizacao_aa)} />
+    <p style={{fontSize:11,color:shortage?"#fbbf24":"#71717a",marginBottom:0}}>{shortage?"Este desenho não atende o percentual mínimo cadastrado. Pode ser salvo apenas como proposta sujeita à aprovação da construtora.":"Trave os valores decididos pelo cliente e deixe ao menos um campo destravado. O campo AUTO absorve exatamente a diferença, sem faltar nem exceder o valor da unidade."}</p>
+  </section>;
 }
 
 function FinancialReading({ unit, indicator, years, propertyRate, indicatorRate, capital, acquisitionCost, saleCost, rentYield }: { unit: Unidade; indicator?: Indicador; years: number; propertyRate: number; indicatorRate: number; capital: number; acquisitionCost: number; saleCost: number; rentYield: number }) {
@@ -144,7 +222,7 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
   async function load() {
     setLoading(true); setError("");
     const [initialUnitResult, indicatorResult, time] = await Promise.all([
-      supabase.from("unidades").select("id,codigo_unidade,numero_unidade,torre,tipologia,tipologia_dados,area_privativa,valor_tabela,status,fluxo_dados,empreendimentos(id,nome,cidade,entrega,entrega_date,previsao_entrega,valorizacao_aa,diferenciais)").order("created_at", { ascending: false }),
+      supabase.from("unidades").select("id,codigo_unidade,numero_unidade,torre,tipologia,tipologia_dados,area_privativa,valor_tabela,status,fluxo_dados,empreendimentos(id,nome,cidade,entrega,entrega_date,previsao_entrega,valorizacao_aa,diferenciais,regras_correcao,caracteristicas)").order("created_at", { ascending: false }),
       supabase.from("indicadores").select("id,nome,sku,categoria,valor,valor_atual,tributacao").order("nome"),
       officialNow(),
     ]);
@@ -152,7 +230,7 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
     // toda a busca enquanto a migração ainda não chegou ao banco remoto.
     let unitResult: { data: unknown; error: { message: string } | null } = initialUnitResult;
     if (initialUnitResult.error && /entrega_date|schema cache|column/i.test(initialUnitResult.error.message || "")) {
-      unitResult = await supabase.from("unidades").select("id,codigo_unidade,numero_unidade,torre,tipologia,tipologia_dados,area_privativa,valor_tabela,status,fluxo_dados,empreendimentos(id,nome,cidade,entrega,previsao_entrega,valorizacao_aa,diferenciais)").order("created_at", { ascending: false });
+      unitResult = await supabase.from("unidades").select("id,codigo_unidade,numero_unidade,torre,tipologia,tipologia_dados,area_privativa,valor_tabela,status,fluxo_dados,empreendimentos(id,nome,cidade,entrega,previsao_entrega,valorizacao_aa,diferenciais,regras_correcao,caracteristicas)").order("created_at", { ascending: false });
     }
     if (unitResult.error) setError("Não foi possível carregar as unidades. Confira se as atualizações do banco foram aplicadas."); else setUnits((unitResult.data || []) as unknown as Unidade[]);
     if (indicatorResult.error) setError((current) => current || "Os indicadores financeiros estão temporariamente indisponíveis."); else setIndicators((indicatorResult.data || []) as Indicador[]);
@@ -200,7 +278,8 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
     {chosenUnits.length === 0 ? <section style={{ ...card, marginTop: 16, minHeight: 210, display: "grid", placeItems: "center", textAlign: "center", color: "#71717a" }}><div><BarChart3 size={42} style={{ margin: "0 auto 12px" }} /><strong style={{ color: "#d4d4d8" }}>Tela pronta para uma nova apresentação</strong><p>Escolha uma ou mais unidades acima para abrir fluxo, diferenças e gráficos.</p></div></section> : <>
       <section style={{ ...card, marginTop: 16 }}><h2 style={{ fontSize: 15, marginTop: 0 }}>2. Compare diferenciais e prazo</h2><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10 }}>{chosenUnits.map((unit) => <article key={unit.id} style={{ border: "1px solid #27272a", borderRadius: 8, padding: 13 }}><button title="Remover" onClick={() => toggleUnit(unit.id)} style={{ ...button, float: "right", padding: 5 }}><X size={14} /></button><strong>{unit.empreendimentos?.nome}</strong><p style={{ color: "#a1a1aa", fontSize: 13 }}>{unit.tipologia || "Tipologia não informada"} · {unit.area_privativa || "—"} m² · {unit.torre || "Torre não informada"}</p><p style={{ color: "#d6a94f", fontSize: 13 }}>{deliveryLabel(now, unit.empreendimentos?.entrega_date || unit.empreendimentos?.entrega || unit.empreendimentos?.previsao_entrega)}</p><p style={{ fontSize: 12, color: "#a1a1aa" }}>{Array.isArray(unit.empreendimentos?.diferenciais) && unit.empreendimentos!.diferenciais!.length ? unit.empreendimentos!.diferenciais!.slice(0, 4).map((value) => typeof value === "string" ? value : JSON.stringify(value)).join(" · ") : "Diferenciais ainda não cadastrados"}</p></article>)}</div></section>
       <section style={{ ...card, marginTop: 16 }}><h2 style={{ fontSize: 15, marginTop: 0 }}>3. Adicione referências financeiras</h2><p style={{ color: "#a1a1aa", fontSize: 12 }}>Os valores-base vêm de Indicadores. Alterações abaixo valem apenas nesta apresentação e não são salvas.</p><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{indicators.map((item) => <button key={item.id} onClick={() => toggleIndicator(item.id)} style={{ ...button, borderColor: selectedIndicators.includes(item.id) ? "#d6a94f" : "#3f3f46" }}>{selectedIndicators.includes(item.id) ? <Check size={13} /> : <Plus size={13} />} {item.nome || item.sku} · {pct(n(item.valor_atual ?? item.valor))}</button>)}</div></section>
-      <section style={{ ...card, marginTop: 16 }}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}><div><h2 style={{ fontSize: 15, margin: 0 }}>4. Patrimônio projetado</h2><p style={{ color: "#a1a1aa", fontSize: 12 }}>Imóveis mostram o valor líquido caso a venda ocorra em cada ano: custos de compra, manutenção, saída e imposto ficam explícitos. Renda fixa mostra o valor líquido de resgate.</p></div><div style={{ display: "flex", gap: 7 }}>{(["conservador","base","otimista"] as Cenario[]).map((value) => <button key={value} onClick={() => setScenario(value)} style={{ ...button, borderColor: scenario === value ? "#d6a94f" : "#3f3f46", textTransform: "capitalize" }}>{value}</button>)}</div></div>
+      <section style={{ ...card, marginTop: 16 }}><h2 style={{ fontSize: 15, marginTop: 0 }}>4. Negocie o fluxo por unidade</h2><p style={{ color: "#a1a1aa", fontSize: 12 }}>Caixas e sliders atuam juntos. Cadeados preservam as decisões do cliente e o campo destravado fecha o saldo automaticamente.</p>{chosenUnits.map((unit)=><FlowNegotiator key={unit.id} unit={unit} availableCapital={availableCapital}/>)}</section>
+      <section style={{ ...card, marginTop: 16 }}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}><div><h2 style={{ fontSize: 15, margin: 0 }}>5. Patrimônio projetado</h2><p style={{ color: "#a1a1aa", fontSize: 12 }}>Imóveis mostram o valor líquido caso a venda ocorra em cada ano: custos de compra, manutenção, saída e imposto ficam explícitos. Renda fixa mostra o valor líquido de resgate.</p></div><div style={{ display: "flex", gap: 7 }}>{(["conservador","base","otimista"] as Cenario[]).map((value) => <button key={value} onClick={() => setScenario(value)} style={{ ...button, borderColor: scenario === value ? "#d6a94f" : "#3f3f46", textTransform: "capitalize" }}>{value}</button>)}</div></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 10, margin: "12px 0" }}>{series.map((item, index) => { const key = index < chosenUnits.length ? `u:${chosenUnits[index].id}` : `i:${chosenIndicators[index-chosenUnits.length].id}`; const locked=Boolean(lockedRates[scenario][key]); return <label key={key} style={{ fontSize: 12, color: "#a1a1aa" }}>{item.name}<span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 5 }}><SlidersHorizontal size={14} /><input type="number" step="0.1" value={item.rate} disabled={locked} onChange={(event) => setScenarioValues((old) => ({ ...old, [scenario]: { ...old[scenario], [key]: n(event.target.value) } }))} style={{ width: 90, background: "#09090b", border: "1px solid #3f3f46", color: locked ? "#71717a" : "#fff", borderRadius: 6, padding: 7 }} /> % a.a.<button type="button" title={locked ? "Destravar taxa neste cenário" : "Travar taxa neste cenário"} onClick={() => setLockedRates((old) => ({ ...old, [scenario]: { ...old[scenario], [key]: !locked } }))} style={{ ...button, padding: 7, color: locked ? "#d6a94f" : "#71717a" }}>{locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button></span></label>; })}</div>
         <label style={{ color: "#a1a1aa", fontSize: 12 }}>Horizonte: <select value={years} onChange={(event) => setYears(Number(event.target.value))} style={{ ...button, marginLeft: 7 }}>{[1,2,3,5,10].map((value) => <option key={value} value={value}>{value} {value === 1 ? "ano" : "anos"}</option>)}</select></label>
         <ProjectionChart series={series} years={years} />

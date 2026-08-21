@@ -54,15 +54,8 @@ const parseTipologia = (unit: any): TipologiaInfo => {
 
 type InitialSmartFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean; prazoMeses: number };
 const initialMoney = (value?: number) => value ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value) : "";
-const MONEY_FILTER_LIMIT = 10_000_000;
-const MONEY_FILTER_STEP = 20_000;
-
 function MoneyRangeFilter({ label, minRaw, maxRaw, onMinChange, onMaxChange }: { label: string; minRaw: string; maxRaw: string; onMinChange: (value: string) => void; onMaxChange: (value: string) => void }) {
-  const toNumber = (value: string) => Number(value.replace(/\D/g, "")) / 100 || 0;
-  const toMoney = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   const normalizeInput = (value: string) => value.replace(/\D/g, "") ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value.replace(/\D/g, "")) / 100) : "";
-  const min = Math.min(toNumber(minRaw), MONEY_FILTER_LIMIT);
-  const max = Math.max(min, Math.min(toNumber(maxRaw) || MONEY_FILTER_LIMIT, MONEY_FILTER_LIMIT));
   const inputStyle: React.CSSProperties = { width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" };
   return <div style={{ display: "grid", gap: 6 }}>
     <label style={{ fontSize: "0.7rem", color: "#71717a" }}>{label}</label>
@@ -70,11 +63,7 @@ function MoneyRangeFilter({ label, minRaw, maxRaw, onMinChange, onMaxChange }: {
       <input type="text" inputMode="numeric" placeholder="De" value={minRaw} onChange={(event) => onMinChange(normalizeInput(event.target.value))} style={inputStyle} />
       <input type="text" inputMode="numeric" placeholder="Até" value={maxRaw} onChange={(event) => onMaxChange(normalizeInput(event.target.value))} style={inputStyle} />
     </div>
-    <div style={{ display: "grid", gap: 2 }}>
-      <input aria-label={`${label} de`} type="range" min="0" max={MONEY_FILTER_LIMIT} step={MONEY_FILTER_STEP} value={min} onChange={(event) => onMinChange(toMoney(Math.min(Number(event.target.value), max)))} />
-      <input aria-label={`${label} até`} type="range" min="0" max={MONEY_FILTER_LIMIT} step={MONEY_FILTER_STEP} value={max} onChange={(event) => onMaxChange(toMoney(Math.max(Number(event.target.value), min)))} />
-    </div>
-    <small style={{ color: "#52525b", fontSize: "0.62rem" }}>0 a R$ 10 mi · controles de R$ 20 mil; digite um valor exato se necessário.</small>
+    <small style={{ color: "#52525b", fontSize: "0.62rem" }}>Digite os limites exatos em reais. Deixe vazio quando não quiser limitar.</small>
   </div>;
 }
 
