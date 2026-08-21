@@ -73,33 +73,36 @@ function ConsortiumGuarantee({ propertyValue, acceptedPct, existingDebt, consort
 
 function ProjectionChart({ series, years }: { series: Array<{ name: string; rate: number; capital: number; indicator?: Indicador; kind?: "imovel" | "indicador"; acquisitionCost?: number; saleCost?: number; holdingCost?: number; capitalGainsTax?: number; rentYield?: number }>; years: number }) {
   const width = 900, height = 330, pad = 58;
-  const points = series.map((item) => ({ ...item, values: Array.from({ length: years + 1 }, (_, year) => {
+  const totalMonths = Math.max(12, years * 12);
+  const points = series.map((item) => ({ ...item, values: Array.from({ length: totalMonths + 1 }, (_, month) => {
+    const elapsedYears = month / 12;
     if (item.kind === "imovel") {
       const initial = item.capital * (1 + n(item.acquisitionCost) / 100);
-      if (year === 0) return initial;
-      const gross = item.capital * Math.pow(1 + item.rate / 100, year);
+      if (month === 0) return initial;
+      const gross = item.capital * Math.pow(1 + item.rate / 100, elapsedYears);
       const saleExpense = gross * n(item.saleCost) / 100;
       const gain = Math.max(0, gross - item.capital - saleExpense - item.capital * n(item.acquisitionCost) / 100);
       const capitalGains = gain * n(item.capitalGainsTax) / 100;
-      const rent = gross * n(item.rentYield) / 100 * 12 * year;
-      const holding = gross * n(item.holdingCost) / 100 * year;
-      // Valor líquido se a venda acontecesse naquele ano: custos e imposto não ficam escondidos.
+      const rent = gross * n(item.rentYield) / 100 * month;
+      const holding = gross * n(item.holdingCost) / 100 * elapsedYears;
+      // Valor líquido de liquidação em cada mês: a curva muda quando custos,
+      // renda e tributação passam a produzir efeito, sem ruído artificial.
       return gross - saleExpense - capitalGains + rent - holding;
     }
-    const gross = item.capital * Math.pow(1 + item.rate / 100, year);
+    const gross = item.capital * Math.pow(1 + item.rate / 100, elapsedYears);
     const gain = gross - item.capital;
     // Para renda fixa, mostra o resgate líquido em cada data (IR no saque, não mensalmente).
-    return item.capital + gain * (1 - taxRate(item.indicator, year * 365) / 100);
+    return item.capital + gain * (1 - taxRate(item.indicator, Math.round(month * 30.4375)) / 100);
   }) }));
   const min = Math.min(...points.flatMap((item) => item.values), 0);
   const max = Math.max(...points.flatMap((item) => item.values), 1);
-  const x = (year: number) => pad + (year / Math.max(1, years)) * (width - pad * 2);
+  const x = (month: number) => pad + (month / totalMonths) * (width - pad * 2);
   const y = (value: number) => height - pad - ((value - min) / Math.max(1, max - min)) * (height - pad * 2);
   return <div style={{ width: "100%", overflowX: "hidden" }}>
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", maxWidth: 980, height: "auto", display: "block" }} role="img" aria-label="Comparação de crescimento com capital inicial igual">
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", maxWidth: 980, height: "auto", display: "block" }} role="img" aria-label="Evolução mensal do patrimônio líquido projetado">
       {[0, .25, .5, .75, 1].map((step) => { const value = min + (max - min) * step; return <g key={step}><line x1={pad} x2={width-pad} y1={y(value)} y2={y(value)} stroke="#27272a" /><text x={4} y={y(value)+4} fill="#71717a" fontSize="11">{money(value)}</text></g>; })}
-      {points.map((item, index) => <polyline key={item.name} fill="none" stroke={colors[index % colors.length]} strokeWidth="3" points={item.values.map((value, year) => `${x(year)},${y(value)}`).join(" ")} />)}
-      {Array.from({ length: years + 1 }, (_, year) => <text key={year} x={x(year)} y={height-14} textAnchor="middle" fill="#71717a" fontSize="11">{year === 0 ? "Hoje" : `${year}a`}</text>)}
+      {points.map((item, index) => <polyline key={item.name} fill="none" stroke={colors[index % colors.length]} strokeWidth="3" points={item.values.map((value, month) => `${x(month)},${y(value)}`).join(" ")} />)}
+      {Array.from({ length: years + 1 }, (_, year) => <text key={year} x={x(year * 12)} y={height-14} textAnchor="middle" fill="#71717a" fontSize="11">{year === 0 ? "Hoje" : `${year}a`}</text>)}
     </svg>
     <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>{points.map((item, index) => { const final = item.values[item.values.length-1]; return <span key={item.name} style={{ color: "#d4d4d8", fontSize: 12 }}><i style={{ display: "inline-block", width: 9, height: 9, borderRadius: 9, background: colors[index % colors.length], marginRight: 6 }} />{item.name}: patrimônio {money(final)} · ganho {money(final-item.capital)}{item.indicator ? " líquido" : " projetado"}</span>; })}</div>
   </div>;
@@ -140,11 +143,17 @@ export function Fluxos({ initialUnitIds = [] }: { initialUnitIds?: string[] }) {
 
   async function load() {
     setLoading(true); setError("");
-    const [unitResult, indicatorResult, time] = await Promise.all([
+    const [initialUnitResult, indicatorResult, time] = await Promise.all([
       supabase.from("unidades").select("id,codigo_unidade,numero_unidade,torre,tipologia,tipologia_dados,area_privativa,valor_tabela,status,fluxo_dados,empreendimentos(id,nome,cidade,entrega,entrega_date,previsao_entrega,valorizacao_aa,diferenciais)").order("created_at", { ascending: false }),
       supabase.from("indicadores").select("id,nome,sku,categoria,valor,valor_atual,tributacao").order("nome"),
       officialNow(),
     ]);
+    // Compatibilidade durante a implantação: uma coluna nova não pode derrubar
+    // toda a busca enquanto a migração ainda não chegou ao banco remoto.
+    let unitResult: { data: unknown; error: { message: string } | null } = initialUnitResult;
+    if (initialUnitResult.error && /entrega_date|schema cache|column/i.test(initialUnitResult.error.message || "")) {
+      unitResult = await supabase.from("unidades").select("id,codigo_unidade,numero_unidade,torre,tipologia,tipologia_dados,area_privativa,valor_tabela,status,fluxo_dados,empreendimentos(id,nome,cidade,entrega,previsao_entrega,valorizacao_aa,diferenciais)").order("created_at", { ascending: false });
+    }
     if (unitResult.error) setError("Não foi possível carregar as unidades. Confira se as atualizações do banco foram aplicadas."); else setUnits((unitResult.data || []) as unknown as Unidade[]);
     if (indicatorResult.error) setError((current) => current || "Os indicadores financeiros estão temporariamente indisponíveis."); else setIndicators((indicatorResult.data || []) as Indicador[]);
     setNow(time.date); setOfficial(time.official); setLoading(false);
