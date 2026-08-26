@@ -5,6 +5,7 @@ import { applyExchangeRate, getExchangeRate, isUsdBrlIndicator } from "../../lib
 import { getCryptoIndicators } from "../../lib/cryptoRates";
 import { getEuroIndicator, isEuroIndicator } from "../../lib/fiatRates";
 import LanguageSelector from "../LanguageSelector";
+import { formatCurrency, useTranslation } from "../../lib/i18n";
 
 interface HeaderProps {
   userName?: string;
@@ -14,6 +15,7 @@ interface HeaderProps {
 }
 
 export function Header({ userName, role = "admin", setActiveTab, onTickerSelect }: HeaderProps) {
+  const { locale, t } = useTranslation();
   const [indicadores, setIndicadores] = useState<any[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [displayName, setDisplayName] = useState(userName || "");
@@ -70,14 +72,14 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
     if (val === undefined || val === null) return "—";
     const categoria = cat ? cat.toUpperCase() : "";
     if (categoria === "MOEDA" || categoria.includes("DÓLAR")) {
-      return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return formatCurrency(val, locale);
     }
     if (categoria === "IMOBILIARIO_M2") {
       if (val <= 0) return "A definir";
-      return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/m²`;
+      return `${formatCurrency(val, locale)}/m²`;
     }
-    if (categoria === "CRIPTO") return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    return `${val.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}%`;
+    if (categoria === "CRIPTO") return formatCurrency(val, locale);
+    return `${val.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
   };
 
   const saveDisplayName = async () => {
@@ -95,7 +97,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
       position: "fixed",
       top: 0,
       right: 0,
-      left: "250px",
+      left: "var(--sidebar-width, 250px)",
       height: "56px",
       backgroundColor: "#0d0d0d",
       borderBottom: "1px solid #1f1f23",
@@ -130,19 +132,19 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
       <div className="app-header-ticker" style={{ flex: 1, display: "flex", alignItems: "center", overflow: "hidden", height: "100%", marginRight: "1.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", paddingRight: "0.8rem", color: "#c5a059", fontWeight: "bold", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
           <Zap style={{ width: "13px", height: "13px" }} />
-          <span className="app-header-market-label">Mercado</span><span title="Indicadores com fontes e datas diferentes" style={{ width: 6, height: 6, borderRadius: "50%", background: "#c5a059", boxShadow: "0 0 8px #c5a059" }} />
+          <span className="app-header-market-label">{t("market")}</span><span title="Indicadores com fontes e datas diferentes" style={{ width: 6, height: 6, borderRadius: "50%", background: "#c5a059", boxShadow: "0 0 8px #c5a059" }} />
         </div>
 
         <div style={{ overflow: "hidden", width: "100%", height: "100%", display: "flex", alignItems: "center" }}>
           {indicadores.length === 0 ? (
-            <span style={{ color: "#52525b", fontSize: "0.72rem" }}>Sem indicadores ao vivo</span>
+            <span style={{ color: "#52525b", fontSize: "0.72rem" }}>{t("liveIndicators")}</span>
           ) : (
             <div className="header-ticker-track">
               {[...indicadores, ...indicadores].map((ind, idx) => (
                 <div
                   key={`${ind.id}-${idx}`}
                   onClick={() => onTickerSelect && onTickerSelect(ind)}
-                  title={`${ind.indexador_base || "Fonte não informada"}${ind.data_atualizacao ? ` · Atualizado em ${ind.data_atualizacao}` : " · Sem data de atualização"}`}
+                  title={`${ind.indexador_base || t("sourceNotProvided")}${ind.data_atualizacao ? ` · ${t("updatedAt")} ${ind.data_atualizacao}` : ` · ${t("noUpdateDate")}`}`}
                   style={{
                     cursor: "pointer",
                     display: "flex",
@@ -159,7 +161,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
                 >
                   <span style={{ color: "#8b8b95", textTransform: "uppercase", fontSize: "0.62rem", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>{ind.nome}</span>
                   <strong style={{ color: "#fff", fontFamily: "ui-monospace, Consolas, monospace", whiteSpace: "nowrap" }}>{formatValor(ind.valor_atual ?? ind.valor, ind.categoria)}</strong>
-                  {ind.tendencia > 0 ? <ArrowUpRight aria-label="Alta" style={{ width: "11px", height: "11px", color: "#22c55e" }} /> : ind.tendencia < 0 ? <ArrowDownRight aria-label="Baixa" style={{ width: "11px", height: "11px", color: "#ef4444" }} /> : <Minus aria-label="Sem histórico comparável" style={{ width: "11px", height: "11px", color: "#71717a" }} />}
+                  {ind.tendencia > 0 ? <ArrowUpRight aria-label={t("increase")} style={{ width: "11px", height: "11px", color: "#22c55e" }} /> : ind.tendencia < 0 ? <ArrowDownRight aria-label={t("decrease")} style={{ width: "11px", height: "11px", color: "#ef4444" }} /> : <Minus aria-label={t("noComparableHistory")} style={{ width: "11px", height: "11px", color: "#71717a" }} />}
                 </div>
               ))}
             </div>
@@ -207,7 +209,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
             zIndex: 100
           }}>
             <div style={{ padding: ".45rem .5rem .6rem", borderBottom: "1px solid #27272a", marginBottom: 4 }}>
-              <label style={{ display: "block", color: "#71717a", fontSize: 10, marginBottom: 5 }}>Nome de exibição</label>
+              <label style={{ display: "block", color: "#71717a", fontSize: 10, marginBottom: 5 }}>{t("displayName")}</label>
               <div style={{ display: "flex", gap: 5 }}>
                 <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void saveDisplayName(); }} style={{ minWidth: 0, flex: 1, background: "#18181b", border: "1px solid #34343a", color: "#fff", borderRadius: 5, padding: "7px 8px", fontSize: 12 }} />
                 <button onClick={() => void saveDisplayName()} disabled={savingName || !displayName.trim()} title="Salvar nome" style={{ border: "1px solid #4a3a20", borderRadius: 5, background: "#211c13", color: "#d7ab63", padding: "0 8px", cursor: "pointer" }}><Save size={13} /></button>
@@ -234,9 +236,9 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
               }}
             >
               <Settings style={{ width: "14px", height: "14px", color: "#c5a059" }} />
-              Configurações
+              {t("settings")}
             </button>}
-            <button onClick={() => void supabase.auth.signOut()} style={{ width: "100%", background: "none", border: "none", color: "#a1a1aa", display: "flex", alignItems: "center", gap: ".5rem", padding: ".5rem", fontSize: ".78rem", cursor: "pointer", borderRadius: 4 }}><LogOut size={14} /> Sair</button>
+            <button onClick={() => void supabase.auth.signOut()} style={{ width: "100%", background: "none", border: "none", color: "#a1a1aa", display: "flex", alignItems: "center", gap: ".5rem", padding: ".5rem", fontSize: ".78rem", cursor: "pointer", borderRadius: 4 }}><LogOut size={14} /> {t("signOut")}</button>
           </div>
         )}
       </div>

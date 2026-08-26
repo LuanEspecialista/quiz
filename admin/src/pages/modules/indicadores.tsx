@@ -232,11 +232,12 @@ export default function Indicadores() {
       const rate = await refreshExchangeRate();
       setExchangeRate(rate);
       setIndicadores((current) => applyExchangeRate(current, rate));
-      setRateFeedback({type:"success",message:`PTAX atualizada para ${rate ? `R$ ${rate.value.toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})}` : "a última cotação válida"} · ${rate?.date || "data não informada"}.`});
+      const origem = rate?.official === false ? "Cotação atualizada pela fonte de contingência" : "PTAX atualizada";
+      setRateFeedback({type:"success",message:`${origem} para ${rate ? `R$ ${rate.value.toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})}` : "a última cotação válida"} · ${rate?.date || "data não informada"}.${rate?.official === false ? " A tentativa oficial será repetida automaticamente." : ""}`});
       window.dispatchEvent(new Event("luan:cotacao-atualizada"));
     } catch (error) {
       console.error("Erro ao atualizar cotação:", error);
-      setRateFeedback({type:"error",message:`Falha na atualização: ${error instanceof Error ? error.message : String(error)} A última cotação válida continuará em uso.`});
+      setRateFeedback({type:"error",message:"Não foi possível atualizar o dólar agora. A última cotação válida continua em uso; tente novamente em alguns minutos."});
     } finally {
       setRefreshingRate(false);
     }

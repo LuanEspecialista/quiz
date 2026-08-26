@@ -17,10 +17,11 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldAlert,
-  Calendar
+  Calendar,
+  Plus
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { analyzeFlow, monthsUntilDelivery } from "../../lib/flowCompatibility";
+import { analyzeFlow, getCommercialFlowProfile, monthsUntilDelivery } from "../../lib/flowCompatibility";
 import { parseStandardTypology } from "../../lib/realEstateStandard";
 import CurrencyInput from "../../components/CurrencyInput";
 
@@ -75,6 +76,14 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [ordenacao, setOrdenacao] = useState<"compatibilidade" | "recente" | "preco_crescente" | "preco_decrescente" | "area_decrescente" | "nome">("compatibilidade");
+  const [filtrosAvancados, setFiltrosAvancados] = useState(false);
+  const [fluxosSelecionados, setFluxosSelecionados] = useState<string[]>([]);
+  const [newUnitOpen, setNewUnitOpen] = useState(false);
+  const [newUnitSaving, setNewUnitSaving] = useState(false);
+  const [newUnitError, setNewUnitError] = useState("");
+  const [enterpriseOptions, setEnterpriseOptions] = useState<Array<{ id: string; nome: string }>>([]);
+  const [newUnitForm, setNewUnitForm] = useState<any>({ empreendimento_id: empreendimentoId || "", numero: "", torre: "", andar: "", tipologia: "", dormitorios: 0, suites: 0, vagas: 0, area_privativa: "", valor_tabela: 0, entrada_sugerida: 0, status: "disponivel", vista: "", observacoes: "" });
 
   // Estado temporário para edição rápida
   const [editForm, setEditForm] = useState<any>({});
@@ -84,7 +93,8 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState(filtrosIniciais?.cidade || "");
-  const [disponibilidade, setDisponibilidade] = useState(disponibilidadeInicial || "TODAS");
+  // O padrão comercial é ver disponibilidade; ele não abre o estoque até haver pesquisa.
+  const [disponibilidade, setDisponibilidade] = useState(disponibilidadeInicial || "DISPONIVEL");
   const [tipologia, setTipologia] = useState(tipologiaInicial || (filtrosIniciais?.dormitorios ? `DORM:${filtrosIniciais.dormitorios}` : "TODAS"));
   const [suitesMinimas, setSuitesMinimas] = useState("0");
   const [composicaoExata, setComposicaoExata] = useState(false);
@@ -113,18 +123,23 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      if (newUnitOpen) {
+        setNewUnitOpen(false);
+        return;
+      }
       if (editingId !== null) {
         setEditingId(null);
         setEditForm({});
         return;
       }
       setSearchTerm("");
-      setDisponibilidade("TODAS");
+      setDisponibilidade(disponibilidadeInicial || "DISPONIVEL");
       setTipologia("TODAS");
       setSuitesMinimas("0");
       setComposicaoExata(false);
       setIncluirCompactos(false);
       setVagasFiltro("TODAS");
+      setFluxosSelecionados([]);
       setEntradaMinRaw(""); setEntradaMaxRaw("");
       setParcelaMinRaw(""); setParcelaMaxRaw("");
       setBalaoMinRaw(""); setBalaoMaxRaw("");
@@ -137,7 +152,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editingId]);
+  }, [editingId, newUnitOpen, disponibilidadeInicial]);
 
   const fetchUnidades = async () => {
     setLoading(true);
@@ -151,10 +166,14 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
         query = query.eq("empreendimento_id", empreendimentoId);
       }
 
-      const { data, error } = await query;
+      const [{ data, error }, enterprises] = await Promise.all([
+        query,
+        supabase.from("empreendimentos").select("id,nome").order("nome"),
+      ]);
 
       if (error) throw error;
       if (data) setUnidades(data);
+      if (!enterprises.error) setEnterpriseOptions((enterprises.data || []) as Array<{ id: string; nome: string }>);
     } catch (err) {
       console.error("Erro ao buscar unidades:", err);
     } finally {
@@ -295,6 +314,54 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     return Number(u.entrada_sugerida || u.entrada || u.fluxo_dados?.ato || 0);
   };
 
+  const openNewUnit = () => {
+    setNewUnitError("");
+    setNewUnitForm({ empreendimento_id: empreendimentoId || enterpriseOptions[0]?.id || "", numero: "", torre: "", andar: "", tipologia: "", dormitorios: 0, suites: 0, vagas: 0, area_privativa: "", valor_tabela: 0, entrada_sugerida: 0, status: "disponivel", vista: "", observacoes: "" });
+    setNewUnitOpen(true);
+  };
+
+  const saveNewUnit = async () => {
+    const numero = String(newUnitForm.numero || "").trim();
+    const empreendimento = String(newUnitForm.empreendimento_id || "").trim();
+    const valor = Number(newUnitForm.valor_tabela || 0);
+    if (!empreendimento || !numero || valor <= 0) {
+      setNewUnitError("Informe empreendimento, identificação da unidade e valor de tabela maior que zero.");
+      return;
+    }
+    const duplicate = unidades.some((item) => String(item.empreendimento_id || "") === empreendimento && String(item.numero || item.numero_unidade || item.codigo_unidade || "").trim().toLowerCase() === numero.toLowerCase());
+    if (duplicate) {
+      setNewUnitError("Já existe uma unidade com esta identificação neste empreendimento. Edite a existente para evitar duplicidade.");
+      return;
+    }
+    setNewUnitSaving(true); setNewUnitError("");
+    const payload = {
+      empreendimento_id: empreendimento,
+      numero,
+      numero_unidade: numero,
+      codigo_unidade: numero,
+      torre: String(newUnitForm.torre || "").trim() || null,
+      andar: sanitizeAndar(newUnitForm.andar, numero),
+      tipologia: String(newUnitForm.tipologia || "").trim() || null,
+      dormitorios: Math.max(0, Number(newUnitForm.dormitorios) || 0),
+      quartos: Math.max(0, Number(newUnitForm.dormitorios) || 0),
+      suites: Math.max(0, Number(newUnitForm.suites) || 0),
+      vagas: Math.max(0, Number(newUnitForm.vagas) || 0),
+      area_privativa: Number(newUnitForm.area_privativa) || null,
+      valor_tabela: valor,
+      entrada_sugerida: Number(newUnitForm.entrada_sugerida) || 0,
+      status: newUnitForm.status || "disponivel",
+      vista: String(newUnitForm.vista || "").trim() || null,
+      observacoes: String(newUnitForm.observacoes || "").trim() || null,
+      tipologia_dados: { origem: "manual", dormitorios: Math.max(0, Number(newUnitForm.dormitorios) || 0), suites: Math.max(0, Number(newUnitForm.suites) || 0), nome_original: String(newUnitForm.tipologia || "").trim() || null },
+      fluxo_dados: { ato: Number(newUnitForm.entrada_sugerida) || 0, origem: "cadastro_manual" },
+    };
+    const { error } = await supabase.from("unidades").insert(payload);
+    setNewUnitSaving(false);
+    if (error) { setNewUnitError(error.message); return; }
+    setNewUnitOpen(false);
+    await fetchUnidades();
+  };
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val || 0);
   };
@@ -370,17 +437,19 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       matchesVagas = numVagas >= 3;
     }
 
-    // A capacidade financeira ajuda a ordenar e explicar, mas não elimina uma
-    // unidade quando o cadastro comercial está incompleto ou inconsistente.
-    // Os limites explícitos abaixo continuam sendo respeitados quando existem.
-    const matchesFinancial = true;
-    // Valores da tabela são uma referência comercial, não um veto: o motor
-    // redistribui entrada, parcelas e balões dentro da capacidade do cliente.
-    const matchesPaymentRange = true;
+    const limits = { entrada: parseCurrencyValue(entradaMaxRaw), parcela: parseCurrencyValue(parcelaMaxRaw), balao: parseCurrencyValue(balaoMaxRaw) };
+    const hasFinancialLimits = limits.entrada > 0 || limits.parcela > 0 || limits.balao > 0;
+    // Com limites financeiros informados, o estoque só pode mostrar o que fecha
+    // ou o que está próximo o bastante para uma proposta formal. Dados ausentes
+    // e fluxos incompatíveis não viram resultado comercial por acidente.
+    const flowResult = hasFinancialLimits ? analyzeFlow(u, limits) : null;
+    const matchesFinancial = !flowResult || flowResult.status === "compativel" || flowResult.status === "proposta";
+    const flowProfile = getCommercialFlowProfile(u)?.label || null;
+    const matchesFlowProfile = fluxosSelecionados.length === 0 || (flowProfile !== null && fluxosSelecionados.includes(flowProfile));
 
     const emp = u.empreendimentos || {};
     const mesesAteEntrega = monthsUntilDelivery(emp.entrega || emp.previsao_entrega || emp.data_entrega || u.data_entrega || u.data_entrega_unidade);
-    const matchesPrazo = prazoMeses === 0 || (mesesAteEntrega > 0 && mesesAteEntrega <= prazoMeses + 6);
+    const matchesPrazo = prazoMeses === 0 || (mesesAteEntrega > 0 && mesesAteEntrega <= prazoMeses);
 
     const valTabela = Number(u.valor_tabela || u.preco || 0);
     const minTab = parseCurrencyValue(valorTabelaMinRaw);
@@ -389,7 +458,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       (minTab === 0 || valTabela >= minTab) && 
       (maxTab === 0 || valTabela <= maxTab);
 
-    return matchesSearch && matchesDisp && matchesTipo && matchesVagas && matchesFinancial && matchesPaymentRange && matchesTabela && matchesPrazo;
+    return matchesSearch && matchesDisp && matchesTipo && matchesVagas && matchesFinancial && matchesFlowProfile && matchesTabela && matchesPrazo;
   });
 
   const unidadesCompativeis = filtrarUnidades(false);
@@ -397,7 +466,15 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   const filteredUnidades = [...(usandoCompactosComoAlternativa ? filtrarUnidades(true) : unidadesCompativeis)].sort((a, b) => {
     const limits={entrada:parseCurrencyValue(entradaMaxRaw),parcela:parseCurrencyValue(parcelaMaxRaw),balao:parseCurrencyValue(balaoMaxRaw)};
     const hasCapacity=limits.entrada>0||limits.parcela>0||limits.balao>0;
-    const financialRank=(unit:any)=>{if(!hasCapacity)return 0;const result=analyzeFlow(unit,limits);if(result.status==="compativel")return 0;const price=Number(unit.valor_tabela||unit.preco||0);const coverage=price>0?result.capacity/price:0;return result.status==="incompleto"||coverage>=.2?1:2};
+    const financialRank=(unit:any)=>{if(!hasCapacity)return 0;const result=analyzeFlow(unit,limits);return result.status==="compativel"?0:result.status==="proposta"?1:2};
+    const priceOf=(unit:any)=>Number(unit.valor_tabela||unit.preco||0);
+    const areaOf=(unit:any)=>Number(unit.area_privativa||unit.area||0);
+    const tableDateOf=(unit:any)=>new Date(unit.tabela_atualizada_em||unit.updated_at||unit.created_at||0).getTime()||0;
+    if(ordenacao==="preco_crescente")return priceOf(a)-priceOf(b);
+    if(ordenacao==="preco_decrescente")return priceOf(b)-priceOf(a);
+    if(ordenacao==="area_decrescente")return areaOf(b)-areaOf(a) || priceOf(a)-priceOf(b);
+    if(ordenacao==="recente")return tableDateOf(b)-tableDateOf(a);
+    if(ordenacao==="nome")return `${a.empreendimentos?.nome||""} ${a.codigo_unidade||a.numero_unidade||""}`.localeCompare(`${b.empreendimentos?.nome||""} ${b.codigo_unidade||b.numero_unidade||""}`,"pt-BR");
     const rankDifference=financialRank(a)-financialRank(b);
     if(rankDifference)return rankDifference;
     if (!prazoMeses) return Number(a.valor_tabela||a.preco||0)-Number(b.valor_tabela||b.preco||0);
@@ -415,12 +492,12 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   // menos um critério de busca. Isso reduz ruído e protege a informação comercial.
   const hasActiveSearch = Boolean(
     searchTerm.trim() ||
-    disponibilidade !== "TODAS" ||
     tipologia !== "TODAS" ||
     suitesMinimas !== "0" ||
     composicaoExata ||
     incluirCompactos ||
     vagasFiltro !== "TODAS" ||
+    fluxosSelecionados.length > 0 ||
     entradaMinRaw || entradaMaxRaw || parcelaMinRaw || parcelaMaxRaw ||
     balaoMinRaw || balaoMaxRaw || valorTabelaMinRaw || valorTabelaMaxRaw ||
     prazoMeses > 0
@@ -428,12 +505,13 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
 
   const clearFilters = () => {
     setSearchTerm("");
-    setDisponibilidade("TODAS");
+    setDisponibilidade(disponibilidadeInicial || "DISPONIVEL");
     setTipologia("TODAS");
     setSuitesMinimas("0");
     setComposicaoExata(false);
     setIncluirCompactos(false);
     setVagasFiltro("TODAS");
+    setFluxosSelecionados([]);
     setEntradaMinRaw(""); setEntradaMaxRaw("");
     setParcelaMinRaw(""); setParcelaMaxRaw("");
     setBalaoMinRaw(""); setBalaoMaxRaw("");
@@ -446,6 +524,8 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   };
 
   const visibleUnidades = filteredUnidades.slice(0, visibleCount);
+  const flowProfilesDisponiveis = Array.from(new Set(unidades.map((unit) => getCommercialFlowProfile(unit)?.label).filter(Boolean) as string[]))
+    .sort((a, b) => Number(a.split("/")[0]) - Number(b.split("/")[0]));
   return (
     <div style={{ color: "#e4e4e7", fontFamily: "sans-serif", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "1.25rem", position: "relative", paddingBottom: "5rem" }}>
       
@@ -464,7 +544,24 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
           {empreendimentoId && <a href="/painel/?tab=unidades" style={{ color: "#c5a059", fontSize: "0.72rem", textDecoration: "none", display: "inline-block", marginTop: 5 }}>Ver unidades de todos os empreendimentos</a>}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button onClick={openNewUnit} style={{ background: "#c5a059", border: "1px solid #e0bb73", color: "#111", padding: "0.45rem 0.65rem", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontWeight: 700 }}><Plus size={14} /> Nova unidade</button>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#a1a1aa", fontSize: "0.72rem" }}>
+            Ordenar
+            <select
+              value={ordenacao}
+              onChange={(event) => { setOrdenacao(event.target.value as typeof ordenacao); setVisibleCount(12); }}
+              aria-label="Ordenar unidades"
+              style={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 6, color: "#e4e4e7", padding: "0.42rem 0.55rem", fontSize: "0.72rem", cursor: "pointer" }}
+            >
+              <option value="compatibilidade">Mais compatíveis</option>
+              <option value="recente">Tabela mais recente</option>
+              <option value="preco_crescente">Menor valor</option>
+              <option value="preco_decrescente">Maior valor</option>
+              <option value="area_decrescente">Maior área</option>
+              <option value="nome">Nome (A-Z)</option>
+            </select>
+          </label>
           <div style={{ backgroundColor: "#121212", border: "1px solid #27272a", borderRadius: "6px", display: "flex", padding: "0.2rem" }}>
             <button 
               onClick={() => setViewMode("list")}
@@ -491,13 +588,17 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
 
       {/* PAINEL DE FILTROS */}
       <div style={{ backgroundColor: "#121212", border: "1px solid #1f1f23", borderRadius: "8px", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
           <span style={{ fontSize: "0.7rem", fontWeight: "bold", color: "#c5a059", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "0.3rem" }}>
             <Filter style={{ width: "12px", height: "12px" }} /> Filtros Dinâmicos
           </span>
           
-          <span style={{ marginLeft: "auto", marginRight: 10, color: "#22c55e", fontSize: "0.68rem" }}>Busca automática</span>
-          {(searchTerm || disponibilidade !== "TODAS" || tipologia !== "TODAS" || suitesMinimas !== "0" || composicaoExata || incluirCompactos || vagasFiltro !== "TODAS" || entradaMinRaw || entradaMaxRaw || parcelaMinRaw || parcelaMaxRaw || balaoMinRaw || balaoMaxRaw || valorTabelaMinRaw || valorTabelaMaxRaw || prazoMeses > 0) && (
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          <span style={{ color: "#22c55e", fontSize: "0.68rem" }}>Busca automática</span>
+          <button type="button" onClick={() => setFiltrosAvancados((value) => !value)} style={{ background: "#18181b", border: "1px solid #3f3f46", color: "#d4d4d8", borderRadius: 5, padding: "0.3rem 0.5rem", cursor: "pointer", fontSize: "0.68rem", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            {filtrosAvancados ? <ChevronUp size={13} /> : <ChevronDown size={13} />} {filtrosAvancados ? "Ocultar avançados" : "Mais filtros"}
+          </button>
+          {hasActiveSearch && (
             <button 
               onClick={clearFilters} 
               style={{ background: "none", border: "none", color: "#ef4444", fontSize: "0.7rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
@@ -505,9 +606,10 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
               <X style={{ width: "12px", height: "12px" }} /> Limpar Filtros
             </button>
           )}
+          </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.75rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: "0.65rem", alignItems: "end" }}>
           {/* Busca curta: o campo também encontra empreendimento e cidade. */}
           <div>
             <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Código</label>
@@ -564,20 +666,25 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             </select>
           </div>
 
+          <div>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Vagas</label>
+            <select value={vagasFiltro} onChange={(e) => { setVagasFiltro(e.target.value); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem" }}>
+              <option value="TODAS">Qualquer quantidade</option><option value="1">1 Vaga</option><option value="2">2 Vagas</option><option value="3+">3+ Vagas</option>
+            </select>
+          </div>
+
+          {filtrosAvancados && <div style={{ gridColumn: "1 / -1", paddingTop: "0.65rem", marginTop: "0.1rem", borderTop: "1px solid #27272a", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "0.75rem", alignItems: "end" }}>
           <label style={{ fontSize: "0.7rem", color: tipologia === "TODAS" || tipologia === "STUDIO" ? "#52525b" : "#a1a1aa", display: "flex", alignItems: "center", gap: 7, alignSelf: "end", minHeight: 31 }} title="Exemplo: 3 dormitórios e 2 suítes mostra apenas essa composição."><input type="checkbox" disabled={tipologia === "TODAS" || tipologia === "STUDIO"} checked={composicaoExata} onChange={(e) => { setComposicaoExata(e.target.checked); setVisibleCount(12); }} /> Composição exata</label>
 
-          <div>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Vagas de Garagem</label>
-            <select 
-              value={vagasFiltro} 
-              onChange={(e) => { setVagasFiltro(e.target.value); setVisibleCount(12); }}
-              style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem" }}
-            >
-              <option value="TODAS">Qualquer Qtd Vagas</option>
-              <option value="1">1 Vaga</option>
-              <option value="2">2 Vagas</option>
-              <option value="3+">3+ Vagas</option>
-            </select>
+          <div style={{ gridColumn: "span 2" }}>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: 6 }}>Fluxo contratado <span style={{ color: "#52525b" }}>(selecione um ou mais)</span></label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {flowProfilesDisponiveis.length === 0 && <span style={{ color: "#71717a", fontSize: "0.7rem" }}>Nenhum fluxo estruturado no estoque atual.</span>}
+              {flowProfilesDisponiveis.map((profile) => {
+                const selected = fluxosSelecionados.includes(profile);
+                return <button key={profile} type="button" onClick={() => { setFluxosSelecionados((current) => selected ? current.filter((item) => item !== profile) : [...current, profile]); setVisibleCount(12); }} style={{ background: selected ? "#c5a059" : "#18181b", color: selected ? "#111" : "#d4d4d8", border: `1px solid ${selected ? "#e0bb73" : "#3f3f46"}`, borderRadius: 999, padding: "0.34rem 0.6rem", fontSize: "0.72rem", fontWeight: selected ? 700 : 500, cursor: "pointer" }}>{profile}</button>;
+              })}
+            </div>
           </div>
 
           <MoneyRangeFilter label="Entrada no fluxo" minRaw={entradaMinRaw} maxRaw={entradaMaxRaw} onMinChange={(value) => { setEntradaMinRaw(value); setVisibleCount(12); }} onMaxChange={(value) => { setEntradaMaxRaw(value); setVisibleCount(12); }} />
@@ -619,20 +726,22 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
           </div>
 
           <div>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Prazo</label>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: "0.25rem" }}>Entrega em até</label>
             <select value={prazoMeses} onChange={(e) => { setPrazoMeses(Number(e.target.value)); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem", boxSizing: "border-box" }}>
-              <option value={0}>Qualquer prazo</option>
-              {Array.from({ length: 25 }, (_, index) => (index + 1) * 6).map((months) => <option key={months} value={months}>{months} meses</option>)}
+              <option value={0}>Qualquer data</option>
+              {Array.from({ length: 25 }, (_, index) => (index + 1) * 6).map((months) => <option key={months} value={months}>Até {months} meses</option>)}
             </select>
           </div>
 
           {/* BOTÃO DE BUSCA MANUAL */}
-          <div style={{ gridColumn: "1 / -1", marginTop: "0.25rem" }}>
+          </div>}
+
+          <div style={{ gridColumn: "1 / -1", marginTop: filtrosAvancados ? "0.1rem" : "0.35rem", display: "flex", justifyContent: "flex-end" }}>
             <button
               type="button"
               onClick={() => setVisibleCount(12)}
               style={{
-                width: "100%",
+                width: "min(360px, 100%)",
                 backgroundColor: "#c5a059",
                 color: "#000",
                 border: "none",
@@ -909,7 +1018,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                     </div>
 
                     {capacidadeInformada && analiseFluxo.status === "compativel" && <div style={{ marginTop: 10, padding: 9, borderRadius: 6, border: "1px solid #14532d", background: "#052e162b", fontSize: 11, lineHeight: 1.55 }}><strong style={{ color: "#34d399", display: "block", marginBottom: 3 }}>Fluxo compatível · {analiseFluxo.preKeysPercent.toLocaleString("pt-BR")}% até as chaves</strong><span style={{ color: "#d4d4d8" }}>{formatCurrency(analiseFluxo.suggestedEntry)} de entrada · {analiseFluxo.months}x {formatCurrency(analiseFluxo.suggestedInstallment)}{analiseFluxo.balloonCount > 0 ? ` · ${analiseFluxo.balloonCount} balões de ${formatCurrency(analiseFluxo.suggestedBalloon)}` : ""}</span><span style={{ color: "#8b8b95", display: "block" }}>Total até as chaves: {formatCurrency(analiseFluxo.preKeysTarget)} · saldo nas chaves: {formatCurrency(analiseFluxo.balanceAtKeys)}</span></div>}
-                    {capacidadeInformada && analiseFluxo.status !== "compativel" && <div style={{marginTop:10,padding:9,borderRadius:6,border:"1px solid #854d0e",background:"#2a16082b",fontSize:11,lineHeight:1.5}}><strong style={{color:"#fbbf24",display:"block"}}>{tabelaVal>0&&analiseFluxo.capacity/tabelaVal>=.2?"Fluxo potencialmente negociável":"Dados do fluxo precisam de conferência"}</strong><span style={{color:"#d4d4d8"}}>{analiseFluxo.reason} Capacidade calculada até as chaves: {formatCurrency(analiseFluxo.capacity)} ({tabelaVal?`${(analiseFluxo.capacity/tabelaVal*100).toLocaleString("pt-BR",{maximumFractionDigits:1})}% do imóvel`:"percentual indisponível"}). A unidade permaneceu no resultado para ajuste da proposta.</span></div>}
+                    {capacidadeInformada && analiseFluxo.status === "proposta" && <div style={{marginTop:10,padding:9,borderRadius:6,border:"1px solid #854d0e",background:"#2a16082b",fontSize:11,lineHeight:1.5}}><strong style={{color:"#fbbf24",display:"block"}}>Proposta a validar · {(analiseFluxo.coverage*100).toLocaleString("pt-BR",{maximumFractionDigits:0})}% do mínimo até as chaves</strong><span style={{color:"#d4d4d8"}}>{analiseFluxo.reason} A unidade não fecha pela regra atual; ela aparece apenas como possibilidade de proposta, sujeita à aprovação da construtora.</span></div>}
 
                     {/* EXPANSÃO COM FLUXO DETALHADO */}
                     {isExpanded && (
@@ -1014,6 +1123,8 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
           </button>
         </div>
       )}
+
+      {newUnitOpen && <div role="dialog" aria-modal="true" aria-label="Cadastrar nova unidade" onMouseDown={(event)=>{ if(event.target===event.currentTarget) setNewUnitOpen(false); }} style={{position:"fixed",inset:0,zIndex:10000,background:"#000b",display:"grid",placeItems:"center",padding:16}}><div style={{width:"min(760px,100%)",maxHeight:"90vh",overflowY:"auto",background:"#121212",border:"1px solid #3f3f46",borderRadius:10,padding:16}}><div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center"}}><div><h2 style={{margin:0,color:"#fff",fontSize:18}}>Nova unidade</h2><p style={{margin:"4px 0 0",color:"#a1a1aa",fontSize:12}}>Cadastro manual com campos que alimentam busca, comparativo e fluxo.</p></div><button onClick={()=>setNewUnitOpen(false)} aria-label="Fechar" style={{background:"transparent",border:0,color:"#a1a1aa",cursor:"pointer"}}><X size={18}/></button></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginTop:15}}><label style={{gridColumn:"1 / -1",fontSize:11,color:"#a1a1aa"}}>Empreendimento<select value={newUnitForm.empreendimento_id} onChange={(event)=>setNewUnitForm({...newUnitForm,empreendimento_id:event.target.value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}><option value="">Selecione</option>{enterpriseOptions.map((enterprise)=><option key={enterprise.id} value={enterprise.id}>{enterprise.nome}</option>)}</select></label>{[["numero","Unidade", "text"],["torre","Torre", "text"],["andar","Andar", "number"],["tipologia","Tipologia", "text"],["dormitorios","Dormitórios", "number"],["suites","Suítes", "number"],["vagas","Vagas", "number"],["area_privativa","Área privativa (m²)", "number"],["vista","Vista / posição", "text"]].map(([field,label,type])=><label key={field} style={{fontSize:11,color:"#a1a1aa"}}>{label}<input type={type} value={newUnitForm[field] ?? ""} onChange={(event)=>setNewUnitForm({...newUnitForm,[field]:event.target.value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}/></label>)}<label style={{fontSize:11,color:"#a1a1aa"}}>Valor de tabela<CurrencyInput value={Number(newUnitForm.valor_tabela)||0} onChange={(value)=>setNewUnitForm({...newUnitForm,valor_tabela:value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}/></label><label style={{fontSize:11,color:"#a1a1aa"}}>Entrada sugerida<CurrencyInput value={Number(newUnitForm.entrada_sugerida)||0} onChange={(value)=>setNewUnitForm({...newUnitForm,entrada_sugerida:value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}/></label><label style={{fontSize:11,color:"#a1a1aa"}}>Status<select value={newUnitForm.status} onChange={(event)=>setNewUnitForm({...newUnitForm,status:event.target.value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}><option value="disponivel">Disponível</option><option value="reservada">Reservada</option><option value="indisponivel">Indisponível</option></select></label><label style={{gridColumn:"1 / -1",fontSize:11,color:"#a1a1aa"}}>Observações<textarea value={newUnitForm.observacoes} onChange={(event)=>setNewUnitForm({...newUnitForm,observacoes:event.target.value})} style={{width:"100%",boxSizing:"border-box",minHeight:70,marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}/></label></div>{newUnitError&&<p role="alert" style={{color:"#f87171",fontSize:12}}>{newUnitError}</p>}<div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:15}}><button onClick={()=>setNewUnitOpen(false)} style={{background:"#18181b",border:"1px solid #3f3f46",color:"#e4e4e7",borderRadius:6,padding:"8px 11px",cursor:"pointer"}}>Cancelar</button><button disabled={newUnitSaving} onClick={()=>void saveNewUnit()} style={{background:"#c5a059",border:0,color:"#111",fontWeight:700,borderRadius:6,padding:"8px 11px",cursor:"pointer"}}>{newUnitSaving?"Salvando...":"Cadastrar unidade"}</button></div></div></div>}
 
     </div>
   );

@@ -16,6 +16,7 @@ function iniciarViewer() {
     const selectTipologiaUnidades = document.getElementById('select-tipologia-unidades');
     const empreendimentoDiretoId = new URLSearchParams(window.location.search).get('empreendimento');
     const previewPdf = new URLSearchParams(window.location.search).get('pdf');
+    const previewLink = new URLSearchParams(window.location.search).get('link');
     const previewNome = new URLSearchParams(window.location.search).get('nome');
     const painelOrigin = new URLSearchParams(window.location.search).get('painel') || window.location.origin;
 
@@ -54,8 +55,9 @@ function iniciarViewer() {
 
     selectTipologiaUnidades?.addEventListener('change', atualizarLinkUnidades);
 
-    function obterUrlViewer(urlOriginal) {
+    function obterUrlViewer(urlOriginal, tipoApresentacao) {
         if (!urlOriginal) return '';
+        if (tipoApresentacao === 'link') return urlOriginal;
         return `${urlOriginal}#toolbar=0&navpanes=0&scrollbar=0`;
     }
 
@@ -92,11 +94,12 @@ function iniciarViewer() {
         if (empreendimentoDiretoCarregado || !empreendimentoDiretoId || typeof EMPREENDIMENTOS === 'undefined') return;
         empreendimentoDiretoCarregado = true;
         const encontrado = EMPREENDIMENTOS.find(emp => String(emp.id) === empreendimentoDiretoId);
-        const empreendimento = encontrado ? { ...encontrado, pdfApresentacao: previewPdf || encontrado.pdfApresentacao } : (previewPdf ? {
+        const empreendimento = encontrado ? { ...encontrado, pdfApresentacao: previewPdf || previewLink || encontrado.pdfApresentacao, tipoApresentacao: previewLink ? 'link' : 'pdf' } : ((previewPdf || previewLink) ? {
             id: empreendimentoDiretoId,
             nome: previewNome || 'Apresentação',
             orientacao: 'horizontal',
-            pdfApresentacao: previewPdf,
+            pdfApresentacao: previewPdf || previewLink,
+            tipoApresentacao: previewLink ? 'link' : 'pdf',
             tipologias: []
         } : null);
         document.body.classList.add('modo-direto');
@@ -242,7 +245,9 @@ function iniciarViewer() {
 
         const versao = encodeURIComponent(empreendimentoSelecionado.apresentacaoAtualizadaEm || Date.now());
         const separador = empreendimentoSelecionado.pdfApresentacao.includes('?') ? '&' : '?';
-        pdfViewer.src = obterUrlViewer(`${empreendimentoSelecionado.pdfApresentacao}${separador}v=${versao}`);
+        const origem = empreendimentoSelecionado.tipoApresentacao === 'link' ? empreendimentoSelecionado.pdfApresentacao : `${empreendimentoSelecionado.pdfApresentacao}${separador}v=${versao}`;
+        pdfViewer.classList.toggle('modo-link', empreendimentoSelecionado.tipoApresentacao === 'link');
+        pdfViewer.src = obterUrlViewer(origem, empreendimentoSelecionado.tipoApresentacao);
 
         if (btnAnterior) {
             btnAnterior.disabled = true; 
@@ -250,11 +255,11 @@ function iniciarViewer() {
         }
         
         if (btnProximo) {
-            btnProximo.disabled = false;
+            btnProximo.disabled = empreendimentoSelecionado.tipoApresentacao === 'link';
             if (Array.isArray(empreendimentoSelecionado.tabelaId)) {
                 btnProximo.textContent = "Escolher Torre / Tabela";
             } else {
-                btnProximo.textContent = "Mostrar Tabela";
+                btnProximo.textContent = empreendimentoSelecionado.tipoApresentacao === 'link' ? "Apresentação externa" : "Mostrar Tabela";
             }
         }
     }
@@ -272,7 +277,7 @@ function iniciarViewer() {
         if (pdfViewer) pdfViewer.classList.add('hidden');
         if (loadingSpinner) loadingSpinner.classList.remove('hidden');
 
-        pdfViewer.src = obterUrlViewer(urlPdf);
+        pdfViewer.src = obterUrlViewer(urlPdf, 'pdf');
 
         if (btnAnterior) {
             btnAnterior.disabled = false;
@@ -386,7 +391,7 @@ function iniciarViewer() {
         removerMenuTorres();
         if (pdfViewer) {
             pdfViewer.src = "";
-            pdfViewer.classList.remove('modo-horizontal', 'modo-vertical');
+            pdfViewer.classList.remove('modo-horizontal', 'modo-vertical', 'modo-link');
             pdfViewer.classList.add('hidden');
         }
         if (loadingSpinner) loadingSpinner.classList.add('hidden');

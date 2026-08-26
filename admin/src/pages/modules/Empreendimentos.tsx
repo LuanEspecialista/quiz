@@ -174,6 +174,31 @@ function normalize(value: unknown) {
     .toLowerCase();
 }
 
+const STORAGE_REFERENCE_PREFIX = "storage://empreendimentos/";
+
+function coverReference(storagePath?: string | null, fallbackUrl = "") {
+  return storagePath ? `${STORAGE_REFERENCE_PREFIX}${storagePath}` : fallbackUrl;
+}
+
+function isStoredCover(value?: string | null) {
+  return Boolean(value?.startsWith(STORAGE_REFERENCE_PREFIX));
+}
+
+function coverStoragePath(value?: string | null) {
+  return isStoredCover(value) ? value!.slice(STORAGE_REFERENCE_PREFIX.length) : null;
+}
+
+function resolveCoverUrl(cover: string | null | undefined, images: EmpreendimentoImagem[]) {
+  const path = coverStoragePath(cover);
+  if (!path) return cover || "";
+  return images.find((image) => image.storage_path === path)?.url || "";
+}
+
+function imageIsCover(cover: string | null | undefined, image: EmpreendimentoImagem) {
+  const path = coverStoragePath(cover);
+  return path ? image.storage_path === path : Boolean(cover && cover === image.url);
+}
+
 function formatCurrency(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return "—";
@@ -302,11 +327,12 @@ export default function Empreendimentos() {
           .filter((img) => img.empreendimento_id === emp.id)
           .map((img) => img.url);
 
+        const coverUrl = resolveCoverUrl(emp.imagem_url, todasImagens.filter((img) => img.empreendimento_id === emp.id));
         const listaFinal = [...imgsDoEmp];
-        if (emp.imagem_url && !listaFinal.includes(emp.imagem_url)) {
-          listaFinal.unshift(emp.imagem_url);
-        } else if (listaFinal.length === 0 && emp.imagem_url) {
-          listaFinal.push(emp.imagem_url);
+        if (coverUrl && !listaFinal.includes(coverUrl)) {
+          listaFinal.unshift(coverUrl);
+        } else if (listaFinal.length === 0 && coverUrl) {
+          listaFinal.push(coverUrl);
         }
 
         map[emp.id] = listaFinal;
@@ -644,7 +670,7 @@ export default function Empreendimentos() {
           enviadas++;
 
           if (!selectedForImages.imagem_url && i === 0) {
-            await definirComoCapa(urlFinal, false);
+            await definirComoCapa(urlFinal, false, filePath);
           }
         }
       }
@@ -674,20 +700,21 @@ export default function Empreendimentos() {
     setImagensGaleria((atual) => atual.map((item) => item.id === img.id ? { ...item, ...patch } : item));
   }
 
-  async function definirComoCapa(url: string, recarregar = true) {
+  async function definirComoCapa(url: string, recarregar = true, storagePath?: string | null) {
     if (!selectedForImages) return;
 
     try {
+      const persistedCover = coverReference(storagePath, url);
       const { error } = await supabase
         .from("empreendimentos")
-        .update({ imagem_url: url })
+        .update({ imagem_url: persistedCover })
         .eq("id", selectedForImages.id);
 
       if (error) throw error;
 
-      setSelectedForImages((prev) => (prev ? { ...prev, imagem_url: url } : prev));
+      setSelectedForImages((prev) => (prev ? { ...prev, imagem_url: persistedCover } : prev));
       setEmpreendimentos((current) =>
-        current.map((item) => (item.id === selectedForImages.id ? { ...item, imagem_url: url } : item))
+        current.map((item) => (item.id === selectedForImages.id ? { ...item, imagem_url: persistedCover } : item))
       );
 
       loadData();
@@ -698,7 +725,7 @@ export default function Empreendimentos() {
     }
   }
 
-  async function excluirImagemGaleria(imgId: string, url: string) {
+  async function excluirImagemGaleria(imgId: string) {
     if (!window.confirm("Deseja remover esta imagem da galeria?")) return;
 
     try {
@@ -708,7 +735,7 @@ export default function Empreendimentos() {
       if(dbError)throw dbError;
       setImagensGaleria((current) => current.filter((img) => img.id !== imgId));
 
-      if (selectedForImages?.imagem_url === url) {
+      if (media && imageIsCover(selectedForImages?.imagem_url, media)) {
         await definirComoCapa("", false);
       }
       loadData();
@@ -1431,7 +1458,7 @@ export default function Empreendimentos() {
               ) : (
                 <div className="gallery-grid">
                   {imagensGaleria.map((img) => {
-                    const isCover = selectedForImages.imagem_url === img.url;
+                    const isCover = imageIsCover(selectedForImages.imagem_url, img);
                     return (
                       <div className="gallery-item" key={img.id}>
                         <img src={img.url} alt={img.titulo || "Galeria"} />
@@ -1439,7 +1466,7 @@ export default function Empreendimentos() {
                         <button
                           type="button"
                           className="gallery-delete-btn"
-                          onClick={() => excluirImagemGaleria(img.id, img.url)}
+                          onClick={() => excluirImagemGaleria(img.id)}
                           title="Excluir imagem"
                         >
                           <X size={14} />
@@ -1448,7 +1475,7 @@ export default function Empreendimentos() {
                         <button
                           type="button"
                           className={`gallery-cover-btn ${isCover ? "is-cover" : ""}`}
-                          onClick={() => definirComoCapa(img.url)}
+                          onClick={() => definirComoCapa(img.url, true, img.storage_path)}
                           title={isCover ? "Esta é a imagem de capa" : "Definir como capa"}
                         >
                           <Star size={10} fill={isCover ? "#09090b" : "none"} />

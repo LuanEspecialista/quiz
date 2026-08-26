@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
-import { getLocale, LOCALES, setLocale, type Locale } from "@/lib/i18n";
-
-const labels: Record<Locale, string> = { "pt-BR": "PT", "en-US": "EN", es: "ES" };
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Globe2 } from "lucide-react";
+import { localeMeta, LOCALES, setLocale, useLocale, type Locale } from "@/lib/i18n";
 export default function LanguageSelector() {
-  const [value, setValue] = useState<Locale>(getLocale());
-  useEffect(() => { document.documentElement.lang = value; }, [value]);
-  return <select aria-label="Idioma" value={value} onChange={(event) => { const locale = event.target.value as Locale; setValue(locale); setLocale(locale); }} style={{ background: "#111", color: "#d7ab63", border: "1px solid #3f3524", borderRadius: 999, padding: "6px 9px", fontSize: 11 }}>
-    {LOCALES.map((locale) => <option key={locale} value={locale}>{labels[locale]}</option>)}
-  </select>;
+  const locale = useLocale(); const [open, setOpen] = useState(false); const root = useRef<HTMLDivElement>(null);
+  useEffect(() => { document.documentElement.lang = locale; const close = (event: MouseEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); }; window.addEventListener("mousedown", close); return () => window.removeEventListener("mousedown", close); }, [locale]);
+  const changeLocale = (next: Locale) => { setLocale(next); setOpen(false); }; const current = localeMeta[locale];
+  return <div ref={root} style={{ position: "relative" }}><button type="button" aria-label="Alterar idioma" aria-expanded={open} onClick={() => setOpen(value => !value)} style={{ background: "#111", color: "#e8e8ec", border: "1px solid #3f3524", borderRadius: 999, padding: "6px 8px", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}><span aria-hidden="true" style={{ fontSize: 14 }}>{current.flag}</span><span>{current.short}</span><ChevronDown size={12} /></button>{open && <div role="menu" aria-label="Idiomas" style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 120, minWidth: 176, padding: 4, borderRadius: 8, background: "#151518", border: "1px solid #34343a", boxShadow: "0 12px 30px rgba(0,0,0,.42)" }}>{LOCALES.map(option => <button key={option} type="button" role="menuitem" onClick={() => changeLocale(option)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, textAlign: "left", padding: "8px 9px", border: 0, borderRadius: 5, color: option === locale ? "#d7ab63" : "#e4e4e7", background: option === locale ? "#272116" : "transparent", cursor: "pointer", fontSize: 12 }}><span style={{ fontSize: 15 }}>{localeMeta[option].flag}</span>{localeMeta[option].label}</button>)}<div style={{ borderTop: "1px solid #2b2b30", marginTop: 3, padding: "7px 8px 3px", color: "#8b8b95", fontSize: 10, display: "flex", alignItems: "center", gap: 5 }}><Globe2 size={11} /> Valores convertidos na visualização</div></div>}</div>;
 }

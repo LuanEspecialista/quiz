@@ -10,10 +10,13 @@ type Apresentacao = {
   storage_path?: string | null;
   link_url?: string | null;
   tipo_preferido?: "pdf" | "link";
+  imagem_capa?: string | null;
   updated_at?: string | null;
 };
 
 const BUCKET = "pdfs";
+const ENTERPRISE_IMAGES_BUCKET = "empreendimentos";
+const STORAGE_REFERENCE_PREFIX = "storage://empreendimentos/";
 const MAX_PDF_MB = 250;
 const MAX_PDF_BYTES = MAX_PDF_MB * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 10 * 60_000;
@@ -24,6 +27,22 @@ function errorMessage(error: unknown, fallback: string) {
     return error.message;
   }
   return fallback;
+}
+
+async function resolveEnterpriseCover(item: Empreendimento): Promise<Empreendimento> {
+  const reference = item.imagem_url || "";
+  if (!reference.startsWith(STORAGE_REFERENCE_PREFIX)) return item;
+  const path = reference.slice(STORAGE_REFERENCE_PREFIX.length);
+  const { data, error } = await supabase.storage.from(ENTERPRISE_IMAGES_BUCKET).createSignedUrl(path, 3600);
+  return error || !data?.signedUrl ? { ...item, imagem_url: null } : { ...item, imagem_url: data.signedUrl };
+}
+
+async function resolvePresentationCover(item: Apresentacao): Promise<Apresentacao> {
+  const reference = item.imagem_capa || "";
+  if (!reference.startsWith(STORAGE_REFERENCE_PREFIX)) return item;
+  const path = reference.slice(STORAGE_REFERENCE_PREFIX.length);
+  const { data, error } = await supabase.storage.from(ENTERPRISE_IMAGES_BUCKET).createSignedUrl(path, 3600);
+  return error || !data?.signedUrl ? { ...item, imagem_capa: null } : { ...item, imagem_capa: data.signedUrl };
 }
 
 export default function Apresentacoes() {
@@ -45,16 +64,16 @@ export default function Apresentacoes() {
     setMessage(null);
     try {
       const empPromise = supabase.from("empreendimentos").select("id, nome, cidade, imagem_url, caracteristicas").order("nome");
-      let presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at");
+      let presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, imagem_capa, updated_at");
       const missingLinkColumns = Boolean(presentationResult.error && /link_url|tipo_preferido/i.test(presentationResult.error.message || ""));
       if (missingLinkColumns) presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, updated_at");
       const empResult = await empPromise;
       setSupportsLinks(!missingLinkColumns);
       if (empResult.error) throw empResult.error;
       if (presentationResult.error) throw presentationResult.error;
-      const loadedEnterprises=(empResult.data || []) as Empreendimento[];
+      const loadedEnterprises = await Promise.all(((empResult.data || []) as Empreendimento[]).map(resolveEnterpriseCover));
       setEmpreendimentos(loadedEnterprises);
-      const signed=await Promise.all(((presentationResult.data || []) as Apresentacao[]).map(async(item)=>{if(!item.storage_path)return {...item,pdf_url:null};const{data,error}=await supabase.storage.from(BUCKET).createSignedUrl(item.storage_path,3600);return {...item,pdf_url:error?null:(data?.signedUrl||null)}}));
+      const signed=await Promise.all(((presentationResult.data || []) as Apresentacao[]).map(async(item)=>{const resolved=await resolvePresentationCover(item);if(!resolved.storage_path)return {...resolved,pdf_url:null};const{data,error}=await supabase.storage.from(BUCKET).createSignedUrl(resolved.storage_path,3600);return {...resolved,pdf_url:error?null:(data?.signedUrl||null)}}));
       const byEnterprise=Object.fromEntries(signed.map((item) => [item.empreendimento_id, item])) as Record<string,Apresentacao>;
       loadedEnterprises.forEach((enterprise)=>{const fallback=enterprise.caracteristicas?.apresentacao as {link_url?:string;tipo_preferido?:"pdf"|"link"}|undefined;if(fallback?.link_url)byEnterprise[enterprise.id]={...byEnterprise[enterprise.id],empreendimento_id:enterprise.id,ativo:byEnterprise[enterprise.id]?.ativo??true,link_url:fallback.link_url,tipo_preferido:fallback.tipo_preferido||"link"}});
       setApresentacoes(byEnterprise);
@@ -198,15 +217,9 @@ export default function Apresentacoes() {
     const presentation = apresentacoes[item.id];
     if (!presentation?.ativo) return;
     const useLink = presentation.tipo_preferido === "link" && presentation.link_url;
-    if (useLink) {
-      window.open(presentation.link_url!, "_blank", "noopener,noreferrer");
-      return;
-    }
-    if (!presentation.pdf_url && presentation.link_url) {
-      window.open(presentation.link_url, "_blank", "noopener,noreferrer");
-      return;
-    }
-    if (!presentation.pdf_url) return;
+    const sourceType = useLink || (!presentation.pdf_url && presentation.link_url) ? "link" : "pdf";
+    const sourceUrl = sourceType === "link" ? presentation.link_url : presentation.pdf_url;
+    if (!sourceUrl) return;
     const configuredOrigin = String(import.meta.env.VITE_PUBLIC_SITE_URL || "").trim();
     const isLocalPanel = ["localhost", "127.0.0.1"].includes(window.location.hostname) && window.location.port !== "5500";
     const publicOrigin = configuredOrigin || (isLocalPanel
@@ -214,7 +227,7 @@ export default function Apresentacoes() {
       : window.location.origin);
     const viewerUrl = new URL("/apresentacao/", publicOrigin);
     viewerUrl.searchParams.set("empreendimento", item.id);
-    viewerUrl.searchParams.set("pdf", presentation.pdf_url || "");
+    viewerUrl.searchParams.set(sourceType, sourceUrl);
     viewerUrl.searchParams.set("nome", item.nome || "Apresentação");
     if (isLocalPanel) {
       viewerUrl.searchParams.set("painel", window.location.origin);
@@ -246,7 +259,7 @@ export default function Apresentacoes() {
           const canPresent = active && (hasPdf || hasLink);
           return <article key={item.id} style={cardStyle}>
             <div style={{ height: 142, background: "#1a1a1f", position: "relative" }}>
-              {item.imagem_url ? <img src={item.imagem_url} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ height: "100%", display: "grid", placeItems: "center", color: "#71717a" }}><FileText size={30} /></div>}
+              {presentation?.imagem_capa || item.imagem_url ? <img src={presentation?.imagem_capa || item.imagem_url || undefined} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ height: "100%", display: "grid", placeItems: "center", color: "#f5d58b", background: "linear-gradient(135deg,#21190d,#111827)" }}><div style={{ textAlign: "center" }}><FileText size={30} style={{ marginBottom: 7 }} /><strong style={{ display: "block", fontSize: 12, color: "#f4f4f5" }}>{item.nome || "Apresentação"}</strong><small style={{ color: "#a1a1aa" }}>Capa pendente</small></div></div>}
               <span style={{ ...badgeStyle, background: active ? "#14532d" : "#4c1d1d", color: active ? "#bbf7d0" : "#fecaca" }}>{active ? "Ativa" : "Desativada"}</span>
             </div>
             <div style={{ padding: 15, display: "flex", flexDirection: "column", flex: 1 }}>

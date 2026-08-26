@@ -19,6 +19,12 @@ const formatPhone=(value:string)=>{const digits=phoneDigits(value);if(digits.len
 const normalizePhone=(value:string)=>`55${phoneDigits(value)}`;
 const emailDomains=["gmail.com","hotmail.com","outlook.com","icloud.com"];
 const monetaryFields=new Set<keyof Form>(["faixa_investimento","entrada_disponivel","capacidade_mensal","balao_maximo"]);
+const privateCoverPrefix="storage://empreendimentos/";
+async function resolvePrivateCover(property:Property):Promise<Property>{
+  if(!property.imagem_url?.startsWith(privateCoverPrefix))return property;
+  const{data,error}=await supabase.storage.from("empreendimentos").createSignedUrl(property.imagem_url.slice(privateCoverPrefix.length),3600);
+  return error||!data?.signedUrl?{...property,imagem_url:null}:{...property,imagem_url:data.signedUrl};
+}
 
 export default function Clientes({onOpenFlow}:{onOpenFlow?:(unitIds:string[],clientId?:string)=>void}){
   const[items,setItems]=useState<Client[]>([]),[properties,setProperties]=useState<Property[]>([]),[selections,setSelections]=useState<Selection[]>([]),[units,setUnits]=useState<Unit[]>([]);
@@ -43,7 +49,7 @@ export default function Clientes({onOpenFlow}:{onOpenFlow?:(unitIds:string[],cli
       ,supabase.from("unidades").select("*")
     ]);
     if(c.error)setMessage("Aplique a atualização de clientes no Supabase para ativar o módulo.");else setItems((c.data||[]) as Client[]);
-    if(!p.error)setProperties((p.data||[]) as Property[]);
+    if(!p.error)setProperties(await Promise.all(((p.data||[]) as Property[]).map(resolvePrivateCover)));
     if(!s.error)setSelections((s.data||[]) as Selection[]);
     if(!u.error)setUnits((u.data||[]) as Unit[]);
   }

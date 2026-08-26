@@ -12,15 +12,25 @@ export type PaymentPlan = {
   postKeysMode?: "parcelas" | "baloes" | "misto" | "quitacao";
   postKeysBalloonCount?: number;
   postKeysBalloonValue?: number;
+  /** Entrada pode ser dividida em atos com datas reais (mês 0 = assinatura). */
+  entryStages?: Array<{ month: number; amount: number; label?: string }>;
 };
 
-export type CashEvent = { month: number; amount: number; category: string };
+export type CashEvent = { month: number; amount: number; category: string; label?: string };
 
 const safe = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 
 export function buildPaymentSchedule(plan: PaymentPlan): CashEvent[] {
   const events: CashEvent[] = [];
-  if (plan.entry) events.push({ month: 0, amount: -plan.entry, category: "entrada" });
+  const entryStages = (plan.entryStages || []).filter((stage) => safe(stage.amount) > 0);
+  if (entryStages.length) {
+    entryStages.forEach((stage, index) => events.push({
+      month: Math.max(0, Math.round(safe(stage.month))),
+      amount: -safe(stage.amount),
+      category: "entrada",
+      label: stage.label || (index === 0 ? "Ato" : `Entrada ${index + 1}`),
+    }));
+  } else if (plan.entry) events.push({ month: 0, amount: -plan.entry, category: "entrada", label: "Ato" });
   for (let month = 1; month <= plan.monthsToKeys; month += 1) {
     if (plan.installment) events.push({ month, amount: -plan.installment, category: "parcela" });
   }

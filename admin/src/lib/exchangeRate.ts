@@ -7,6 +7,9 @@ export type ExchangeRate = {
   source: "supabase" | "cache";
   trend?: number;
   variation?: number | null;
+  provider?: string | null;
+  official?: boolean;
+  notice?: string | null;
 };
 
 export function isUsdBrlIndicator(indicator: { nome?: unknown; sku?: unknown }): boolean {
@@ -65,26 +68,23 @@ export async function getExchangeRate(): Promise<ExchangeRate | null> {
 export async function refreshExchangeRate(): Promise<ExchangeRate | null> {
   const edge = await supabase.functions.invoke("atualizar-ptax", { body: {} });
   if (!edge.error && !(edge.data as any)?.error) {
+    const payload = edge.data as any;
+    const updatedValue = Number(payload?.cotacao_venda);
+    if (Number.isFinite(updatedValue) && updatedValue > 0) {
+      const rate: ExchangeRate = {
+        value: updatedValue,
+        date: payload?.data_cotacao || null,
+        manual: false,
+        source: "supabase",
+        provider: payload?.fonte || null,
+        official: Boolean(payload?.oficial),
+        notice: payload?.aviso || null,
+      };
+      remember(rate);
+      return rate;
+    }
     const rate = await getExchangeRate();
-    if (rate) return rate;
+    if (rate) return { ...rate, provider: payload?.fonte || null, official: Boolean(payload?.oficial), notice: payload?.aviso || null };
   }
-  // Contingência: a cotação continua disponível quando a Edge Function está
-  // indisponível, retornando 5xx ou ainda não foi publicada.
-  try {
-    const end = new Date(); const start = new Date(end.getTime() - 15 * 864e5);
-    const format = (date: Date) => `${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}-${date.getFullYear()}`;
-    const params = new URLSearchParams({ "@dataInicial": `'${format(start)}'`, "@dataFinalCotacao": `'${format(end)}'`, "$top":"1", "$orderby":"dataHoraCotacao desc", "$format":"json" });
-    const response = await fetch(`https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)?${params}`, { headers:{Accept:"application/json"} });
-    if (!response.ok) throw new Error(`Banco Central respondeu HTTP ${response.status}.`);
-    const payload = await response.json(); const item = payload.value?.[0]; const value = Number(item?.cotacaoVenda);
-    if (!Number.isFinite(value) || value <= 0) throw new Error("Banco Central não retornou uma cotação válida.");
-    const rate: ExchangeRate = { value, date:String(item.dataHoraCotacao||"").slice(0,10)||null, manual:false, source:"cache" };
-    remember(rate);
-    // A persistência é tentada, mas uma política do banco não impede o uso local da última PTAX oficial.
-    await supabase.from("cotacoes_cambio").upsert({par:"USD/BRL",cotacao_compra:Number(item.cotacaoCompra)||value,cotacao_venda:value,data_cotacao:rate.date,fonte:"Banco Central do Brasil · PTAX",oficial:true},{onConflict:"par,data_cotacao,fonte"});
-    return rate;
-  } catch (fallbackError) {
-    const edgeMessage=(edge.data as any)?.error || edge.error?.message || "Edge Function indisponível";
-    throw new Error(`Não foi possível atualizar a PTAX. Edge: ${edgeMessage}. Contingência Banco Central: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}.`);
-  }
+  throw new Error("Não foi possível consultar uma nova cotação agora. A última cotação válida continua em uso.");
 }
