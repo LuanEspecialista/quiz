@@ -72,6 +72,7 @@ type EmpreendimentoImagem = {
   visivel_cliente?: boolean;
   visivel_afiliado?: boolean;
   created_at?: string;
+  conteudo_hash?: string | null;
 };
 
 type FormData = {
@@ -197,6 +198,12 @@ function resolveCoverUrl(cover: string | null | undefined, images: Empreendiment
 function imageIsCover(cover: string | null | undefined, image: EmpreendimentoImagem) {
   const path = coverStoragePath(cover);
   return path ? image.storage_path === path : Boolean(cover && cover === image.url);
+}
+
+async function fileFingerprint(file: File) {
+  const bytes = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map((part) => part.toString(16).padStart(2, "0")).join("");
 }
 
 function formatCurrency(value?: number | null) {
@@ -637,6 +644,21 @@ export default function Empreendimentos() {
         const file = files[i];
         if(!file.type.startsWith("image/")){falhas.push(`${file.name}: tipo de arquivo não permitido.`);continue}
         if(file.size>15*1024*1024){falhas.push(`${file.name}: excede o limite de 15 MB.`);continue}
+        const contentHash = await fileFingerprint(file);
+        const { data: duplicate, error: duplicateError } = await supabase
+          .from("empreendimento_imagens")
+          .select("id")
+          .eq("empreendimento_id", selectedForImages.id)
+          .eq("conteudo_hash", contentHash)
+          .maybeSingle();
+        if (duplicateError) {
+          falhas.push(`${file.name}: não foi possível verificar duplicidade (${duplicateError.message}).`);
+          continue;
+        }
+        if (duplicate) {
+          falhas.push(`${file.name}: imagem idêntica já está na galeria e não foi enviada novamente.`);
+          continue;
+        }
         const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const filePath = `${selectedForImages.id}/${Date.now()}-${i}-${cleanName}`;
 
@@ -661,6 +683,7 @@ export default function Empreendimentos() {
             categoria: "outro",
             visivel_cliente: false,
             visivel_afiliado: false,
+            conteudo_hash: contentHash,
           });
           if (imageError) {
             await supabase.storage.from("empreendimentos").remove([filePath]);
@@ -742,6 +765,75 @@ export default function Empreendimentos() {
     } catch (err: any) {
       console.error(err);
       setError("Não foi possível excluir a imagem.");
+    }
+  }
+
+  async function removerMidias(midias: EmpreendimentoImagem[], message: string) {
+    if (!midias.length || !selectedForImages) return;
+    if (!window.confirm(message)) return;
+    try {
+      const storagePaths = midias.map((media) => media.storage_path).filter((path): path is string => Boolean(path));
+      if (storagePaths.length) {
+        const { error: storageError } = await supabase.storage.from("empreendimentos").remove(storagePaths);
+        if (storageError) throw storageError;
+      }
+      const ids = midias.map((media) => media.id);
+      const { error: dbError } = await supabase.from("empreendimento_imagens").delete().in("id", ids);
+      if (dbError) throw dbError;
+      const removedCover = midias.some((media) => imageIsCover(selectedForImages.imagem_url, media));
+      if (removedCover) await definirComoCapa("", false);
+      setImagensGaleria((current) => current.filter((media) => !ids.includes(media.id)));
+      loadData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Não foi possível limpar as imagens selecionadas.");
+    }
+  }
+
+  async function limparGaleriaPreservandoCapa() {
+    if (!selectedForImages) return;
+    const removable = imagensGaleria.filter((media) => !imageIsCover(selectedForImages.imagem_url, media));
+    await removerMidias(
+      removable,
+      `Remover ${removable.length} imagem(ns) da galeria? A capa atual será preservada. Esta ação não pode ser desfeita.`
+    );
+  }
+
+  async function removerDuplicadasExatas() {
+    if (!selectedForImages || imagensGaleria.length < 2) return;
+    if (!window.confirm("Verificar arquivos idênticos e remover as cópias excedentes? A capa será preservada. Isso pode levar alguns instantes em galerias grandes.")) return;
+    try {
+      const known = new Map<string, EmpreendimentoImagem>();
+      const duplicates: EmpreendimentoImagem[] = [];
+      for (const media of imagensGaleria) {
+        let hash = media.conteudo_hash || "";
+        if (!hash) {
+          const response = await fetch(media.url);
+          if (!response.ok) continue;
+          const digest = await crypto.subtle.digest("SHA-256", await response.arrayBuffer());
+          hash = Array.from(new Uint8Array(digest)).map((part) => part.toString(16).padStart(2, "0")).join("");
+          await supabase.from("empreendimento_imagens").update({ conteudo_hash: hash }).eq("id", media.id);
+        }
+        const existing = known.get(hash);
+        if (!existing) {
+          known.set(hash, media);
+        } else if (imageIsCover(selectedForImages.imagem_url, existing)) {
+          duplicates.push(media);
+        } else if (imageIsCover(selectedForImages.imagem_url, media)) {
+          duplicates.push(existing);
+          known.set(hash, media);
+        } else {
+          duplicates.push(media);
+        }
+      }
+      if (!duplicates.length) {
+        alert("Nenhum arquivo idêntico foi encontrado. Imagens visualmente parecidas não são apagadas automaticamente para evitar perda de material.");
+        return;
+      }
+      await removerMidias(duplicates, `Foram encontradas ${duplicates.length} cópia(s) idêntica(s). Remover mantendo a capa e uma cópia de cada arquivo?`);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Não foi possível verificar imagens duplicadas.");
     }
   }
 
@@ -1447,9 +1539,26 @@ export default function Empreendimentos() {
                 </div>
               </label>
 
-              <h3 className="emp-section-title" style={{ marginTop: 20 }}>
-                Imagens cadastradas ({imagensGaleria.length})
-              </h3>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+                <h3 className="emp-section-title" style={{ margin: 0 }}>
+                  Imagens cadastradas ({imagensGaleria.length})
+                </h3>
+                {imagensGaleria.length > 0 && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button type="button" className="emp-secondary" style={{ minHeight: 32, fontSize: 11 }} onClick={() => void removerDuplicadasExatas()}>
+                      Remover duplicadas
+                    </button>
+                    <button type="button" className="emp-secondary" style={{ minHeight: 32, fontSize: 11, color: "#fbbf24" }} onClick={() => void limparGaleriaPreservandoCapa()}>
+                      Limpar galeria
+                    </button>
+                  </div>
+                )}
+              </div>
+              {imagensGaleria.length > 0 && (
+                <p style={{ margin: "6px 0 0", color: "#71717a", fontSize: 11 }}>
+                  “Remover duplicadas” elimina somente arquivos binariamente idênticos. “Limpar galeria” preserva a capa atual.
+                </p>
+              )}
 
               {imagensGaleria.length === 0 ? (
                 <p style={{ color: "#71717a", fontSize: 12, textAlign: "center", padding: "20px 0" }}>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, FilePlus2, ImagePlus, Search, Send, Trash2, Upload, X } from "lucide-react";
+import { BookOpen, FilePlus2, Search, Send, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 type Status = "rascunho" | "revisao" | "publicado" | "arquivado";
@@ -79,10 +79,26 @@ export default function BlogModule() {
     setMessage(`${uploads.length} imagem(ns) adicionada(s). Defina o texto alternativo para SEO.`);
   };
 
-  const reuseImage = (image: { url: string; nome: string | null }) => {
+  const reuseImage = async (image: { url: string; nome: string | null }) => {
     if (!editing || editing.imagens.some((item) => item.url === image.url)) return;
-    setEditing({ ...editing, imagem_capa_url: editing.imagem_capa_url || image.url, imagens: [...editing.imagens, { url: image.url, alt: image.nome || editing.titulo || "Imagem do empreendimento", legenda: "" }] });
-    setMessage("Imagem do empreendimento vinculada — nenhum arquivo foi duplicado.");
+    try {
+      setMessage("Preparando imagem pública otimizada…");
+      let publicUrl = image.url;
+      if (!image.url.includes("/storage/v1/object/public/blog-public/")) {
+        const response = await fetch(image.url);
+        if (!response.ok) throw new Error("Não foi possível ler a imagem privada do empreendimento.");
+        const blob = await response.blob();
+        const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" } as Record<string, string>)[blob.type] || "jpg";
+        const path = `empreendimentos/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("blog-public").upload(path, blob, { contentType: blob.type || "image/webp", upsert: false });
+        if (uploadError) throw uploadError;
+        publicUrl = supabase.storage.from("blog-public").getPublicUrl(path).data.publicUrl;
+      }
+      setEditing((current) => current ? { ...current, imagem_capa_url: current.imagem_capa_url || publicUrl, imagens: [...current.imagens, { url: publicUrl, alt: image.nome || current.titulo || "Imagem do empreendimento", legenda: "" }] } : current);
+      setMessage("Imagem preparada para o Blog. A cópia pública é criada somente porque a galeria do empreendimento permanece privada e segura.");
+    } catch (error: any) {
+      setMessage(error?.message || "Não foi possível preparar a imagem para o Blog.");
+    }
   };
 
   return <div style={{ display: "grid", gap: 16, maxWidth: 1320, margin: "0 auto" }}>
