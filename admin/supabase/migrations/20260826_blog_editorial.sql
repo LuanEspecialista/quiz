@@ -23,6 +23,10 @@ create index if not exists blog_posts_categoria_idx on public.blog_posts(categor
 
 alter table public.blog_posts enable row level security;
 
+revoke all on public.blog_posts from anon, authenticated;
+grant select on public.blog_posts to anon;
+grant select, insert, update, delete on public.blog_posts to authenticated;
+
 drop policy if exists "blog_public_reads_published" on public.blog_posts;
 create policy "blog_public_reads_published" on public.blog_posts
   for select using (status = 'publicado' and publicado_em <= now());
