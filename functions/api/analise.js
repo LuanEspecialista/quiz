@@ -34,16 +34,17 @@ export async function onRequest(context) {
       });
     }
 
-    // 3. Faz a requisição direta para a API do seu Supabase filtrando pelo codigo_acesso
-    const targetUrl = `${supabaseUrl}/rest/v1/analises?codigo_acesso=eq.${encodeURIComponent(codigo)}&select=*`;
+    // 3. Usa uma RPC limitada: o navegador nunca recebe permissão de listar a tabela de análises.
+    const targetUrl = `${supabaseUrl}/rest/v1/rpc/obter_analise_por_codigo`;
 
     const response = await fetch(targetUrl, {
-      method: "GET",
+      method: "POST",
       headers: {
         "apikey": supabaseKey,
         "Authorization": `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({ p_codigo: codigo }),
     });
 
     if (!response.ok) {
@@ -56,16 +57,16 @@ export async function onRequest(context) {
 
     const data = await response.json();
 
-    // 4. Se não encontrar nenhuma linha correspondente ao código
-    if (data.length === 0) {
+    // 4. Se não encontrar nenhuma análise correspondente ao código
+    if (!data) {
       return new Response(JSON.stringify({ error: "Nenhuma análise encontrada com este código." }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Retorna os dados encontrados (pega a primeira linha da resposta)
-    return new Response(JSON.stringify(data[0]), {
+    // Retorna somente a análise autorizada pelo código.
+    return new Response(JSON.stringify(data), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

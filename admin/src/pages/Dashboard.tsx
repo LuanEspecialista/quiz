@@ -16,6 +16,7 @@ import SmartDashboard, { type SmartUnitFilters } from "../components/SmartDashbo
 import PromptsModule from "./modules/Prompts";
 import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
 import LinksTemporariosModule from "./modules/LinksTemporarios";
+import BlogModule from "./modules/Blog";
 
 interface DashboardProps { userName?: string; role?: "admin" | "equipe" | "afiliado" }
 
@@ -71,6 +72,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         {role !== "afiliado" && activeTab === "empreendimentos" && <EmpreendimentosModule />}
         {role !== "afiliado" && activeTab === "unidades" && <UnidadesModule empreendimentoId={empreendimentoId} disponibilidadeInicial={disponibilidade} tipologiaInicial={tipologiaInicial} filtrosIniciais={smartUnitFilters} onSimular={openFlow} />}
         {role !== "afiliado" && activeTab === "apresentacoes" && <ApresentacoesModule />}
+        {role !== "afiliado" && activeTab === "blog" && <BlogModule />}
         {role !== "afiliado" && activeTab === "importar-ia" && <ImportarIAModule />}
         {role !== "afiliado" && activeTab === "prompts" && <PromptsModule />}
         {role !== "afiliado" && activeTab === "fluxos" && <FluxosModule initialUnitIds={flowUnitIds} initialClientId={flowClientId} />}

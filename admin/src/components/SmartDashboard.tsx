@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, Users, Building2, Layers, Presentation, Sparkles } from "lucide-react";
+import { Search, Users, Building2, Layers, Presentation, Sparkles, BookOpen } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 export type SmartUnitFilters = { entrada: number; balao: number; parcela: number; cidade: string; dormitorios: number; incluirCompactos: boolean; prazoMeses: number };
@@ -20,9 +20,11 @@ export default function SmartDashboard({ metrics, onSearch, onNavigate }: { metr
   const [dormitorios, setDormitorios] = useState(0);
   const [incluirCompactos, setIncluirCompactos] = useState(true);
   const [prazoMeses, setPrazoMeses] = useState(0);
+  const [latestPosts, setLatestPosts] = useState<Array<{ id: string; titulo: string; resumo: string | null; categoria: string }>>([]);
 
   useEffect(() => {
     void supabase.from("empreendimentos").select("cidade").then(({ data }) => setCities(Array.from(new Set((data || []).map((item: any) => String(item.cidade || "").trim()).filter(Boolean))).sort()));
+    void supabase.from("blog_posts").select("id,titulo,resumo,categoria").eq("status", "publicado").order("publicado_em", { ascending: false }).limit(3).then(({ data }) => setLatestPosts(data || []));
   }, []);
 
   const search = () => onSearch({ entrada: numberFromMoney(entrada), balao: numberFromMoney(balao), parcela: numberFromMoney(parcela), cidade, dormitorios, incluirCompactos, prazoMeses });
@@ -42,7 +44,11 @@ export default function SmartDashboard({ metrics, onSearch, onNavigate }: { metr
       <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "center", marginTop: 14, flexWrap: "wrap" }}><label style={{ color: dormitorios > 0 ? "#52525b" : "#a1a1aa", fontSize: 12, display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" disabled={dormitorios > 0} checked={incluirCompactos} onChange={(e)=>setIncluirCompactos(e.target.checked)}/> Sugerir Studio/Loft somente sem exigência de dormitórios</label><button onClick={search} style={{ background: "#d6a94f", color: "#090909", border: 0, borderRadius: 7, padding: "10px 18px", fontWeight: 800, cursor: "pointer", display: "flex", gap: 7, alignItems: "center" }}><Search size={16}/>Pesquisar unidades</button></div>
     </section>
     <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10 }}>
-      {[{label:"Clientes",value:metrics.clientes,icon:Users,tab:"clientes"},{label:"Empreendimentos",value:metrics.empreendimentos,icon:Building2,tab:"empreendimentos"},{label:"Unidades mapeadas",value:metrics.unidades,icon:Layers,tab:"unidades"},{label:"Apresentações",value:"Acessar",icon:Presentation,tab:"apresentacoes"}].map((item)=><button key={item.label} onClick={()=>onNavigate(item.tab)} style={{ background: "#121214", border: "1px solid #25252a", borderRadius: 8, padding: 14, color: "#fff", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span><small style={{ color: "#8b8b95", display: "block", marginBottom: 5 }}>{item.label}</small><strong style={{ fontSize: 18 }}>{item.value}</strong></span><item.icon size={19} color="#c5a059"/></button>)}
+      {[{label:"Clientes",value:metrics.clientes,icon:Users,tab:"clientes"},{label:"Empreendimentos",value:metrics.empreendimentos,icon:Building2,tab:"empreendimentos"},{label:"Unidades mapeadas",value:metrics.unidades,icon:Layers,tab:"unidades"},{label:"Apresentações",value:"Acessar",icon:Presentation,tab:"apresentacoes"},{label:"Blog",value:"Criar artigo",icon:BookOpen,tab:"blog"}].map((item)=><button key={item.label} onClick={()=>onNavigate(item.tab)} style={{ background: "#121214", border: "1px solid #25252a", borderRadius: 8, padding: 14, color: "#fff", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span><small style={{ color: "#8b8b95", display: "block", marginBottom: 5 }}>{item.label}</small><strong style={{ fontSize: 18 }}>{item.value}</strong></span><item.icon size={19} color="#c5a059"/></button>)}
+    </section>
+    <section style={{ background: "#111114", border: "1px solid #28282d", borderRadius: 10, padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 12 }}><div><small style={{ color: "#d7ab63", textTransform: "uppercase", letterSpacing: ".08em" }}>Autoridade de marca</small><h2 style={{ margin: "3px 0 0", fontSize: 17 }}>Insights recentes</h2></div><button onClick={() => onNavigate("blog")} style={{ background: "transparent", border: "1px solid #3a3a40", borderRadius: 6, color: "#d7ab63", padding: "8px 10px", cursor: "pointer" }}>Ver Blog</button></div>
+      {latestPosts.length ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10 }}>{latestPosts.map((post) => <button key={post.id} onClick={() => onNavigate("blog")} style={{ background: "#17171a", border: "1px solid #303036", borderRadius: 8, color: "#f4f4f5", padding: 12, textAlign: "left", cursor: "pointer" }}><small style={{ color: "#d7ab63" }}>{post.categoria}</small><strong style={{ display: "block", margin: "6px 0", fontSize: 14 }}>{post.titulo}</strong><span style={{ color: "#9b9ba4", fontSize: 12 }}>{post.resumo || "Ler análise completa"}</span></button>)}</div> : <div style={{ color: "#a1a1aa", fontSize: 13 }}>Publique o primeiro artigo para ele aparecer aqui. A prévia fica pequena e leva o usuário para a biblioteca editorial.</div>}
     </section>
   </div>;
 }
