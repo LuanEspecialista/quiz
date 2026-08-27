@@ -51,7 +51,7 @@
       const path = (location.pathname.replace(/\/index\.html$/, "") || "/").replace(/\/?$/, "/");
       const results = await withTimeout(Promise.all([
         client.from("site_paginas").select("*").eq("caminho", path).maybeSingle(),
-        client.from("site_configuracoes").select("idiomas_ativos, idioma_padrao, cambio_automatico, cotacao_manual, margem_cambio_percentual").eq("id", 1).maybeSingle(),
+        client.from("site_configuracoes").select("idiomas_ativos, idioma_padrao, cambio_automatico, cotacao_manual, margem_cambio_percentual, rastreamento_ativo, consentimento_rastreamento_obrigatorio, gtm_container_id, ga4_measurement_id, google_ads_id, meta_pixel_id").eq("id", 1).maybeSingle(),
         client.from("cotacao_usd_brl_atual").select("cotacao, data_cotacao, manual").maybeSingle()
       ]), 8000, "Tempo limite ao consultar configurações e câmbio.");
       page = results[0].data;
@@ -68,6 +68,27 @@
   }
   if (Array.isArray(siteSettings?.idiomas_ativos)) {
     selector.querySelectorAll("[data-locale]").forEach((button) => { button.hidden = !siteSettings.idiomas_ativos.includes(button.dataset.locale); });
+  }
+
+  const valid = (value, expression) => expression.test(String(value || "").trim());
+  const loadScript = (src) => { if (!document.querySelector(`script[src="${src}"]`)) { const script = document.createElement("script"); script.async = true; script.src = src; document.head.appendChild(script); } };
+  const enableTracking = () => {
+    if (!siteSettings?.rastreamento_ativo || window.__luanTrackingLoaded) return;
+    window.__luanTrackingLoaded = true;
+    const gtm = String(siteSettings.gtm_container_id || "").trim();
+    const ga4 = String(siteSettings.ga4_measurement_id || "").trim();
+    const ads = String(siteSettings.google_ads_id || "").trim();
+    const meta = String(siteSettings.meta_pixel_id || "").trim();
+    if (valid(gtm, /^GTM-[A-Z0-9]+$/i)) loadScript(`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtm)}`);
+    if (valid(ga4, /^G-[A-Z0-9]+$/i) || valid(ads, /^AW-[0-9]+$/i)) { const id = valid(ga4, /^G-/i) ? ga4 : ads; loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`); window.dataLayer = window.dataLayer || []; window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); }; window.gtag("js", new Date()); if (valid(ga4, /^G-/i)) window.gtag("config", ga4, { anonymize_ip: true }); if (valid(ads, /^AW-/i)) window.gtag("config", ads); }
+    if (valid(meta, /^\d{5,20}$/)) { window.fbq = window.fbq || function(){ (window.fbq.q = window.fbq.q || []).push(arguments); }; window.fbq("init", meta); window.fbq("track", "PageView"); loadScript("https://connect.facebook.net/en_US/fbevents.js"); }
+  };
+  const consent = localStorage.getItem("luan.tracking-consent");
+  if (siteSettings?.rastreamento_ativo && (!siteSettings.consentimento_rastreamento_obrigatorio || consent === "accepted")) enableTracking();
+  if (siteSettings?.rastreamento_ativo && siteSettings.consentimento_rastreamento_obrigatorio && !consent) {
+    const banner = document.createElement("aside"); banner.setAttribute("role", "dialog"); banner.setAttribute("aria-label", "Preferências de privacidade"); banner.style.cssText = "position:fixed;z-index:2147483645;left:16px;bottom:16px;max-width:430px;padding:16px;background:#15120e;color:#eee;border:1px solid #795e2f;border-radius:10px;font:12px/1.45 Inter,Arial,sans-serif;box-shadow:0 12px 35px #0008";
+    banner.innerHTML = 'Usamos métricas para entender o uso do site e melhorar o atendimento. Você pode recusar sem perder acesso. <a href="/privacidade/" style="color:#e1ba6b">Saiba mais</a><div style="display:flex;gap:8px;margin-top:12px"><button data-choice="denied">Recusar</button><button data-choice="accepted" style="background:#c5a059;color:#111;font-weight:700">Aceitar</button></div>';
+    banner.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => { const choice = button.dataset.choice; localStorage.setItem("luan.tracking-consent", choice); if (choice === "accepted") enableTracking(); banner.remove(); })); document.body.appendChild(banner);
   }
 
   const fetchOfficialRate = async () => {

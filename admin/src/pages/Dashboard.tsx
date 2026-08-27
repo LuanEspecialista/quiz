@@ -17,6 +17,7 @@ import PromptsModule from "./modules/Prompts";
 import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
 import LinksTemporariosModule from "./modules/LinksTemporarios";
 import BlogModule from "./modules/Blog";
+import PlaybookModule from "./modules/Playbook";
 
 interface DashboardProps { userName?: string; role?: "admin" | "equipe" | "afiliado" }
 
@@ -77,6 +78,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         {role !== "afiliado" && activeTab === "prompts" && <PromptsModule />}
         {role !== "afiliado" && activeTab === "fluxos" && <FluxosModule initialUnitIds={flowUnitIds} initialClientId={flowClientId} />}
         {role !== "afiliado" && activeTab === "clientes" && <ClientesModule onOpenFlow={(ids,clientId) => { setFlowClientId(clientId); setFlowUnitIds(ids); setActiveTab("fluxos"); }} />}
+        {role !== "afiliado" && activeTab === "playbook" && <PlaybookModule />}
         {activeTab === "afiliados" && <AfiliadosModule role={role} />}
         {role !== "afiliado" && activeTab === "indicadores" && <ModuleErrorBoundary moduleName="Indicadores"><IndicadoresModule /></ModuleErrorBoundary>}
         {role !== "afiliado" && activeTab === "configuracoes" && <ConfiguracoesModule />}

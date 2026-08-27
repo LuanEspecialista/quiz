@@ -86,6 +86,7 @@ type FormData = {
   entrega: string;
   inicio_comercial: string;
   percentual_ate_chaves: string;
+  percentual_pos_chaves: string;
   percentual_ato: string;
   baloes_por_ano: string;
   responsavel_pre_chaves: string;
@@ -145,6 +146,7 @@ const EMPTY_FORM: FormData = {
   entrega: "",
   inicio_comercial: "",
   percentual_ate_chaves: "",
+  percentual_pos_chaves: "",
   percentual_ato: "",
   baloes_por_ano: "1",
   responsavel_pre_chaves: "construtora",
@@ -424,6 +426,7 @@ export default function Empreendimentos() {
       entrega: normalizeDeliveryMonth(item.entrega_date || item.entrega) || "",
       inicio_comercial: String(fluxoComercial.inicio_comercial || ""),
       percentual_ate_chaves: fluxoComercial.percentual_ate_chaves != null ? String(fluxoComercial.percentual_ate_chaves) : "",
+      percentual_pos_chaves: fluxoComercial.percentual_pos_chaves != null ? String(fluxoComercial.percentual_pos_chaves) : "",
       percentual_ato: fluxoComercial.percentual_ato != null ? String(fluxoComercial.percentual_ato) : "",
       baloes_por_ano: fluxoComercial.baloes_por_ano != null ? String(fluxoComercial.baloes_por_ano) : "1",
       responsavel_pre_chaves: String(fluxoComercial.responsavel_pre_chaves || "construtora"),
@@ -482,6 +485,12 @@ export default function Empreendimentos() {
       setError("Informe o nome do empreendimento.");
       return;
     }
+    const preKeys = form.percentual_ate_chaves === "" ? null : Number(form.percentual_ate_chaves.replace(",", "."));
+    const postKeys = form.percentual_pos_chaves === "" ? null : Number(form.percentual_pos_chaves.replace(",", "."));
+    if ((preKeys !== null || postKeys !== null) && (!Number.isFinite(preKeys) || !Number.isFinite(postKeys) || Math.abs((preKeys || 0) + (postKeys || 0) - 100) > 0.01)) {
+      setError("O fluxo deve fechar 100%: informe o percentual até as chaves e o percentual pós-chaves.");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -518,8 +527,8 @@ export default function Empreendimentos() {
           nome: form.percentual_ate_chaves ? `${form.percentual_ate_chaves}% até as chaves` : "Fluxo comercial",
           moeda: "BRL",
           inicio_comercial: form.inicio_comercial || null,
-          percentual_ate_chaves: form.percentual_ate_chaves === "" ? null : Number(form.percentual_ate_chaves.replace(",", ".")),
-          percentual_pos_chaves: form.percentual_ate_chaves === "" ? undefined : 100 - Number(form.percentual_ate_chaves.replace(",", ".")),
+          percentual_ate_chaves: preKeys,
+          percentual_pos_chaves: postKeys ?? undefined,
           percentual_ato: form.percentual_ato === "" ? null : Number(form.percentual_ato.replace(",", ".")),
           baloes_por_ano: form.baloes_por_ano === "" ? 0 : Number(form.baloes_por_ano),
           responsavel_pre_chaves: form.responsavel_pre_chaves,
@@ -1336,6 +1345,13 @@ export default function Empreendimentos() {
                   <div style={{ borderTop: "1px solid #2c2418", paddingTop: 16 }}>
                     <strong style={{ color: "#e2b45e", fontSize: 13 }}>Inteligência de fluxo comercial</strong>
                     <p style={{ color: "#8d8d96", fontSize: 11, margin: "5px 0 0" }}>Essas regras permitem encontrar unidades pela capacidade real de pagamento do cliente.</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 10 }}>
+                      <span style={{ color: "#a1a1aa", fontSize: 11 }}>Aplicar padrão:</span>
+                      {[["30/70", "30", "70", "10"], ["40/60", "40", "60", "10"], ["50/50", "50", "50", "10"], ["100% direto", "100", "0", "10"]].map(([label, untilKeys, postKeys, entry]) => (
+                        <button key={label} type="button" className="emp-secondary" style={{ minHeight: 28, padding: "0 9px", fontSize: 11 }} onClick={() => setForm((current) => ({ ...current, percentual_ate_chaves: untilKeys, percentual_pos_chaves: postKeys, percentual_ato: entry, modelo_pos_chaves: untilKeys === "100" ? "quitacao_chaves" : current.modelo_pos_chaves }))}>{label}</button>
+                      ))}
+                      <span style={{ color: "#71717a", fontSize: 11 }}>Você pode ajustar os dois percentuais abaixo.</span>
+                    </div>
                   </div>
                 </div>
                 <div className="emp-field">
@@ -1343,11 +1359,15 @@ export default function Empreendimentos() {
                   <input className="emp-input" type="date" value={form.inicio_comercial} onChange={(e) => updateField("inicio_comercial", e.target.value)} />
                 </div>
                 <div className="emp-field">
-                  <label className="emp-label">Percentual exigido até as chaves</label>
-                  <input className="emp-input" type="number" min="0" max="100" step="0.01" value={form.percentual_ate_chaves} onChange={(e) => updateField("percentual_ate_chaves", e.target.value)} placeholder="Ex.: 30 ou 50" />
+                  <label className="emp-label">Fluxo contratado (%)</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+                    <input className="emp-input" type="number" min="0" max="100" step="0.01" value={form.percentual_ate_chaves} onChange={(e) => updateField("percentual_ate_chaves", e.target.value)} placeholder="Até chaves" aria-label="Percentual até as chaves" />
+                    <input className="emp-input" type="number" min="0" max="100" step="0.01" value={form.percentual_pos_chaves} onChange={(e) => updateField("percentual_pos_chaves", e.target.value)} placeholder="Pós-chaves" aria-label="Percentual pós-chaves" />
+                  </div>
+                  <small style={{ color: "#71717a", display: "block", marginTop: 5 }}>Ex.: 30 e 70. Os dois campos devem totalizar 100%.</small>
                 </div>
                 <div className="emp-field">
-                  <label className="emp-label">Entrada mínima (% do imóvel)</label>
+                  <label className="emp-label">Entrada sugerida (%)</label>
                   <input className="emp-input" type="number" min="0" max="100" step="0.01" value={form.percentual_ato} onChange={(e) => updateField("percentual_ato", e.target.value)} placeholder="Ex.: 10" />
                 </div>
                 <div className="emp-field">

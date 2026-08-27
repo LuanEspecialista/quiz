@@ -1,48 +1,815 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Building2, CheckCircle2, Coins, Globe2, Plus, RefreshCw, Save, Settings, Shield, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  Coins,
+  Globe2,
+  Plus,
+  RefreshCw,
+  Save,
+  Settings,
+  Shield,
+  Trash2,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { refreshExchangeRate } from "@/lib/exchangeRate";
 import CurrencyInput, { formatBRL } from "@/components/CurrencyInput";
 
-type Tab = "financeiro" | "imobiliario" | "idiomas" | "cambio" | "paginas";
+type Tab =
+  | "financeiro"
+  | "imobiliario"
+  | "idiomas"
+  | "cambio"
+  | "rastreamento"
+  | "paginas";
 type Feedback = { type: "success" | "error"; msg: string } | null;
-type BusinessConfig = { taxa_administracao_padrao:number; fundo_reserva_padrao:number; taxa_juros_financiamento_anual:number; incc_projetado_anual:number; valor_m2_referencia:number; rentabilidade_aluguel_anual:number; casas_decimais_taxas:number };
-type SiteConfig = { idioma_padrao:"pt-BR"|"en-US"|"es"; idiomas_ativos:string[]; moeda_pt:"BRL"; moeda_en:"USD"; moeda_es:"USD"; cambio_automatico:boolean; tipo_ptax:"compra"|"venda"; margem_cambio_percentual:number; cotacao_manual:number|null };
-type SitePage = { id?:number; titulo:string; caminho:string; ativa:boolean; exige_login:boolean; protecao_obrigatoria:boolean; ordem:number; categoria:string|null; idiomas:string[] };
-type Quote = { cotacao:number|null; data_cotacao:string|null; manual:boolean };
+type BusinessConfig = {
+  taxa_administracao_padrao: number;
+  fundo_reserva_padrao: number;
+  taxa_juros_financiamento_anual: number;
+  incc_projetado_anual: number;
+  valor_m2_referencia: number;
+  rentabilidade_aluguel_anual: number;
+  casas_decimais_taxas: number;
+};
+type SiteConfig = {
+  idioma_padrao: "pt-BR" | "en-US" | "es";
+  idiomas_ativos: string[];
+  moeda_pt: "BRL";
+  moeda_en: "USD";
+  moeda_es: "USD";
+  cambio_automatico: boolean;
+  tipo_ptax: "compra" | "venda";
+  margem_cambio_percentual: number;
+  cotacao_manual: number | null;
+  rastreamento_ativo: boolean;
+  consentimento_rastreamento_obrigatorio: boolean;
+  gtm_container_id: string;
+  ga4_measurement_id: string;
+  google_ads_id: string;
+  google_ads_conversion_label: string;
+  meta_pixel_id: string;
+};
+type SitePage = {
+  id?: number;
+  titulo: string;
+  caminho: string;
+  ativa: boolean;
+  exige_login: boolean;
+  protecao_obrigatoria: boolean;
+  ordem: number;
+  categoria: string | null;
+  idiomas: string[];
+};
+type Quote = {
+  cotacao: number | null;
+  data_cotacao: string | null;
+  manual: boolean;
+};
 
-const businessDefaults:BusinessConfig={taxa_administracao_padrao:15,fundo_reserva_padrao:1,taxa_juros_financiamento_anual:11.5,incc_projetado_anual:5.5,valor_m2_referencia:8500,rentabilidade_aluguel_anual:.5,casas_decimais_taxas:2};
-const siteDefaults:SiteConfig={idioma_padrao:"pt-BR",idiomas_ativos:["pt-BR","en-US","es"],moeda_pt:"BRL",moeda_en:"USD",moeda_es:"USD",cambio_automatico:true,tipo_ptax:"venda",margem_cambio_percentual:0,cotacao_manual:null};
-const emptyPage:SitePage={titulo:"",caminho:"/",ativa:true,exige_login:false,protecao_obrigatoria:false,ordem:0,categoria:"site",idiomas:["pt-BR","en-US","es"]};
-const fieldStyle={width:"100%",boxSizing:"border-box" as const,background:"#101012",border:"1px solid #34343a",color:"#fff",padding:"10px",borderRadius:6};
-const cardStyle={background:"#0d0d0f",border:"1px solid #242428",borderRadius:9,padding:18};
+const businessDefaults: BusinessConfig = {
+  taxa_administracao_padrao: 15,
+  fundo_reserva_padrao: 1,
+  taxa_juros_financiamento_anual: 11.5,
+  incc_projetado_anual: 5.5,
+  valor_m2_referencia: 8500,
+  rentabilidade_aluguel_anual: 0.5,
+  casas_decimais_taxas: 2,
+};
+const siteDefaults: SiteConfig = {
+  idioma_padrao: "pt-BR",
+  idiomas_ativos: ["pt-BR", "en-US", "es"],
+  moeda_pt: "BRL",
+  moeda_en: "USD",
+  moeda_es: "USD",
+  cambio_automatico: true,
+  tipo_ptax: "venda",
+  margem_cambio_percentual: 0,
+  cotacao_manual: null,
+  rastreamento_ativo: false,
+  consentimento_rastreamento_obrigatorio: true,
+  gtm_container_id: "",
+  ga4_measurement_id: "",
+  google_ads_id: "",
+  google_ads_conversion_label: "",
+  meta_pixel_id: "",
+};
+const emptyPage: SitePage = {
+  titulo: "",
+  caminho: "/",
+  ativa: true,
+  exige_login: false,
+  protecao_obrigatoria: false,
+  ordem: 0,
+  categoria: "site",
+  idiomas: ["pt-BR", "en-US", "es"],
+};
+const fieldStyle = {
+  width: "100%",
+  boxSizing: "border-box" as const,
+  background: "#101012",
+  border: "1px solid #34343a",
+  color: "#fff",
+  padding: "10px",
+  borderRadius: 6,
+};
+const cardStyle = {
+  background: "#0d0d0f",
+  border: "1px solid #242428",
+  borderRadius: 9,
+  padding: 18,
+};
 
-export default function Configuracoes(){
- const[tab,setTab]=useState<Tab>("financeiro"),[business,setBusiness]=useState(businessDefaults),[site,setSite]=useState(siteDefaults),[pages,setPages]=useState<SitePage[]>([]),[draft,setDraft]=useState(emptyPage),[quote,setQuote]=useState<Quote>({cotacao:null,data_cotacao:null,manual:false});
- const[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[feedback,setFeedback]=useState<Feedback>(null);
- const load=useCallback(async()=>{setLoading(true);const[b,s,p,q]=await Promise.all([supabase.from("configuracoes").select("*").eq("id",1).maybeSingle(),supabase.from("site_configuracoes").select("*").eq("id",1).maybeSingle(),supabase.from("site_paginas").select("*").order("ordem"),supabase.from("cotacao_usd_brl_atual").select("*").maybeSingle()]);if(b.data)setBusiness({...businessDefaults,...b.data});if(s.data)setSite({...siteDefaults,...s.data});if(p.data)setPages(p.data as SitePage[]);if(q.data)setQuote(q.data as Quote);const error=b.error||s.error||p.error;if(error)setFeedback({type:"error",msg:`Configuração incompleta no Supabase: ${error.message}`});setLoading(false)},[]);
- // eslint-disable-next-line react-hooks/set-state-in-effect
- useEffect(()=>{void load()},[load]);
- const validNumber=(value:number,min=0,max=100)=>Number.isFinite(value)&&value>=min&&value<=max;
- const saveBusiness=async()=>{if(!Object.entries(business).every(([key,value])=>key==="valor_m2_referencia"?validNumber(value,0,1000000):key==="casas_decimais_taxas"?validNumber(value,0,6):validNumber(value)))return setFeedback({type:"error",msg:"Revise os valores: taxas devem ficar entre 0 e 100."});setSaving(true);const{error}=await supabase.from("configuracoes").upsert({id:1,...business,moeda_padrao:"BRL",updated_at:new Date().toISOString()});setSaving(false);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Parâmetros salvos."})};
- const saveSite=async()=>{if(!site.idiomas_ativos.includes(site.idioma_padrao))return setFeedback({type:"error",msg:"O idioma padrão precisa estar ativo."});if(site.cotacao_manual!==null&&site.cotacao_manual<=0)return setFeedback({type:"error",msg:"A cotação manual deve ser positiva."});setSaving(true);const{error}=await supabase.from("site_configuracoes").upsert({id:1,...site,updated_at:new Date().toISOString()});setSaving(false);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Preferências do site salvas."});if(!error)void load()};
- const normalizePath=(value:string)=>{const clean=`/${value.trim().replace(/^\/+|\/+$/g,"")}`;return clean==="/"?"/":`${clean}/`};
- const savePage=async(page:SitePage)=>{if(!page.titulo.trim())return setFeedback({type:"error",msg:"Informe o título da página."});const payload={...page,titulo:page.titulo.trim(),caminho:normalizePath(page.caminho),exige_login:page.protecao_obrigatoria||page.exige_login,updated_at:new Date().toISOString()};const{error}=page.id?await supabase.from("site_paginas").update(payload).eq("id",page.id):await supabase.from("site_paginas").insert(payload);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Página salva."});if(!error){setDraft(emptyPage);void load()}};
- const removePage=async(page:SitePage)=>{if(page.protecao_obrigatoria)return setFeedback({type:"error",msg:"Esta página possui proteção obrigatória."});if(!page.id||!confirm(`Excluir ${page.titulo}?`))return;const{error}=await supabase.from("site_paginas").delete().eq("id",page.id);setFeedback(error?{type:"error",msg:error.message}:{type:"success",msg:"Página excluída."});if(!error)void load()};
- const refreshPtax=async()=>{setSaving(true);try{const rate=await refreshExchangeRate();setFeedback({type:"success",msg:rate?.official===false?"Cotação do dólar atualizada pela fonte de contingência. A PTAX oficial será tentada novamente.":"Cotação do dólar atualizada."});await load();window.dispatchEvent(new Event("luan:cotacao-atualizada"))}catch{setFeedback({type:"error",msg:"Não foi possível atualizar o dólar agora. A última cotação válida permanece em uso."})}finally{setSaving(false)}};
- const toggleLocale=(locale:string)=>setSite(old=>({...old,idiomas_ativos:old.idiomas_ativos.includes(locale)?old.idiomas_ativos.filter(x=>x!==locale):[...old.idiomas_ativos,locale]}));
- const numberField=(label:string,key:keyof BusinessConfig,step="0.1")=><label style={{color:"#aaa"}}>{label}{key==="valor_m2_referencia"?<CurrencyInput value={business[key]} onChange={value=>setBusiness({...business,[key]:value})} style={{...fieldStyle,marginTop:6}}/>:<input style={{...fieldStyle,marginTop:6}} type="number" min="0" step={step} value={business[key]} onChange={e=>setBusiness({...business,[key]:Number(e.target.value)})}/>}</label>;
- const tabs:[Tab,string,typeof Settings][]=[["financeiro","Financeiro",Coins],["imobiliario","Imobiliário",Building2],["idiomas","Idiomas e moedas",Globe2],["cambio","Cotação do dólar",RefreshCw],["paginas","Páginas e acesso",Shield]];
- return <div style={{color:"#eee",display:"grid",gap:16}}><header style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><h1 style={{margin:0,display:"flex",gap:8,alignItems:"center"}}><Settings color="#c5a059"/>Configurações</h1><p style={{color:"#85858d",marginTop:5}}>Parâmetros centrais da plataforma e do site público.</p></div><button onClick={()=>void load()} disabled={loading} style={{padding:9}}><RefreshCw size={16}/></button></header>
- {feedback&&<div style={{padding:12,borderRadius:7,border:`1px solid ${feedback.type==="success"?"#166534":"#991b1b"}`,color:feedback.type==="success"?"#4ade80":"#f87171",display:"flex",gap:8}}>{feedback.type==="success"?<CheckCircle2 size={18}/>:<AlertCircle size={18}/>} {feedback.msg}</div>}
- <nav style={{display:"flex",gap:4,overflowX:"auto",borderBottom:"1px solid #27272a"}}>{tabs.map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} style={{background:"transparent",border:0,borderBottom:tab===id?"2px solid #c5a059":"2px solid transparent",color:tab===id?"#d7ab63":"#999",padding:"11px 14px",display:"flex",gap:7,whiteSpace:"nowrap",cursor:"pointer"}}><Icon size={16}/>{label}</button>)}</nav>
- {loading?<div style={cardStyle}>Carregando configurações...</div>:<>
- {tab==="financeiro"&&<section style={cardStyle}><h2>Consórcio e financiamento</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:16}}>{numberField("Taxa de administração padrão (%)","taxa_administracao_padrao")}{numberField("Fundo de reserva padrão (%)","fundo_reserva_padrao")}{numberField("Juros de financiamento anual (%)","taxa_juros_financiamento_anual")}{numberField("INCC projetado anual (%)","incc_projetado_anual")}</div><SaveButton busy={saving} onClick={saveBusiness}/></section>}
- {tab==="imobiliario"&&<section style={cardStyle}><h2>Parâmetros imobiliários</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:16}}>{numberField("Valor médio do m² de referência (BRL)","valor_m2_referencia","100")}{numberField("Rentabilidade estimada do aluguel (% ao mês)","rentabilidade_aluguel_anual","0.05")}{numberField("Casas decimais para taxas","casas_decimais_taxas","1")}</div><SaveButton busy={saving} onClick={saveBusiness}/></section>}
- {tab==="idiomas"&&<section style={cardStyle}><h2>Idiomas e moedas</h2><div style={{display:"grid",gap:18,maxWidth:620}}><label>Idioma padrão<select style={{...fieldStyle,marginTop:6}} value={site.idioma_padrao} onChange={e=>setSite({...site,idioma_padrao:e.target.value as SiteConfig["idioma_padrao"]})}><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (USA)</option><option value="es">Español</option></select></label><div><strong>Idiomas ativos</strong><div style={{display:"flex",gap:18,marginTop:10}}>{[["pt-BR","Português"],["en-US","Inglês"],["es","Espanhol"]].map(([id,label])=><label key={id}><input type="checkbox" checked={site.idiomas_ativos.includes(id)} onChange={()=>toggleLocale(id)}/> {label}</label>)}</div></div><div style={{padding:12,background:"#151518",borderRadius:7}}>Português: <strong>BRL (R$)</strong> · Inglês: <strong>USD ($)</strong> · Espanhol: <strong>USD ($)</strong></div></div><SaveButton busy={saving} onClick={saveSite}/></section>}
- {tab==="cambio"&&<section style={cardStyle}><h2>Cotação do dólar</h2><p style={{color:"#8b8b93"}}>Usada para converter valores para dólar nos idiomas inglês e espanhol. No automático, a plataforma consulta a cotação oficial do Banco Central.</p><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:16}}><div style={{padding:14,background:"#151518",borderRadius:7}}><small style={{color:"#888"}}>Cotação em uso</small><strong style={{display:"block",fontSize:26,color:"#d7ab63",marginTop:5}}>{quote.cotacao?formatBRL(quote.cotacao):"—"}</strong><small>{quote.manual?"Ajuste manual":"Cotação oficial"} · {quote.data_cotacao||"sem data"}</small></div><label><input type="checkbox" checked={site.cambio_automatico} onChange={e=>setSite({...site,cambio_automatico:e.target.checked})}/> Atualização automática</label><label>Fonte da cotação<select style={{...fieldStyle,marginTop:6}} value={site.tipo_ptax} onChange={e=>setSite({...site,tipo_ptax:e.target.value as SiteConfig["tipo_ptax"]})}><option value="venda">Cotação oficial para conversão</option></select></label><label>Margem cambial (%)<input style={{...fieldStyle,marginTop:6}} type="number" step="0.01" value={site.margem_cambio_percentual} onChange={e=>setSite({...site,margem_cambio_percentual:Number(e.target.value)})}/></label><label>Cotação manual (deixe vazio para usar a oficial)<CurrencyInput value={site.cotacao_manual??0} onChange={value=>setSite({...site,cotacao_manual:value||null})} ariaLabel="Cotação manual do dólar" style={{...fieldStyle,marginTop:6}}/></label></div><div style={{display:"flex",gap:9,marginTop:18}}><SaveButton busy={saving} onClick={saveSite}/><button onClick={()=>void refreshPtax()} disabled={saving}><RefreshCw size={15}/> Buscar cotação agora</button></div></section>}
- {tab==="paginas"&&<section style={cardStyle}><h2>Páginas e controle de acesso</h2><div style={{overflowX:"auto"}}><div style={{minWidth:820,display:"grid",gap:8}}>{pages.map((page,index)=><div key={page.id} style={{display:"grid",gridTemplateColumns:"2fr 2fr 70px 90px 90px 80px",gap:8,alignItems:"center"}}><input style={fieldStyle} value={page.titulo} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,titulo:e.target.value}:p))}/><input style={fieldStyle} value={page.caminho} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,caminho:e.target.value}:p))}/><input style={fieldStyle} type="number" value={page.ordem} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,ordem:Number(e.target.value)}:p))}/><label><input type="checkbox" checked={page.ativa} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,ativa:e.target.checked}:p))}/> Ativa</label><label><input type="checkbox" checked={page.exige_login} disabled={page.protecao_obrigatoria} onChange={e=>setPages(x=>x.map((p,i)=>i===index?{...p,exige_login:e.target.checked}:p))}/> Login</label><span><button onClick={()=>void savePage(page)} title="Salvar"><Save size={14}/></button><button onClick={()=>void removePage(page)} disabled={page.protecao_obrigatoria} title="Excluir"><Trash2 size={14}/></button></span></div>)}</div></div><h3>Adicionar página</h3><div style={{display:"grid",gridTemplateColumns:"2fr 2fr 80px auto",gap:8}}><input style={fieldStyle} placeholder="Título" value={draft.titulo} onChange={e=>setDraft({...draft,titulo:e.target.value})}/><input style={fieldStyle} placeholder="/caminho/" value={draft.caminho} onChange={e=>setDraft({...draft,caminho:e.target.value})}/><input style={fieldStyle} type="number" value={draft.ordem} onChange={e=>setDraft({...draft,ordem:Number(e.target.value)})}/><button onClick={()=>void savePage(draft)}><Plus size={15}/>Adicionar</button></div></section>}
- </>}</div>
+export default function Configuracoes() {
+  const [tab, setTab] = useState<Tab>("financeiro"),
+    [business, setBusiness] = useState(businessDefaults),
+    [site, setSite] = useState(siteDefaults),
+    [pages, setPages] = useState<SitePage[]>([]),
+    [draft, setDraft] = useState(emptyPage),
+    [quote, setQuote] = useState<Quote>({
+      cotacao: null,
+      data_cotacao: null,
+      manual: false,
+    });
+  const [loading, setLoading] = useState(true),
+    [saving, setSaving] = useState(false),
+    [feedback, setFeedback] = useState<Feedback>(null);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [b, s, p, q] = await Promise.all([
+      supabase.from("configuracoes").select("*").eq("id", 1).maybeSingle(),
+      supabase.from("site_configuracoes").select("*").eq("id", 1).maybeSingle(),
+      supabase.from("site_paginas").select("*").order("ordem"),
+      supabase.from("cotacao_usd_brl_atual").select("*").maybeSingle(),
+    ]);
+    if (b.data) setBusiness({ ...businessDefaults, ...b.data });
+    if (s.data) setSite({ ...siteDefaults, ...s.data });
+    if (p.data) setPages(p.data as SitePage[]);
+    if (q.data) setQuote(q.data as Quote);
+    const error = b.error || s.error || p.error;
+    if (error)
+      setFeedback({
+        type: "error",
+        msg: `Configuração incompleta no Supabase: ${error.message}`,
+      });
+    setLoading(false);
+  }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const validNumber = (value: number, min = 0, max = 100) =>
+    Number.isFinite(value) && value >= min && value <= max;
+  const saveBusiness = async () => {
+    if (
+      !Object.entries(business).every(([key, value]) =>
+        key === "valor_m2_referencia"
+          ? validNumber(value, 0, 1000000)
+          : key === "casas_decimais_taxas"
+            ? validNumber(value, 0, 6)
+            : validNumber(value),
+      )
+    )
+      return setFeedback({
+        type: "error",
+        msg: "Revise os valores: taxas devem ficar entre 0 e 100.",
+      });
+    setSaving(true);
+    const { error } = await supabase
+      .from("configuracoes")
+      .upsert({
+        id: 1,
+        ...business,
+        moeda_padrao: "BRL",
+        updated_at: new Date().toISOString(),
+      });
+    setSaving(false);
+    setFeedback(
+      error
+        ? { type: "error", msg: error.message }
+        : { type: "success", msg: "Parâmetros salvos." },
+    );
+  };
+  const saveSite = async () => {
+    if (!site.idiomas_ativos.includes(site.idioma_padrao))
+      return setFeedback({
+        type: "error",
+        msg: "O idioma padrão precisa estar ativo.",
+      });
+    if (site.cotacao_manual !== null && site.cotacao_manual <= 0)
+      return setFeedback({
+        type: "error",
+        msg: "A cotação manual deve ser positiva.",
+      });
+    setSaving(true);
+    const { error } = await supabase
+      .from("site_configuracoes")
+      .upsert({ id: 1, ...site, updated_at: new Date().toISOString() });
+    setSaving(false);
+    setFeedback(
+      error
+        ? { type: "error", msg: error.message }
+        : { type: "success", msg: "Preferências do site salvas." },
+    );
+    if (!error) void load();
+  };
+  const normalizePath = (value: string) => {
+    const clean = `/${value.trim().replace(/^\/+|\/+$/g, "")}`;
+    return clean === "/" ? "/" : `${clean}/`;
+  };
+  const savePage = async (page: SitePage) => {
+    if (!page.titulo.trim())
+      return setFeedback({ type: "error", msg: "Informe o título da página." });
+    const payload = {
+      ...page,
+      titulo: page.titulo.trim(),
+      caminho: normalizePath(page.caminho),
+      exige_login: page.protecao_obrigatoria || page.exige_login,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = page.id
+      ? await supabase.from("site_paginas").update(payload).eq("id", page.id)
+      : await supabase.from("site_paginas").insert(payload);
+    setFeedback(
+      error
+        ? { type: "error", msg: error.message }
+        : { type: "success", msg: "Página salva." },
+    );
+    if (!error) {
+      setDraft(emptyPage);
+      void load();
+    }
+  };
+  const removePage = async (page: SitePage) => {
+    if (page.protecao_obrigatoria)
+      return setFeedback({
+        type: "error",
+        msg: "Esta página possui proteção obrigatória.",
+      });
+    if (!page.id || !confirm(`Excluir ${page.titulo}?`)) return;
+    const { error } = await supabase
+      .from("site_paginas")
+      .delete()
+      .eq("id", page.id);
+    setFeedback(
+      error
+        ? { type: "error", msg: error.message }
+        : { type: "success", msg: "Página excluída." },
+    );
+    if (!error) void load();
+  };
+  const refreshPtax = async () => {
+    setSaving(true);
+    try {
+      const rate = await refreshExchangeRate();
+      setFeedback({
+        type: "success",
+        msg:
+          rate?.official === false
+            ? "Cotação do dólar atualizada pela fonte de contingência. A PTAX oficial será tentada novamente."
+            : "Cotação do dólar atualizada.",
+      });
+      await load();
+      window.dispatchEvent(new Event("luan:cotacao-atualizada"));
+    } catch {
+      setFeedback({
+        type: "error",
+        msg: "Não foi possível atualizar o dólar agora. A última cotação válida permanece em uso.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+  const toggleLocale = (locale: string) =>
+    setSite((old) => ({
+      ...old,
+      idiomas_ativos: old.idiomas_ativos.includes(locale)
+        ? old.idiomas_ativos.filter((x) => x !== locale)
+        : [...old.idiomas_ativos, locale],
+    }));
+  const numberField = (
+    label: string,
+    key: keyof BusinessConfig,
+    step = "0.1",
+  ) => (
+    <label style={{ color: "#aaa" }}>
+      {label}
+      {key === "valor_m2_referencia" ? (
+        <CurrencyInput
+          value={business[key]}
+          onChange={(value) => setBusiness({ ...business, [key]: value })}
+          style={{ ...fieldStyle, marginTop: 6 }}
+        />
+      ) : (
+        <input
+          style={{ ...fieldStyle, marginTop: 6 }}
+          type="number"
+          min="0"
+          step={step}
+          value={business[key]}
+          onChange={(e) =>
+            setBusiness({ ...business, [key]: Number(e.target.value) })
+          }
+        />
+      )}
+    </label>
+  );
+  const tabs: [Tab, string, typeof Settings][] = [
+    ["financeiro", "Financeiro", Coins],
+    ["imobiliario", "Imobiliário", Building2],
+    ["idiomas", "Idiomas e moedas", Globe2],
+    ["cambio", "Cotação do dólar", RefreshCw],
+    ["rastreamento", "Tags e rastreamento", BarChart3],
+    ["paginas", "Páginas e acesso", Shield],
+  ];
+  return (
+    <div style={{ color: "#eee", display: "grid", gap: 16 }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <h1
+            style={{ margin: 0, display: "flex", gap: 8, alignItems: "center" }}
+          >
+            <Settings color="#c5a059" />
+            Configurações
+          </h1>
+          <p style={{ color: "#85858d", marginTop: 5 }}>
+            Parâmetros centrais da plataforma e do site público.
+          </p>
+        </div>
+        <button
+          onClick={() => void load()}
+          disabled={loading}
+          style={{ padding: 9 }}
+        >
+          <RefreshCw size={16} />
+        </button>
+      </header>
+      {feedback && (
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 7,
+            border: `1px solid ${feedback.type === "success" ? "#166534" : "#991b1b"}`,
+            color: feedback.type === "success" ? "#4ade80" : "#f87171",
+            display: "flex",
+            gap: 8,
+          }}
+        >
+          {feedback.type === "success" ? (
+            <CheckCircle2 size={18} />
+          ) : (
+            <AlertCircle size={18} />
+          )}{" "}
+          {feedback.msg}
+        </div>
+      )}
+      <nav
+        style={{
+          display: "flex",
+          gap: 4,
+          overflowX: "auto",
+          borderBottom: "1px solid #27272a",
+        }}
+      >
+        {tabs.map(([id, label, Icon]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            style={{
+              background: "transparent",
+              border: 0,
+              borderBottom:
+                tab === id ? "2px solid #c5a059" : "2px solid transparent",
+              color: tab === id ? "#d7ab63" : "#999",
+              padding: "11px 14px",
+              display: "flex",
+              gap: 7,
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+            }}
+          >
+            <Icon size={16} />
+            {label}
+          </button>
+        ))}
+      </nav>
+      {loading ? (
+        <div style={cardStyle}>Carregando configurações...</div>
+      ) : (
+        <>
+          {tab === "financeiro" && (
+            <section style={cardStyle}>
+              <h2>Consórcio e financiamento</h2>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))",
+                  gap: 16,
+                }}
+              >
+                {numberField(
+                  "Taxa de administração padrão (%)",
+                  "taxa_administracao_padrao",
+                )}
+                {numberField(
+                  "Fundo de reserva padrão (%)",
+                  "fundo_reserva_padrao",
+                )}
+                {numberField(
+                  "Juros de financiamento anual (%)",
+                  "taxa_juros_financiamento_anual",
+                )}
+                {numberField(
+                  "INCC projetado anual (%)",
+                  "incc_projetado_anual",
+                )}
+              </div>
+              <SaveButton busy={saving} onClick={saveBusiness} />
+            </section>
+          )}
+          {tab === "imobiliario" && (
+            <section style={cardStyle}>
+              <h2>Parâmetros imobiliários</h2>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))",
+                  gap: 16,
+                }}
+              >
+                {numberField(
+                  "Valor médio do m² de referência (BRL)",
+                  "valor_m2_referencia",
+                  "100",
+                )}
+                {numberField(
+                  "Rentabilidade estimada do aluguel (% ao mês)",
+                  "rentabilidade_aluguel_anual",
+                  "0.05",
+                )}
+                {numberField(
+                  "Casas decimais para taxas",
+                  "casas_decimais_taxas",
+                  "1",
+                )}
+              </div>
+              <SaveButton busy={saving} onClick={saveBusiness} />
+            </section>
+          )}
+          {tab === "idiomas" && (
+            <section style={cardStyle}>
+              <h2>Idiomas e moedas</h2>
+              <div style={{ display: "grid", gap: 18, maxWidth: 620 }}>
+                <label>
+                  Idioma padrão
+                  <select
+                    style={{ ...fieldStyle, marginTop: 6 }}
+                    value={site.idioma_padrao}
+                    onChange={(e) =>
+                      setSite({
+                        ...site,
+                        idioma_padrao: e.target
+                          .value as SiteConfig["idioma_padrao"],
+                      })
+                    }
+                  >
+                    <option value="pt-BR">Português (Brasil)</option>
+                    <option value="en-US">English (USA)</option>
+                    <option value="es">Español</option>
+                  </select>
+                </label>
+                <div>
+                  <strong>Idiomas ativos</strong>
+                  <div style={{ display: "flex", gap: 18, marginTop: 10 }}>
+                    {[
+                      ["pt-BR", "Português"],
+                      ["en-US", "Inglês"],
+                      ["es", "Espanhol"],
+                    ].map(([id, label]) => (
+                      <label key={id}>
+                        <input
+                          type="checkbox"
+                          checked={site.idiomas_ativos.includes(id)}
+                          onChange={() => toggleLocale(id)}
+                        />{" "}
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: 12,
+                    background: "#151518",
+                    borderRadius: 7,
+                  }}
+                >
+                  Português: <strong>BRL (R$)</strong> · Inglês:{" "}
+                  <strong>USD ($)</strong> · Espanhol: <strong>USD ($)</strong>
+                </div>
+              </div>
+              <SaveButton busy={saving} onClick={saveSite} />
+            </section>
+          )}
+          {tab === "cambio" && (
+            <section style={cardStyle}>
+              <h2>Cotação do dólar</h2>
+              <p style={{ color: "#8b8b93" }}>
+                Usada para converter valores para dólar nos idiomas inglês e
+                espanhol. No automático, a plataforma consulta a cotação oficial
+                do Banco Central.
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))",
+                  gap: 16,
+                }}
+              >
+                <div
+                  style={{
+                    padding: 14,
+                    background: "#151518",
+                    borderRadius: 7,
+                  }}
+                >
+                  <small style={{ color: "#888" }}>Cotação em uso</small>
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: 26,
+                      color: "#d7ab63",
+                      marginTop: 5,
+                    }}
+                  >
+                    {quote.cotacao ? formatBRL(quote.cotacao) : "—"}
+                  </strong>
+                  <small>
+                    {quote.manual ? "Ajuste manual" : "Cotação oficial"} ·{" "}
+                    {quote.data_cotacao || "sem data"}
+                  </small>
+                </div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={site.cambio_automatico}
+                    onChange={(e) =>
+                      setSite({ ...site, cambio_automatico: e.target.checked })
+                    }
+                  />{" "}
+                  Atualização automática
+                </label>
+                <label>
+                  Fonte da cotação
+                  <select
+                    style={{ ...fieldStyle, marginTop: 6 }}
+                    value={site.tipo_ptax}
+                    onChange={(e) =>
+                      setSite({
+                        ...site,
+                        tipo_ptax: e.target.value as SiteConfig["tipo_ptax"],
+                      })
+                    }
+                  >
+                    <option value="venda">
+                      Cotação oficial para conversão
+                    </option>
+                  </select>
+                </label>
+                <label>
+                  Margem cambial (%)
+                  <input
+                    style={{ ...fieldStyle, marginTop: 6 }}
+                    type="number"
+                    step="0.01"
+                    value={site.margem_cambio_percentual}
+                    onChange={(e) =>
+                      setSite({
+                        ...site,
+                        margem_cambio_percentual: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  Cotação manual (deixe vazio para usar a oficial)
+                  <CurrencyInput
+                    value={site.cotacao_manual ?? 0}
+                    onChange={(value) =>
+                      setSite({ ...site, cotacao_manual: value || null })
+                    }
+                    ariaLabel="Cotação manual do dólar"
+                    style={{ ...fieldStyle, marginTop: 6 }}
+                  />
+                </label>
+              </div>
+              <div style={{ display: "flex", gap: 9, marginTop: 18 }}>
+                <SaveButton busy={saving} onClick={saveSite} />
+                <button onClick={() => void refreshPtax()} disabled={saving}>
+                  <RefreshCw size={15} /> Buscar cotação agora
+                </button>
+              </div>
+            </section>
+          )}
+          {tab === "rastreamento" && (
+            <section style={cardStyle}>
+              <h2>Tags e rastreamento</h2>
+              <p style={{ color: "#a1a1aa", maxWidth: 780, lineHeight: 1.55 }}>Cadastre apenas identificadores públicos. O site só carrega as tags quando o visitante permitir medição; chaves, tokens e scripts livres nunca devem ser inseridos aqui.</p>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "14px 0" }}><input type="checkbox" checked={site.rastreamento_ativo} onChange={(e) => setSite({ ...site, rastreamento_ativo: e.target.checked })} /> Ativar mensuração no site público</label>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "14px 0" }}><input type="checkbox" checked={site.consentimento_rastreamento_obrigatorio} onChange={(e) => setSite({ ...site, consentimento_rastreamento_obrigatorio: e.target.checked })} /> Exigir consentimento antes de carregar tags não essenciais</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+                <label>Google Tag Manager (GTM-XXXX)<input style={{ ...fieldStyle, marginTop: 6 }} value={site.gtm_container_id} onChange={(e) => setSite({ ...site, gtm_container_id: e.target.value.trim().toUpperCase() })} placeholder="GTM-XXXX" /></label>
+                <label>Google Analytics 4 (G-XXXX)<input style={{ ...fieldStyle, marginTop: 6 }} value={site.ga4_measurement_id} onChange={(e) => setSite({ ...site, ga4_measurement_id: e.target.value.trim().toUpperCase() })} placeholder="G-XXXX" /></label>
+                <label>Google Ads (AW-XXXX)<input style={{ ...fieldStyle, marginTop: 6 }} value={site.google_ads_id} onChange={(e) => setSite({ ...site, google_ads_id: e.target.value.trim().toUpperCase() })} placeholder="AW-XXXX" /></label>
+                <label>Rótulo de conversão Google Ads<input style={{ ...fieldStyle, marginTop: 6 }} value={site.google_ads_conversion_label} onChange={(e) => setSite({ ...site, google_ads_conversion_label: e.target.value.trim() })} placeholder="abcDEF123" /></label>
+                <label>Meta Pixel ID<input style={{ ...fieldStyle, marginTop: 6 }} value={site.meta_pixel_id} onChange={(e) => setSite({ ...site, meta_pixel_id: e.target.value.replace(/\D/g, "") })} placeholder="1234567890" inputMode="numeric" /></label>
+              </div>
+              <div style={{ marginTop: 14, padding: 11, borderRadius: 7, background: "#151518", color: "#a1a1aa", fontSize: 12 }}>Use o GTM para Hotjar, Microsoft Clarity, pixels adicionais e eventos complexos. A plataforma não aceita código JavaScript arbitrário por segurança.</div>
+              <SaveButton busy={saving} onClick={saveSite} />
+            </section>
+          )}
+          {tab === "paginas" && (
+            <section style={cardStyle}>
+              <h2>Páginas e controle de acesso</h2>
+              <div style={{ overflowX: "auto" }}>
+                <div style={{ minWidth: 820, display: "grid", gap: 8 }}>
+                  {pages.map((page, index) => (
+                    <div
+                      key={page.id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "2fr 2fr 70px 90px 90px 80px",
+                        gap: 8,
+                        alignItems: "center",
+                      }}
+                    >
+                      <input
+                        style={fieldStyle}
+                        value={page.titulo}
+                        onChange={(e) =>
+                          setPages((x) =>
+                            x.map((p, i) =>
+                              i === index
+                                ? { ...p, titulo: e.target.value }
+                                : p,
+                            ),
+                          )
+                        }
+                      />
+                      <input
+                        style={fieldStyle}
+                        value={page.caminho}
+                        onChange={(e) =>
+                          setPages((x) =>
+                            x.map((p, i) =>
+                              i === index
+                                ? { ...p, caminho: e.target.value }
+                                : p,
+                            ),
+                          )
+                        }
+                      />
+                      <input
+                        style={fieldStyle}
+                        type="number"
+                        value={page.ordem}
+                        onChange={(e) =>
+                          setPages((x) =>
+                            x.map((p, i) =>
+                              i === index
+                                ? { ...p, ordem: Number(e.target.value) }
+                                : p,
+                            ),
+                          )
+                        }
+                      />
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={page.ativa}
+                          onChange={(e) =>
+                            setPages((x) =>
+                              x.map((p, i) =>
+                                i === index
+                                  ? { ...p, ativa: e.target.checked }
+                                  : p,
+                              ),
+                            )
+                          }
+                        />{" "}
+                        Ativa
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={page.exige_login}
+                          disabled={page.protecao_obrigatoria}
+                          onChange={(e) =>
+                            setPages((x) =>
+                              x.map((p, i) =>
+                                i === index
+                                  ? { ...p, exige_login: e.target.checked }
+                                  : p,
+                              ),
+                            )
+                          }
+                        />{" "}
+                        Login
+                      </label>
+                      <span>
+                        <button
+                          onClick={() => void savePage(page)}
+                          title="Salvar"
+                        >
+                          <Save size={14} />
+                        </button>
+                        <button
+                          onClick={() => void removePage(page)}
+                          disabled={page.protecao_obrigatoria}
+                          title="Excluir"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <h3>Adicionar página</h3>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "2fr 2fr 80px auto",
+                  gap: 8,
+                }}
+              >
+                <input
+                  style={fieldStyle}
+                  placeholder="Título"
+                  value={draft.titulo}
+                  onChange={(e) =>
+                    setDraft({ ...draft, titulo: e.target.value })
+                  }
+                />
+                <input
+                  style={fieldStyle}
+                  placeholder="/caminho/"
+                  value={draft.caminho}
+                  onChange={(e) =>
+                    setDraft({ ...draft, caminho: e.target.value })
+                  }
+                />
+                <input
+                  style={fieldStyle}
+                  type="number"
+                  value={draft.ordem}
+                  onChange={(e) =>
+                    setDraft({ ...draft, ordem: Number(e.target.value) })
+                  }
+                />
+                <button onClick={() => void savePage(draft)}>
+                  <Plus size={15} />
+                  Adicionar
+                </button>
+              </div>
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
-function SaveButton({busy,onClick}:{busy:boolean;onClick:()=>void|Promise<void>}){return <button onClick={()=>void onClick()} disabled={busy} style={{marginTop:18,background:"#c5a059",color:"#000",fontWeight:700,padding:"10px 15px",border:0,borderRadius:6}}>{busy?<RefreshCw size={15}/>:<Save size={15}/>} Salvar</button>}
+function SaveButton({
+  busy,
+  onClick,
+}: {
+  busy: boolean;
+  onClick: () => void | Promise<void>;
+}) {
+  return (
+    <button
+      onClick={() => void onClick()}
+      disabled={busy}
+      style={{
+        marginTop: 18,
+        background: "#c5a059",
+        color: "#000",
+        fontWeight: 700,
+        padding: "10px 15px",
+        border: 0,
+        borderRadius: 6,
+      }}
+    >
+      {busy ? <RefreshCw size={15} /> : <Save size={15} />} Salvar
+    </button>
+  );
+}

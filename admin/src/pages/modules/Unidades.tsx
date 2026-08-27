@@ -439,11 +439,11 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
 
     const limits = { entrada: parseCurrencyValue(entradaMaxRaw), parcela: parseCurrencyValue(parcelaMaxRaw), balao: parseCurrencyValue(balaoMaxRaw) };
     const hasFinancialLimits = limits.entrada > 0 || limits.parcela > 0 || limits.balao > 0;
-    // Com limites financeiros informados, o estoque só pode mostrar o que fecha
-    // ou o que está próximo o bastante para uma proposta formal. Dados ausentes
-    // e fluxos incompatíveis não viram resultado comercial por acidente.
+    // Com limites financeiros informados, o estoque normal só pode mostrar o que
+    // realmente fecha. Uma proposta a validar não é compatibilidade e nunca pode
+    // aparecer misturada ao resultado que será apresentado ao cliente.
     const flowResult = hasFinancialLimits ? analyzeFlow(u, limits) : null;
-    const matchesFinancial = !flowResult || flowResult.status === "compativel" || flowResult.status === "proposta";
+    const matchesFinancial = !flowResult || flowResult.status === "compativel";
     const flowProfile = getCommercialFlowProfile(u)?.label || null;
     const matchesFlowProfile = fluxosSelecionados.length === 0 || (flowProfile !== null && fluxosSelecionados.includes(flowProfile));
 
@@ -676,15 +676,12 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
           {filtrosAvancados && <div style={{ gridColumn: "1 / -1", paddingTop: "0.65rem", marginTop: "0.1rem", borderTop: "1px solid #27272a", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "0.75rem", alignItems: "end" }}>
           <label style={{ fontSize: "0.7rem", color: tipologia === "TODAS" || tipologia === "STUDIO" ? "#52525b" : "#a1a1aa", display: "flex", alignItems: "center", gap: 7, alignSelf: "end", minHeight: 31 }} title="Exemplo: 3 dormitórios e 2 suítes mostra apenas essa composição."><input type="checkbox" disabled={tipologia === "TODAS" || tipologia === "STUDIO"} checked={composicaoExata} onChange={(e) => { setComposicaoExata(e.target.checked); setVisibleCount(12); }} /> Composição exata</label>
 
-          <div style={{ gridColumn: "span 2" }}>
-            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: 6 }}>Fluxo contratado <span style={{ color: "#52525b" }}>(selecione um ou mais)</span></label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {flowProfilesDisponiveis.length === 0 && <span style={{ color: "#71717a", fontSize: "0.7rem" }}>Nenhum fluxo estruturado no estoque atual.</span>}
-              {flowProfilesDisponiveis.map((profile) => {
-                const selected = fluxosSelecionados.includes(profile);
-                return <button key={profile} type="button" onClick={() => { setFluxosSelecionados((current) => selected ? current.filter((item) => item !== profile) : [...current, profile]); setVisibleCount(12); }} style={{ background: selected ? "#c5a059" : "#18181b", color: selected ? "#111" : "#d4d4d8", border: `1px solid ${selected ? "#e0bb73" : "#3f3f46"}`, borderRadius: 999, padding: "0.34rem 0.6rem", fontSize: "0.72rem", fontWeight: selected ? 700 : 500, cursor: "pointer" }}>{profile}</button>;
-              })}
-            </div>
+          <div>
+            <label style={{ fontSize: "0.7rem", color: "#71717a", display: "block", marginBottom: 6 }}>Fluxo contratado</label>
+            <select value={fluxosSelecionados[0] || ""} onChange={(event) => { setFluxosSelecionados(event.target.value ? [event.target.value] : []); setVisibleCount(12); }} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", color: "#fff", fontSize: "0.75rem" }}>
+              <option value="">Todos os fluxos</option>
+              {flowProfilesDisponiveis.map((profile) => <option key={profile} value={profile}>{profile}</option>)}
+            </select>
           </div>
 
           <MoneyRangeFilter label="Entrada no fluxo" minRaw={entradaMinRaw} maxRaw={entradaMaxRaw} onMinChange={(value) => { setEntradaMinRaw(value); setVisibleCount(12); }} onMaxChange={(value) => { setEntradaMaxRaw(value); setVisibleCount(12); }} />
