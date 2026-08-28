@@ -64,17 +64,32 @@ function iniciarViewer() {
             // canva.link é um redirecionador e bloqueia carregamento em iframe.
             // Em uma nova aba, a navegação direta preserva o redirecionamento seguro do Canva.
             if (host === 'canva.link' || host.endsWith('.canva.link')) {
-                return { url: url.toString(), abrirDireto: true };
+                return { url: url.toString(), requerResolucao: true };
             }
 
             // Links de visualização do Canva aceitam o modo oficial de incorporação.
             if ((host === 'canva.com' || host.endsWith('.canva.com')) && url.pathname.includes('/design/')) {
                 url.searchParams.set('embed', '');
             }
-            return { url: url.toString(), abrirDireto: false };
+            return { url: url.toString(), requerResolucao: false };
         } catch {
-            return { url: '', abrirDireto: false };
+            return { url: '', requerResolucao: false };
         }
+    }
+
+    async function resolverLinkCurtoCanva(url) {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/resolver-link-apresentacao`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                apikey: SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({ url })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.url) throw new Error(payload.error || 'Não foi possível preparar a apresentação do Canva.');
+        return payload.url;
     }
 
     function obterUrlViewer(urlOriginal, tipoApresentacao) {
@@ -241,7 +256,7 @@ function iniciarViewer() {
         }
     }
 
-    function carregarApresentacao() {
+    async function carregarApresentacao() {
         if (!empreendimentoSelecionado || !empreendimentoSelecionado.pdfApresentacao) {
             alert("Apresentação em PDF não disponível para este empreendimento.");
             return;
@@ -267,7 +282,7 @@ function iniciarViewer() {
 
         const versao = encodeURIComponent(empreendimentoSelecionado.apresentacaoAtualizadaEm || Date.now());
         const separador = empreendimentoSelecionado.pdfApresentacao.includes('?') ? '&' : '?';
-        const origem = empreendimentoSelecionado.tipoApresentacao === 'link' ? empreendimentoSelecionado.pdfApresentacao : `${empreendimentoSelecionado.pdfApresentacao}${separador}v=${versao}`;
+        let origem = empreendimentoSelecionado.tipoApresentacao === 'link' ? empreendimentoSelecionado.pdfApresentacao : `${empreendimentoSelecionado.pdfApresentacao}${separador}v=${versao}`;
         if (empreendimentoSelecionado.tipoApresentacao === 'link') {
             const externo = prepararLinkExterno(origem);
             if (!externo.url) {
@@ -278,9 +293,17 @@ function iniciarViewer() {
                 }
                 return;
             }
-            if (externo.abrirDireto) {
-                window.location.replace(externo.url);
-                return;
+            if (externo.requerResolucao) {
+                try {
+                    origem = await resolverLinkCurtoCanva(externo.url);
+                } catch (error) {
+                    if (loadingSpinner) loadingSpinner.classList.add('hidden');
+                    if (viewerPlaceholder) {
+                        viewerPlaceholder.classList.remove('hidden');
+                        viewerPlaceholder.innerHTML = `<p>${error instanceof Error ? error.message : 'Não foi possível abrir a apresentação.'}</p><a class="btn-nav" href="${externo.url}" target="_blank" rel="noopener noreferrer">Abrir diretamente no Canva</a>`;
+                    }
+                    return;
+                }
             }
         }
         pdfViewer.classList.toggle('modo-link', empreendimentoSelecionado.tipoApresentacao === 'link');
