@@ -3,6 +3,7 @@ import { Edit3, ExternalLink, FileText, Link2, Loader2, Play, RefreshCw, Save, S
 import { supabase } from "@/lib/supabase";
 
 type Empreendimento = { id: string; nome?: string | null; cidade?: string | null; imagem_url?: string | null; caracteristicas?: Record<string, unknown> | null };
+type EmpreendimentoImagem = { empreendimento_id: string; url?: string | null; storage_path?: string | null; ordem?: number | null };
 type Apresentacao = {
   empreendimento_id: string;
   ativo: boolean;
@@ -29,12 +30,12 @@ function errorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-async function resolveEnterpriseCover(item: Empreendimento): Promise<Empreendimento> {
+async function resolveEnterpriseCover(item: Empreendimento, fallbackCover?: string | null): Promise<Empreendimento> {
   const reference = item.imagem_url || "";
-  if (!reference.startsWith(STORAGE_REFERENCE_PREFIX)) return item;
+  if (!reference.startsWith(STORAGE_REFERENCE_PREFIX)) return { ...item, imagem_url: reference || fallbackCover || null };
   const path = reference.slice(STORAGE_REFERENCE_PREFIX.length);
   const { data, error } = await supabase.storage.from(ENTERPRISE_IMAGES_BUCKET).createSignedUrl(path, 3600);
-  return error || !data?.signedUrl ? { ...item, imagem_url: null } : { ...item, imagem_url: data.signedUrl };
+  return error || !data?.signedUrl ? { ...item, imagem_url: fallbackCover || null } : { ...item, imagem_url: data.signedUrl };
 }
 
 async function resolvePresentationCover(item: Apresentacao): Promise<Apresentacao> {
@@ -48,6 +49,7 @@ async function resolvePresentationCover(item: Apresentacao): Promise<Apresentaca
 export default function Apresentacoes() {
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const [apresentacoes, setApresentacoes] = useState<Record<string, Apresentacao>>({});
+  const [galleryCovers, setGalleryCovers] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<Empreendimento | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [linkUrl, setLinkUrl] = useState("");
@@ -64,14 +66,27 @@ export default function Apresentacoes() {
     setMessage(null);
     try {
       const empPromise = supabase.from("empreendimentos").select("id, nome, cidade, imagem_url, caracteristicas").order("nome");
+      const imagePromise = supabase.from("empreendimento_imagens").select("empreendimento_id, url, storage_path, ordem").order("ordem", { ascending: true });
       let presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, imagem_capa, updated_at");
       const missingLinkColumns = Boolean(presentationResult.error && /link_url|tipo_preferido/i.test(presentationResult.error.message || ""));
       if (missingLinkColumns) presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, updated_at");
-      const empResult = await empPromise;
+      const [empResult, imageResult] = await Promise.all([empPromise, imagePromise]);
       setSupportsLinks(!missingLinkColumns);
       if (empResult.error) throw empResult.error;
+      if (imageResult.error) throw imageResult.error;
       if (presentationResult.error) throw presentationResult.error;
-      const loadedEnterprises = await Promise.all(((empResult.data || []) as Empreendimento[]).map(resolveEnterpriseCover));
+      const firstImageByEnterprise = new Map<string, EmpreendimentoImagem>();
+      ((imageResult.data || []) as EmpreendimentoImagem[]).forEach((image) => {
+        if (image.empreendimento_id && !firstImageByEnterprise.has(image.empreendimento_id)) firstImageByEnterprise.set(image.empreendimento_id, image);
+      });
+      const signedFallbacks = await Promise.all(Array.from(firstImageByEnterprise.entries()).map(async ([enterpriseId, image]) => {
+        if (!image.storage_path) return [enterpriseId, image.url || ""] as const;
+        const { data } = await supabase.storage.from(ENTERPRISE_IMAGES_BUCKET).createSignedUrl(image.storage_path, 3600);
+        return [enterpriseId, data?.signedUrl || image.url || ""] as const;
+      }));
+      const covers = Object.fromEntries(signedFallbacks.filter(([, url]) => Boolean(url)));
+      setGalleryCovers(covers);
+      const loadedEnterprises = await Promise.all(((empResult.data || []) as Empreendimento[]).map((item) => resolveEnterpriseCover(item, covers[item.id])));
       setEmpreendimentos(loadedEnterprises);
       const signed=await Promise.all(((presentationResult.data || []) as Apresentacao[]).map(async(item)=>{const resolved=await resolvePresentationCover(item);if(!resolved.storage_path)return {...resolved,pdf_url:null};const{data,error}=await supabase.storage.from(BUCKET).createSignedUrl(resolved.storage_path,3600);return {...resolved,pdf_url:error?null:(data?.signedUrl||null)}}));
       const byEnterprise=Object.fromEntries(signed.map((item) => [item.empreendimento_id, item])) as Record<string,Apresentacao>;
@@ -259,7 +274,7 @@ export default function Apresentacoes() {
           const canPresent = active && (hasPdf || hasLink);
           return <article key={item.id} style={cardStyle}>
             <div style={{ height: 142, background: "#1a1a1f", position: "relative" }}>
-              {presentation?.imagem_capa || item.imagem_url ? <img src={presentation?.imagem_capa || item.imagem_url || undefined} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ height: "100%", display: "grid", placeItems: "center", color: "#f5d58b", background: "linear-gradient(135deg,#21190d,#111827)" }}><div style={{ textAlign: "center" }}><FileText size={30} style={{ marginBottom: 7 }} /><strong style={{ display: "block", fontSize: 12, color: "#f4f4f5" }}>{item.nome || "Apresentação"}</strong><small style={{ color: "#a1a1aa" }}>Capa pendente</small></div></div>}
+              {presentation?.imagem_capa || item.imagem_url || galleryCovers[item.id] ? <img src={presentation?.imagem_capa || item.imagem_url || galleryCovers[item.id]} onError={(event) => { const fallback = galleryCovers[item.id]; if (fallback && event.currentTarget.src !== fallback) event.currentTarget.src = fallback; else event.currentTarget.style.display = "none"; }} alt={item.nome || "Empreendimento"} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ height: "100%", display: "grid", placeItems: "center", color: "#f5d58b", background: "linear-gradient(135deg,#21190d,#111827)" }}><div style={{ textAlign: "center" }}><FileText size={30} style={{ marginBottom: 7 }} /><strong style={{ display: "block", fontSize: 12, color: "#f4f4f5" }}>{item.nome || "Apresentação"}</strong><small style={{ color: "#a1a1aa" }}>Capa pendente</small></div></div>}
               <span style={{ ...badgeStyle, background: active ? "#14532d" : "#4c1d1d", color: active ? "#bbf7d0" : "#fecaca" }}>{active ? "Ativa" : "Desativada"}</span>
             </div>
             <div style={{ padding: 15, display: "flex", flexDirection: "column", flex: 1 }}>
