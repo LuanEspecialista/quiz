@@ -55,9 +55,31 @@ function iniciarViewer() {
 
     selectTipologiaUnidades?.addEventListener('change', atualizarLinkUnidades);
 
+    function prepararLinkExterno(urlOriginal) {
+        try {
+            const url = new URL(urlOriginal);
+            if (!['http:', 'https:'].includes(url.protocol)) return { url: '', abrirDireto: false };
+            const host = url.hostname.toLowerCase();
+
+            // canva.link é um redirecionador e bloqueia carregamento em iframe.
+            // Em uma nova aba, a navegação direta preserva o redirecionamento seguro do Canva.
+            if (host === 'canva.link' || host.endsWith('.canva.link')) {
+                return { url: url.toString(), abrirDireto: true };
+            }
+
+            // Links de visualização do Canva aceitam o modo oficial de incorporação.
+            if ((host === 'canva.com' || host.endsWith('.canva.com')) && url.pathname.includes('/design/')) {
+                url.searchParams.set('embed', '');
+            }
+            return { url: url.toString(), abrirDireto: false };
+        } catch {
+            return { url: '', abrirDireto: false };
+        }
+    }
+
     function obterUrlViewer(urlOriginal, tipoApresentacao) {
         if (!urlOriginal) return '';
-        if (tipoApresentacao === 'link') return urlOriginal;
+        if (tipoApresentacao === 'link') return prepararLinkExterno(urlOriginal).url;
         return `${urlOriginal}#toolbar=0&navpanes=0&scrollbar=0`;
     }
 
@@ -246,6 +268,21 @@ function iniciarViewer() {
         const versao = encodeURIComponent(empreendimentoSelecionado.apresentacaoAtualizadaEm || Date.now());
         const separador = empreendimentoSelecionado.pdfApresentacao.includes('?') ? '&' : '?';
         const origem = empreendimentoSelecionado.tipoApresentacao === 'link' ? empreendimentoSelecionado.pdfApresentacao : `${empreendimentoSelecionado.pdfApresentacao}${separador}v=${versao}`;
+        if (empreendimentoSelecionado.tipoApresentacao === 'link') {
+            const externo = prepararLinkExterno(origem);
+            if (!externo.url) {
+                if (loadingSpinner) loadingSpinner.classList.add('hidden');
+                if (viewerPlaceholder) {
+                    viewerPlaceholder.classList.remove('hidden');
+                    viewerPlaceholder.innerHTML = '<p>O link desta apresentação é inválido.</p>';
+                }
+                return;
+            }
+            if (externo.abrirDireto) {
+                window.location.replace(externo.url);
+                return;
+            }
+        }
         pdfViewer.classList.toggle('modo-link', empreendimentoSelecionado.tipoApresentacao === 'link');
         pdfViewer.src = obterUrlViewer(origem, empreendimentoSelecionado.tipoApresentacao);
 
