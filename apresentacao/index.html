@@ -83,7 +83,7 @@
         const localPreview = ["localhost", "127.0.0.1"].includes(location.hostname);
         const liberarVisualizador = async () => {
           document.body.classList.add("apresentacao-autorizada", "modo-direto");
-          for (const src of ["./assets/js/dados.js", "./assets/js/viewer.js"]) {
+          for (const src of ["./assets/js/dados.js?v=20260828-1", "./assets/js/viewer.js?v=20260828-1"]) {
             await new Promise((resolve, reject) => {
               const script = document.createElement("script");
               script.src = src;

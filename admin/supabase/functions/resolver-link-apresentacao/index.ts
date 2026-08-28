@@ -37,7 +37,10 @@ Deno.serve(async (request) => {
 
     const destination = new URL(response.url);
     if (!isOfficialCanvaDestination(destination)) return json({ error: "O link não terminou em uma apresentação oficial do Canva." }, 400);
-    destination.searchParams.set("embed", "");
+    // O Canva reconhece de forma consistente o formato mínimo `/view?embed`.
+    // Parâmetros de compartilhamento podem fazer a página voltar ao modo comum,
+    // que envia bloqueio de iframe.
+    destination.search = "?embed";
     return json({ url: destination.toString() });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Não foi possível resolver o link." }, 400);

@@ -69,7 +69,7 @@ function iniciarViewer() {
 
             // Links de visualização do Canva aceitam o modo oficial de incorporação.
             if ((host === 'canva.com' || host.endsWith('.canva.com')) && url.pathname.includes('/design/')) {
-                url.searchParams.set('embed', '');
+                url.search = '?embed';
             }
             return { url: url.toString(), requerResolucao: false };
         } catch {
