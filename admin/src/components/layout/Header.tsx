@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, Settings, Zap, ArrowUpRight, ArrowDownRight, Minus, ChevronDown, Save, LogOut } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { applyExchangeRate, getExchangeRate, isUsdBrlIndicator } from "../../lib/exchangeRate";
+import { applyExchangeRate, getExchangeRate, isUsdBrlIndicator, refreshExchangeRate } from "../../lib/exchangeRate";
 import { getCryptoIndicators } from "../../lib/cryptoRates";
 import { getEuroIndicator, isEuroIndicator } from "../../lib/fiatRates";
 import LanguageSelector from "../LanguageSelector";
@@ -37,10 +37,15 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
 
   const loadIndicadores = async () => {
     try {
+      let exchangePromise = getExchangeRate();
+      if (role === "admin" && sessionStorage.getItem("luan.ptax.refresh-date") !== new Date().toISOString().slice(0, 10)) {
+        sessionStorage.setItem("luan.ptax.refresh-date", new Date().toISOString().slice(0, 10));
+        exchangePromise = refreshExchangeRate().catch(() => getExchangeRate());
+      }
       const [{ data }, { data: historico }, cotacao, crypto, euro, { data: tickerConfig }] = await Promise.all([
         supabase.from("indicadores").select("*"),
         supabase.from("indicadores_historico").select("indicador_id, valor, data_referencia").order("data_referencia", { ascending: false }),
-        getExchangeRate(),
+        exchangePromise,
         getCryptoIndicators(),
         getEuroIndicator(),
         supabase.from("indicadores_ticker_config").select("sku, ativo"),

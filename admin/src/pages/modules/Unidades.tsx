@@ -24,6 +24,7 @@ import { supabase } from "../../lib/supabase";
 import { analyzeFlow, getCommercialFlowProfile, monthsUntilDelivery } from "../../lib/flowCompatibility";
 import { parseStandardTypology } from "../../lib/realEstateStandard";
 import CurrencyInput from "../../components/CurrencyInput";
+import UnitFloorplanViewer from "../../components/UnitFloorplanViewer";
 
 // ============================================================================
 // HIGIENIZAÇÃO DO ANDAR (EVITA ERRO INTEGER NO POSTGRES / SUPABASE)
@@ -90,6 +91,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
 
   // Seleção para Simulação Múltipla
   const [selectedUnits, setSelectedUnits] = useState<any[]>([]);
+  const [floorplanUnits, setFloorplanUnits] = useState<any[]>([]);
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState(filtrosIniciais?.cidade || "");
@@ -1059,6 +1061,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                     >
                       Simular esta Unidade
                     </button>
+                    <button onClick={(e) => { e.stopPropagation(); setFloorplanUnits([u]); }} style={{ backgroundColor: "#18181b", border: "1px solid #62502a", color: "#f5d58b", padding: "0.5rem", borderRadius: "4px", fontSize: "0.72rem", cursor: "pointer", width: "100%", fontWeight: "bold", display: "flex", justifyContent: "center", alignItems: "center", gap: 5 }}><Maximize2 style={{ width: 14, height: 14 }} /> Ver planta</button>
                   </div>
                 </div>
               );
@@ -1118,10 +1121,12 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
             Ir para Fluxo Financeiro
             <ArrowRight style={{ width: "14px", height: "14px" }} />
           </button>
+          <button onClick={() => setFloorplanUnits(selectedUnits.slice(0, 3))} style={{ backgroundColor: "#2a2113", color: "#f5d58b", border: "1px solid #000", padding: "0.5rem 1rem", borderRadius: "20px", fontWeight: "bold", fontSize: "0.8rem", cursor: "pointer" }}>Comparar plantas</button>
         </div>
       )}
 
       {newUnitOpen && <div role="dialog" aria-modal="true" aria-label="Cadastrar nova unidade" onMouseDown={(event)=>{ if(event.target===event.currentTarget) setNewUnitOpen(false); }} style={{position:"fixed",inset:0,zIndex:10000,background:"#000b",display:"grid",placeItems:"center",padding:16}}><div style={{width:"min(760px,100%)",maxHeight:"90vh",overflowY:"auto",background:"#121212",border:"1px solid #3f3f46",borderRadius:10,padding:16}}><div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center"}}><div><h2 style={{margin:0,color:"#fff",fontSize:18}}>Nova unidade</h2><p style={{margin:"4px 0 0",color:"#a1a1aa",fontSize:12}}>Cadastro manual com campos que alimentam busca, comparativo e fluxo.</p></div><button onClick={()=>setNewUnitOpen(false)} aria-label="Fechar" style={{background:"transparent",border:0,color:"#a1a1aa",cursor:"pointer"}}><X size={18}/></button></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginTop:15}}><label style={{gridColumn:"1 / -1",fontSize:11,color:"#a1a1aa"}}>Empreendimento<select value={newUnitForm.empreendimento_id} onChange={(event)=>setNewUnitForm({...newUnitForm,empreendimento_id:event.target.value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}><option value="">Selecione</option>{enterpriseOptions.map((enterprise)=><option key={enterprise.id} value={enterprise.id}>{enterprise.nome}</option>)}</select></label>{[["numero","Unidade", "text"],["torre","Torre", "text"],["andar","Andar", "number"],["tipologia","Tipologia", "text"],["dormitorios","Dormitórios", "number"],["suites","Suítes", "number"],["vagas","Vagas", "number"],["area_privativa","Área privativa (m²)", "number"],["vista","Vista / posição", "text"]].map(([field,label,type])=><label key={field} style={{fontSize:11,color:"#a1a1aa"}}>{label}<input type={type} value={newUnitForm[field] ?? ""} onChange={(event)=>setNewUnitForm({...newUnitForm,[field]:event.target.value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}/></label>)}<label style={{fontSize:11,color:"#a1a1aa"}}>Valor de tabela<CurrencyInput value={Number(newUnitForm.valor_tabela)||0} onChange={(value)=>setNewUnitForm({...newUnitForm,valor_tabela:value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}/></label><label style={{fontSize:11,color:"#a1a1aa"}}>Entrada sugerida<CurrencyInput value={Number(newUnitForm.entrada_sugerida)||0} onChange={(value)=>setNewUnitForm({...newUnitForm,entrada_sugerida:value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}/></label><label style={{fontSize:11,color:"#a1a1aa"}}>Status<select value={newUnitForm.status} onChange={(event)=>setNewUnitForm({...newUnitForm,status:event.target.value})} style={{width:"100%",boxSizing:"border-box",marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}><option value="disponivel">Disponível</option><option value="reservada">Reservada</option><option value="indisponivel">Indisponível</option></select></label><label style={{gridColumn:"1 / -1",fontSize:11,color:"#a1a1aa"}}>Observações<textarea value={newUnitForm.observacoes} onChange={(event)=>setNewUnitForm({...newUnitForm,observacoes:event.target.value})} style={{width:"100%",boxSizing:"border-box",minHeight:70,marginTop:5,background:"#09090b",color:"#fff",border:"1px solid #3f3f46",borderRadius:6,padding:9}}/></label></div>{newUnitError&&<p role="alert" style={{color:"#f87171",fontSize:12}}>{newUnitError}</p>}<div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:15}}><button onClick={()=>setNewUnitOpen(false)} style={{background:"#18181b",border:"1px solid #3f3f46",color:"#e4e4e7",borderRadius:6,padding:"8px 11px",cursor:"pointer"}}>Cancelar</button><button disabled={newUnitSaving} onClick={()=>void saveNewUnit()} style={{background:"#c5a059",border:0,color:"#111",fontWeight:700,borderRadius:6,padding:"8px 11px",cursor:"pointer"}}>{newUnitSaving?"Salvando...":"Cadastrar unidade"}</button></div></div></div>}
+      {floorplanUnits.length > 0 && <UnitFloorplanViewer units={floorplanUnits} onClose={() => setFloorplanUnits([])} />}
 
     </div>
   );

@@ -67,11 +67,11 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
     { id: "prompts", label: t("prompts"), icon: FileText },
     { id: "fluxos", label: t("financialFlows"), icon: GitBranch },
     { id: "clientes", label: t("clients"), icon: Users },
-    { id: "playbook", label: "Playbook", icon: BrainCircuit },
     { id: "afiliados", label: t("affiliates"), icon: UserCheck },
     { id: "indicadores", label: t("indicators"), icon: TrendingUp },
     { id: "links", label: t("temporaryLinks"), icon: Link2 },
     { id: "configuracoes", label: t("settings"), icon: Settings },
+    { id: "playbook", label: "Playbook", icon: BrainCircuit },
   ];
 
   const handleSelect = (id: string) => {
