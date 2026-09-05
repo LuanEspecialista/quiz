@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=20260905-1">
     <script>
       if (!new URLSearchParams(location.search).get("empreendimento")) {
         location.replace("/painel/?tab=apresentacoes");
@@ -17,19 +17,22 @@
 <body>
 
     <header class="main-header">
-        <a class="logo-container" href="/" aria-label="Ir para a página inicial" style="text-decoration:none">
+        <a class="logo-container" href="/painel/?tab=apresentacoes" aria-label="Voltar ao painel de apresentações" style="text-decoration:none">
             <img src="/imagens/logo.png" alt="Luan Especialista" class="logo-img">
             <div class="logo-text">
                 <h1>Luan Especialista</h1>
                 <p>CURADORIA PATRIMONIAL</p>
             </div>
         </a>
-        <button class="btn-fullscreen" id="btn-fullscreen">Tela cheia</button>
+        <div class="presentation-actions">
+            <a class="btn-leave-presentation" href="/painel/?tab=apresentacoes">Sair</a>
+            <button type="button" class="btn-fullscreen" id="btn-fullscreen" aria-pressed="false">Tela cheia</button>
+        </div>
     </header>
 
     <!-- ÁREA CENTRAL: VISUALIZADOR DE PDF COM LOADING E MÁSCARA -->
     <main class="viewer-container">
-        <button type="button" id="btn-exit-fullscreen" class="btn-exit-fullscreen">Sair · Esc</button>
+        <button type="button" id="btn-exit-fullscreen" class="btn-exit-fullscreen">Sair da tela cheia</button>
         <!-- Mensagem de instruções inicial -->
         <div id="viewer-placeholder" class="placeholder-text">
             <p>Preparando a apresentação selecionada...</p>
@@ -83,7 +86,7 @@
         const localPreview = ["localhost", "127.0.0.1"].includes(location.hostname);
         const liberarVisualizador = async () => {
           document.body.classList.add("apresentacao-autorizada", "modo-direto");
-          for (const src of ["./assets/js/dados.js?v=20260828-1", "./assets/js/viewer.js?v=20260828-1"]) {
+          for (const src of ["./assets/js/dados.js?v=20260828-1", "./assets/js/viewer.js?v=20260905-1"]) {
             await new Promise((resolve, reject) => {
               const script = document.createElement("script");
               script.src = src;
