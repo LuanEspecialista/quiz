@@ -473,7 +473,10 @@ function iniciarViewer() {
 
         const fullscreenHint = document.createElement('div');
         fullscreenHint.className = 'fullscreen-hint';
-        fullscreenHint.textContent = 'Pressione Esc para sair da tela cheia';
+        const mobileFullscreen = window.matchMedia('(max-width: 640px), (pointer: coarse)').matches;
+        fullscreenHint.textContent = mobileFullscreen
+            ? 'Use “Sair da tela cheia” para voltar'
+            : 'Pressione Esc para sair da tela cheia';
         (mainViewerContainer || document.body).appendChild(fullscreenHint);
 
         const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement;
@@ -481,23 +484,29 @@ function iniciarViewer() {
             const active = Boolean(fullscreenElement());
             btnFullscreen.textContent = active ? 'Sair da tela cheia' : 'Tela cheia';
             btnFullscreen.setAttribute('aria-pressed', String(active));
+            btnFullscreen.setAttribute('aria-label', active ? 'Sair da tela cheia' : 'Entrar em tela cheia');
+            btnFullscreen.title = active ? 'Sair da tela cheia' : 'Entrar em tela cheia';
             fullscreenHint.classList.toggle('visible', active);
         };
 
         const toggleFullscreen = async () => {
-            if (!document.fullscreenElement) {
-                const targetEl = document.documentElement;
-                if (targetEl.requestFullscreen) {
-                    await targetEl.requestFullscreen();
-                } else if (targetEl.webkitRequestFullscreen) {
-                    targetEl.webkitRequestFullscreen();
-                }
-            } else {
-                if (document.exitFullscreen) {
+            try {
+                if (!fullscreenElement()) {
+                    const targetEl = document.documentElement;
+                    if (targetEl.requestFullscreen) {
+                        await targetEl.requestFullscreen();
+                    } else if (targetEl.webkitRequestFullscreen) {
+                        await targetEl.webkitRequestFullscreen();
+                    }
+                } else if (document.exitFullscreen) {
                     await document.exitFullscreen();
                 } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
+                    await document.webkitExitFullscreen();
                 }
+            } catch (error) {
+                fullscreenHint.textContent = 'O navegador não permitiu alterar a tela cheia.';
+                fullscreenHint.classList.add('visible');
+                window.setTimeout(() => fullscreenHint.classList.remove('visible'), 3000);
             }
         };
         btnFullscreen.addEventListener('click', toggleFullscreen);
