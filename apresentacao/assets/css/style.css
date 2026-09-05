@@ -483,6 +483,11 @@ body.modo-direto #btn-proximo {
         bottom: calc(68px + env(safe-area-inset-bottom));
     }
 
+    body .luan-language-menu {
+        top: auto;
+        bottom: calc(100% + 7px);
+    }
+
     .main-footer {
         height: 58px;
     }

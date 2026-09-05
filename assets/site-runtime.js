@@ -12,18 +12,41 @@
   };
   const text = copy[locale];
   const css = document.createElement("style");
-  css.textContent = ".luan-language{position:fixed;right:14px;top:14px;z-index:2147483646;display:flex;gap:2px;padding:3px;background:rgba(10,10,10,.82);border:1px solid rgba(197,160,89,.28);border-radius:999px;backdrop-filter:blur(8px)}.luan-language button{min-width:30px;padding:5px 7px;border:0;border-radius:999px;background:transparent;color:#a1a1aa;font:600 10px/1 Inter,Arial,sans-serif;cursor:pointer}.luan-language button[aria-pressed=true]{background:#c5a059;color:#090909}.luan-rate-note{font:10px/1.35 Inter,Arial,sans-serif;color:rgba(255,255,255,.48);text-align:center;margin:10px auto;max-width:720px}.luan-blocked{min-height:100vh;display:grid;place-items:center;background:#070707;color:#eee}";
+  css.textContent = ".luan-language{position:fixed;right:14px;top:max(12px,env(safe-area-inset-top));z-index:2147483646;font-family:Inter,Arial,sans-serif}.luan-language-toggle{min-width:46px;min-height:36px;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 9px;border:1px solid rgba(197,160,89,.42);border-radius:999px;background:rgba(10,10,10,.9);color:#e7be73;font:700 11px/1 Inter,Arial,sans-serif;cursor:pointer;backdrop-filter:blur(8px);box-shadow:0 5px 18px rgba(0,0,0,.28)}.luan-language-menu{position:absolute;top:calc(100% + 7px);right:0;min-width:142px;display:grid;gap:2px;padding:4px;border:1px solid rgba(197,160,89,.32);border-radius:10px;background:#111;box-shadow:0 12px 30px rgba(0,0,0,.48)}.luan-language-menu[hidden]{display:none!important}.luan-language-option{width:100%;padding:9px 10px;border:0;border-radius:7px;background:transparent;color:#ddd;text-align:left;font:600 11px/1.2 Inter,Arial,sans-serif;cursor:pointer}.luan-language-option[aria-checked=true]{background:#c5a059;color:#090909}.luan-rate-note{font:10px/1.35 Inter,Arial,sans-serif;color:rgba(255,255,255,.48);text-align:center;margin:10px auto;max-width:720px}.luan-blocked{min-height:100vh;display:grid;place-items:center;background:#070707;color:#eee}";
   document.head.appendChild(css);
 
+  const localeLabels = { "pt-BR": "Português", "en-US": "English", es: "Español" };
+  const localeShort = { "pt-BR": "PT", "en-US": "EN", es: "ES" };
   const selector = document.createElement("nav");
   selector.className = "luan-language";
   selector.setAttribute("aria-label", text.language);
-  selector.innerHTML = supported.map((value) => `<button type="button" data-locale="${value}" aria-pressed="${value === locale}">${value === "pt-BR" ? "PT" : value === "en-US" ? "EN" : "ES"}</button>`).join("");
+  selector.innerHTML = `<button type="button" class="luan-language-toggle" aria-label="${text.language}" aria-expanded="false" aria-controls="luan-language-menu"><span>${localeShort[locale]}</span><span aria-hidden="true">▾</span></button><div class="luan-language-menu" id="luan-language-menu" role="menu" hidden>${supported.map((value) => `<button type="button" class="luan-language-option" role="menuitemradio" data-locale="${value}" aria-checked="${value === locale}">${localeLabels[value]}</button>`).join("")}</div>`;
+  const toggle = selector.querySelector(".luan-language-toggle");
+  const menu = selector.querySelector(".luan-language-menu");
+  const closeSelector = () => {
+    menu.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+  };
+  toggle.addEventListener("click", () => {
+    const opening = menu.hidden;
+    menu.hidden = !opening;
+    toggle.setAttribute("aria-expanded", String(opening));
+  });
   selector.addEventListener("click", (event) => {
     const button = event.target.closest("[data-locale]");
-    if (!button || button.dataset.locale === locale) return;
+    if (!button) return;
+    if (button.dataset.locale === locale) {
+      closeSelector();
+      return;
+    }
     localStorage.setItem("luan.locale", button.dataset.locale);
     location.reload();
+  });
+  document.addEventListener("click", (event) => {
+    if (!selector.contains(event.target)) closeSelector();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeSelector();
   });
   document.body.appendChild(selector);
 
