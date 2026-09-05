@@ -161,6 +161,22 @@ img, video, canvas {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
+  .app-main .floorplan-comparison {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-main .floorplan-comparison > article {
+    flex: 0 0 calc(100vw - 54px);
+    scroll-snap-align: start;
+  }
+
+  .app-main .plan-component-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
   .app-main [style*="grid-column"] {
     grid-column: auto !important;
   }

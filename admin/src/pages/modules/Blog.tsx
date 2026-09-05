@@ -108,7 +108,7 @@ export default function BlogModule() {
     Array<{
       id: string;
       url: string;
-      nome: string | null;
+      titulo: string | null;
       categoria: string | null;
     }>
   >([]);
@@ -164,14 +164,14 @@ export default function BlogModule() {
         const images = (data || []) as Array<{
           id: string;
           url: string;
-          nome: string | null;
+          titulo: string | null;
           categoria: string | null;
         }>;
         if (mainImage && !images.some((item) => item.url === mainImage))
           images.unshift({
             id: "capa",
             url: mainImage,
-            nome: "Capa do empreendimento",
+            titulo: "Capa do empreendimento",
             categoria: "capa",
           });
         setLibraryImages(images);
