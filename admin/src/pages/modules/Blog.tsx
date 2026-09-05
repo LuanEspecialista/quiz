@@ -9,15 +9,11 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import BlogComposer from "../../components/BlogComposer";
+import type { StructuredEditorialBlocks } from "../../lib/blogEditorial";
 
 type Status = "rascunho" | "revisao" | "publicado" | "arquivado";
 type BlogImage = { url: string; alt: string; legenda?: string };
-type EditorialBlocks = {
-  destaque?: string;
-  prova?: string;
-  curiosidade?: string;
-  cta?: string;
-};
 type Post = {
   id: string;
   titulo: string;
@@ -28,7 +24,7 @@ type Post = {
   layout: string;
   imagem_capa_url: string | null;
   imagens: BlogImage[];
-  blocos: EditorialBlocks;
+  blocos: StructuredEditorialBlocks;
   cidade: string | null;
   empreendimento_id: string | null;
   seo_titulo: string | null;
@@ -588,7 +584,7 @@ export default function BlogModule() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
                 gap: 11,
                 marginTop: 17,
               }}
@@ -918,11 +914,12 @@ export default function BlogModule() {
                   style={field}
                 />
               </label>
-              <div
+              <BlogComposer editing={editing} setEditing={(value) => setEditing(value as typeof editing)} field={field} setMessage={setMessage} />
+              {!editing.blocos?.secoes?.length && <div
                 style={{
                   gridColumn: "1/-1",
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))",
                   gap: 11,
                   padding: 12,
                   border: "1px solid #4c4028",
@@ -930,14 +927,14 @@ export default function BlogModule() {
                   background: "#15130f",
                 }}
               >
-                <strong style={{ gridColumn: "1/-1", color: "#d7ab63" }}>Blocos de leitura estratégica</strong>
+                <strong style={{ gridColumn: "1/-1", color: "#d7ab63" }}>Compatibilidade com artigos antigos</strong>
                 <label>Frase de destaque<textarea value={editing.blocos?.destaque || ""} onChange={(event) => setEditing({ ...editing, blocos: { ...(editing.blocos || {}), destaque: event.target.value } })} rows={2} placeholder="A ideia que deve ficar na mente do leitor." style={field} /></label>
                 <label>Dado, prova ou curiosidade<textarea value={editing.blocos?.prova || ""} onChange={(event) => setEditing({ ...editing, blocos: { ...(editing.blocos || {}), prova: event.target.value } })} rows={2} placeholder="Número, fato verificável ou curiosidade." style={field} /></label>
                 <label>Chamada editorial<textarea value={editing.blocos?.curiosidade || ""} onChange={(event) => setEditing({ ...editing, blocos: { ...(editing.blocos || {}), curiosidade: event.target.value } })} rows={2} placeholder="Gancho para a próxima parte da leitura." style={field} /></label>
                 <label>Próximo passo / CTA<textarea value={editing.blocos?.cta || ""} onChange={(event) => setEditing({ ...editing, blocos: { ...(editing.blocos || {}), cta: event.target.value } })} rows={2} placeholder="Convite sutil para conversar ou conhecer uma oportunidade." style={field} /></label>
-              </div>
-              <label style={{ gridColumn: "1/-1" }}>
-                Conteúdo
+              </div>}
+              {!editing.blocos?.secoes?.length && <label style={{ gridColumn: "1/-1" }}>
+                Conteúdo antigo
                 <textarea
                   value={editing.conteudo || ""}
                   onChange={(event) =>
@@ -947,7 +944,7 @@ export default function BlogModule() {
                   placeholder="Escreva em blocos curtos: contexto, dados, análise, recomendação e próximo passo."
                   style={field}
                 />
-              </label>
+              </label>}
               <label>
                 SEO: título para Google
                 <input
