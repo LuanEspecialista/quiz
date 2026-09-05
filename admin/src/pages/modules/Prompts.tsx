@@ -204,18 +204,17 @@ export default function PromptsModule() {
       <h1 style={{ margin: "7px 0", fontSize: 28 }}>Central de Prompts</h1>
       <p style={{ margin: 0, color: "#9696a1", maxWidth: 760, lineHeight: 1.55 }}>Use modelos preparados para entregar ao sistema exatamente a estrutura esperada, sem preenchimento manual repetitivo.</p>
     </header>
+    <div style={{ display: "flex", gap: 9, alignItems: "center", color: "#8fa695", background: "#0e1712", border: "1px solid #1e3b2a", borderRadius: 9, padding: "11px 14px", fontSize: 12 }}><ShieldCheck size={17} /> O resultado ainda deve ser revisado antes da importação quando o PDF estiver borrado, cortado ou tiver cálculos divergentes.</div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))", gap: 16 }}>
+      <PromptCard title="Prompt de Unidades" description="Para tabelas de preço, estoque, disponibilidade e condições de pagamento." prompt={UNIT_PROMPT} icon={Layers3} copied={copied === "units"} onCopy={() => void copy("units", UNIT_PROMPT)} />
+      <PromptCard title="Prompt de Empreendimentos" description="Para apresentações, memoriais, folders e materiais comerciais completos." prompt={ENTERPRISE_PROMPT} icon={Building2} copied={copied === "enterprise"} onCopy={() => void copy("enterprise", ENTERPRISE_PROMPT)} />
+    </div>
     <section style={{ background: "#101012", border: "1px solid #493a22", borderRadius: 12, padding: 22, display: "grid", gap: 14 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}><div style={{ width: 42, height: 42, borderRadius: 10, background: "rgba(213,164,87,.12)", color: "#d5a457", display: "grid", placeItems: "center" }}><BookOpen size={21}/></div><div><h2 style={{ margin: 0, fontSize: 18 }}>Prompt de artigo para o Blog</h2><p style={{ margin: "6px 0 0", color: "#92929d", lineHeight: 1.5, fontSize: 13 }}>Gera texto escaneável, SEO, blocos, plano de imagens, CTA e fontes em um único JSON importável.</p></div></div>
       <label style={{ color: "#c9c9cf", fontSize: 12 }}>Qual é o tema?<textarea value={blogTopic} onChange={(event) => setBlogTopic(event.target.value)} rows={3} placeholder="Ex.: Como a Selic influencia o financiamento imobiliário e as decisões do investidor em 2026" style={{ width: "100%", marginTop: 6, boxSizing: "border-box", background: "#09090b", border: "1px solid #3a3a42", borderRadius: 8, color: "#f4f4f5", padding: 11 }}/></label>
       <button onClick={() => void copy("blog", buildBlogPrompt(blogTopic))} style={{ height: 42, border: copied === "blog" ? "1px solid #218b57" : "1px solid #8e672e", borderRadius: 8, background: copied === "blog" ? "#123021" : "#d5a457", color: copied === "blog" ? "#76dfa8" : "#080808", fontWeight: 800, cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}><Copy size={17}/>{copied === "blog" ? "Prompt copiado" : "Copiar prompt para este tema"}</button>
       <small style={{ color: "#777782" }}>Na outra IA: cole o prompt, aguarde o JSON, copie a resposta e use “Importar pacote da IA” no editor do Blog.</small>
     </section>
-    <div><strong style={{ display: "block", fontSize: 13, color: "#d5a457" }}>Cadastro e importação técnica</strong><small style={{ color: "#777782" }}>Use estes modelos somente para cadastrar empreendimentos e unidades.</small></div>
-    <div style={{ display: "flex", gap: 9, alignItems: "center", color: "#8fa695", background: "#0e1712", border: "1px solid #1e3b2a", borderRadius: 9, padding: "11px 14px", fontSize: 12 }}><ShieldCheck size={17} /> O resultado ainda deve ser revisado antes da importação quando o PDF estiver borrado, cortado ou tiver cálculos divergentes.</div>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-      <PromptCard title="Prompt de Unidades" description="Para tabelas de preço, estoque, disponibilidade e condições de pagamento." prompt={UNIT_PROMPT} icon={Layers3} copied={copied === "units"} onCopy={() => void copy("units", UNIT_PROMPT)} />
-      <PromptCard title="Prompt de Empreendimentos" description="Para apresentações, memoriais, folders e materiais comerciais completos." prompt={ENTERPRISE_PROMPT} icon={Building2} copied={copied === "enterprise"} onCopy={() => void copy("enterprise", ENTERPRISE_PROMPT)} />
-    </div>
     <div style={{ display: "flex", gap: 8, alignItems: "center", color: "#686872", fontSize: 12 }}><Clipboard size={15} /> Versão 2 — compatível com o padrão interno de empreendimentos e unidades.</div>
   </section>;
 }
