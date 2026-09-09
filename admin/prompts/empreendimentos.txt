@@ -41,6 +41,10 @@ REGRAS DE EXTRAÇÃO
 21. Para fluxos 30/70, 40/60, 50/50, 60/40 ou 70/30, use resumo_percentual com os percentuais confirmados.
 22. Não calcule valorização, correção futura ou saldo reajustado. Registre apenas a regra contratual/comercial.
 23. Responda exclusivamente com um único JSON válido, sem Markdown, comentários ou texto antes/depois.
+24. Só use PRONTO_PARA_IMPORTAR quando todas as unidades tiverem codigo_unidade e valor_tabela numérico maior que zero.
+25. Use exatamente os nomes codigo_unidade e valor_tabela; não os substitua por numero, preco, valor_total ou aliases.
+26. Se o valor total não estiver impresso, mas todas as etapas explícitas fecharem uma soma completa e inequívoca, use a soma exata como valor_tabela e identifique o cálculo nas observações. Se faltar qualquer etapa, retorne PENDENTE_INFORMACAO.
+27. Não transforme cabeçalhos, linhas de tipologia, subtotais, vagas avulsas ou observações em unidades.
 
 QUANDO HOUVER PENDÊNCIA
 {

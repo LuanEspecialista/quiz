@@ -29,6 +29,7 @@ const UnidadesImporter: React.FC = () => {
 
   const sanitizeJsonString = (raw: string) => {
     return raw
+      .replace(/^\uFEFF/, "")
       .replace(/```json/gi, "")
       .replace(/```/g, "")
       .trim();
@@ -36,13 +37,34 @@ const UnidadesImporter: React.FC = () => {
 
   const parseBrazilNumber = (value: unknown) => {
     if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-    const raw = String(value ?? "").replace(/R\$|\s/g, "").trim();
+    const original = String(value ?? "").toLowerCase();
+    const multiplier = /\bmilh(?:ão|ao|ões|oes)\b/.test(original) ? 1_000_000 : /\bmil\b/.test(original) ? 1_000 : 1;
+    const raw = original.replace(/r\$|brl|reais?|\s/g, "").trim();
     if (!raw) return 0;
-    const normalized = raw.includes(",")
-      ? raw.replace(/\./g, "").replace(",", ".")
-      : raw.replace(/,/g, "");
-    const result = Number(normalized.replace(/[^0-9.-]/g, ""));
-    return Number.isFinite(result) ? result : 0;
+    const numeric = raw.replace(/[^0-9,.-]/g, "");
+    const hasComma = numeric.includes(",");
+    const dots = (numeric.match(/\./g) || []).length;
+    let normalized = numeric;
+    if (hasComma) normalized = numeric.replace(/\./g, "").replace(",", ".");
+    else if (dots > 1 || (dots === 1 && /^-?\d{1,3}\.\d{3}$/.test(numeric))) normalized = numeric.replace(/\./g, "");
+    const result = Number(normalized);
+    return Number.isFinite(result) ? result * multiplier : 0;
+  };
+
+  const firstPresent = (...values: unknown[]) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+
+  const phaseTotal = (phase: any) => {
+    const explicit = parseBrazilNumber(firstPresent(phase?.valor_total, phase?.total, phase?.valor));
+    if (explicit > 0) return explicit;
+    const quantity = parseBrazilNumber(firstPresent(phase?.quantidade, phase?.qtd, 1));
+    const unitValue = parseBrazilNumber(firstPresent(phase?.valor_unitario, phase?.valor_parcela));
+    return quantity > 0 && unitValue > 0 ? quantity * unitValue : 0;
+  };
+
+  const priceFromFlow = (phases: any[]) => {
+    if (!Array.isArray(phases) || phases.length === 0) return 0;
+    const totals = phases.map(phaseTotal);
+    return totals.every((value) => value > 0) ? totals.reduce((sum, value) => sum + value, 0) : 0;
   };
 
   // Aceita tanto o JSON compacto antigo quanto o JSON técnico dos prompts atuais.
@@ -52,25 +74,56 @@ const UnidadesImporter: React.FC = () => {
     const commercial = unit.comercial || {};
     const rawTypology = unit.tipologia || product.tipologia_original || product.tipologia_padrao || identification.tipo_ativo || "";
     const typology = parseStandardTypology(rawTypology, Number(unit.quartos ?? product.dormitorios ?? product.quartos ?? 0));
-    const phases = commercial.alternativas_fluxo?.[0]?.fases || unit.fluxo_dados?.fases || [];
-    const flow = unit.fluxo_dados || { fases: phases };
+    const alternatives = commercial.alternativas_fluxo || unit.alternativas_fluxo || [];
+    const phases = alternatives?.[0]?.fases || unit.fluxo_dados?.condicoes?.etapas || unit.fluxo_dados?.fases || commercial.fases || [];
+    const flow = unit.fluxo_dados || { alternativas_fluxo: alternatives, fases: phases };
     const firstValue = (names: string[]) => phases.find((phase: any) => names.some((name) => String(phase.momento || phase.nome || "").toLowerCase().includes(name)));
     const ato = firstValue(["ato", "entrada", "reserva"]);
     if (ato && !flow.ato) flow.ato = parseBrazilNumber(ato.valor_total || ato.valor_unitario);
+    const directPrice = firstPresent(
+      unit.valor_tabela, unit.preco_tabela, unit.preco, unit.preço, unit.preco_venda, unit.valor_total, unit.valor_imovel,
+      commercial.valor_tabela, commercial.preco_tabela, commercial.preco, commercial.preço, commercial.preco_venda,
+      commercial.valor_total, commercial.valor_imovel, commercial.valor_atual, commercial.valor_promocional,
+      commercial.precos?.valor_tabela, commercial.precos?.valor_atual,
+    );
+    const parsedDirectPrice = parseBrazilNumber(directPrice);
+    const calculatedPrice = parsedDirectPrice > 0 ? 0 : priceFromFlow(phases);
+    const code = firstPresent(
+      unit.codigo_unidade, unit.numero_unidade, unit.numero,
+      unit.unidade, unit.apto, unit.apartamento,
+      identification.numero, identification.codigo, identification.unidade, identification.apto, identification.sku_sugerido,
+    );
     return {
       ...unit,
-      codigo_unidade: unit.codigo_unidade || identification.numero || unit.numero || `IMPORT-${index + 1}`,
+      codigo_unidade: code ? String(code).trim() : "",
       torre: unit.torre || identification.torre || identification.bloco || "Única",
       tipologia: rawTypology || typology.label,
       quartos: Number(unit.quartos ?? product.dormitorios ?? typology.dormitorios ?? 0),
       suites: Number(unit.suites ?? product.suites ?? typology.suites ?? 0),
       area_privativa: unit.area_privativa ?? product.area_privativa_m2,
       vagas: unit.vagas ?? (Array.isArray(product.vagas) ? product.vagas.length : product.vagas),
-      valor_tabela: unit.valor_tabela ?? commercial.valor_tabela,
+      valor_tabela: parsedDirectPrice || calculatedPrice || 0,
       status: unit.status ?? commercial.status ?? "disponivel",
       fluxo_dados: flow,
       _tipology: typology,
+      _sourceIndex: index + 1,
+      _priceSource: parsedDirectPrice > 0 ? "documento" : calculatedPrice > 0 ? "soma_das_etapas" : "ausente",
     };
+  };
+
+  const unitIssues = (unit: any) => {
+    const issues: string[] = [];
+    if (!String(unit.codigo_unidade || "").trim()) issues.push("código da unidade");
+    if (parseBrazilNumber(unit.valor_tabela) <= 0) issues.push("valor total da tabela");
+    return issues;
+  };
+
+  const updateParsedUnit = (index: number, changes: Record<string, unknown>) => {
+    setParsedData((current: any) => current ? {
+      ...current,
+      unidades: current.unidades.map((unit: any, unitIndex: number) => unitIndex === index ? { ...unit, ...changes } : unit),
+    } : current);
+    setImportStatus(null);
   };
 
   const handleParseJson = () => {
@@ -103,19 +156,22 @@ const UnidadesImporter: React.FC = () => {
         return;
       }
 
-      if (!data.unidades || !Array.isArray(data.unidades) || data.unidades.length === 0) {
+      const sourceUnits = data.unidades || data.estoque || data.imoveis || data.dados?.unidades;
+      if (!Array.isArray(sourceUnits) || sourceUnits.length === 0) {
         setImportStatus({ error: "Formato inválido: O JSON precisa conter a lista 'unidades'." });
         return;
       }
-      const normalizedUnits = data.unidades.map(normalizeUnit);
-      const invalid = normalizedUnits.filter((unit: any) => !unit.codigo_unidade || parseBrazilNumber(unit.valor_tabela) <= 0);
-      if (invalid.length) {
-        setParsedData(null);
-        setImportStatus({ error: `Importação bloqueada: ${invalid.length} unidade(s) não têm código ou valor de tabela válido. Datas, índices, quartos e detalhes comerciais podem ficar vazios e ser ajustados depois.` });
-        return;
-      }
+      const normalizedUnits = sourceUnits.map(normalizeUnit);
+      const invalid = normalizedUnits.filter((unit: any) => unitIssues(unit).length > 0);
       const normalizedData = { ...data, unidades: normalizedUnits };
       setParsedData(normalizedData);
+      if (invalid.length) {
+        const examples = invalid.slice(0, 5).map((unit: any) => `linha ${unit._sourceIndex}: ${unitIssues(unit).join(" e ")}`).join("; ");
+        setImportStatus({ error: `${invalid.length} unidade(s) precisam de revisão antes de gravar (${examples}${invalid.length > 5 ? "; …" : ""}). Corrija os campos destacados na prévia; o conteúdo colado foi mantido.` });
+      } else {
+        const calculated = normalizedUnits.filter((unit: any) => unit._priceSource === "soma_das_etapas").length;
+        setImportStatus(calculated ? { success: `${normalizedUnits.length} unidades reconhecidas. Em ${calculated}, o valor total foi conciliado pela soma completa das etapas do fluxo.` } : null);
+      }
 
       if (data.empreendimento?.nome) {
         const empMatch = empreendimentos.find(
@@ -132,6 +188,12 @@ const UnidadesImporter: React.FC = () => {
   const handleExecuteImport = async () => {
     if (!parsedData || !selectedEmpId) {
       alert("Selecione um empreendimento válido para vincular estas unidades.");
+      return;
+    }
+
+    const invalid = parsedData.unidades.filter((unit: any) => unitIssues(unit).length > 0);
+    if (invalid.length) {
+      setImportStatus({ error: `Revise ${invalid.length} unidade(s) destacada(s). Nenhum dado foi gravado e nenhum preço será convertido em R$ 0.` });
       return;
     }
 
@@ -368,22 +430,29 @@ const UnidadesImporter: React.FC = () => {
               <div style={{ backgroundColor: "#18181b", padding: "0.75rem", borderRadius: "6px", marginBottom: "1rem", fontSize: "0.85rem", color: "#d4d4d8" }}>
                 <div><strong>Empreendimento Lido:</strong> {parsedData.empreendimento?.nome || "N/I"}</div>
                 <div><strong>Total Mapeado:</strong> {parsedData.unidades.length} unidades</div>
+                <div><strong>Prontas:</strong> {parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0).length} · <strong>Para revisar:</strong> {parsedData.unidades.filter((unit: any) => unitIssues(unit).length > 0).length}</div>
               </div>
 
-              <div style={{ maxHeight: "180px", overflowY: "auto", border: "1px solid #222", borderRadius: "6px", padding: "0.5rem", marginBottom: "1rem" }}>
+              <div style={{ maxHeight: "310px", overflowY: "auto", border: "1px solid #222", borderRadius: "6px", padding: "0.5rem", marginBottom: "1rem" }}>
                 {parsedData.unidades.map((u: any, idx: number) => {
-                  const valorTab = parseFloat(u.valor_tabela) || 0;
+                  const valorTab = parseBrazilNumber(u.valor_tabela);
                   const pctAto = parsedData.regras_cabecalho?.percentual_ato;
                   const atoCalculado = u.fluxo_dados?.ato || (pctAto ? (valorTab * pctAto) / 100 : 0);
+                  const issues = unitIssues(u);
 
                   return (
-                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0.6rem", borderBottom: "1px solid #1f1f23", fontSize: "0.75rem", color: "#a1a1aa" }}>
-                      <span>
-                        <strong style={{ color: "#fff" }}>Unid {u.codigo_unidade || u.numero}</strong> ({u.tipologia || "Studio"})
-                      </span>
-                      <div style={{ textAlign: "right" }}>
-                        <span style={{ color: "#22c55e", fontWeight: "bold", display: "block" }}>{formatCurrency(valorTab)}</span>
-                        <span style={{ fontSize: "0.65rem", color: "#71717a" }}>Ato: {formatCurrency(atoCalculado)}</span>
+                    <div key={idx} style={{ padding: "0.55rem 0.6rem", borderBottom: "1px solid #1f1f23", fontSize: "0.75rem", color: "#a1a1aa", background: issues.length ? "rgba(239,68,68,.07)" : "transparent" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: issues.length ? 7 : 0 }}>
+                        <span><strong style={{ color: "#fff" }}>Linha {u._sourceIndex || idx + 1}</strong> · {u.tipologia || "Tipologia não informada"}</span>
+                        <span style={{ color: issues.length ? "#f87171" : "#22c55e", fontWeight: 700 }}>{issues.length ? `Revisar: ${issues.join(" e ")}` : "Pronta"}</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "minmax(90px,1fr) minmax(140px,1.4fr)", gap: 7 }}>
+                        <label style={{ color: "#71717a" }}>Código<input value={u.codigo_unidade || ""} onChange={(event) => updateParsedUnit(idx, { codigo_unidade: event.target.value })} placeholder="Ex.: 401" style={{ width: "100%", boxSizing: "border-box", marginTop: 3, background: "#101012", color: "#fff", border: `1px solid ${!u.codigo_unidade ? "#ef4444" : "#34343a"}`, borderRadius: 4, padding: "6px 7px" }}/></label>
+                        <label style={{ color: "#71717a" }}>Valor total (R$)<input value={u.valor_tabela || ""} onChange={(event) => updateParsedUnit(idx, { valor_tabela: event.target.value, _priceSource: "revisado_manualmente" })} placeholder="Ex.: 850000" inputMode="decimal" style={{ width: "100%", boxSizing: "border-box", marginTop: 3, background: "#101012", color: "#fff", border: `1px solid ${valorTab <= 0 ? "#ef4444" : "#34343a"}`, borderRadius: 4, padding: "6px 7px" }}/></label>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 5, fontSize: "0.65rem", color: "#71717a" }}>
+                        <span>{u._priceSource === "soma_das_etapas" ? "Valor conciliado pela soma das etapas" : u._priceSource === "revisado_manualmente" ? "Valor revisado manualmente" : u._priceSource === "ausente" ? "Valor não localizado" : "Valor lido do documento"}</span>
+                        <span>Ato: {formatCurrency(atoCalculado)}</span>
                       </div>
                     </div>
                   );
@@ -392,8 +461,8 @@ const UnidadesImporter: React.FC = () => {
 
               <button
                 onClick={handleExecuteImport}
-                disabled={loading || !selectedEmpId}
-                style={{ width: "100%", backgroundColor: selectedEmpId ? "#c5a059" : "#3f3f46", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: selectedEmpId ? "pointer" : "not-allowed", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
+                disabled={loading || !selectedEmpId || parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0)}
+                style={{ width: "100%", backgroundColor: selectedEmpId && !parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0) ? "#c5a059" : "#3f3f46", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: selectedEmpId && !parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0) ? "pointer" : "not-allowed", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
               >
                 {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : "Gravar Estoque e Salvar Histórico"}
               </button>
@@ -686,4 +755,3 @@ const selectStyle = { width: "100%", background: "#18181b", border: "1px solid #
 const summaryStyle = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "14px 0", padding: 12, background: "#18181b", borderRadius: 6, color: "#d4d4d8", fontSize: 12 } as const;
 const itemStyle = { display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 10px", borderBottom: "1px solid #27272a", color: "#a1a1aa", fontSize: 12 } as const;
 const modeButton = (active: boolean) => ({ border: active ? "1px solid #c5a059" : "1px solid transparent", background: active ? "rgba(197,160,89,.12)" : "transparent", color: active ? "#f4d79c" : "#a1a1aa", borderRadius: 6, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, textAlign: "left", ...(active ? {} : {}), } as const);
-
