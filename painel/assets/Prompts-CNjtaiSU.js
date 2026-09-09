@@ -19,10 +19,15 @@ REGRAS OBRIGATÓRIAS
 13. Quando título e valores divergirem, preserve os valores publicados e registre a divergência. Nunca force o cálculo para combinar com o título.
 14. Campo ausente = null. Campo ilegível = null + alerta. Nunca adivinhe.
 15. Não produza SQL, explicação comercial ou texto fora do JSON.
+16. Só use status PRONTO_PARA_IMPORTAR quando TODA unidade tiver identificacao.numero preenchido e comercial.valor_tabela numérico maior que zero.
+17. Grave o preço total exclusivamente em comercial.valor_tabela. Não troque esse nome por preco, valor_total, valor_da_unidade ou outro alias.
+18. Se o preço total não estiver escrito, mas TODAS as fases explícitas formarem uma soma completa e inequívoca, use a soma exata em comercial.valor_tabela e registre em validacao.alertas que o preço foi calculado. Se faltar qualquer fase, retorne PENDENTE_INFORMACAO.
+19. Cabeçalhos, linhas de tipologia, subtotais, vagas avulsas e observações não são unidades. Não os inclua no array unidades.
 
 SAÍDA
 Responda com um único bloco JSON válido, sem markdown, comentários ou reticências, neste formato:
 {
+  "status": "PRONTO_PARA_IMPORTAR",
   "versao_padrao": 2,
   "documento": { "arquivo": null, "data_tabela": null, "paginas_lidas": [], "moeda": "BRL" },
   "empreendimento": { "nome": null, "construtora": null, "cidade": null, "entrega": null },
@@ -81,7 +86,7 @@ Responda com um único bloco JSON válido, sem markdown, comentários ou reticê
   }
 }
 
-Antes de responder, confira novamente a contagem de linhas, códigos repetidos, torres e totais financeiros. O array unidades deve conter todos os registros identificáveis, nunca apenas uma amostra.`,m=`Você é um auditor técnico de memoriais, apresentações e materiais comerciais imobiliários. Analise integralmente todos os PDFs ou imagens anexados e estruture o empreendimento sem inventar informações.
+Antes de responder, confira novamente a contagem de linhas, códigos repetidos, torres e totais financeiros. O array unidades deve conter todos os registros identificáveis, nunca apenas uma amostra. Se uma única unidade ficar sem identificacao.numero ou comercial.valor_tabela, não declare PRONTO_PARA_IMPORTAR: informe precisamente a página e a linha em PENDENTE_INFORMACAO.`,m=`Você é um auditor técnico de memoriais, apresentações e materiais comerciais imobiliários. Analise integralmente todos os PDFs ou imagens anexados e estruture o empreendimento sem inventar informações.
 
 OBJETIVO
 Criar um cadastro mestre completo do empreendimento, adequado para apresentação, busca, comparação, afiliados e posterior associação de unidades.

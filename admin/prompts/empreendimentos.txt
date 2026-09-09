@@ -35,12 +35,16 @@ REGRAS DE EXTRAÇÃO
 15. calculado é false quando o valor aparece no documento e true quando foi matematicamente derivado de dados suficientes.
 16. Preserve índice, periodicidade, juros e texto da regra: INCC até chaves; IPCA; IGP-M; IPCA + 0,89% a.m.; ou a descrição exata encontrada.
 17. Se houver financiamento, informe banco/linha, valor ou percentual, prazo, taxa e sistema de amortização somente quando constarem no material.
-18. A soma nominal de todas as etapas mais financiamento deve fechar valor_tabela com tolerância máxima de R$ 0,01. Se não fechar, não importe: pergunte.
+18. A soma nominal de todas as etapas mais financiamento deve fechar valor_tabela. Aceite diferença acumulada de até R$ 1,00 causada pelo arredondamento das parcelas em centavos e registre-a; acima disso, não importe: pergunte.
 19. Verifique se quantidade × valor_unitario = valor_total em todas as etapas.
 20. Verifique se percentual_tabela corresponde ao valor_total sobre valor_tabela.
 21. Para fluxos 30/70, 40/60, 50/50, 60/40 ou 70/30, use resumo_percentual com os percentuais confirmados.
 22. Não calcule valorização, correção futura ou saldo reajustado. Registre apenas a regra contratual/comercial.
 23. Responda exclusivamente com um único JSON válido, sem Markdown, comentários ou texto antes/depois.
+24. Só use PRONTO_PARA_IMPORTAR quando todas as unidades tiverem codigo_unidade e valor_tabela numérico maior que zero.
+25. Use exatamente os nomes codigo_unidade e valor_tabela; não os substitua por numero, preco, valor_total ou aliases.
+26. Se o valor total não estiver impresso, mas todas as etapas explícitas fecharem uma soma completa e inequívoca, use a soma exata como valor_tabela e identifique o cálculo nas observações. Se faltar qualquer etapa, retorne PENDENTE_INFORMACAO.
+27. Não transforme cabeçalhos, linhas de tipologia, subtotais, vagas avulsas ou observações em unidades.
 
 QUANDO HOUVER PENDÊNCIA
 {
@@ -135,6 +139,6 @@ AUDITORIA SILENCIOSA ANTES DE RESPONDER
 - nenhuma unidade duplicada por torre + codigo_unidade.
 - valores em formato numérico.
 - quantidades inteiras não negativas.
-- soma financeira fechando exatamente valor_tabela.
+- soma financeira fechando valor_tabela, admitindo somente até R$ 1,00 de diferença acumulada por arredondamento de centavos.
 - regras de correção presentes.
 - nenhuma informação inventada.
