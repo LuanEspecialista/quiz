@@ -25,6 +25,8 @@ type Affiliate = {
   email?: string | null;
   telefone?: string | null;
   ativo: boolean;
+  aniversario_dia?: number | null;
+  aniversario_mes?: number | null;
 };
 type Product = {
   id: string;
@@ -182,7 +184,7 @@ export default function Afiliados({ role }: { role: Role }) {
     [productQuery, setProductQuery] = useState(""),
     [message, setMessage] = useState(""),
     [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", email: "", telefone: "" });
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "", aniversario_dia:"", aniversario_mes:"" });
   async function load() {
     setMessage("");
     if (!isAdmin) {
@@ -257,10 +259,14 @@ export default function Afiliados({ role }: { role: Role }) {
   async function saveAffiliate() {
     if (!form.nome.trim() || !form.email.trim())
       return setMessage("Informe nome e e-mail.");
+    const birthdayDay=Number(form.aniversario_dia),birthdayMonth=Number(form.aniversario_mes);
+    if(birthdayMonth<1||birthdayMonth>12||birthdayDay<1||birthdayDay>new Date(2000,birthdayMonth,0).getDate())return setMessage("Informe o dia e o mês de aniversário.");
     const payload = {
       nome: form.nome.trim(),
       email: form.email.trim().toLowerCase(),
       telefone: form.telefone.trim() || null,
+      aniversario_dia:birthdayDay,
+      aniversario_mes:birthdayMonth,
     };
     const result = editing
       ? await supabase.from("afiliados").update(payload).eq("id", editing)
@@ -273,13 +279,13 @@ export default function Afiliados({ role }: { role: Role }) {
         p_email: payload.email,
       });
     setEditing(null);
-    setForm({ nome: "", email: "", telefone: "" });
+    setForm({ nome: "", email: "", telefone: "", aniversario_dia:"", aniversario_mes:"" });
     setMessage("Afiliado salvo e vínculo por e-mail verificado.");
     void load();
   }
   const editAffiliate = (a: Affiliate) => {
     setEditing(a.id);
-    setForm({ nome: a.nome, email: a.email || "", telefone: a.telefone || "" });
+    setForm({ nome: a.nome, email: a.email || "", telefone: a.telefone || "", aniversario_dia:a.aniversario_dia?String(a.aniversario_dia):"", aniversario_mes:a.aniversario_mes?String(a.aniversario_mes):"" });
   };
   async function setAccess(a: Affiliate, ativo: boolean) {
     const r = await supabase.from("afiliados").update({ ativo }).eq("id", a.id);
@@ -341,7 +347,7 @@ export default function Afiliados({ role }: { role: Role }) {
           style={button}
           onClick={() => {
             setEditing("new");
-            setForm({ nome: "", email: "", telefone: "" });
+            setForm({ nome: "", email: "", telefone: "", aniversario_dia:"", aniversario_mes:"" });
           }}
         >
           <Plus size={15} />
@@ -501,6 +507,7 @@ export default function Afiliados({ role }: { role: Role }) {
                 value={form.telefone}
                 onChange={(e) => setForm({ ...form, telefone: e.target.value })}
               />
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><input style={input} type="number" min="1" max="31" placeholder="Dia do aniversário" value={form.aniversario_dia} onChange={e=>setForm({...form,aniversario_dia:e.target.value})}/><input style={input} type="number" min="1" max="12" placeholder="Mês do aniversário" value={form.aniversario_mes} onChange={e=>setForm({...form,aniversario_mes:e.target.value})}/></div>
               <button style={button} onClick={() => void saveAffiliate()}>
                 <Save size={15} />
                 Salvar e vincular acesso

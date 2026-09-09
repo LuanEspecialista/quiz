@@ -25,6 +25,8 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
   const [requestName, setRequestName] = useState("");
   const [accessType, setAccessType] = useState<"cliente" | "afiliado">("cliente");
   const [requestNickname, setRequestNickname] = useState("");
+  const [birthdayDay, setBirthdayDay] = useState("");
+  const [birthdayMonth, setBirthdayMonth] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +90,9 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     if (!/^[a-z0-9][a-z0-9._-]{2,23}$/.test(nickname)) {
       setLoading(false); return setError("Escolha um nickname de 3 a 24 caracteres, usando letras, números, ponto, traço ou sublinhado.");
     }
-    const { error: requestError } = await supabase.rpc("solicitar_acesso", { p_nome: requestName.trim(), p_email: identifier.trim().toLowerCase(), p_tipo: accessType, p_usuario: nickname });
+    const day=Number(birthdayDay),month=Number(birthdayMonth);const validBirthday=month>=1&&month<=12&&day>=1&&day<=new Date(2000,month,0).getDate();
+    if(!validBirthday){setLoading(false);return setError("Informe um dia e mês de aniversário válidos.");}
+    const { error: requestError } = await supabase.rpc("solicitar_acesso", { p_nome: requestName.trim(), p_email: identifier.trim().toLowerCase(), p_tipo: accessType, p_usuario: nickname, p_aniversario_dia:day, p_aniversario_mes:month });
     setLoading(false);
     if (requestError) return setError(c.requestError);
     setNotice(c.requestOk);
@@ -96,7 +100,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
       ? ["Hola, Luan. Quisiera solicitar acceso a la plataforma.", `Nombre: ${requestName.trim()}`, `Correo: ${identifier.trim()}`, `Usuario: ${nickname}`, `Tipo de acceso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Si se aprueba, espero las instrucciones de acceso."]
       : locale === "en-US"
         ? ["Hello, Luan. I would like to request access to the platform.", `Name: ${requestName.trim()}`, `Email: ${identifier.trim()}`, `Username: ${nickname}`, `Access type: ${accessType === "cliente" ? "Client" : "Affiliate"}`, "If approved, I will wait for the access instructions."]
-        : ["Olá, Luan! Gostaria de solicitar acesso à plataforma.", `Nome: ${requestName.trim()}`, `E-mail: ${identifier.trim()}`, `Nickname: ${nickname}`, `Tipo de acesso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Se aprovado, aguardo as instruções para entrar."]).join("\n");
+        : ["Olá, Luan! Gostaria de solicitar acesso à plataforma.", `Nome: ${requestName.trim()}`, `E-mail: ${identifier.trim()}`, `Nickname: ${nickname}`, `Aniversário: ${String(day).padStart(2,"0")}/${String(month).padStart(2,"0")}`, `Tipo de acesso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Se aprovado, aguardo as instruções para entrar."]).join("\n");
     window.open(`https://wa.me/5547992120915?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -119,7 +123,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
         {notice && <div style={{ backgroundColor: "rgba(34,197,94,.1)", border: "1px solid rgba(34,197,94,.35)", color: "#4ade80", padding: "0.75rem", borderRadius: "6px", fontSize: "0.875rem", marginBottom: "1.5rem" }}>{notice}</div>}
 
         <form onSubmit={requestMode ? handleAccessRequest : recoveryMode ? handleNewPassword : forgotMode ? handleForgotPassword : handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          {requestMode && <><div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{c.fullName}</label><input required value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder={c.yourName} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px", boxSizing: "border-box" }} /></div><div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Nickname desejado</label><input required value={requestNickname} onChange={(e) => setRequestNickname(e.target.value.toLowerCase())} autoCapitalize="none" autoCorrect="off" placeholder="ex.: nome.sobrenome" style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px", boxSizing: "border-box" }} /><small style={{ color: "#71717a", lineHeight: 1.4 }}>Será usado junto com a senha para entrar. Não pode se repetir.</small></div></>}
+          {requestMode && <><div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{c.fullName}</label><input required value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder={c.yourName} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px", boxSizing: "border-box" }} /></div><div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Nickname desejado</label><input required value={requestNickname} onChange={(e) => setRequestNickname(e.target.value.toLowerCase())} autoCapitalize="none" autoCorrect="off" placeholder="ex.: nome.sobrenome" style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px", boxSizing: "border-box" }} /><small style={{ color: "#71717a", lineHeight: 1.4 }}>Será usado junto com a senha para entrar. Não pode se repetir.</small></div><div><label style={{display:"block",color:"#a1a1aa",fontSize:"0.875rem",marginBottom:"0.5rem"}}>Aniversário (dia e mês)</label><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><input required type="number" min="1" max="31" value={birthdayDay} onChange={e=>setBirthdayDay(e.target.value)} placeholder="Dia" style={{width:"100%",boxSizing:"border-box",background:"#18181b",border:"1px solid #27272a",color:"#fff",padding:"0.75rem",borderRadius:6}}/><input required type="number" min="1" max="12" value={birthdayMonth} onChange={e=>setBirthdayMonth(e.target.value)} placeholder="Mês" style={{width:"100%",boxSizing:"border-box",background:"#18181b",border:"1px solid #27272a",color:"#fff",padding:"0.75rem",borderRadius:6}}/></div></div></>}
           {!recoveryMode && (
           <div>
             <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{forgotMode || requestMode ? "E-mail" : c.identifier}</label>

@@ -41,6 +41,8 @@ type Client = {
   status?: string | null;
   proximo_contato?: string | null;
   observacoes?: string | null;
+  aniversario_dia?: number | null;
+  aniversario_mes?: number | null;
 };
 type Property = {
   id: string;
@@ -119,6 +121,8 @@ type Form = {
   status: string;
   proximo_contato: string;
   observacoes: string;
+  aniversario_dia: string;
+  aniversario_mes: string;
 };
 const empty: Form = {
   nome: "",
@@ -140,6 +144,8 @@ const empty: Form = {
   status: "novo",
   proximo_contato: "",
   observacoes: "",
+  aniversario_dia: "",
+  aniversario_mes: "",
 };
 const money = (value?: number | null) =>
   value
@@ -356,6 +362,8 @@ export default function Clientes({
       status: item.status || "novo",
       proximo_contato: item.proximo_contato || "",
       observacoes: item.observacoes || "",
+      aniversario_dia: item.aniversario_dia ? String(item.aniversario_dia) : "",
+      aniversario_mes: item.aniversario_mes ? String(item.aniversario_mes) : "",
     });
     setOpen(true);
   };
@@ -385,6 +393,8 @@ export default function Clientes({
   };
   async function save() {
     if (!form.nome.trim()) return setMessage("Informe o nome do cliente.");
+    const birthdayDay=Number(form.aniversario_dia),birthdayMonth=Number(form.aniversario_mes);
+    if(birthdayMonth<1||birthdayMonth>12||birthdayDay<1||birthdayDay>new Date(2000,birthdayMonth,0).getDate())return setMessage("Informe o dia e o mês de aniversário do cliente.");
     if (form.telefone && phoneDigits(form.telefone).length < 10)
       return setMessage(
         "Informe o WhatsApp com DDD, por exemplo: 47 99999-9999.",
@@ -412,6 +422,8 @@ export default function Clientes({
       status: form.status,
       proximo_contato: form.proximo_contato || null,
       observacoes: form.observacoes.trim() || null,
+      aniversario_dia: Number(form.aniversario_dia) || null,
+      aniversario_mes: Number(form.aniversario_mes) || null,
     };
     const preferences = form.cidades_preferencia
       .split(",")
@@ -843,6 +855,8 @@ export default function Clientes({
                   ["nome", "Nome *", "text"],
                   ["telefone", "Telefone / WhatsApp", "tel"],
                   ["email", "E-mail", "email"],
+                  ["aniversario_dia", "Dia do aniversário", "number"],
+                  ["aniversario_mes", "Mês do aniversário", "number"],
                   ["cidade", "Cidade onde mora", "text"],
                   ["quartos_desejados", "Dormitórios desejados", "number"],
                   ["suites_desejadas", "Suítes desejadas", "number"],
