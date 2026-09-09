@@ -31,6 +31,8 @@ type LandingBlock = {
 type Opportunity = {
   id: string;
   nome?: string;
+  imagem_url?: string | null;
+  imagem_storage_path?: string | null;
   cidade?: string;
   bairro?: string;
   endereco?: string;
@@ -69,6 +71,15 @@ const input = {
   padding: "10px 11px",
   fontSize: 14,
 };
+
+const COVER_STORAGE_PREFIX = "storage://empreendimentos/";
+
+function coverStoragePath(item: Opportunity) {
+  if (item.imagem_storage_path) return item.imagem_storage_path;
+  return item.imagem_url?.startsWith(COVER_STORAGE_PREFIX)
+    ? item.imagem_url.slice(COVER_STORAGE_PREFIX.length)
+    : null;
+}
 
 function MoneyScenario({
   label,
@@ -267,7 +278,19 @@ function OpportunityLanding({
           gap: 16,
         }}
       >
-        {item.mensagem && <p style={{margin:0,padding:"12px 14px",borderLeft:"3px solid #d7ab63",background:"#17140e",lineHeight:1.6}}>{item.mensagem}</p>}
+        {item.mensagem && (
+          <p
+            style={{
+              margin: 0,
+              padding: "12px 14px",
+              borderLeft: "3px solid #d7ab63",
+              background: "#17140e",
+              lineHeight: 1.6,
+            }}
+          >
+            {item.mensagem}
+          </p>
+        )}
         {(item.preco != null || item.area_minima != null) && (
           <div
             style={{
@@ -365,7 +388,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [portal, setPortal] = useState<Portal | null>(null);
   const [error, setError] = useState("");
   const [proposal, setProposal] = useState<Opportunity | null>(null);
-  const [activeOpportunity, setActiveOpportunity] = useState<Opportunity | null>(null);
+  const [activeOpportunity, setActiveOpportunity] =
+    useState<Opportunity | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [entry, setEntry] = useState(0);
   const [monthly, setMonthly] = useState(2500);
@@ -399,6 +423,38 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             };
             const images = await Promise.all((item.imagens || []).map(sign));
             const plants = await Promise.all((item.plantas || []).map(sign));
+            const storedCoverPath = coverStoragePath(item);
+            let coverUrl =
+              item.imagem_url &&
+              !item.imagem_url.startsWith(COVER_STORAGE_PREFIX)
+                ? item.imagem_url
+                : undefined;
+            if (storedCoverPath) {
+              const existingCover = images.find(
+                (media) => media.storage_path === storedCoverPath,
+              );
+              if (existingCover?.url) coverUrl = existingCover.url;
+              else {
+                const { data: signedCover } = await supabase.storage
+                  .from("empreendimentos")
+                  .createSignedUrl(storedCoverPath, 1800);
+                coverUrl = signedCover?.signedUrl;
+              }
+            }
+            const cardCover =
+              coverUrl ||
+              images.find((media) => media.url)?.url ||
+              plants.find((media) => media.url)?.url;
+            const displayImages = cardCover
+              ? [
+                  {
+                    id: `capa-${item.id}`,
+                    titulo: "Imagem de capa",
+                    url: cardCover,
+                  },
+                  ...images.filter((media) => media.url !== cardCover),
+                ]
+              : images;
             const blocks = (
               Array.isArray(item.caracteristicas?.landing_blocos)
                 ? item.caracteristicas.landing_blocos
@@ -406,7 +462,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             ) as LandingBlock[];
             return {
               ...item,
-              imagens: images,
+              imagem_url: cardCover,
+              imagens: displayImages,
               plantas: plants,
               caracteristicas: {
                 ...item.caracteristicas,
@@ -559,8 +616,116 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             curadoria.
           </section>
         )}
-        {!activeOpportunity && opportunities.length > 0 && <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:16}}>{opportunities.map((item)=>{const cover=item.imagens?.[0]?.url;return <button key={item.id} onClick={()=>{setActiveOpportunity(item);window.scrollTo({top:0,behavior:"smooth"})}} style={{padding:0,textAlign:"left",border:"1px solid #332d22",background:"#101012",color:"#fff",borderRadius:13,overflow:"hidden",cursor:"pointer"}}>{cover?<img src={cover} alt={item.nome||"Empreendimento"} style={{width:"100%",height:190,objectFit:"cover",display:"block"}}/>:<div style={{height:110,display:"grid",placeItems:"center",background:"linear-gradient(135deg,#18140e,#111113)",color:"#806a43"}}><Building2 size={34}/></div>}<div style={{padding:17,display:"grid",gap:8}}><small style={{color:"#d7ab63",fontWeight:800}}>{[item.bairro,item.cidade].filter(Boolean).join(" · ")||item.status}</small><span style={{fontSize:22,fontWeight:800}}>{item.nome}</span><span style={{color:"#a1a1aa",fontSize:13}}>{item.preco!=null?`A partir de ${money(item.preco)}`:"Consulte os detalhes liberados"}</span><span style={{display:"flex",justifyContent:"space-between",alignItems:"center",color:"#edcf91",fontWeight:800,marginTop:5}}>Ver apresentação <ChevronRight size={18}/></span></div></button>})}</section>}
-        {activeOpportunity&&<section style={{display:"grid",gap:12}}><button onClick={()=>setActiveOpportunity(null)} style={{justifySelf:"start",display:"inline-flex",alignItems:"center",gap:7,border:"1px solid #3f3524",background:"#17140e",color:"#edcf91",borderRadius:8,padding:"10px 13px",cursor:"pointer",fontWeight:800}}><ArrowLeft size={16}/>Voltar aos empreendimentos</button><OpportunityLanding item={activeOpportunity} onProposal={openProposal}/></section>}
+        {!activeOpportunity && opportunities.length > 0 && (
+          <section
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit,minmax(270px,1fr))",
+              gap: 16,
+            }}
+          >
+            {opportunities.map((item) => {
+              const cover = item.imagens?.[0]?.url;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveOpportunity(item);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  style={{
+                    padding: 0,
+                    textAlign: "left",
+                    border: "1px solid #332d22",
+                    background: "#101012",
+                    color: "#fff",
+                    borderRadius: 13,
+                    overflow: "hidden",
+                    cursor: "pointer",
+                  }}
+                >
+                  {cover ? (
+                    <img
+                      src={cover}
+                      alt={item.nome || "Empreendimento"}
+                      style={{
+                        width: "100%",
+                        height: 190,
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        height: 110,
+                        display: "grid",
+                        placeItems: "center",
+                        background: "linear-gradient(135deg,#18140e,#111113)",
+                        color: "#806a43",
+                      }}
+                    >
+                      <Building2 size={34} />
+                    </div>
+                  )}
+                  <div style={{ padding: 17, display: "grid", gap: 8 }}>
+                    <small style={{ color: "#d7ab63", fontWeight: 800 }}>
+                      {[item.bairro, item.cidade].filter(Boolean).join(" · ") ||
+                        item.status}
+                    </small>
+                    <span style={{ fontSize: 22, fontWeight: 800 }}>
+                      {item.nome}
+                    </span>
+                    <span style={{ color: "#a1a1aa", fontSize: 13 }}>
+                      {item.preco != null
+                        ? `A partir de ${money(item.preco)}`
+                        : "Consulte os detalhes liberados"}
+                    </span>
+                    <span
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        color: "#edcf91",
+                        fontWeight: 800,
+                        marginTop: 5,
+                      }}
+                    >
+                      Ver apresentação <ChevronRight size={18} />
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </section>
+        )}
+        {activeOpportunity && (
+          <section style={{ display: "grid", gap: 12 }}>
+            <button
+              onClick={() => setActiveOpportunity(null)}
+              style={{
+                justifySelf: "start",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                border: "1px solid #3f3524",
+                background: "#17140e",
+                color: "#edcf91",
+                borderRadius: 8,
+                padding: "10px 13px",
+                cursor: "pointer",
+                fontWeight: 800,
+              }}
+            >
+              <ArrowLeft size={16} />
+              Voltar aos empreendimentos
+            </button>
+            <OpportunityLanding
+              item={activeOpportunity}
+              onProposal={openProposal}
+            />
+          </section>
+        )}
         {accountOpen && (
           <div
             role="dialog"
