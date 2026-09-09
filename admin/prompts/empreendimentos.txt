@@ -41,9 +41,9 @@ REGRAS DE EXTRAÇÃO
 21. Para fluxos 30/70, 40/60, 50/50, 60/40 ou 70/30, use resumo_percentual com os percentuais confirmados.
 22. Não calcule valorização, correção futura ou saldo reajustado. Registre apenas a regra contratual/comercial.
 23. Responda exclusivamente com um único JSON válido, sem Markdown, comentários ou texto antes/depois.
-24. Só use PRONTO_PARA_IMPORTAR quando todas as unidades tiverem codigo_unidade e valor_tabela numérico maior que zero.
+24. Coloque em unidades somente registros com codigo_unidade e valor_tabela numérico maior que zero. Linhas reais sem algum desses campos devem ir para unidades_pendentes, preservando os campos conhecidos e o motivo.
 25. Use exatamente os nomes codigo_unidade e valor_tabela; não os substitua por numero, preco, valor_total ou aliases.
-26. Se o valor total não estiver impresso, mas todas as etapas explícitas fecharem uma soma completa e inequívoca, use a soma exata como valor_tabela e identifique o cálculo nas observações. Se faltar qualquer etapa, retorne PENDENTE_INFORMACAO.
+26. Se o valor total não estiver impresso, mas todas as etapas explícitas fecharem uma soma completa e inequívoca, use a soma exata como valor_tabela e identifique o cálculo nas observações. Se faltar qualquer etapa, mova a linha para unidades_pendentes; nunca invente o preço.
 27. Não transforme cabeçalhos, linhas de tipologia, subtotais, vagas avulsas ou observações em unidades.
 
 QUANDO HOUVER PENDÊNCIA
@@ -121,12 +121,13 @@ FORMATO EXATO DE SUCESSO
         }
       }
     }
-  ]
+  ],
+  "unidades_pendentes": []
 }
 
 IMPORTANTE SOBRE O EXEMPLO
 O exemplo mostra somente a estrutura. Na resposta real:
-- inclua TODAS as unidades;
+- inclua em unidades todas as linhas válidas e em unidades_pendentes todas as linhas reais sem código ou preço;
 - inclua TODAS as etapas de cada fluxo_dados.condicoes.etapas;
 - não copie números, datas, índices ou textos do exemplo;
 - se uma etapa não existir, omita o atalho correspondente ou use null, mas mantenha condicoes.etapas completa;
@@ -134,8 +135,8 @@ O exemplo mostra somente a estrutura. Na resposta real:
 
 AUDITORIA SILENCIOSA ANTES DE RESPONDER
 - JSON válido e sem vírgulas sobrando.
-- status PRONTO_PARA_IMPORTAR.
-- todos os campos obrigatórios preenchidos.
+- status PRONTO_PARA_IMPORTAR quando existir ao menos uma unidade válida; use PENDENTE_INFORMACAO somente quando nenhuma puder ser importada ou houver dúvida global.
+- todos os campos obrigatórios preenchidos nas unidades válidas; pendências preservadas separadamente.
 - nenhuma unidade duplicada por torre + codigo_unidade.
 - valores em formato numérico.
 - quantidades inteiras não negativas.
