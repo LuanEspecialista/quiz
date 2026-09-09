@@ -331,8 +331,8 @@ function ProjectionChart({ series, years }: { series: Array<{ name: string; rate
   </div>;
 }
 
-export function Fluxos({ initialUnitIds = [], initialClientId }: { initialUnitIds?: string[]; initialClientId?: string }) {
-  const [units, setUnits] = useState<Unidade[]>([]);
+export function Fluxos({ initialUnitIds = [], initialUnits = [], initialClientId }: { initialUnitIds?: string[]; initialUnits?: Unidade[]; initialClientId?: string }) {
+  const [units, setUnits] = useState<Unidade[]>(initialUnits);
   const [indicators, setIndicators] = useState<Indicador[]>([]);
   const [selectedUnits, setSelectedUnits] = useState<string[]>(initialUnitIds.slice(0, 4));
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>([]);
@@ -397,6 +397,13 @@ export function Fluxos({ initialUnitIds = [], initialClientId }: { initialUnitId
       setShowAllUnits(false);
     }
   }, [initialUnitIds]);
+  useEffect(() => {
+    if (!initialUnits.length) return;
+    setUnits((current) => {
+      const incomingIds = new Set(initialUnits.map((unit) => unit.id));
+      return [...initialUnits, ...current.filter((unit) => !incomingIds.has(unit.id))];
+    });
+  }, [initialUnits]);
 
   const visibleUnits = useMemo(() => units.filter((unit) => {
     const hasCapacitySearch = searchEntry > 0 || searchInstallment > 0 || searchBalloon > 0;
