@@ -27,6 +27,7 @@ REGRAS OBRIGATÓRIAS
 17. Grave o preço total exclusivamente em comercial.valor_tabela. Não troque esse nome por preco, valor_total, valor_da_unidade ou outro alias.
 18. Se o preço total não estiver escrito, mas TODAS as fases explícitas formarem uma soma completa e inequívoca, use a soma exata em comercial.valor_tabela e registre em validacao.alertas que o preço foi calculado. Se faltar qualquer fase, mova a linha para unidades_pendentes; nunca invente o preço.
 19. Cabeçalhos, linhas de tipologia, subtotais, vagas avulsas e observações não são unidades. Não os inclua no array unidades.
+20. Se o documento imprimir um resumo de estoque, transcreva-o literalmente em resumo_oficial ANTES de contar o array. Depois confronte total e cada status com unidades + unidades_pendentes. Se houver diferença, releia e corrija; se não conseguir conciliar, use PENDENTE_INFORMACAO e descreva a divergência.
 
 SAÍDA
 Responda com um único bloco JSON válido, sem markdown, comentários ou reticências, neste formato:
@@ -41,6 +42,7 @@ Responda com um único bloco JSON válido, sem markdown, comentários ou reticê
     "correcao_pos_chaves": null,
     "observacoes": []
   },
+  "resumo_oficial": { "encontrado": false, "total": null, "disponiveis": null, "reservadas": null, "outros_status": {}, "fonte": null },
   "unidades": [
     {
       "identificacao": {
@@ -91,7 +93,7 @@ Responda com um único bloco JSON válido, sem markdown, comentários ou reticê
   }
 }
 
-Antes de responder, confira novamente a contagem de linhas, códigos repetidos, torres e totais financeiros. Use PRONTO_PARA_IMPORTAR quando existir ao menos uma unidade válida; preserve linhas reais incompletas em unidades_pendentes. Use PENDENTE_INFORMACAO somente quando nenhuma unidade puder ser importada ou quando uma dúvida global impedir interpretar o documento.`;
+Antes de responder, confira novamente a contagem de linhas, códigos repetidos, torres e totais financeiros. resumo_oficial deve reproduzir os números impressos, sem ser recalculado a partir do array. A soma de unidades + unidades_pendentes deve fechar exatamente com ele. Use PRONTO_PARA_IMPORTAR quando existir ao menos uma unidade válida e todas as contagens estiverem conciliadas; preserve linhas reais incompletas em unidades_pendentes. Use PENDENTE_INFORMACAO quando a contagem não fechar, nenhuma unidade puder ser importada ou uma dúvida global impedir interpretar o documento.`;
 
 const ENTERPRISE_PROMPT = `Você é um auditor técnico de memoriais, apresentações e materiais comerciais imobiliários. Analise integralmente todos os PDFs ou imagens anexados e estruture o empreendimento sem inventar informações.
 
