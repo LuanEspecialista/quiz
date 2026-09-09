@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowLeft,
   Building2,
   CalendarDays,
+  ChevronRight,
   Images,
   Landmark,
   LogOut,
@@ -363,6 +365,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [portal, setPortal] = useState<Portal | null>(null);
   const [error, setError] = useState("");
   const [proposal, setProposal] = useState<Opportunity | null>(null);
+  const [activeOpportunity, setActiveOpportunity] = useState<Opportunity | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [entry, setEntry] = useState(0);
   const [monthly, setMonthly] = useState(2500);
@@ -556,15 +559,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             curadoria.
           </section>
         )}
-        <section style={{ display: "grid", gap: 24 }}>
-          {opportunities.map((item) => (
-            <OpportunityLanding
-              key={item.id}
-              item={item}
-              onProposal={openProposal}
-            />
-          ))}
-        </section>
+        {!activeOpportunity && opportunities.length > 0 && <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:16}}>{opportunities.map((item)=>{const cover=item.imagens?.[0]?.url;return <button key={item.id} onClick={()=>{setActiveOpportunity(item);window.scrollTo({top:0,behavior:"smooth"})}} style={{padding:0,textAlign:"left",border:"1px solid #332d22",background:"#101012",color:"#fff",borderRadius:13,overflow:"hidden",cursor:"pointer"}}>{cover?<img src={cover} alt={item.nome||"Empreendimento"} style={{width:"100%",height:190,objectFit:"cover",display:"block"}}/>:<div style={{height:110,display:"grid",placeItems:"center",background:"linear-gradient(135deg,#18140e,#111113)",color:"#806a43"}}><Building2 size={34}/></div>}<div style={{padding:17,display:"grid",gap:8}}><small style={{color:"#d7ab63",fontWeight:800}}>{[item.bairro,item.cidade].filter(Boolean).join(" · ")||item.status}</small><span style={{fontSize:22,fontWeight:800}}>{item.nome}</span><span style={{color:"#a1a1aa",fontSize:13}}>{item.preco!=null?`A partir de ${money(item.preco)}`:"Consulte os detalhes liberados"}</span><span style={{display:"flex",justifyContent:"space-between",alignItems:"center",color:"#edcf91",fontWeight:800,marginTop:5}}>Ver apresentação <ChevronRight size={18}/></span></div></button>})}</section>}
+        {activeOpportunity&&<section style={{display:"grid",gap:12}}><button onClick={()=>setActiveOpportunity(null)} style={{justifySelf:"start",display:"inline-flex",alignItems:"center",gap:7,border:"1px solid #3f3524",background:"#17140e",color:"#edcf91",borderRadius:8,padding:"10px 13px",cursor:"pointer",fontWeight:800}}><ArrowLeft size={16}/>Voltar aos empreendimentos</button><OpportunityLanding item={activeOpportunity} onProposal={openProposal}/></section>}
         {accountOpen && (
           <div
             role="dialog"

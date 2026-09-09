@@ -1,40 +1,715 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronRight, EyeOff, KeyRound, Package, Pencil, Plus, Save, Search, ShieldAlert, UserCheck, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  EyeOff,
+  KeyRound,
+  Package,
+  Pencil,
+  Plus,
+  Save,
+  Search,
+  ShieldAlert,
+  UserCheck,
+  X,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getPanelUrl } from "@/lib/authRedirect";
 
-type Role="admin"|"equipe"|"afiliado";
-type Affiliate={id:string;user_id?:string|null;nome:string;email?:string|null;telefone?:string|null;ativo:boolean};
-type Product={id:string;nome?:string|null;cidade?:string|null;bairro?:string|null;status?:string|null;descricao?:string|null;imagem_url?:string|null;imagem_storage_path?:string|null;tipo?:string|null;faixa_preco?:number|null;caracteristicas?:Record<string,any>|null;percentual_comissao?:number|null;confidencial?:boolean;instrucoes?:string|null};
-type Grant={afiliado_id:string;empreendimento_id:string;liberado:boolean;confidencial:boolean;instrucoes?:string|null;exibir_imagens?:boolean;exibir_descricao?:boolean;exibir_preco?:boolean;exibir_entrada_parcelas?:boolean;exibir_comissao?:boolean;exibir_especificacoes?:boolean};
-const fields=[['exibir_imagens','Imagens'],['exibir_descricao','Descrição'],['exibir_preco','Preço'],['exibir_entrada_parcelas','Entrada e parcelas'],['exibir_comissao','Comissão'],['exibir_especificacoes','Especificações']] as const;
-const panel={background:"#101012",border:"1px solid #27272a",borderRadius:12,padding:16} as const;
-const input={width:"100%",boxSizing:"border-box",background:"#09090b",border:"1px solid #3f3f46",borderRadius:8,padding:10,color:"#fff"} as const;
-const button={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:7,background:"#c5a059",color:"#09090b",border:0,borderRadius:8,padding:"9px 12px",fontWeight:800,cursor:"pointer"} as const;
-const money=(v?:number|null)=>v?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v):'Sob consulta';
-const defaultInstruction="Apresente pessoalmente o produto ou agende uma reunião. Não compartilhe materiais confidenciais.";
-const privateCoverPrefix="storage://empreendimentos/";
-async function resolveAdminCover(product:Product):Promise<Product>{
- if(!product.imagem_url?.startsWith(privateCoverPrefix))return product;
- const{data,error}=await supabase.storage.from('empreendimentos').createSignedUrl(product.imagem_url.slice(privateCoverPrefix.length),3600);
- return error||!data?.signedUrl?{...product,imagem_url:null}:{...product,imagem_url:data.signedUrl};
+type Role = "admin" | "equipe" | "afiliado";
+type Affiliate = {
+  id: string;
+  user_id?: string | null;
+  nome: string;
+  email?: string | null;
+  telefone?: string | null;
+  ativo: boolean;
+};
+type Product = {
+  id: string;
+  nome?: string | null;
+  cidade?: string | null;
+  bairro?: string | null;
+  status?: string | null;
+  descricao?: string | null;
+  imagem_url?: string | null;
+  imagem_storage_path?: string | null;
+  tipo?: string | null;
+  faixa_preco?: number | null;
+  caracteristicas?: Record<string, any> | null;
+  percentual_comissao?: number | null;
+  confidencial?: boolean;
+  instrucoes?: string | null;
+};
+type Grant = {
+  afiliado_id: string;
+  empreendimento_id: string;
+  liberado: boolean;
+  confidencial: boolean;
+  instrucoes?: string | null;
+  exibir_imagens?: boolean;
+  exibir_descricao?: boolean;
+  exibir_preco?: boolean;
+  exibir_entrada_parcelas?: boolean;
+  exibir_comissao?: boolean;
+  exibir_especificacoes?: boolean;
+};
+const fields = [
+  ["exibir_imagens", "Imagens"],
+  ["exibir_descricao", "Descrição"],
+  ["exibir_preco", "Preço"],
+  ["exibir_entrada_parcelas", "Entrada e parcelas"],
+  ["exibir_comissao", "Comissão"],
+  ["exibir_especificacoes", "Especificações"],
+] as const;
+const panel = {
+  background: "#101012",
+  border: "1px solid #27272a",
+  borderRadius: 12,
+  padding: 16,
+} as const;
+const input = {
+  width: "100%",
+  boxSizing: "border-box",
+  background: "#09090b",
+  border: "1px solid #3f3f46",
+  borderRadius: 8,
+  padding: 10,
+  color: "#fff",
+} as const;
+const button = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  background: "#c5a059",
+  color: "#09090b",
+  border: 0,
+  borderRadius: 8,
+  padding: "9px 12px",
+  fontWeight: 800,
+  cursor: "pointer",
+} as const;
+const money = (v?: number | null) =>
+  v
+    ? new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }).format(v)
+    : "Sob consulta";
+const defaultInstruction =
+  "Apresente pessoalmente o produto ou agende uma reunião. Não compartilhe materiais confidenciais.";
+const privateCoverPrefix = "storage://empreendimentos/";
+async function resolveAdminCover(product: Product): Promise<Product> {
+  if (!product.imagem_url?.startsWith(privateCoverPrefix)) return product;
+  const { data, error } = await supabase.storage
+    .from("empreendimentos")
+    .createSignedUrl(product.imagem_url.slice(privateCoverPrefix.length), 3600);
+  return error || !data?.signedUrl
+    ? { ...product, imagem_url: null }
+    : { ...product, imagem_url: data.signedUrl };
 }
 
-function AffiliateCatalog({products}:{products:Product[]}){return <div style={{color:'#fff',display:'grid',gap:14}}><header><h1>Produtos liberados</h1><p style={{color:'#8b8b95'}}>Você visualiza somente os produtos e campos autorizados pelo administrador.</p></header><section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(270px,1fr))',gap:14}}>{products.map(p=><article key={p.id} style={{...panel,padding:0,overflow:'hidden'}}>{p.imagem_url?<img src={p.imagem_url} alt="" style={{width:'100%',height:160,objectFit:'cover'}}/>:<div style={{height:160,background:'#18181b'}}/>}<div style={{padding:15}}><small style={{color:'#c5a059'}}>{p.status}</small><h3>{p.nome}</h3><p style={{color:'#a1a1aa',fontSize:12}}>{p.bairro} · {p.cidade}</p>{p.descricao&&<p style={{fontSize:12,lineHeight:1.5}}>{p.descricao}</p>}<strong>{money(p.faixa_preco)}</strong>{p.confidencial&&<p style={{color:'#fbbf24',fontSize:11}}><EyeOff size={13}/> {p.instrucoes||defaultInstruction}</p>}</div></article>)}</section>{!products.length&&<div style={panel}>Nenhum produto foi liberado para seu perfil.</div>}</div>}
+function AffiliateCatalog({ products }: { products: Product[] }) {
+  const [selectedProduct,setSelectedProduct]=useState<Product|null>(null);
+  if(selectedProduct)return <div style={{color:"#fff",display:"grid",gap:14}}><button onClick={()=>setSelectedProduct(null)} style={{...button,justifySelf:"start",background:"#27272a",color:"#fff"}}><ArrowLeft size={15}/>Voltar aos produtos</button><article style={{...panel,padding:0,overflow:"hidden"}}>{selectedProduct.imagem_url&&<img src={selectedProduct.imagem_url} alt={selectedProduct.nome||"Produto"} style={{width:"100%",maxHeight:420,objectFit:"cover"}}/>}<div style={{padding:"clamp(18px,4vw,34px)",display:"grid",gap:12}}><small style={{color:"#c5a059"}}>{selectedProduct.status}</small><h1 style={{margin:0}}>{selectedProduct.nome}</h1><p style={{color:"#a1a1aa"}}>{[selectedProduct.bairro,selectedProduct.cidade].filter(Boolean).join(" · ")}</p>{selectedProduct.descricao&&<p style={{lineHeight:1.7}}>{selectedProduct.descricao}</p>}<strong style={{fontSize:20}}>{money(selectedProduct.faixa_preco)}</strong>{selectedProduct.confidencial&&<p style={{color:"#fbbf24"}}><EyeOff size={13}/> {selectedProduct.instrucoes||defaultInstruction}</p>}</div></article></div>;
+  return (
+    <div style={{ color: "#fff", display: "grid", gap: 14 }}>
+      <header>
+        <h1>Produtos liberados</h1>
+        <p style={{ color: "#8b8b95" }}>
+          Você visualiza somente os produtos e campos autorizados pelo
+          administrador.
+        </p>
+      </header>
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(270px,1fr))",
+          gap: 14,
+        }}
+      >
+        {products.map((p) => (
+          <button
+            key={p.id}
+            onClick={()=>setSelectedProduct(p)}
+            style={{ ...panel, padding: 0, overflow: "hidden",color:"#fff",textAlign:"left",cursor:"pointer" }}
+          >
+            {p.imagem_url ? (
+              <img
+                src={p.imagem_url}
+                alt=""
+                style={{ width: "100%", height: 160, objectFit: "cover" }}
+              />
+            ) : (
+              <div style={{ height: 160, background: "#18181b" }} />
+            )}
+            <div style={{ padding: 15 }}>
+              <small style={{ color: "#c5a059" }}>{p.status}</small>
+              <h3>{p.nome}</h3>
+              <p style={{ color: "#a1a1aa", fontSize: 12 }}>
+                {p.bairro} · {p.cidade}
+              </p>
+              {p.descricao && (
+                <p style={{ fontSize: 12, lineHeight: 1.5 }}>{p.descricao}</p>
+              )}
+              <strong>{money(p.faixa_preco)}</strong>
+              {p.confidencial && (
+                <p style={{ color: "#fbbf24", fontSize: 11 }}>
+                  <EyeOff size={13} /> {p.instrucoes || defaultInstruction}
+                </p>
+              )}
+            </div>
+            <span style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 15px 15px",color:"#edcf91",fontWeight:800}}>Ver detalhes <ChevronRight size={17}/></span>
+          </button>
+        ))}
+      </section>
+      {!products.length && (
+        <div style={panel}>Nenhum produto foi liberado para seu perfil.</div>
+      )}
+    </div>
+  );
+}
 
-export default function Afiliados({role}:{role:Role}){
- const isAdmin=role==='admin'; const[affiliates,setAffiliates]=useState<Affiliate[]>([]),[products,setProducts]=useState<Product[]>([]),[grants,setGrants]=useState<Grant[]>([]); const[selected,setSelected]=useState(''),[query,setQuery]=useState(''),[productQuery,setProductQuery]=useState(''),[message,setMessage]=useState(''),[editing,setEditing]=useState<string|null>(null); const[form,setForm]=useState({nome:'',email:'',telefone:''});
- async function load(){setMessage('');if(!isAdmin){const{data,error}=await supabase.rpc('catalogo_afiliado');if(error){setMessage(error.message);return}const signed=await Promise.all(((data||[]) as Product[]).map(async(item)=>{if(!item.imagem_storage_path)return item;const{data:url}=await supabase.storage.from('empreendimentos').createSignedUrl(item.imagem_storage_path,1800);return url?.signedUrl?{...item,imagem_url:url.signedUrl}:item}));setProducts(signed);return}const[a,p,g]=await Promise.all([supabase.from('afiliados').select('*').order('nome'),supabase.from('empreendimentos').select('id,nome,cidade,bairro,status,descricao,imagem_url,tipo,faixa_preco,caracteristicas,ativo').eq('ativo',true).order('nome'),supabase.from('afiliado_produtos').select('*')]);const error=a.error||p.error||g.error;if(error)setMessage(error.message);else{setAffiliates((a.data||[]) as Affiliate[]);setProducts(await Promise.all(((p.data||[]) as Product[]).map(resolveAdminCover)));setGrants((g.data||[]) as Grant[])}}
- useEffect(()=>{void load()},[role]);
- useEffect(()=>{if(!selected&&!editing)return;const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){if(editing)setEditing(null);else setSelected('')}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[selected,editing]);
- const visible=useMemo(()=>affiliates.filter(a=>`${a.nome} ${a.email} ${a.telefone}`.toLowerCase().includes(query.toLowerCase())),[affiliates,query]); const selectedAffiliate=affiliates.find(a=>a.id===selected); const grantFor=(pid:string)=>grants.find(g=>g.afiliado_id===selected&&g.empreendimento_id===pid); const released=(aid:string)=>grants.filter(g=>g.afiliado_id===aid&&g.liberado).length;
- async function saveAffiliate(){if(!form.nome.trim()||!form.email.trim())return setMessage('Informe nome e e-mail.');const payload={nome:form.nome.trim(),email:form.email.trim().toLowerCase(),telefone:form.telefone.trim()||null};const result=editing?await supabase.from('afiliados').update(payload).eq('id',editing):await supabase.from('afiliados').insert(payload).select('id').single();if(result.error)return setMessage(result.error.message);const id=editing||result.data?.id;if(id)await supabase.rpc('vincular_afiliado_email',{p_afiliado_id:id,p_email:payload.email});setEditing(null);setForm({nome:'',email:'',telefone:''});setMessage('Afiliado salvo e vínculo por e-mail verificado.');void load()}
- const editAffiliate=(a:Affiliate)=>{setEditing(a.id);setForm({nome:a.nome,email:a.email||'',telefone:a.telefone||''})};
- async function setAccess(a:Affiliate,ativo:boolean){const r=await supabase.from('afiliados').update({ativo}).eq('id',a.id);if(!r.error&&a.user_id)await supabase.from('perfis_usuario').update({ativo,perfil:'afiliado'}).eq('user_id',a.user_id);setMessage(r.error?.message||'Acesso atualizado.');void load()}
- async function saveGrant(product:Product,changes:Partial<Grant>){if(!selected)return;const current=grantFor(product.id);const payload={afiliado_id:selected,empreendimento_id:product.id,liberado:false,confidencial:false,exibir_imagens:false,exibir_descricao:false,exibir_preco:false,exibir_entrada_parcelas:false,exibir_comissao:false,exibir_especificacoes:false,...current,...changes,updated_at:new Date().toISOString()};const{error}=await supabase.from('afiliado_produtos').upsert(payload,{onConflict:'afiliado_id,empreendimento_id'});setMessage(error?.message||'Permissões salvas.');if(!error)void load()}
- if(!isAdmin)return <AffiliateCatalog products={products}/>;
- return <div style={{color:'#fff',display:'grid',gap:16}}><header style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div><h1 style={{margin:0,display:'flex',gap:8,alignItems:'center'}}><UserCheck color="#c5a059"/>Afiliados</h1><p style={{color:'#8b8b95'}}>Pessoas primeiro; produtos e permissões somente ao abrir o afiliado.</p></div><button style={button} onClick={()=>{setEditing('new');setForm({nome:'',email:'',telefone:''})}}><Plus size={15}/>Novo afiliado</button></header>{message&&<div style={{...panel,color:'#fbbf24'}}>{message}</div>}<div style={{...panel,display:'flex',gap:8,alignItems:'center'}}><Search size={16} color="#71717a"/><input style={input} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar afiliado por nome, e-mail ou telefone"/></div><section style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>{visible.map(a=><article key={a.id} style={{...panel,cursor:'pointer',borderColor:a.ativo?'#343438':'#522'}} onClick={()=>setSelected(a.id)}><div style={{display:'flex',gap:10,alignItems:'center'}}><div style={{width:42,height:42,borderRadius:12,background:'#211c13',display:'grid',placeItems:'center',color:'#d7ab63',fontWeight:900}}>{a.nome.slice(0,2).toUpperCase()}</div><div style={{flex:1,minWidth:0}}><strong>{a.nome}</strong><small style={{display:'block',color:'#8b8b95',overflow:'hidden',textOverflow:'ellipsis'}}>{a.email||'Sem e-mail'}</small></div><ChevronRight/></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:14}}><span style={{background:'#18181b',padding:9,borderRadius:8,fontSize:11,color:'#aaa'}}><Package size={13}/> <b style={{color:'#fff'}}>{released(a.id)}</b> produtos</span><span style={{background:'#18181b',padding:9,borderRadius:8,fontSize:11,color:a.ativo?'#86efac':'#fca5a5'}}>{a.ativo?'Acesso ativo':'Acesso bloqueado'}</span></div><button onClick={e=>{e.stopPropagation();editAffiliate(a)}} style={{...button,width:'100%',marginTop:12,background:'#27272a',color:'#fff'}}><Pencil size={14}/>Editar informações</button></article>)}</section>
- {editing&&<div onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}} style={{position:'fixed',inset:0,zIndex:6000,background:'#000b',display:'grid',placeItems:'center',padding:16}}><section style={{...panel,width:'min(520px,100%)'}}><header style={{display:'flex',justifyContent:'space-between'}}><h2>{editing==='new'?'Cadastrar afiliado':'Editar afiliado'}</h2><button onClick={()=>setEditing(null)}><X/></button></header><div style={{display:'grid',gap:9}}><input style={input} placeholder="Nome" value={form.nome} onChange={e=>setForm({...form,nome:e.target.value})}/><input style={input} placeholder="E-mail da conta" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/><input style={input} placeholder="WhatsApp" value={form.telefone} onChange={e=>setForm({...form,telefone:e.target.value})}/><button style={button} onClick={()=>void saveAffiliate()}><Save size={15}/>Salvar e vincular acesso</button></div></section></div>}
- {selectedAffiliate&&<div onMouseDown={e=>{if(e.target===e.currentTarget)setSelected('')}} style={{position:'fixed',inset:0,zIndex:5500,background:'#09090bf5',padding:18,overflow:'auto'}}><section style={{maxWidth:1100,margin:'0 auto',display:'grid',gap:14}}><header style={{...panel,display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}><div style={{flex:1}}><h2 style={{margin:0}}>{selectedAffiliate.nome}</h2><p style={{color:'#8b8b95',margin:'4px 0'}}>{selectedAffiliate.email} · {released(selectedAffiliate.id)} produto(s) liberado(s)</p></div><label style={{fontSize:12}}><input type="checkbox" checked={selectedAffiliate.ativo} onChange={e=>void setAccess(selectedAffiliate,e.target.checked)}/> Acesso ao painel</label><button style={{...button,background:'#27272a',color:'#fff'}} onClick={()=>void supabase.auth.resetPasswordForEmail(selectedAffiliate.email||'',{redirectTo:getPanelUrl({recovery:'1'})})}><KeyRound size={14}/>Redefinir senha</button><button onClick={()=>setSelected('')}><X/></button></header><div style={{...panel,display:'flex',gap:8}}><Search/><input style={input} value={productQuery} onChange={e=>setProductQuery(e.target.value)} placeholder="Buscar produto para adicionar ou remover"/></div><div style={{display:'grid',gap:9}}>{products.filter(p=>`${p.nome} ${p.cidade}`.toLowerCase().includes(productQuery.toLowerCase())).map(p=>{const g=grantFor(p.id);return <article key={p.id} style={{...panel,borderColor:g?.liberado?'#6b542d':'#27272a'}}><div style={{display:'flex',gap:12,alignItems:'center'}}>{p.imagem_url?<img src={p.imagem_url} alt="" style={{width:72,height:58,objectFit:'cover',borderRadius:8}}/>:<div style={{width:72,height:58,background:'#18181b',borderRadius:8}}/>}<div style={{flex:1}}><strong>{p.nome}</strong><small style={{display:'block',color:'#8b8b95'}}>{p.cidade} · {p.status}</small></div><label style={{fontWeight:800,color:g?.liberado?'#86efac':'#aaa'}}><input type="checkbox" checked={Boolean(g?.liberado)} onChange={e=>void saveGrant(p,{liberado:e.target.checked})}/> {g?.liberado?'Liberado':'Não liberado'}</label></div>{g?.liberado&&<div style={{marginTop:12,paddingTop:12,borderTop:'1px solid #27272a',display:'grid',gap:10}}><div style={{display:'flex',gap:12,flexWrap:'wrap'}}>{fields.map(([key,label])=><label key={key} style={{fontSize:11}}><input type="checkbox" checked={Boolean(g?.[key])} onChange={e=>void saveGrant(p,{[key]:e.target.checked})}/><Check size={12}/> {label}</label>)}<label style={{fontSize:11,color:'#fbbf24'}}><input type="checkbox" checked={Boolean(g?.confidencial)} onChange={e=>void saveGrant(p,{confidencial:e.target.checked})}/><ShieldAlert size={12}/> Confidencial</label></div><textarea style={input} rows={2} defaultValue={g?.instrucoes||defaultInstruction} onBlur={e=>void saveGrant(p,{instrucoes:e.target.value})}/></div>}</article>})}</div></section></div>}
- </div>
+export default function Afiliados({ role }: { role: Role }) {
+  const isAdmin = role === "admin";
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([]),
+    [products, setProducts] = useState<Product[]>([]),
+    [grants, setGrants] = useState<Grant[]>([]);
+  const [selected, setSelected] = useState(""),
+    [query, setQuery] = useState(""),
+    [productQuery, setProductQuery] = useState(""),
+    [message, setMessage] = useState(""),
+    [editing, setEditing] = useState<string | null>(null);
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "" });
+  async function load() {
+    setMessage("");
+    if (!isAdmin) {
+      const { data, error } = await supabase.rpc("catalogo_afiliado");
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+      const signed = await Promise.all(
+        ((data || []) as Product[]).map(async (item) => {
+          if (!item.imagem_storage_path) return item;
+          const { data: url } = await supabase.storage
+            .from("empreendimentos")
+            .createSignedUrl(item.imagem_storage_path, 1800);
+          return url?.signedUrl ? { ...item, imagem_url: url.signedUrl } : item;
+        }),
+      );
+      setProducts(signed);
+      return;
+    }
+    const [a, p, g] = await Promise.all([
+      supabase.from("afiliados").select("*").order("nome"),
+      supabase
+        .from("empreendimentos")
+        .select(
+          "id,nome,cidade,bairro,status,descricao,imagem_url,tipo,faixa_preco,caracteristicas,ativo",
+        )
+        .eq("ativo", true)
+        .order("nome"),
+      supabase.from("afiliado_produtos").select("*"),
+    ]);
+    const error = a.error || p.error || g.error;
+    if (error) setMessage(error.message);
+    else {
+      setAffiliates((a.data || []) as Affiliate[]);
+      setProducts(
+        await Promise.all(((p.data || []) as Product[]).map(resolveAdminCover)),
+      );
+      setGrants((g.data || []) as Grant[]);
+    }
+  }
+  useEffect(() => {
+    void load();
+  }, [role]);
+  useEffect(() => {
+    if (!selected && !editing) return;
+    const close = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (editing) setEditing(null);
+        else setSelected("");
+      }
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [selected, editing]);
+  const visible = useMemo(
+    () =>
+      affiliates.filter((a) =>
+        `${a.nome} ${a.email} ${a.telefone}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [affiliates, query],
+  );
+  const selectedAffiliate = affiliates.find((a) => a.id === selected);
+  const grantFor = (pid: string) =>
+    grants.find(
+      (g) => g.afiliado_id === selected && g.empreendimento_id === pid,
+    );
+  const released = (aid: string) =>
+    grants.filter((g) => g.afiliado_id === aid && g.liberado).length;
+  async function saveAffiliate() {
+    if (!form.nome.trim() || !form.email.trim())
+      return setMessage("Informe nome e e-mail.");
+    const payload = {
+      nome: form.nome.trim(),
+      email: form.email.trim().toLowerCase(),
+      telefone: form.telefone.trim() || null,
+    };
+    const result = editing
+      ? await supabase.from("afiliados").update(payload).eq("id", editing)
+      : await supabase.from("afiliados").insert(payload).select("id").single();
+    if (result.error) return setMessage(result.error.message);
+    const id = editing || result.data?.id;
+    if (id)
+      await supabase.rpc("vincular_afiliado_email", {
+        p_afiliado_id: id,
+        p_email: payload.email,
+      });
+    setEditing(null);
+    setForm({ nome: "", email: "", telefone: "" });
+    setMessage("Afiliado salvo e vínculo por e-mail verificado.");
+    void load();
+  }
+  const editAffiliate = (a: Affiliate) => {
+    setEditing(a.id);
+    setForm({ nome: a.nome, email: a.email || "", telefone: a.telefone || "" });
+  };
+  async function setAccess(a: Affiliate, ativo: boolean) {
+    const r = await supabase.from("afiliados").update({ ativo }).eq("id", a.id);
+    if (!r.error && a.user_id)
+      await supabase
+        .from("perfis_usuario")
+        .update({ ativo, perfil: "afiliado" })
+        .eq("user_id", a.user_id);
+    setMessage(r.error?.message || "Acesso atualizado.");
+    void load();
+  }
+  async function saveGrant(product: Product, changes: Partial<Grant>) {
+    if (!selected) return;
+    const current = grantFor(product.id);
+    const payload = {
+      afiliado_id: selected,
+      empreendimento_id: product.id,
+      liberado: false,
+      confidencial: false,
+      exibir_imagens: false,
+      exibir_descricao: false,
+      exibir_preco: false,
+      exibir_entrada_parcelas: false,
+      exibir_comissao: false,
+      exibir_especificacoes: false,
+      ...current,
+      ...changes,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("afiliado_produtos")
+      .upsert(payload, { onConflict: "afiliado_id,empreendimento_id" });
+    setMessage(error?.message || "Permissões salvas.");
+    if (!error) void load();
+  }
+  if (!isAdmin) return <AffiliateCatalog products={products} />;
+  return (
+    <div style={{ color: "#fff", display: "grid", gap: 16 }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1
+            style={{ margin: 0, display: "flex", gap: 8, alignItems: "center" }}
+          >
+            <UserCheck color="#c5a059" />
+            Afiliados
+          </h1>
+          <p style={{ color: "#8b8b95" }}>
+            Pessoas primeiro; produtos e permissões somente ao abrir o afiliado.
+          </p>
+        </div>
+        <button
+          style={button}
+          onClick={() => {
+            setEditing("new");
+            setForm({ nome: "", email: "", telefone: "" });
+          }}
+        >
+          <Plus size={15} />
+          Novo afiliado
+        </button>
+      </header>
+      {message && <div style={{ ...panel, color: "#fbbf24" }}>{message}</div>}
+      <div style={{ ...panel, display: "flex", gap: 8, alignItems: "center" }}>
+        <Search size={16} color="#71717a" />
+        <input
+          style={input}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar afiliado por nome, e-mail ou telefone"
+        />
+      </div>
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
+          gap: 12,
+        }}
+      >
+        {visible.map((a) => (
+          <article
+            key={a.id}
+            style={{
+              ...panel,
+              cursor: "pointer",
+              borderColor: a.ativo ? "#343438" : "#522",
+            }}
+            onClick={() => setSelected(a.id)}
+          >
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: "#211c13",
+                  display: "grid",
+                  placeItems: "center",
+                  color: "#d7ab63",
+                  fontWeight: 900,
+                }}
+              >
+                {a.nome.slice(0, 2).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong>{a.nome}</strong>
+                <small
+                  style={{
+                    display: "block",
+                    color: "#8b8b95",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {a.email || "Sem e-mail"}
+                </small>
+              </div>
+              <ChevronRight />
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+                marginTop: 14,
+              }}
+            >
+              <span
+                style={{
+                  background: "#18181b",
+                  padding: 9,
+                  borderRadius: 8,
+                  fontSize: 11,
+                  color: "#aaa",
+                }}
+              >
+                <Package size={13} />{" "}
+                <b style={{ color: "#fff" }}>{released(a.id)}</b> produtos
+              </span>
+              <span
+                style={{
+                  background: "#18181b",
+                  padding: 9,
+                  borderRadius: 8,
+                  fontSize: 11,
+                  color: a.ativo ? "#86efac" : "#fca5a5",
+                }}
+              >
+                {a.ativo ? "Acesso ativo" : "Acesso bloqueado"}
+              </span>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                editAffiliate(a);
+              }}
+              style={{
+                ...button,
+                width: "100%",
+                marginTop: 12,
+                background: "#27272a",
+                color: "#fff",
+              }}
+            >
+              <Pencil size={14} />
+              Editar informações
+            </button>
+          </article>
+        ))}
+      </section>
+      {editing && (
+        <div
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setEditing(null);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 6000,
+            background: "#000b",
+            display: "grid",
+            placeItems: "center",
+            padding: 16,
+          }}
+        >
+          <section style={{ ...panel, width: "min(520px,100%)" }}>
+            <header
+              style={{ display: "flex", justifyContent: "space-between" }}
+            >
+              <h2>
+                {editing === "new" ? "Cadastrar afiliado" : "Editar afiliado"}
+              </h2>
+              <button onClick={() => setEditing(null)}>
+                <X />
+              </button>
+            </header>
+            <div style={{ display: "grid", gap: 9 }}>
+              <input
+                style={input}
+                placeholder="Nome"
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
+              <input
+                style={input}
+                placeholder="E-mail da conta"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+              <input
+                style={input}
+                placeholder="WhatsApp"
+                value={form.telefone}
+                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+              />
+              <button style={button} onClick={() => void saveAffiliate()}>
+                <Save size={15} />
+                Salvar e vincular acesso
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {selectedAffiliate && (
+        <div
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setSelected("");
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 5500,
+            background: "#09090bf5",
+            padding: 18,
+            overflow: "auto",
+          }}
+        >
+          <section
+            style={{
+              maxWidth: 1100,
+              margin: "0 auto",
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <header
+              style={{
+                ...panel,
+                display: "flex",
+                gap: 12,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <h2 style={{ margin: 0 }}>{selectedAffiliate.nome}</h2>
+                <p style={{ color: "#8b8b95", margin: "4px 0" }}>
+                  {selectedAffiliate.email} · {released(selectedAffiliate.id)}{" "}
+                  produto(s) liberado(s)
+                </p>
+              </div>
+              <label style={{ fontSize: 12 }}>
+                <input
+                  type="checkbox"
+                  checked={selectedAffiliate.ativo}
+                  onChange={(e) =>
+                    void setAccess(selectedAffiliate, e.target.checked)
+                  }
+                />{" "}
+                Acesso ao painel
+              </label>
+              <button
+                style={{ ...button, background: "#27272a", color: "#fff" }}
+                onClick={() =>
+                  void supabase.auth.resetPasswordForEmail(
+                    selectedAffiliate.email || "",
+                    { redirectTo: getPanelUrl({ recovery: "1" }) },
+                  )
+                }
+              >
+                <KeyRound size={14} />
+                Redefinir senha
+              </button>
+              <button onClick={() => setSelected("")}>
+                <X />
+              </button>
+            </header>
+            <div style={{ ...panel, display: "flex", gap: 8 }}>
+              <Search />
+              <input
+                style={input}
+                value={productQuery}
+                onChange={(e) => setProductQuery(e.target.value)}
+                placeholder="Buscar produto para adicionar ou remover"
+              />
+            </div>
+            <div style={{ display: "grid", gap: 9 }}>
+              {products
+                .filter((p) =>
+                  `${p.nome} ${p.cidade}`
+                    .toLowerCase()
+                    .includes(productQuery.toLowerCase()),
+                )
+                .map((p) => {
+                  const g = grantFor(p.id);
+                  return (
+                    <article
+                      key={p.id}
+                      style={{
+                        ...panel,
+                        borderColor: g?.liberado ? "#6b542d" : "#27272a",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 12,
+                          alignItems: "center",
+                        }}
+                      >
+                        {p.imagem_url ? (
+                          <img
+                            src={p.imagem_url}
+                            alt=""
+                            style={{
+                              width: 72,
+                              height: 58,
+                              objectFit: "cover",
+                              borderRadius: 8,
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 72,
+                              height: 58,
+                              background: "#18181b",
+                              borderRadius: 8,
+                            }}
+                          />
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <strong>{p.nome}</strong>
+                          <small style={{ display: "block", color: "#8b8b95" }}>
+                            {p.cidade} · {p.status}
+                          </small>
+                        </div>
+                        <label
+                          style={{
+                            fontWeight: 800,
+                            color: g?.liberado ? "#86efac" : "#aaa",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={Boolean(g?.liberado)}
+                            onChange={(e) =>
+                              void saveGrant(p, { liberado: e.target.checked })
+                            }
+                          />{" "}
+                          {g?.liberado ? "Liberado" : "Não liberado"}
+                        </label>
+                      </div>
+                      {g?.liberado && (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            paddingTop: 12,
+                            borderTop: "1px solid #27272a",
+                            display: "grid",
+                            gap: 10,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 12,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {fields.map(([key, label]) => (
+                              <label key={key} style={{ fontSize: 11 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(g?.[key])}
+                                  onChange={(e) =>
+                                    void saveGrant(p, {
+                                      [key]: e.target.checked,
+                                    })
+                                  }
+                                />
+                                <Check size={12} /> {label}
+                              </label>
+                            ))}
+                            <label style={{ fontSize: 11, color: "#fbbf24" }}>
+                              <input
+                                type="checkbox"
+                                checked={Boolean(g?.confidencial)}
+                                onChange={(e) =>
+                                  void saveGrant(p, {
+                                    confidencial: e.target.checked,
+                                  })
+                                }
+                              />
+                              <ShieldAlert size={12} /> Confidencial
+                            </label>
+                          </div>
+                          <textarea
+                            style={input}
+                            rows={2}
+                            defaultValue={g?.instrucoes || defaultInstruction}
+                            onBlur={(e) =>
+                              void saveGrant(p, { instrucoes: e.target.value })
+                            }
+                          />
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
 }

@@ -1,111 +1,1483 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, BedDouble, Building2, Check, MessageCircle, Pencil, Plus, Save, Search, Trash2, UserRound, WalletCards, X } from "lucide-react";
+import {
+  BarChart3,
+  BedDouble,
+  Building2,
+  Check,
+  MessageCircle,
+  Pencil,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+  UserRound,
+  WalletCards,
+  X,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { parseStandardTypology } from "@/lib/realEstateStandard";
 import { formatBRL, parseBRL } from "@/components/CurrencyInput";
 
-type Client={id:string;user_id?:string|null;acesso_portal?:boolean;nome:string;telefone?:string|null;email?:string|null;cidade?:string|null;objetivo?:string|null;modo_apresentacao?:"moradia"|"investidor"|"renda"|"revenda";horizonte_investimento?:string|null;perfil_risco?:string|null;faixa_investimento?:number|null;entrada_disponivel?:number|null;capacidade_mensal?:number|null;aceita_baloes?:boolean|null;balao_maximo?:number|null;cidades_preferencia?:string[]|null;quartos_desejados?:number|null;suites_desejadas?:number|null;status?:string|null;proximo_contato?:string|null;observacoes?:string|null};
-type Property={id:string;nome?:string|null;cidade?:string|null;bairro?:string|null;status?:string|null;imagem_url?:string|null;descricao?:string|null;faixa_preco?:number|null;area_minima?:number|null;area_maxima?:number|null;numero_pavimentos?:number|null;caracteristicas?:Record<string,any>|null};
-type Unit={id:string;empreendimento_id:string;numero?:string|null;tipologia?:string|null;tipologia_dados?:Record<string,any>|null;valor?:number|null;valor_tabela?:number|null;area_privativa?:number|null;status?:string|null;entrada?:number|null;parcela?:number|null};
-type Selection={cliente_id:string;empreendimento_id:string;ordem:number;motivo?:string|null;visivel?:boolean;exibir_imagens?:boolean;exibir_descricao?:boolean;exibir_preco?:boolean;exibir_especificacoes?:boolean;exibir_investimento?:boolean;exibir_fluxo?:boolean;permitir_proposta?:boolean;mensagem_personalizada?:string|null};
-type ClientProposal={id:string;cliente_id:number;empreendimento_id:string;entrada:number;parcela_mensal:number;balao:number;quantidade_baloes:number;mensagem?:string|null;status:string;created_at:string};
-type Form={nome:string;telefone:string;email:string;cidade:string;objetivo:string;modo_apresentacao:"moradia"|"investidor"|"renda"|"revenda";horizonte_investimento:string;perfil_risco:string;faixa_investimento:string;entrada_disponivel:string;capacidade_mensal:string;aceita_baloes:boolean;balao_maximo:string;cidades_preferencia:string;quartos_desejados:string;suites_desejadas:string;status:string;proximo_contato:string;observacoes:string};
-const empty:Form={nome:"",telefone:"",email:"",cidade:"",objetivo:"investimento",modo_apresentacao:"investidor",horizonte_investimento:"",perfil_risco:"",faixa_investimento:"",entrada_disponivel:"",capacidade_mensal:"",aceita_baloes:true,balao_maximo:"",cidades_preferencia:"",quartos_desejados:"",suites_desejadas:"",status:"novo",proximo_contato:"",observacoes:""};
-const money=(value?:number|null)=>value?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2,maximumFractionDigits:2}).format(value):"Não informado";
-const panel={background:"#101012",border:"1px solid #27272a",borderRadius:11,padding:16} as const;
-const input={width:"100%",boxSizing:"border-box",background:"#09090b",border:"1px solid #3f3f46",borderRadius:7,padding:10,color:"#fff"} as const;
-const button={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,background:"#c5a059",color:"#09090b",border:0,borderRadius:7,padding:"10px 13px",fontWeight:800,cursor:"pointer"} as const;
-const phoneDigits=(value:string)=>value.replace(/\D/g,"").replace(/^55(?=\d{10,11}$)/,"").slice(0,11);
-const formatPhone=(value:string)=>{const digits=phoneDigits(value);if(digits.length<=2)return digits;if(digits.length<=7)return `${digits.slice(0,2)} ${digits.slice(2)}`;return `${digits.slice(0,2)} ${digits.slice(2,7)}-${digits.slice(7)}`};
-const normalizePhone=(value:string)=>`55${phoneDigits(value)}`;
-const emailDomains=["gmail.com","hotmail.com","outlook.com","icloud.com"];
-const monetaryFields=new Set<keyof Form>(["faixa_investimento","entrada_disponivel","capacidade_mensal","balao_maximo"]);
-const privateCoverPrefix="storage://empreendimentos/";
-async function resolvePrivateCover(property:Property):Promise<Property>{
-  if(!property.imagem_url?.startsWith(privateCoverPrefix))return property;
-  const{data,error}=await supabase.storage.from("empreendimentos").createSignedUrl(property.imagem_url.slice(privateCoverPrefix.length),3600);
-  return error||!data?.signedUrl?{...property,imagem_url:null}:{...property,imagem_url:data.signedUrl};
+type Client = {
+  id: string;
+  user_id?: string | null;
+  acesso_portal?: boolean;
+  nome: string;
+  telefone?: string | null;
+  email?: string | null;
+  cidade?: string | null;
+  objetivo?: string | null;
+  modo_apresentacao?: "moradia" | "investidor" | "renda" | "revenda";
+  horizonte_investimento?: string | null;
+  perfil_risco?: string | null;
+  faixa_investimento?: number | null;
+  entrada_disponivel?: number | null;
+  capacidade_mensal?: number | null;
+  aceita_baloes?: boolean | null;
+  balao_maximo?: number | null;
+  cidades_preferencia?: string[] | null;
+  quartos_desejados?: number | null;
+  suites_desejadas?: number | null;
+  status?: string | null;
+  proximo_contato?: string | null;
+  observacoes?: string | null;
+};
+type Property = {
+  id: string;
+  nome?: string | null;
+  cidade?: string | null;
+  bairro?: string | null;
+  status?: string | null;
+  imagem_url?: string | null;
+  descricao?: string | null;
+  faixa_preco?: number | null;
+  area_minima?: number | null;
+  area_maxima?: number | null;
+  numero_pavimentos?: number | null;
+  caracteristicas?: Record<string, any> | null;
+};
+type Unit = {
+  id: string;
+  empreendimento_id: string;
+  numero?: string | null;
+  tipologia?: string | null;
+  tipologia_dados?: Record<string, any> | null;
+  valor?: number | null;
+  valor_tabela?: number | null;
+  area_privativa?: number | null;
+  status?: string | null;
+  entrada?: number | null;
+  parcela?: number | null;
+};
+type Selection = {
+  cliente_id: string;
+  empreendimento_id: string;
+  ordem: number;
+  motivo?: string | null;
+  visivel?: boolean;
+  exibir_imagens?: boolean;
+  exibir_descricao?: boolean;
+  exibir_preco?: boolean;
+  exibir_especificacoes?: boolean;
+  exibir_investimento?: boolean;
+  exibir_fluxo?: boolean;
+  permitir_proposta?: boolean;
+  mensagem_personalizada?: string | null;
+};
+type ClientProposal = {
+  id: string;
+  cliente_id: number;
+  empreendimento_id: string;
+  entrada: number;
+  parcela_mensal: number;
+  balao: number;
+  quantidade_baloes: number;
+  mensagem?: string | null;
+  status: string;
+  created_at: string;
+};
+type Form = {
+  nome: string;
+  telefone: string;
+  email: string;
+  cidade: string;
+  objetivo: string;
+  modo_apresentacao: "moradia" | "investidor" | "renda" | "revenda";
+  horizonte_investimento: string;
+  perfil_risco: string;
+  faixa_investimento: string;
+  entrada_disponivel: string;
+  capacidade_mensal: string;
+  aceita_baloes: boolean;
+  balao_maximo: string;
+  cidades_preferencia: string;
+  quartos_desejados: string;
+  suites_desejadas: string;
+  status: string;
+  proximo_contato: string;
+  observacoes: string;
+};
+const empty: Form = {
+  nome: "",
+  telefone: "",
+  email: "",
+  cidade: "",
+  objetivo: "investimento",
+  modo_apresentacao: "investidor",
+  horizonte_investimento: "",
+  perfil_risco: "",
+  faixa_investimento: "",
+  entrada_disponivel: "",
+  capacidade_mensal: "",
+  aceita_baloes: true,
+  balao_maximo: "",
+  cidades_preferencia: "",
+  quartos_desejados: "",
+  suites_desejadas: "",
+  status: "novo",
+  proximo_contato: "",
+  observacoes: "",
+};
+const money = (value?: number | null) =>
+  value
+    ? new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value)
+    : "Não informado";
+const panel = {
+  background: "#101012",
+  border: "1px solid #27272a",
+  borderRadius: 11,
+  padding: 16,
+} as const;
+const input = {
+  width: "100%",
+  boxSizing: "border-box",
+  background: "#09090b",
+  border: "1px solid #3f3f46",
+  borderRadius: 7,
+  padding: 10,
+  color: "#fff",
+} as const;
+const button = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  background: "#c5a059",
+  color: "#09090b",
+  border: 0,
+  borderRadius: 7,
+  padding: "10px 13px",
+  fontWeight: 800,
+  cursor: "pointer",
+} as const;
+const phoneDigits = (value: string) =>
+  value
+    .replace(/\D/g, "")
+    .replace(/^55(?=\d{10,11}$)/, "")
+    .slice(0, 11);
+const formatPhone = (value: string) => {
+  const digits = phoneDigits(value);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 2)} ${digits.slice(2)}`;
+  return `${digits.slice(0, 2)} ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+const normalizePhone = (value: string) => `55${phoneDigits(value)}`;
+const emailDomains = ["gmail.com", "hotmail.com", "outlook.com", "icloud.com"];
+const monetaryFields = new Set<keyof Form>([
+  "faixa_investimento",
+  "entrada_disponivel",
+  "capacidade_mensal",
+  "balao_maximo",
+]);
+const privateCoverPrefix = "storage://empreendimentos/";
+async function resolvePrivateCover(property: Property): Promise<Property> {
+  if (!property.imagem_url?.startsWith(privateCoverPrefix)) return property;
+  const { data, error } = await supabase.storage
+    .from("empreendimentos")
+    .createSignedUrl(
+      property.imagem_url.slice(privateCoverPrefix.length),
+      3600,
+    );
+  return error || !data?.signedUrl
+    ? { ...property, imagem_url: null }
+    : { ...property, imagem_url: data.signedUrl };
 }
 
-export default function Clientes({onOpenFlow}:{onOpenFlow?:(unitIds:string[],clientId?:string)=>void}){
-  const[items,setItems]=useState<Client[]>([]),[properties,setProperties]=useState<Property[]>([]),[selections,setSelections]=useState<Selection[]>([]),[units,setUnits]=useState<Unit[]>([]);
-  const[proposals,setProposals]=useState<ClientProposal[]>([]);
-  const[flowSelection,setFlowSelection]=useState<string[]>([]);
-  const[form,setForm]=useState<Form>(empty),[query,setQuery]=useState(""),[open,setOpen]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState("");
-  const[editingId,setEditingId]=useState<string|null>(null),[curating,setCurating]=useState<Client|null>(null),[comparing,setComparing]=useState<Client|null>(null);
+export default function Clientes({
+  onOpenFlow,
+}: {
+  onOpenFlow?: (unitIds: string[], clientId?: string) => void;
+}) {
+  const [items, setItems] = useState<Client[]>([]),
+    [properties, setProperties] = useState<Property[]>([]),
+    [selections, setSelections] = useState<Selection[]>([]),
+    [units, setUnits] = useState<Unit[]>([]);
+  const [proposals, setProposals] = useState<ClientProposal[]>([]);
+  const [flowSelection, setFlowSelection] = useState<string[]>([]);
+  const [form, setForm] = useState<Form>(empty),
+    [query, setQuery] = useState(""),
+    [open, setOpen] = useState(false),
+    [saving, setSaving] = useState(false),
+    [message, setMessage] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null),
+    [curating, setCurating] = useState<Client | null>(null),
+    [comparing, setComparing] = useState<Client | null>(null);
 
-  useEffect(()=>{
-    if(!open&&!curating&&!comparing)return;
-    const dismiss=()=>{if(comparing)setComparing(null);else if(curating)setCurating(null);else setOpen(false)};
-    const close=(event:KeyboardEvent)=>{if(event.key==="Escape")dismiss()};
-    const outside=(event:MouseEvent)=>{const target=event.target;if(target instanceof HTMLElement&&target.style.position==="fixed"&&target.style.inset==="0px")dismiss()};
-    window.addEventListener("keydown",close);window.addEventListener("mousedown",outside);
-    return()=>{window.removeEventListener("keydown",close);window.removeEventListener("mousedown",outside)};
-  },[open,curating,comparing]);
+  useEffect(() => {
+    if (!open && !curating && !comparing) return;
+    const dismiss = () => {
+      if (comparing) setComparing(null);
+      else if (curating) setCurating(null);
+      else setOpen(false);
+    };
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") dismiss();
+    };
+    const outside = (event: MouseEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.style.position === "fixed" &&
+        target.style.inset === "0px"
+      )
+        dismiss();
+    };
+    window.addEventListener("keydown", close);
+    window.addEventListener("mousedown", outside);
+    return () => {
+      window.removeEventListener("keydown", close);
+      window.removeEventListener("mousedown", outside);
+    };
+  }, [open, curating, comparing]);
 
-  async function load(){
-    const[c,p,s,u,cp]=await Promise.all([
-      supabase.from("clientes").select("*").order("created_at",{ascending:false}),
-      supabase.from("empreendimentos").select("id,nome,cidade,bairro,status,imagem_url,descricao,faixa_preco,area_minima,area_maxima,numero_pavimentos,caracteristicas,ativo").eq("ativo",true).order("nome"),
-      supabase.from("cliente_empreendimentos").select("*").order("ordem")
-      ,supabase.from("unidades").select("*")
-      ,supabase.from("cliente_propostas").select("*").order("created_at",{ascending:false})
+  async function load() {
+    const [c, p, s, u, cp] = await Promise.all([
+      supabase
+        .from("clientes")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("empreendimentos")
+        .select(
+          "id,nome,cidade,bairro,status,imagem_url,descricao,faixa_preco,area_minima,area_maxima,numero_pavimentos,caracteristicas,ativo",
+        )
+        .eq("ativo", true)
+        .order("nome"),
+      supabase.from("cliente_empreendimentos").select("*").order("ordem"),
+      supabase.from("unidades").select("*"),
+      supabase
+        .from("cliente_propostas")
+        .select("*")
+        .order("created_at", { ascending: false }),
     ]);
-    if(c.error)setMessage("Aplique a atualização de clientes no Supabase para ativar o módulo.");else setItems((c.data||[]) as Client[]);
-    if(!p.error)setProperties(await Promise.all(((p.data||[]) as Property[]).map(resolvePrivateCover)));
-    if(!s.error)setSelections((s.data||[]) as Selection[]);
-    if(!u.error)setUnits((u.data||[]) as Unit[]);
-    if(!cp.error)setProposals((cp.data||[]) as ClientProposal[]);
+    if (c.error)
+      setMessage(
+        "Aplique a atualização de clientes no Supabase para ativar o módulo.",
+      );
+    else setItems((c.data || []) as Client[]);
+    if (!p.error)
+      setProperties(
+        await Promise.all(
+          ((p.data || []) as Property[]).map(resolvePrivateCover),
+        ),
+      );
+    if (!s.error) setSelections((s.data || []) as Selection[]);
+    if (!u.error) setUnits((u.data || []) as Unit[]);
+    if (!cp.error) setProposals((cp.data || []) as ClientProposal[]);
   }
-  useEffect(()=>{void load()},[]);
-  const visible=useMemo(()=>items.filter((item)=>`${item.nome} ${item.telefone} ${item.email} ${item.cidade}`.toLowerCase().includes(query.toLowerCase())),[items,query]);
-  const selectedFor=(clientId:string)=>selections.filter((item)=>item.cliente_id===clientId).sort((a,b)=>a.ordem-b.ordem);
-  const propertiesFor=(clientId:string)=>selectedFor(clientId).map((selection)=>properties.find((item)=>item.id===selection.empreendimento_id)).filter(Boolean) as Property[];
-  const update=(key:keyof Form,value:string|boolean)=>setForm((old)=>({...old,[key]:value}));
-  const edit=(item:Client)=>{setMessage("");setEditingId(item.id);setForm({nome:item.nome,telefone:formatPhone(item.telefone||""),email:item.email||"",cidade:item.cidade||"",objetivo:item.objetivo||"investimento",modo_apresentacao:item.modo_apresentacao||"investidor",horizonte_investimento:item.horizonte_investimento||"",perfil_risco:item.perfil_risco||"",faixa_investimento:item.faixa_investimento?formatBRL(item.faixa_investimento):"",entrada_disponivel:item.entrada_disponivel?formatBRL(item.entrada_disponivel):"",capacidade_mensal:item.capacidade_mensal?formatBRL(item.capacidade_mensal):"",aceita_baloes:Boolean(item.aceita_baloes||item.balao_maximo),balao_maximo:item.balao_maximo?formatBRL(item.balao_maximo):"",cidades_preferencia:(item.cidades_preferencia||[]).join(", "),quartos_desejados:String(item.quartos_desejados||""),suites_desejadas:String(item.suites_desejadas||""),status:item.status||"novo",proximo_contato:item.proximo_contato||"",observacoes:item.observacoes||""});setOpen(true)};
-  const remove=async(item:Client)=>{if(!confirm(`Excluir o cliente ${item.nome}?`))return;const{error}=await supabase.from("clientes").delete().eq("id",item.id);setMessage(error?.message||"Cliente excluído.");if(!error)void load()};
-  const setAccess=async(item:Client,active:boolean)=>{const client=await supabase.from("clientes").update({acesso_portal:active}).eq("id",item.id);if(!client.error&&item.user_id)await supabase.from("perfis_usuario").update({ativo:active,perfil:"cliente"}).eq("user_id",item.user_id);setMessage(client.error?.message||`Acesso ${active?"ativado":"bloqueado"}.`);void load()};
-  async function save(){if(!form.nome.trim())return setMessage("Informe o nome do cliente.");if(form.telefone&&phoneDigits(form.telefone).length<10)return setMessage("Informe o WhatsApp com DDD, por exemplo: 47 99999-9999.");if(form.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))return setMessage("Informe um e-mail válido.");setSaving(true);const balloonValue=parseBRL(form.balao_maximo)||null;const payload={nome:form.nome.trim(),telefone:formatPhone(form.telefone)||null,email:form.email.trim().toLowerCase()||null,cidade:form.cidade.trim()||null,objetivo:form.objetivo,modo_apresentacao:form.modo_apresentacao,horizonte_investimento:form.horizonte_investimento||null,perfil_risco:form.perfil_risco||null,faixa_investimento:parseBRL(form.faixa_investimento)||null,entrada_disponivel:parseBRL(form.entrada_disponivel)||null,capacidade_mensal:parseBRL(form.capacidade_mensal)||null,aceita_baloes:form.aceita_baloes||Boolean(balloonValue),balao_maximo:balloonValue,quartos_desejados:Number(form.quartos_desejados)||null,suites_desejadas:Number(form.suites_desejadas)||null,status:form.status,proximo_contato:form.proximo_contato||null,observacoes:form.observacoes.trim()||null};const preferences=form.cidades_preferencia.split(",").map((item)=>item.trim()).filter(Boolean);const completePayload={...payload,cidades_preferencia:preferences};const result=editingId?await supabase.from("clientes").update(completePayload).eq("id",editingId):await supabase.from("clientes").insert(completePayload);setSaving(false);if(result.error)setMessage(`Não foi possível salvar: ${result.error.message}`);else{setEditingId(null);setForm(empty);setOpen(false);setMessage("Cliente salvo com sucesso.");void load()}}
-  const selectEmailDomain=(domain:string)=>{const local=form.email.split("@")[0].trim();update("email",local?`${local}@${domain}`:`@${domain}`)};
-  async function toggleProperty(client:Client,property:Property){
-    const current=selectedFor(client.id),existing=current.find((item)=>item.empreendimento_id===property.id);
-    if(existing){const{error}=await supabase.from("cliente_empreendimentos").delete().eq("cliente_id",client.id).eq("empreendimento_id",property.id);if(error)return setMessage(error.message)}
-    else{if(current.length>=4)return setMessage("A comparação aceita no máximo quatro empreendimentos.");const used=new Set(current.map((item)=>item.ordem));const nextOrder=[1,2,3,4].find((value)=>!used.has(value))||4;const{error}=await supabase.from("cliente_empreendimentos").insert({cliente_id:client.id,empreendimento_id:property.id,ordem:nextOrder,motivo:"Selecionado para a curadoria do cliente",exibir_imagens:false,exibir_descricao:false,exibir_preco:false,exibir_especificacoes:false,exibir_investimento:false,exibir_fluxo:false,permitir_proposta:false});if(error)return setMessage(error.message)}
-    setMessage("");void load();
+  useEffect(() => {
+    void load();
+  }, []);
+  const visible = useMemo(
+    () =>
+      items.filter((item) =>
+        `${item.nome} ${item.telefone} ${item.email} ${item.cidade}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [items, query],
+  );
+  const selectedFor = (clientId: string) =>
+    selections
+      .filter((item) => item.cliente_id === clientId)
+      .sort((a, b) => a.ordem - b.ordem);
+  const propertiesFor = (clientId: string) =>
+    selectedFor(clientId)
+      .map((selection) =>
+        properties.find((item) => item.id === selection.empreendimento_id),
+      )
+      .filter(Boolean) as Property[];
+  const update = (key: keyof Form, value: string | boolean) =>
+    setForm((old) => ({ ...old, [key]: value }));
+  const edit = (item: Client) => {
+    setMessage("");
+    setEditingId(item.id);
+    setForm({
+      nome: item.nome,
+      telefone: formatPhone(item.telefone || ""),
+      email: item.email || "",
+      cidade: item.cidade || "",
+      objetivo: item.objetivo || "investimento",
+      modo_apresentacao: item.modo_apresentacao || "investidor",
+      horizonte_investimento: item.horizonte_investimento || "",
+      perfil_risco: item.perfil_risco || "",
+      faixa_investimento: item.faixa_investimento
+        ? formatBRL(item.faixa_investimento)
+        : "",
+      entrada_disponivel: item.entrada_disponivel
+        ? formatBRL(item.entrada_disponivel)
+        : "",
+      capacidade_mensal: item.capacidade_mensal
+        ? formatBRL(item.capacidade_mensal)
+        : "",
+      aceita_baloes: Boolean(item.aceita_baloes || item.balao_maximo),
+      balao_maximo: item.balao_maximo ? formatBRL(item.balao_maximo) : "",
+      cidades_preferencia: (item.cidades_preferencia || []).join(", "),
+      quartos_desejados: String(item.quartos_desejados || ""),
+      suites_desejadas: String(item.suites_desejadas || ""),
+      status: item.status || "novo",
+      proximo_contato: item.proximo_contato || "",
+      observacoes: item.observacoes || "",
+    });
+    setOpen(true);
+  };
+  const remove = async (item: Client) => {
+    if (!confirm(`Excluir o cliente ${item.nome}?`)) return;
+    const { error } = await supabase
+      .from("clientes")
+      .delete()
+      .eq("id", item.id);
+    setMessage(error?.message || "Cliente excluído.");
+    if (!error) void load();
+  };
+  const setAccess = async (item: Client, active: boolean) => {
+    const client = await supabase
+      .from("clientes")
+      .update({ acesso_portal: active })
+      .eq("id", item.id);
+    if (!client.error && item.user_id)
+      await supabase
+        .from("perfis_usuario")
+        .update({ ativo: active, perfil: "cliente" })
+        .eq("user_id", item.user_id);
+    setMessage(
+      client.error?.message || `Acesso ${active ? "ativado" : "bloqueado"}.`,
+    );
+    void load();
+  };
+  async function save() {
+    if (!form.nome.trim()) return setMessage("Informe o nome do cliente.");
+    if (form.telefone && phoneDigits(form.telefone).length < 10)
+      return setMessage(
+        "Informe o WhatsApp com DDD, por exemplo: 47 99999-9999.",
+      );
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      return setMessage("Informe um e-mail válido.");
+    setSaving(true);
+    const balloonValue = parseBRL(form.balao_maximo) || null;
+    const payload = {
+      nome: form.nome.trim(),
+      telefone: formatPhone(form.telefone) || null,
+      email: form.email.trim().toLowerCase() || null,
+      cidade: form.cidade.trim() || null,
+      objetivo: form.objetivo,
+      modo_apresentacao: form.modo_apresentacao,
+      horizonte_investimento: form.horizonte_investimento || null,
+      perfil_risco: form.perfil_risco || null,
+      faixa_investimento: parseBRL(form.faixa_investimento) || null,
+      entrada_disponivel: parseBRL(form.entrada_disponivel) || null,
+      capacidade_mensal: parseBRL(form.capacidade_mensal) || null,
+      aceita_baloes: form.aceita_baloes || Boolean(balloonValue),
+      balao_maximo: balloonValue,
+      quartos_desejados: Number(form.quartos_desejados) || null,
+      suites_desejadas: Number(form.suites_desejadas) || null,
+      status: form.status,
+      proximo_contato: form.proximo_contato || null,
+      observacoes: form.observacoes.trim() || null,
+    };
+    const preferences = form.cidades_preferencia
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const completePayload = { ...payload, cidades_preferencia: preferences };
+    const result = editingId
+      ? await supabase
+          .from("clientes")
+          .update(completePayload)
+          .eq("id", editingId)
+      : await supabase.from("clientes").insert(completePayload);
+    setSaving(false);
+    if (result.error)
+      setMessage(`Não foi possível salvar: ${result.error.message}`);
+    else {
+      setEditingId(null);
+      setForm(empty);
+      setOpen(false);
+      setMessage("Cliente salvo com sucesso.");
+      void load();
+    }
   }
-  async function updateSelection(clientId:string,propertyId:string,patch:Partial<Selection>){
-    const {error}=await supabase.from("cliente_empreendimentos").update({...patch,updated_at:new Date().toISOString()}).eq("cliente_id",clientId).eq("empreendimento_id",propertyId);
-    if(error)setMessage(`Não foi possível salvar a liberação: ${error.message}`);else{setSelections(current=>current.map(item=>item.cliente_id===clientId&&item.empreendimento_id===propertyId?{...item,...patch}:item));setMessage("Conteúdo autorizado atualizado.")}
+  const selectEmailDomain = (domain: string) => {
+    const local = form.email.split("@")[0].trim();
+    update("email", local ? `${local}@${domain}` : `@${domain}`);
+  };
+  async function toggleProperty(client: Client, property: Property) {
+    const current = selectedFor(client.id),
+      existing = current.find((item) => item.empreendimento_id === property.id);
+    if (existing) {
+      const { error } = await supabase
+        .from("cliente_empreendimentos")
+        .delete()
+        .eq("cliente_id", client.id)
+        .eq("empreendimento_id", property.id);
+      if (error) return setMessage(error.message);
+    } else {
+      if (current.length >= 4)
+        return setMessage(
+          "A comparação aceita no máximo quatro empreendimentos.",
+        );
+      const used = new Set(current.map((item) => item.ordem));
+      const nextOrder = [1, 2, 3, 4].find((value) => !used.has(value)) || 4;
+      const { error } = await supabase
+        .from("cliente_empreendimentos")
+        .insert({
+          cliente_id: client.id,
+          empreendimento_id: property.id,
+          ordem: nextOrder,
+          motivo: "Selecionado para a curadoria do cliente",
+          exibir_imagens: false,
+          exibir_descricao: false,
+          exibir_preco: false,
+          exibir_especificacoes: false,
+          exibir_investimento: false,
+          exibir_fluxo: false,
+          permitir_proposta: false,
+        });
+      if (error) return setMessage(error.message);
+    }
+    setMessage("");
+    void load();
   }
-  async function updateProposal(id:string,status:string){const{error}=await supabase.from("cliente_propostas").update({status,updated_at:new Date().toISOString()}).eq("id",id);setMessage(error?.message||"Situação da proposta atualizada.");if(!error)void load()}
+  async function updateSelection(
+    clientId: string,
+    propertyId: string,
+    patch: Partial<Selection>,
+  ) {
+    const { error } = await supabase
+      .from("cliente_empreendimentos")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("cliente_id", clientId)
+      .eq("empreendimento_id", propertyId);
+    if (error)
+      setMessage(`Não foi possível salvar a liberação: ${error.message}`);
+    else {
+      setSelections((current) =>
+        current.map((item) =>
+          item.cliente_id === clientId && item.empreendimento_id === propertyId
+            ? { ...item, ...patch }
+            : item,
+        ),
+      );
+      setMessage("Conteúdo autorizado atualizado.");
+    }
+  }
+  async function updateProposal(id: string, status: string) {
+    const { error } = await supabase
+      .from("cliente_propostas")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    setMessage(error?.message || "Situação da proposta atualizada.");
+    if (!error) void load();
+  }
 
-  return <div style={{color:"#f4f4f5",display:"grid",gap:14}}>
-    <header style={{display:"flex",justifyContent:"space-between",alignItems:"end",gap:12,flexWrap:"wrap"}}><div><h1 style={{margin:0,fontSize:24}}>Clientes & Curadoria</h1><p style={{color:"#8b8b95",margin:"5px 0 0",fontSize:12}}>Perfil financeiro, preferências e até quatro empreendimentos comparáveis.</p></div><button style={button} onClick={()=>{setEditingId(null);setForm(empty);setOpen(true)}}><Plus size={16}/>Novo cliente</button></header>
-    {message&&<div style={{...panel,borderColor:"#854d0e",color:"#fbbf24"}}>{message}</div>}
-    {proposals.length>0&&<details style={panel} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Propostas enviadas pelos clientes ({proposals.filter(item=>item.status==="nova").length} nova(s))</summary><div style={{display:"grid",gap:9,marginTop:12}}>{proposals.slice(0,12).map(proposal=>{const client=items.find(item=>Number(item.id)===proposal.cliente_id);const property=properties.find(item=>item.id===proposal.empreendimento_id);return <article key={proposal.id} style={{border:"1px solid #303036",borderRadius:8,padding:11,display:"grid",gridTemplateColumns:"1fr auto",gap:10}}><div><strong>{client?.nome||"Cliente"} · {property?.nome||proposal.empreendimento_id}</strong><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>Entrada {money(proposal.entrada)} · Mensais {money(proposal.parcela_mensal)}{proposal.quantidade_baloes?` · ${proposal.quantidade_baloes} balão(ões) de ${money(proposal.balao)}`:""}</small>{proposal.mensagem&&<p style={{fontSize:12,color:"#d4d4d8"}}>{proposal.mensagem}</p>}</div><select value={proposal.status} onChange={event=>void updateProposal(proposal.id,event.target.value)} style={{...input,width:150}}><option value="nova">Nova</option><option value="em_analise">Em análise</option><option value="contraproposta">Contraproposta</option><option value="aceita">Aceita</option><option value="recusada">Recusada</option></select></article>})}</div></details>}
-    <section style={panel}><div style={{display:"flex",alignItems:"center",gap:8}}><Search size={16} color="#71717a"/><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Buscar por nome, telefone, e-mail ou cidade" style={input}/></div></section>
-    <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:12}}>{visible.map((item)=>{const count=selectedFor(item.id).length;return <article key={item.id} style={panel}>
-      <div style={{display:"flex",gap:10,alignItems:"center"}}><UserRound size={19} color="#c5a059"/><div style={{flex:1,minWidth:0}}><strong>{item.nome}</strong><small style={{display:"block",color:"#8b8b95",marginTop:3}}>{item.cidade||"Cidade não informada"}</small></div><button onClick={()=>edit(item)} title="Editar"><Pencil size={14}/></button><button onClick={()=>void remove(item)} title="Excluir"><Trash2 size={14}/></button></div>
-      <div style={{display:"flex",gap:7,marginTop:11,flexWrap:"wrap"}}>{item.telefone&&<a href={`https://wa.me/${normalizePhone(item.telefone)}`} target="_blank" rel="noreferrer" style={{...button,padding:"7px 9px",fontSize:11,textDecoration:"none",background:"#14532d",color:"#dcfce7"}}><MessageCircle size={14}/>WhatsApp</a>}{item.email&&<a href={`mailto:${item.email}`} style={{color:"#c5a059",fontSize:11,alignSelf:"center"}}>{item.email}</a>}</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:14,fontSize:12}}><span style={{color:"#8b8b95"}}>Imóvel desejado<strong style={{display:"block",color:"#fff",marginTop:3}}>{money(item.faixa_investimento)}</strong></span><span style={{color:"#8b8b95"}}>Entrada<strong style={{display:"block",color:"#fff",marginTop:3}}>{money(item.entrada_disponivel)}</strong></span><span style={{color:"#8b8b95"}}>Parcela<strong style={{display:"block",color:"#fff",marginTop:3}}>{money(item.capacidade_mensal)}</strong></span><span style={{color:"#8b8b95"}}>Balão<strong style={{display:"block",color:"#fff",marginTop:3}}>{item.aceita_baloes?money(item.balao_maximo):"Não informado"}</strong></span></div>
-      <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #27272a",display:"flex",gap:8,flexWrap:"wrap"}}>{item.user_id&&<button onClick={()=>void setAccess(item,!item.acesso_portal)} style={{...button,background:item.acesso_portal?"#14532d":"#3f1d22",color:item.acesso_portal?"#dcfce7":"#fecaca",fontSize:11}}>{item.acesso_portal?"Acesso ativo":"Acesso bloqueado"}</button>}<button onClick={()=>setCurating(item)} style={{...button,background:"#27272a",color:"#fff",fontSize:11}}><Plus size={14}/>Selecionar imóveis ({count}/4)</button>{count>0&&<button onClick={()=>setComparing(item)} style={{...button,fontSize:11}}><BarChart3 size={14}/>Comparar</button>}</div>
-    </article>})}</section>
+  return (
+    <div style={{ color: "#f4f4f5", display: "grid", gap: 14 }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "end",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1 style={{ margin: 0, fontSize: 24 }}>Clientes & Curadoria</h1>
+          <p style={{ color: "#8b8b95", margin: "5px 0 0", fontSize: 12 }}>
+            Perfil financeiro, preferências e até quatro empreendimentos
+            comparáveis.
+          </p>
+        </div>
+        <button
+          style={button}
+          onClick={() => {
+            setEditingId(null);
+            setForm(empty);
+            setOpen(true);
+          }}
+        >
+          <Plus size={16} />
+          Novo cliente
+        </button>
+      </header>
+      {message && (
+        <div style={{ ...panel, borderColor: "#854d0e", color: "#fbbf24" }}>
+          {message}
+        </div>
+      )}
+      {proposals.length > 0 && (
+        <details style={panel} open>
+          <summary
+            style={{ cursor: "pointer", fontWeight: 800, color: "#edcf91" }}
+          >
+            Propostas enviadas pelos clientes (
+            {proposals.filter((item) => item.status === "nova").length} nova(s))
+          </summary>
+          <div style={{ display: "grid", gap: 9, marginTop: 12 }}>
+            {proposals.slice(0, 12).map((proposal) => {
+              const client = items.find(
+                (item) => Number(item.id) === proposal.cliente_id,
+              );
+              const property = properties.find(
+                (item) => item.id === proposal.empreendimento_id,
+              );
+              return (
+                <article
+                  key={proposal.id}
+                  style={{
+                    border: "1px solid #303036",
+                    borderRadius: 8,
+                    padding: 11,
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto",
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <strong>
+                      {client?.nome || "Cliente"} ·{" "}
+                      {property?.nome || proposal.empreendimento_id}
+                    </strong>
+                    <small
+                      style={{
+                        display: "block",
+                        color: "#a1a1aa",
+                        marginTop: 4,
+                      }}
+                    >
+                      Entrada {money(proposal.entrada)} · Mensais{" "}
+                      {money(proposal.parcela_mensal)}
+                      {proposal.quantidade_baloes
+                        ? ` · ${proposal.quantidade_baloes} balão(ões) de ${money(proposal.balao)}`
+                        : ""}
+                    </small>
+                    {proposal.mensagem && (
+                      <p style={{ fontSize: 12, color: "#d4d4d8" }}>
+                        {proposal.mensagem}
+                      </p>
+                    )}
+                  </div>
+                  <select
+                    value={proposal.status}
+                    onChange={(event) =>
+                      void updateProposal(proposal.id, event.target.value)
+                    }
+                    style={{ ...input, width: 150 }}
+                  >
+                    <option value="nova">Nova</option>
+                    <option value="em_analise">Em análise</option>
+                    <option value="contraproposta">Contraproposta</option>
+                    <option value="aceita">Aceita</option>
+                    <option value="recusada">Recusada</option>
+                  </select>
+                </article>
+              );
+            })}
+          </div>
+        </details>
+      )}
+      <section style={panel}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Search size={16} color="#71717a" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nome, telefone, e-mail ou cidade"
+            style={input}
+          />
+        </div>
+      </section>
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))",
+          gap: 12,
+        }}
+      >
+        {visible.map((item) => {
+          const count = selectedFor(item.id).length;
+          return (
+            <article key={item.id} style={panel}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <UserRound size={19} color="#c5a059" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <strong>{item.nome}</strong>
+                  <small
+                    style={{ display: "block", color: "#8b8b95", marginTop: 3 }}
+                  >
+                    {item.cidade || "Cidade não informada"}
+                  </small>
+                </div>
+                <button onClick={() => edit(item)} title="Editar">
+                  <Pencil size={14} />
+                </button>
+                <button onClick={() => void remove(item)} title="Excluir">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 7,
+                  marginTop: 11,
+                  flexWrap: "wrap",
+                }}
+              >
+                {item.telefone && (
+                  <a
+                    href={`https://wa.me/${normalizePhone(item.telefone)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      ...button,
+                      padding: "7px 9px",
+                      fontSize: 11,
+                      textDecoration: "none",
+                      background: "#14532d",
+                      color: "#dcfce7",
+                    }}
+                  >
+                    <MessageCircle size={14} />
+                    WhatsApp
+                  </a>
+                )}
+                {item.email && (
+                  <a
+                    href={`mailto:${item.email}`}
+                    style={{
+                      color: "#c5a059",
+                      fontSize: 11,
+                      alignSelf: "center",
+                    }}
+                  >
+                    {item.email}
+                  </a>
+                )}
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 9,
+                  marginTop: 14,
+                  fontSize: 12,
+                }}
+              >
+                <span style={{ color: "#8b8b95" }}>
+                  Imóvel desejado
+                  <strong
+                    style={{ display: "block", color: "#fff", marginTop: 3 }}
+                  >
+                    {money(item.faixa_investimento)}
+                  </strong>
+                </span>
+                <span style={{ color: "#8b8b95" }}>
+                  Entrada
+                  <strong
+                    style={{ display: "block", color: "#fff", marginTop: 3 }}
+                  >
+                    {money(item.entrada_disponivel)}
+                  </strong>
+                </span>
+                <span style={{ color: "#8b8b95" }}>
+                  Parcela
+                  <strong
+                    style={{ display: "block", color: "#fff", marginTop: 3 }}
+                  >
+                    {money(item.capacidade_mensal)}
+                  </strong>
+                </span>
+                <span style={{ color: "#8b8b95" }}>
+                  Balão
+                  <strong
+                    style={{ display: "block", color: "#fff", marginTop: 3 }}
+                  >
+                    {item.aceita_baloes
+                      ? money(item.balao_maximo)
+                      : "Não informado"}
+                  </strong>
+                </span>
+              </div>
+              <div
+                style={{
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTop: "1px solid #27272a",
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                {item.user_id && (
+                  <button
+                    onClick={() => void setAccess(item, !item.acesso_portal)}
+                    style={{
+                      ...button,
+                      background: item.acesso_portal ? "#14532d" : "#3f1d22",
+                      color: item.acesso_portal ? "#dcfce7" : "#fecaca",
+                      fontSize: 11,
+                    }}
+                  >
+                    {item.acesso_portal ? "Acesso ativo" : "Acesso bloqueado"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setCurating(item)}
+                  style={{
+                    ...button,
+                    background: "#27272a",
+                    color: "#fff",
+                    fontSize: 11,
+                  }}
+                >
+                  <Plus size={14} />
+                  Selecionar imóveis ({count}/4)
+                </button>
+                {count > 0 && (
+                  <button
+                    onClick={() => setComparing(item)}
+                    style={{ ...button, fontSize: 11 }}
+                  >
+                    <BarChart3 size={14} />
+                    Comparar
+                  </button>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </section>
 
-    {open&&<div onKeyDown={(event)=>{if(event.key==="Escape")setOpen(false)}} style={{position:"fixed",inset:0,zIndex:5000,background:"rgba(0,0,0,.78)",display:"grid",placeItems:"center",padding:12}}><section style={{...panel,width:"min(800px,100%)",maxHeight:"92dvh",overflow:"auto"}}><style>{`@media(max-width:600px){.client-form-grid{grid-template-columns:1fr !important}.client-email-presets{grid-column:auto !important}}`}</style><header style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h2 style={{margin:0,fontSize:18}}>{editingId?"Editar cliente":"Novo cliente"}</h2><button onClick={()=>setOpen(false)} style={{background:"none",border:0,color:"#aaa"}}><X/></button></header><div className="client-form-grid" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:11}}>
-      {([["nome","Nome *","text"],["telefone","Telefone / WhatsApp","tel"],["email","E-mail","email"],["cidade","Cidade onde mora","text"],["quartos_desejados","Dormitórios desejados","number"],["suites_desejadas","Suítes desejadas","number"],["faixa_investimento","Valor do imóvel desejado","text"],["entrada_disponivel","Entrada disponível","text"],["capacidade_mensal","Parcela mensal confortável","text"],["balao_maximo","Balão máximo","text"],["proximo_contato","Próximo contato","date"]] as Array<[keyof Form,string,string]>).map(([key,label,type])=><label key={key} style={{color:"#a1a1aa",fontSize:12}}>{label}<input type={type} inputMode={monetaryFields.has(key)?"numeric":key==="telefone"?"tel":undefined} placeholder={monetaryFields.has(key)?"R$ 0,00":key==="telefone"?"47 99999-9999":key==="email"?"nome@provedor.com":undefined} disabled={key==="balao_maximo"&&!form.aceita_baloes} value={String(form[key])} onChange={(e)=>update(key,monetaryFields.has(key)?(e.target.value.replace(/\D/g,"")?formatBRL(parseBRL(e.target.value)):""):key==="telefone"?formatPhone(e.target.value):e.target.value)} style={{...input,marginTop:5}}/></label>)}
-      <div className="client-email-presets" style={{gridColumn:"1/-1",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}><small style={{color:"#71717a"}}>Completar e-mail:</small>{emailDomains.map((domain)=><button key={domain} type="button" onClick={()=>selectEmailDomain(domain)} style={{background:"#18181b",border:"1px solid #34343a",color:"#d4d4d8",borderRadius:6,padding:"6px 8px",cursor:"pointer"}}>@{domain}</button>)}</div>
-      <label style={{color:"#a1a1aa",fontSize:12}}>Cidades de preferência (separe por vírgula)<input value={form.cidades_preferencia} onChange={(e)=>update("cidades_preferencia",e.target.value)} style={{...input,marginTop:5}}/></label>
-      <label style={{color:"#a1a1aa",fontSize:12}}>Objetivo<select value={form.objetivo} onChange={(e)=>update("objetivo",e.target.value)} style={{...input,marginTop:5}}><option value="investimento">Investimento</option><option value="moradia">Moradia</option><option value="renda">Renda</option><option value="revenda">Revenda</option></select></label>
-      <label style={{color:"#a1a1aa",fontSize:12}}>Como apresentar a curadoria<select value={form.modo_apresentacao} onChange={(e)=>update("modo_apresentacao",e.target.value as Form["modo_apresentacao"])} style={{...input,marginTop:5}}><option value="moradia">Moradia — localização, conforto e pagamento</option><option value="investidor">Investidor — patrimônio, retorno e fluxo</option><option value="renda">Renda — aluguel, cap rate e liquidez</option><option value="revenda">Revenda — prazo, saída e valorização</option></select></label>
-      <label style={{color:"#a1a1aa",fontSize:12}}>Horizonte desejado<select value={form.horizonte_investimento} onChange={(e)=>update("horizonte_investimento",e.target.value)} style={{...input,marginTop:5}}><option value="">Não informado</option><option value="curto">Curto prazo</option><option value="medio">Médio prazo</option><option value="longo">Longo prazo</option></select></label>
-      <label style={{color:"#a1a1aa",fontSize:12}}>Perfil de risco<select value={form.perfil_risco} onChange={(e)=>update("perfil_risco",e.target.value)} style={{...input,marginTop:5}}><option value="">Não informado</option><option value="conservador">Conservador</option><option value="moderado">Moderado</option><option value="arrojado">Arrojado</option></select></label>
-      <label style={{color:"#a1a1aa",fontSize:12}}>Etapa<select value={form.status} onChange={(e)=>update("status",e.target.value)} style={{...input,marginTop:5}}><option value="novo">Novo</option><option value="qualificado">Qualificado</option><option value="curadoria">Curadoria</option><option value="apresentacao">Apresentação</option><option value="proposta">Proposta</option><option value="negociacao">Negociação</option></select></label>
-      <label style={{color:"#a1a1aa",fontSize:12,display:"flex",alignItems:"center",gap:8}}><input type="checkbox" checked={form.aceita_baloes} onChange={(e)=>update("aceita_baloes",e.target.checked)}/>Cliente aceita balões</label>
-      <label style={{color:"#a1a1aa",fontSize:12,gridColumn:"1/-1"}}>Observações<textarea value={form.observacoes} onChange={(e)=>update("observacoes",e.target.value)} rows={4} style={{...input,marginTop:5}}/></label>
-    </div><div style={{display:"flex",justifyContent:"flex-end",marginTop:15}}><button style={button} onClick={()=>void save()} disabled={saving}><Save size={16}/>{saving?"Salvando...":"Salvar cliente"}</button></div></section></div>}
+      {open && (
+        <div
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setOpen(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 5000,
+            background: "rgba(0,0,0,.78)",
+            display: "grid",
+            placeItems: "center",
+            padding: 12,
+          }}
+        >
+          <section
+            style={{
+              ...panel,
+              width: "min(800px,100%)",
+              maxHeight: "92dvh",
+              overflow: "auto",
+            }}
+          >
+            <style>{`@media(max-width:600px){.client-form-grid{grid-template-columns:1fr !important}.client-email-presets{grid-column:auto !important}}`}</style>
+            <header
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
+              <h2 style={{ margin: 0, fontSize: 18 }}>
+                {editingId ? "Editar cliente" : "Novo cliente"}
+              </h2>
+              <button
+                onClick={() => setOpen(false)}
+                style={{ background: "none", border: 0, color: "#aaa" }}
+              >
+                <X />
+              </button>
+            </header>
+            <div
+              className="client-form-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+                gap: 11,
+              }}
+            >
+              {(
+                [
+                  ["nome", "Nome *", "text"],
+                  ["telefone", "Telefone / WhatsApp", "tel"],
+                  ["email", "E-mail", "email"],
+                  ["cidade", "Cidade onde mora", "text"],
+                  ["quartos_desejados", "Dormitórios desejados", "number"],
+                  ["suites_desejadas", "Suítes desejadas", "number"],
+                  ["faixa_investimento", "Valor do imóvel desejado", "text"],
+                  ["entrada_disponivel", "Entrada disponível", "text"],
+                  ["capacidade_mensal", "Parcela mensal confortável", "text"],
+                  ["balao_maximo", "Balão máximo", "text"],
+                  ["proximo_contato", "Próximo contato", "date"],
+                ] as Array<[keyof Form, string, string]>
+              ).map(([key, label, type]) => (
+                <label key={key} style={{ color: "#a1a1aa", fontSize: 12 }}>
+                  {label}
+                  <input
+                    type={type}
+                    inputMode={
+                      monetaryFields.has(key)
+                        ? "numeric"
+                        : key === "telefone"
+                          ? "tel"
+                          : undefined
+                    }
+                    placeholder={
+                      monetaryFields.has(key)
+                        ? "R$ 0,00"
+                        : key === "telefone"
+                          ? "47 99999-9999"
+                          : key === "email"
+                            ? "nome@provedor.com"
+                            : undefined
+                    }
+                    disabled={key === "balao_maximo" && !form.aceita_baloes}
+                    value={String(form[key])}
+                    onChange={(e) =>
+                      update(
+                        key,
+                        monetaryFields.has(key)
+                          ? e.target.value.replace(/\D/g, "")
+                            ? formatBRL(parseBRL(e.target.value))
+                            : ""
+                          : key === "telefone"
+                            ? formatPhone(e.target.value)
+                            : e.target.value,
+                      )
+                    }
+                    style={{ ...input, marginTop: 5 }}
+                  />
+                </label>
+              ))}
+              <div
+                className="client-email-presets"
+                style={{
+                  gridColumn: "1/-1",
+                  display: "flex",
+                  gap: 6,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <small style={{ color: "#71717a" }}>Completar e-mail:</small>
+                {emailDomains.map((domain) => (
+                  <button
+                    key={domain}
+                    type="button"
+                    onClick={() => selectEmailDomain(domain)}
+                    style={{
+                      background: "#18181b",
+                      border: "1px solid #34343a",
+                      color: "#d4d4d8",
+                      borderRadius: 6,
+                      padding: "6px 8px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    @{domain}
+                  </button>
+                ))}
+              </div>
+              <label style={{ color: "#a1a1aa", fontSize: 12 }}>
+                Cidades de preferência (separe por vírgula)
+                <input
+                  value={form.cidades_preferencia}
+                  onChange={(e) =>
+                    update("cidades_preferencia", e.target.value)
+                  }
+                  style={{ ...input, marginTop: 5 }}
+                />
+              </label>
+              <label style={{ color: "#a1a1aa", fontSize: 12 }}>
+                Objetivo
+                <select
+                  value={form.objetivo}
+                  onChange={(e) => update("objetivo", e.target.value)}
+                  style={{ ...input, marginTop: 5 }}
+                >
+                  <option value="investimento">Investimento</option>
+                  <option value="moradia">Moradia</option>
+                  <option value="renda">Renda</option>
+                  <option value="revenda">Revenda</option>
+                </select>
+              </label>
+              <label style={{ color: "#a1a1aa", fontSize: 12 }}>
+                Como apresentar a curadoria
+                <select
+                  value={form.modo_apresentacao}
+                  onChange={(e) =>
+                    update(
+                      "modo_apresentacao",
+                      e.target.value as Form["modo_apresentacao"],
+                    )
+                  }
+                  style={{ ...input, marginTop: 5 }}
+                >
+                  <option value="moradia">
+                    Moradia — localização, conforto e pagamento
+                  </option>
+                  <option value="investidor">
+                    Investidor — patrimônio, retorno e fluxo
+                  </option>
+                  <option value="renda">
+                    Renda — aluguel, cap rate e liquidez
+                  </option>
+                  <option value="revenda">
+                    Revenda — prazo, saída e valorização
+                  </option>
+                </select>
+              </label>
+              <label style={{ color: "#a1a1aa", fontSize: 12 }}>
+                Horizonte desejado
+                <select
+                  value={form.horizonte_investimento}
+                  onChange={(e) =>
+                    update("horizonte_investimento", e.target.value)
+                  }
+                  style={{ ...input, marginTop: 5 }}
+                >
+                  <option value="">Não informado</option>
+                  <option value="curto">Curto prazo</option>
+                  <option value="medio">Médio prazo</option>
+                  <option value="longo">Longo prazo</option>
+                </select>
+              </label>
+              <label style={{ color: "#a1a1aa", fontSize: 12 }}>
+                Perfil de risco
+                <select
+                  value={form.perfil_risco}
+                  onChange={(e) => update("perfil_risco", e.target.value)}
+                  style={{ ...input, marginTop: 5 }}
+                >
+                  <option value="">Não informado</option>
+                  <option value="conservador">Conservador</option>
+                  <option value="moderado">Moderado</option>
+                  <option value="arrojado">Arrojado</option>
+                </select>
+              </label>
+              <label style={{ color: "#a1a1aa", fontSize: 12 }}>
+                Etapa
+                <select
+                  value={form.status}
+                  onChange={(e) => update("status", e.target.value)}
+                  style={{ ...input, marginTop: 5 }}
+                >
+                  <option value="novo">Novo</option>
+                  <option value="qualificado">Qualificado</option>
+                  <option value="curadoria">Curadoria</option>
+                  <option value="apresentacao">Apresentação</option>
+                  <option value="proposta">Proposta</option>
+                  <option value="negociacao">Negociação</option>
+                </select>
+              </label>
+              <label
+                style={{
+                  color: "#a1a1aa",
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={form.aceita_baloes}
+                  onChange={(e) => update("aceita_baloes", e.target.checked)}
+                />
+                Cliente aceita balões
+              </label>
+              <label
+                style={{ color: "#a1a1aa", fontSize: 12, gridColumn: "1/-1" }}
+              >
+                Observações
+                <textarea
+                  value={form.observacoes}
+                  onChange={(e) => update("observacoes", e.target.value)}
+                  rows={4}
+                  style={{ ...input, marginTop: 5 }}
+                />
+              </label>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: 15,
+              }}
+            >
+              <button
+                style={button}
+                onClick={() => void save()}
+                disabled={saving}
+              >
+                <Save size={16} />
+                {saving ? "Salvando..." : "Salvar cliente"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
-    {curating&&<div style={{position:"fixed",inset:0,zIndex:5000,background:"rgba(0,0,0,.82)",padding:24,overflow:"auto"}}><section style={{maxWidth:1180,margin:"0 auto"}}><header style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div><h2 style={{margin:0}}>Curadoria para {curating.nome}</h2><p style={{color:"#8b8b95"}}>Selecione até quatro imóveis e libere somente o conteúdo que este cliente poderá acessar.</p></div><button onClick={()=>setCurating(null)}><X/></button></header><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>{properties.map((property)=>{const selection=selectedFor(curating.id).find((item)=>item.empreendimento_id===property.id);const checked=Boolean(selection);return <article key={property.id} style={{...panel,borderColor:checked?"#c5a059":"#27272a",padding:0,overflow:"hidden"}}>{property.imagem_url?<img src={property.imagem_url} alt="" style={{width:"100%",height:145,objectFit:"cover"}}/>:<div style={{height:145,background:"#18181b"}}/>}<div style={{padding:14}}><small style={{color:"#c5a059"}}>{property.status}</small><h3>{property.nome}</h3><p style={{color:"#8b8b95",fontSize:12}}>{property.cidade} · {money(property.faixa_preco)}</p><button onClick={()=>void toggleProperty(curating,property)} style={{...button,width:"100%",background:checked?"#14532d":"#c5a059",color:checked?"#dcfce7":"#09090b"}}>{checked?<Check size={15}/>:<Plus size={15}/>} {checked?"Selecionado":"Adicionar à comparação"}</button>{selection&&<div style={{display:"grid",gap:8,marginTop:12,paddingTop:12,borderTop:"1px solid #27272a"}}><strong style={{fontSize:11}}>Conteúdo liberado no portal</strong><div style={{display:"flex",flexWrap:"wrap",gap:9}}>{([['exibir_imagens','Imagens'],['exibir_descricao','Descrição'],['exibir_preco','Preço'],['exibir_especificacoes','Especificações'],['exibir_investimento','Investimento'],['exibir_fluxo','Fluxo']] as const).map(([key,label])=><label key={key} style={{fontSize:11,color:selection[key]?"#86efac":"#a1a1aa"}}><input type="checkbox" checked={Boolean(selection[key])} onChange={(event)=>void updateSelection(curating.id,property.id,{[key]:event.target.checked})}/> {label}</label>)}</div><textarea rows={2} value={selection.mensagem_personalizada||""} onChange={(event)=>setSelections(current=>current.map(item=>item===selection?{...item,mensagem_personalizada:event.target.value}:item))} onBlur={(event)=>void updateSelection(curating.id,property.id,{mensagem_personalizada:event.target.value})} placeholder="Mensagem personalizada para o cliente" style={input}/></div>}</div></article>})}</div></section></div>}
+      {curating && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 5000,
+            background: "rgba(0,0,0,.82)",
+            padding: 24,
+            overflow: "auto",
+          }}
+        >
+          <section style={{ maxWidth: 1180, margin: "0 auto" }}>
+            <header
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <h2 style={{ margin: 0 }}>Curadoria para {curating.nome}</h2>
+                <p style={{ color: "#8b8b95" }}>
+                  Selecione até quatro imóveis e libere somente o conteúdo que
+                  este cliente poderá acessar.
+                </p>
+              </div>
+              <button aria-label="Fechar curadoria" onClick={() => setCurating(null)} style={{width:38,height:38,display:"grid",placeItems:"center",flex:"0 0 auto",border:"1px solid #3f3f46",borderRadius:8,background:"#18181b",color:"#d4d4d8",padding:0}}>
+                <X size={19} />
+              </button>
+            </header>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+                gap: 12,
+              }}
+            >
+              {properties.map((property) => {
+                const selection = selectedFor(curating.id).find(
+                  (item) => item.empreendimento_id === property.id,
+                );
+                const checked = Boolean(selection);
+                return (
+                  <article
+                    key={property.id}
+                    style={{
+                      ...panel,
+                      borderColor: checked ? "#c5a059" : "#27272a",
+                      padding: 0,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {property.imagem_url ? (
+                      <img
+                        src={property.imagem_url}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: 145,
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <div style={{ height: 145, background: "#18181b" }} />
+                    )}
+                    <div style={{ padding: 14 }}>
+                      <small style={{ color: "#c5a059" }}>
+                        {property.status}
+                      </small>
+                      <h3>{property.nome}</h3>
+                      <p style={{ color: "#8b8b95", fontSize: 12 }}>
+                        {property.cidade} · {money(property.faixa_preco)}
+                      </p>
+                      <button
+                        onClick={() => void toggleProperty(curating, property)}
+                        style={{
+                          ...button,
+                          width: "100%",
+                          background: checked ? "#14532d" : "#c5a059",
+                          color: checked ? "#dcfce7" : "#09090b",
+                        }}
+                      >
+                        {checked ? <Check size={15} /> : <Plus size={15} />}{" "}
+                        {checked ? "Selecionado" : "Adicionar à comparação"}
+                      </button>
+                      {selection && (
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 8,
+                            marginTop: 12,
+                            paddingTop: 12,
+                            borderTop: "1px solid #27272a",
+                          }}
+                        >
+                          <strong style={{ fontSize: 11 }}>
+                            Conteúdo liberado no portal
+                          </strong>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 9,
+                            }}
+                          >
+                            {(
+                              [
+                                ["exibir_imagens", "Imagens"],
+                                ["exibir_descricao", "Descrição"],
+                                ["exibir_preco", "Preço"],
+                                ["exibir_especificacoes", "Especificações"],
+                                ["exibir_investimento", "Investimento"],
+                                ["exibir_fluxo", "Fluxo"],
+                              ] as const
+                            ).map(([key, label]) => (
+                              <label
+                                key={key}
+                                style={{
+                                  fontSize: 11,
+                                  color: selection[key] ? "#86efac" : "#a1a1aa",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(selection[key])}
+                                  onChange={(event) =>
+                                    void updateSelection(
+                                      curating.id,
+                                      property.id,
+                                      { [key]: event.target.checked },
+                                    )
+                                  }
+                                />{" "}
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={selection.mensagem_personalizada || ""}
+                            onChange={(event) =>
+                              setSelections((current) =>
+                                current.map((item) =>
+                                  item === selection
+                                    ? {
+                                        ...item,
+                                        mensagem_personalizada:
+                                          event.target.value,
+                                      }
+                                    : item,
+                                ),
+                              )
+                            }
+                            onBlur={(event) =>
+                              void updateSelection(curating.id, property.id, {
+                                mensagem_personalizada: event.target.value,
+                              })
+                            }
+                            placeholder="Mensagem personalizada para o cliente"
+                            style={input}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      )}
 
-    {comparing&&<div style={{position:"fixed",inset:0,zIndex:5000,background:"#09090bf8",padding:18,overflow:"auto"}}><section style={{maxWidth:1280,margin:"0 auto",display:"grid",gap:14}}><header style={{...panel,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"}}><div><h2 style={{margin:0}}>Comparativo para {comparing.nome}</h2><p style={{color:"#8b8b95",margin:"5px 0 0"}}>Necessidade: {comparing.quartos_desejados?`${comparing.quartos_desejados} dormitórios`:"dormitórios não informados"} · orçamento {money(comparing.faixa_investimento)} · entrada {money(comparing.entrada_disponivel)}</p></div><button onClick={()=>setComparing(null)}><X/></button></header><div className="client-compare-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:12}}>{propertiesFor(comparing.id).map((property)=>{const all=units.filter(u=>u.empreendimento_id===property.id&&!["vendida","bloqueada","fora de tabela"].includes(String(u.status||"").toLowerCase()));const matching=all.filter(u=>!comparing.quartos_desejados||parseStandardTypology(u.tipologia||u.tipologia_dados?.produto?.tipologia_padrao,u.tipologia_dados?.produto?.dormitorios||0).dormitorios===comparing.quartos_desejados);const prices=matching.map(u=>Number(u.valor_tabela||u.valor)).filter(v=>v>0);const areas=matching.map(u=>Number(u.area_privativa)).filter(v=>v>0);return <article key={property.id} style={{...panel,padding:0,overflow:"hidden",display:"flex",flexDirection:"column"}}>{property.imagem_url?<img src={property.imagem_url} alt="" style={{width:"100%",height:155,objectFit:"cover"}}/>:<div style={{height:155,background:"#18181b"}}/>}<div style={{padding:15,display:"grid",gap:11,flex:1}}><div><small style={{color:"#c5a059"}}>{property.status}</small><h3 style={{margin:"5px 0"}}>{property.nome}</h3><span style={{color:"#8b8b95",fontSize:12}}>{property.bairro} · {property.cidade}</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><span style={{background:"#18181b",padding:9,borderRadius:8,fontSize:11}}><BedDouble size={14} color="#c5a059"/> <strong style={{display:"block",fontSize:16}}>{matching.length}</strong>unidades compatíveis</span><span style={{background:"#18181b",padding:9,borderRadius:8,fontSize:11}}><Building2 size={14} color="#c5a059"/><strong style={{display:"block",fontSize:16}}>{property.numero_pavimentos||"—"}</strong>pavimentos</span></div><dl style={{display:"grid",gap:7,fontSize:12,margin:0}}><div><dt style={{color:"#71717a"}}>Preço compatível</dt><dd style={{margin:2,fontWeight:800}}>{prices.length?`${money(Math.min(...prices))} a ${money(Math.max(...prices))}`:"Sem preço real"}</dd></div><div><dt style={{color:"#71717a"}}>Área das unidades</dt><dd style={{margin:2}}>{areas.length?`${Math.min(...areas)}–${Math.max(...areas)} m²`:"Não informada"}</dd></div><div><dt style={{color:"#71717a"}}>Tipologias encontradas</dt><dd style={{margin:2}}>{[...new Set(matching.map(u=>parseStandardTypology(u.tipologia||u.tipologia_dados?.produto?.tipologia_padrao).label))].join(" · ")||"Nenhuma compatível"}</dd></div></dl><div style={{display:"grid",gap:6}}>{matching.slice(0,4).map(u=><label key={u.id} style={{display:"flex",justifyContent:"space-between",gap:7,padding:8,border:"1px solid #303036",borderRadius:7,fontSize:11}}><span><input type="checkbox" checked={flowSelection.includes(u.id)} onChange={e=>setFlowSelection(s=>e.target.checked?[...new Set([...s,u.id])]:s.filter(id=>id!==u.id))}/> Unidade {u.numero||u.id}</span><b>{money(u.valor_tabela||u.valor)}</b></label>)}</div></div></article>})}</div><footer style={{...panel,position:"sticky",bottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}><span>{flowSelection.length} unidade(s) escolhida(s) para análise financeira</span><button disabled={!flowSelection.length} style={{...button,opacity:flowSelection.length?1:.45}} onClick={()=>{onOpenFlow?.(flowSelection,comparing.id);setComparing(null)}}><WalletCards size={16}/>Abrir no Fluxo Financeiro</button></footer></section></div>}
-  </div>;
+      {comparing && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 5000,
+            background: "#09090bf8",
+            padding: 18,
+            overflow: "auto",
+          }}
+        >
+          <section
+            style={{
+              maxWidth: 1280,
+              margin: "0 auto",
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <header
+              style={{
+                ...panel,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <h2 style={{ margin: 0 }}>Comparativo para {comparing.nome}</h2>
+                <p style={{ color: "#8b8b95", margin: "5px 0 0" }}>
+                  Necessidade:{" "}
+                  {comparing.quartos_desejados
+                    ? `${comparing.quartos_desejados} dormitórios`
+                    : "dormitórios não informados"}{" "}
+                  · orçamento {money(comparing.faixa_investimento)} · entrada{" "}
+                  {money(comparing.entrada_disponivel)}
+                </p>
+              </div>
+              <button onClick={() => setComparing(null)}>
+                <X />
+              </button>
+            </header>
+            <div
+              className="client-compare-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(270px,1fr))",
+                gap: 12,
+              }}
+            >
+              {propertiesFor(comparing.id).map((property) => {
+                const all = units.filter(
+                  (u) =>
+                    u.empreendimento_id === property.id &&
+                    !["vendida", "bloqueada", "fora de tabela"].includes(
+                      String(u.status || "").toLowerCase(),
+                    ),
+                );
+                const matching = all.filter(
+                  (u) =>
+                    !comparing.quartos_desejados ||
+                    parseStandardTypology(
+                      u.tipologia ||
+                        u.tipologia_dados?.produto?.tipologia_padrao,
+                      u.tipologia_dados?.produto?.dormitorios || 0,
+                    ).dormitorios === comparing.quartos_desejados,
+                );
+                const prices = matching
+                  .map((u) => Number(u.valor_tabela || u.valor))
+                  .filter((v) => v > 0);
+                const areas = matching
+                  .map((u) => Number(u.area_privativa))
+                  .filter((v) => v > 0);
+                return (
+                  <article
+                    key={property.id}
+                    style={{
+                      ...panel,
+                      padding: 0,
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    {property.imagem_url ? (
+                      <img
+                        src={property.imagem_url}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: 155,
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <div style={{ height: 155, background: "#18181b" }} />
+                    )}
+                    <div
+                      style={{ padding: 15, display: "grid", gap: 11, flex: 1 }}
+                    >
+                      <div>
+                        <small style={{ color: "#c5a059" }}>
+                          {property.status}
+                        </small>
+                        <h3 style={{ margin: "5px 0" }}>{property.nome}</h3>
+                        <span style={{ color: "#8b8b95", fontSize: 12 }}>
+                          {property.bairro} · {property.cidade}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 8,
+                        }}
+                      >
+                        <span
+                          style={{
+                            background: "#18181b",
+                            padding: 9,
+                            borderRadius: 8,
+                            fontSize: 11,
+                          }}
+                        >
+                          <BedDouble size={14} color="#c5a059" />{" "}
+                          <strong style={{ display: "block", fontSize: 16 }}>
+                            {matching.length}
+                          </strong>
+                          unidades compatíveis
+                        </span>
+                        <span
+                          style={{
+                            background: "#18181b",
+                            padding: 9,
+                            borderRadius: 8,
+                            fontSize: 11,
+                          }}
+                        >
+                          <Building2 size={14} color="#c5a059" />
+                          <strong style={{ display: "block", fontSize: 16 }}>
+                            {property.numero_pavimentos || "—"}
+                          </strong>
+                          pavimentos
+                        </span>
+                      </div>
+                      <dl
+                        style={{
+                          display: "grid",
+                          gap: 7,
+                          fontSize: 12,
+                          margin: 0,
+                        }}
+                      >
+                        <div>
+                          <dt style={{ color: "#71717a" }}>Preço compatível</dt>
+                          <dd style={{ margin: 2, fontWeight: 800 }}>
+                            {prices.length
+                              ? `${money(Math.min(...prices))} a ${money(Math.max(...prices))}`
+                              : "Sem preço real"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt style={{ color: "#71717a" }}>
+                            Área das unidades
+                          </dt>
+                          <dd style={{ margin: 2 }}>
+                            {areas.length
+                              ? `${Math.min(...areas)}–${Math.max(...areas)} m²`
+                              : "Não informada"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt style={{ color: "#71717a" }}>
+                            Tipologias encontradas
+                          </dt>
+                          <dd style={{ margin: 2 }}>
+                            {[
+                              ...new Set(
+                                matching.map(
+                                  (u) =>
+                                    parseStandardTypology(
+                                      u.tipologia ||
+                                        u.tipologia_dados?.produto
+                                          ?.tipologia_padrao,
+                                    ).label,
+                                ),
+                              ),
+                            ].join(" · ") || "Nenhuma compatível"}
+                          </dd>
+                        </div>
+                      </dl>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        {matching.slice(0, 4).map((u) => (
+                          <label
+                            key={u.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 7,
+                              padding: 8,
+                              border: "1px solid #303036",
+                              borderRadius: 7,
+                              fontSize: 11,
+                            }}
+                          >
+                            <span>
+                              <input
+                                type="checkbox"
+                                checked={flowSelection.includes(u.id)}
+                                onChange={(e) =>
+                                  setFlowSelection((s) =>
+                                    e.target.checked
+                                      ? [...new Set([...s, u.id])]
+                                      : s.filter((id) => id !== u.id),
+                                  )
+                                }
+                              />{" "}
+                              Unidade {u.numero || u.id}
+                            </span>
+                            <b>{money(u.valor_tabela || u.valor)}</b>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <footer
+              style={{
+                ...panel,
+                position: "sticky",
+                bottom: 10,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <span>
+                {flowSelection.length} unidade(s) escolhida(s) para análise
+                financeira
+              </span>
+              <button
+                disabled={!flowSelection.length}
+                style={{ ...button, opacity: flowSelection.length ? 1 : 0.45 }}
+                onClick={() => {
+                  onOpenFlow?.(flowSelection, comparing.id);
+                  setComparing(null);
+                }}
+              >
+                <WalletCards size={16} />
+                Abrir no Fluxo Financeiro
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+    </div>
+  );
 }
