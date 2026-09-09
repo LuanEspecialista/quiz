@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { deliveryDateIso, normalizeDeliveryMonth } from "../../lib/deliveryDate";
 import { parseStandardTypology } from "../../lib/realEstateStandard";
+import { canonicalSku, normalizeTower, normalizeUnitCode, unitIdentity } from "../../lib/unitIdentity";
+import type { TowerStructure } from "../../lib/unitIdentity";
 import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks } from "lucide-react";
 
 const UnidadesImporter: React.FC = () => {
@@ -11,6 +13,7 @@ const UnidadesImporter: React.FC = () => {
   const [empreendimentos, setEmpreendimentos] = useState<any[]>([]);
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [limparAntes, setLimparAntes] = useState(false);
+  const [estruturaTorres, setEstruturaTorres] = useState<TowerStructure>("nao_informada");
   const [importStatus, setImportStatus] = useState<{ success?: string; error?: string } | null>(null);
 
   // Mês e Ano de referência para guardar o histórico de preços
@@ -22,8 +25,14 @@ const UnidadesImporter: React.FC = () => {
     fetchEmpreendimentos();
   }, []);
 
+  useEffect(() => {
+    const selected = empreendimentos.find((item) => item.id === selectedEmpId);
+    setEstruturaTorres((selected?.estrutura_torres as TowerStructure) || "nao_informada");
+    setLimparAntes(false);
+  }, [selectedEmpId, empreendimentos]);
+
   const fetchEmpreendimentos = async () => {
-    const { data } = await supabase.from("empreendimentos").select("id, nome, cidade, sku");
+    const { data } = await supabase.from("empreendimentos").select("id, nome, cidade, sku, estrutura_torres, quantidade_torres, numero_torres");
     if (data) setEmpreendimentos(data);
   };
 
@@ -122,6 +131,12 @@ const UnidadesImporter: React.FC = () => {
     return issues;
   };
 
+  const blockingUnitIssues = (unit: any) => {
+    const issues: string[] = [];
+    if (!String(unit.codigo_unidade || "").trim()) issues.push("código da unidade");
+    return issues;
+  };
+
   const normalizedStatus = (value: unknown) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
   const summaryIssues = (data: any, units: any[]) => {
@@ -198,14 +213,14 @@ const UnidadesImporter: React.FC = () => {
         return;
       }
       const normalizedUnits = sourceUnits.map(normalizeUnit);
-      const invalid = normalizedUnits.filter((unit: any) => unitIssues(unit).length > 0);
+      const invalid = normalizedUnits.filter((unit: any) => blockingUnitIssues(unit).length > 0);
       const reconciliationIssues = summaryIssues(data, normalizedUnits);
       const normalizedData = { ...data, unidades: normalizedUnits, _summaryIssues: reconciliationIssues };
       setParsedData(normalizedData);
       if (reconciliationIssues.length) {
         setImportStatus({ error: `Importação bloqueada por divergência de contagem: ${reconciliationIssues.join("; ")}. Nenhuma unidade será gravada até a extração fechar com o resumo oficial.` });
       } else if (invalid.length) {
-        const examples = invalid.slice(0, 5).map((unit: any) => `linha ${unit._sourceIndex}: ${unitIssues(unit).join(" e ")}`).join("; ");
+        const examples = invalid.slice(0, 5).map((unit: any) => `linha ${unit._sourceIndex}: ${blockingUnitIssues(unit).join(" e ")}`).join("; ");
         const ready = normalizedUnits.length - invalid.length;
         setImportStatus({ error: `${invalid.length} unidade(s) ficaram pendentes (${examples}${invalid.length > 5 ? "; …" : ""}). ${ready > 0 ? `${ready} unidade(s) válidas podem ser gravadas sem inventar os dados ausentes.` : "Não há unidade válida para gravar."}` });
       } else {
@@ -231,8 +246,20 @@ const UnidadesImporter: React.FC = () => {
       return;
     }
 
-    const invalid = parsedData.unidades.filter((unit: any) => unitIssues(unit).length > 0);
-    const validUnits = parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0);
+    if (estruturaTorres === "nao_informada") {
+      setImportStatus({ error: "Confirme se este empreendimento possui torre única ou múltiplas torres. Essa definição evita duplicar unidades." });
+      return;
+    }
+    if (estruturaTorres === "multipla") {
+      const semTorre = parsedData.unidades.filter((unit: any) => !normalizeTower(unit.torre, estruturaTorres));
+      if (semTorre.length) {
+        setImportStatus({ error: `${semTorre.length} linha(s) não identificam a torre. Em empreendimento multitorres, informe a torre para evitar vincular a unidade ao bloco errado.` });
+        return;
+      }
+    }
+
+    const invalid = parsedData.unidades.filter((unit: any) => blockingUnitIssues(unit).length > 0);
+    const validUnits = parsedData.unidades.filter((unit: any) => blockingUnitIssues(unit).length === 0);
     if (parsedData._summaryIssues?.length) {
       setImportStatus({ error: `Corrija a divergência com o resumo oficial antes de importar: ${parsedData._summaryIssues.join("; ")}.` });
       return;
@@ -252,24 +279,62 @@ const UnidadesImporter: React.FC = () => {
     try {
       const pctAtoCabecalho = parsedData.regras_cabecalho?.percentual_ato || null;
 
+      const { error: structureError } = await supabase.from("empreendimentos").update({
+        estrutura_torres: estruturaTorres,
+        quantidade_torres: estruturaTorres === "unica" ? 1 : null,
+        numero_torres: estruturaTorres === "unica" ? 1 : null,
+      }).eq("id", selectedEmpId);
+      if (structureError) throw new Error("Não foi possível salvar a estrutura de torres: " + structureError.message);
+
+      const { data: existingUnits, error: existingError } = await supabase
+        .from("unidades")
+        .select("id, codigo_unidade, numero_unidade, numero, torre, valor_tabela, sku")
+        .eq("empreendimento_id", selectedEmpId);
+      if (existingError) throw new Error("Não foi possível conciliar o estoque atual: " + existingError.message);
+
+      const existingByIdentity = new Map<string, any[]>();
+      (existingUnits || []).forEach((unit: any) => {
+        const identity = unitIdentity(unit.codigo_unidade || unit.numero_unidade || unit.numero, unit.torre, estruturaTorres);
+        if (identity) existingByIdentity.set(identity, [...(existingByIdentity.get(identity) || []), unit]);
+      });
+      const duplicateIdentities = [...existingByIdentity.entries()].filter(([, rows]) => rows.length > 1);
+      const incomingIdentities = new Set(validUnits.map((unit: any) => unitIdentity(unit.codigo_unidade, unit.torre, estruturaTorres)).filter(Boolean));
+      const importedTowerKeys = new Set(validUnits.map((unit: any) => normalizeTower(unit.torre, estruturaTorres)).filter(Boolean));
+      const blockingDuplicates = duplicateIdentities.filter(([identity]) => incomingIdentities.has(identity));
+      if (blockingDuplicates.length) {
+        const examples = blockingDuplicates.slice(0, 5).map(([identity, rows]) => `${identity} (${rows.length} cadastros)`).join(", ");
+        throw new Error(`O estoque antigo possui identidades duplicadas que precisam de revisão antes da importação: ${examples}. Nenhum registro foi apagado ou fundido.`);
+      }
+
       // 1. Monta as unidades para a tabela principal (estoque ativo)
-      const unidadesParaInserir = validUnits.map((u: any) => {
+      const unidadesPendentesSemPreco: any[] = [];
+      const unidadesParaInserir = validUnits.flatMap((u: any) => {
         const cod = (u.codigo_unidade || u.numero || "S/N").toString().trim();
-        const torreClean = String(u.torre).trim();
-        const valorTabela = parseBrazilNumber(u.valor_tabela);
+        const torreClean = estruturaTorres === "unica" ? "Torre única" : String(u.torre || "").trim();
+        const identity = unitIdentity(cod, torreClean, estruturaTorres);
+        const existing = existingByIdentity.get(identity)?.[0];
+        const extractedPrice = parseBrazilNumber(u.valor_tabela);
+        const valorTabela = extractedPrice > 0 ? extractedPrice : parseBrazilNumber(existing?.valor_tabela);
+        if (valorTabela <= 0) {
+          unidadesPendentesSemPreco.push(u);
+          return [];
+        }
 
         let fluxo = u.fluxo_dados || {};
         if ((!fluxo.ato || fluxo.ato === 0) && pctAtoCabecalho && valorTabela > 0) {
           fluxo.ato = (valorTabela * pctAtoCabecalho) / 100;
         }
 
-        return {
+        return [{
+          id: existing?.id,
           empreendimento_id: selectedEmpId,
           torre: torreClean,
+          torre_normalizada: normalizeTower(torreClean, estruturaTorres),
+          codigo_unidade_normalizado: normalizeUnitCode(cod),
           codigo_unidade: cod,
           numero_unidade: cod,
           numero: cod,
-          sku: `${selectedEmpId}-${torreClean}-${cod}`.replace(/\s+/g, ""),
+          sku: existing?.sku || canonicalSku(selectedEmpId, cod, torreClean, estruturaTorres),
           tipologia: u.tipologia,
           tipologia_dados: {
             original: u.tipologia,
@@ -282,42 +347,42 @@ const UnidadesImporter: React.FC = () => {
           vagas: parseBrazilNumber(u.vagas) || 0,
           valor_tabela: valorTabela,
           status: (u.status || "disponivel").toLowerCase(),
-          fluxo_dados: { ...fluxo, tipologia_extraida: { dormitorios: u._tipology?.dormitorios || 0, suites: u.suites || u._tipology?.suites || 0 } },
-        };
+          fluxo_dados: { ...fluxo, preco_preservado: extractedPrice <= 0, tipologia_extraida: { dormitorios: u._tipology?.dormitorios || 0, suites: u.suites || u._tipology?.suites || 0 } },
+        }];
       });
 
-      // 2. Se marcada a opção, remove o estoque ativo atual
+      // 2. Sincroniza sem apagar: unidades ausentes na nova tabela ficam indisponíveis.
       if (limparAntes) {
-        const { error: deleteError } = await supabase
-          .from("unidades")
-          .delete()
-          .eq("empreendimento_id", selectedEmpId);
-
-        if (deleteError) {
-          throw new Error("Erro ao limpar estoque antigo: " + deleteError.message);
+        const absentIds = (existingUnits || []).filter((unit: any) => {
+          const towerKey = normalizeTower(unit.torre, estruturaTorres);
+          const belongsToBatch = estruturaTorres === "unica" || importedTowerKeys.has(towerKey);
+          return belongsToBatch && !incomingIdentities.has(unitIdentity(unit.codigo_unidade || unit.numero_unidade || unit.numero, unit.torre, estruturaTorres));
+        }).map((unit: any) => unit.id);
+        if (absentIds.length) {
+          const { error: inactiveError } = await supabase.from("unidades").update({ status: "indisponivel" }).in("id", absentIds);
+          if (inactiveError) throw new Error("Erro ao marcar unidades ausentes como indisponíveis: " + inactiveError.message);
         }
       }
 
-      // 3. Atualiza/Insere o estoque ativo vigente
-      let { data: unidadesGravadas, error } = await supabase
-        .from("unidades")
-        .upsert(unidadesParaInserir, { onConflict: "sku" })
-        .select("id, codigo_unidade");
-
-      if (error && error.message.includes("ON CONFLICT")) {
-        const insertRes = await supabase.from("unidades").insert(unidadesParaInserir).select("id, codigo_unidade");
-        error = insertRes.error;
-        unidadesGravadas = insertRes.data;
+      // 3. Atualiza por ID conciliado e insere somente identidades realmente novas.
+      const existingPayloads = unidadesParaInserir.filter((unit: any) => unit.id);
+      const newPayloads = unidadesParaInserir.filter((unit: any) => !unit.id).map(({ id: _id, ...unit }: any) => unit);
+      const updatedRows = await Promise.all(existingPayloads.map(async ({ id, ...changes }: any) => {
+        const { data, error } = await supabase.from("unidades").update(changes).eq("id", id).select("id, codigo_unidade, torre").single();
+        if (error) throw error;
+        return data;
+      }));
+      let insertedRows: any[] = [];
+      if (newPayloads.length) {
+        const { data, error } = await supabase.from("unidades").insert(newPayloads).select("id, codigo_unidade, torre");
+        if (error) throw new Error("Erro ao gravar unidades novas: " + error.message);
+        insertedRows = data || [];
       }
-
-      if (error) {
-        setImportStatus({ error: "Erro ao gravar unidades no banco: " + error.message });
-        return;
-      }
+      const unidadesGravadas = [...updatedRows, ...insertedRows];
 
       // 4. GRAVA O HISTÓRICO DE PREÇOS (SNAPSHOT HISTÓRICO)
       const historicoParaInserir = unidadesParaInserir.map((u: any) => {
-        const matchGrad = unidadesGravadas?.find((ug: any) => ug.codigo_unidade === u.codigo_unidade);
+        const matchGrad = unidadesGravadas?.find((ug: any) => unitIdentity(ug.codigo_unidade, ug.torre, estruturaTorres) === unitIdentity(u.codigo_unidade, u.torre, estruturaTorres));
         return {
           empreendimento_id: selectedEmpId,
           unidade_id: matchGrad?.id || null,
@@ -326,13 +391,37 @@ const UnidadesImporter: React.FC = () => {
           ano_referencia: Number(anoReferencia),
           valor_tabela: u.valor_tabela,
           entrada_sugerida: u.fluxo_dados?.ato || 0,
-          fluxo_dados: u.fluxo_dados
+          fluxo_dados: u.fluxo_dados,
+          status_unidade: u.status,
+          atualizado_em: new Date().toISOString(),
         };
       });
 
-      const { error: histError } = await supabase
-        .from("historico_tabelas_preco")
-        .insert(historicoParaInserir);
+      let histError: any = null;
+      try {
+        const unitIds = historicoParaInserir.map((row: any) => row.unidade_id).filter(Boolean);
+        const { data: existingHistory, error: historyReadError } = await supabase
+          .from("historico_tabelas_preco")
+          .select("id, unidade_id")
+          .eq("empreendimento_id", selectedEmpId)
+          .eq("mes_referencia", Number(mesReferencia))
+          .eq("ano_referencia", Number(anoReferencia))
+          .in("unidade_id", unitIds);
+        if (historyReadError) throw historyReadError;
+        const historyByUnit = new Map((existingHistory || []).map((row: any) => [row.unidade_id, row.id]));
+        const historyUpdates = historicoParaInserir.filter((row: any) => historyByUnit.has(row.unidade_id));
+        const historyInserts = historicoParaInserir.filter((row: any) => !historyByUnit.has(row.unidade_id));
+        await Promise.all(historyUpdates.map(async (row: any) => {
+          const { error } = await supabase.from("historico_tabelas_preco").update(row).eq("id", historyByUnit.get(row.unidade_id));
+          if (error) throw error;
+        }));
+        if (historyInserts.length) {
+          const { error } = await supabase.from("historico_tabelas_preco").insert(historyInserts);
+          if (error) throw error;
+        }
+      } catch (historyError: any) {
+        histError = historyError;
+      }
 
       if (histError) {
         console.warn("Aviso: Falha ao registrar histórico de preços:", histError.message);
@@ -341,7 +430,7 @@ const UnidadesImporter: React.FC = () => {
       setImportStatus({
         success: histError
           ? `${unidadesParaInserir.length} unidades válidas atualizadas. O histórico não foi salvo: ${histError.message}`
-          : `Sucesso! ${unidadesParaInserir.length} unidades válidas atualizadas e histórico salvo para ${mesReferencia}/${anoReferencia}.${invalid.length ? ` ${invalid.length} pendente(s) não foram gravadas por falta de código ou preço.` : ""}`,
+          : `Sucesso! ${unidadesParaInserir.length} unidades conciliadas e histórico de ${mesReferencia}/${anoReferencia} atualizado.${unidadesPendentesSemPreco.length ? ` ${unidadesPendentesSemPreco.length} unidade(s) nova(s) sem preço permaneceram pendentes.` : ""}${invalid.length ? ` ${invalid.length} linha(s) sem código não foram gravadas.` : ""}`,
       });
       if (!invalid.length) setJsonInput("");
       setParsedData(null);
@@ -434,6 +523,16 @@ const UnidadesImporter: React.FC = () => {
                 </select>
               </div>
 
+              <div style={{ backgroundColor: "#18181b", padding: "0.75rem", borderRadius: "6px", marginBottom: "1rem", border: `1px solid ${estruturaTorres === "nao_informada" ? "#ef4444" : "#27272a"}` }}>
+                <label style={{ display: "block", color: "#c5a059", fontSize: "0.75rem", fontWeight: "bold", marginBottom: "0.45rem" }}>Estrutura de torres *</label>
+                <select value={estruturaTorres} onChange={(event) => setEstruturaTorres(event.target.value as TowerStructure)} style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #3f3f46", color: "#fff", padding: "0.55rem", borderRadius: "4px" }}>
+                  <option value="nao_informada">Confirme antes de importar</option>
+                  <option value="unica">Torre única</option>
+                  <option value="multipla">Múltiplas torres</option>
+                </select>
+                <small style={{ display: "block", color: "#a1a1aa", marginTop: 6 }}>Torre única trata “Torre A”, “Única” e variações como a mesma torre. Em múltiplas torres, a torre faz parte da identidade.</small>
+              </div>
+
               {/* MÊS E ANO DE REFERÊNCIA DA TABELA */}
               <div style={{ backgroundColor: "#18181b", padding: "0.75rem", borderRadius: "6px", marginBottom: "1rem", border: "1px solid #27272a" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#c5a059", fontSize: "0.75rem", fontWeight: "bold", marginBottom: "0.5rem" }}>
@@ -464,24 +563,25 @@ const UnidadesImporter: React.FC = () => {
                 </div>
               </div>
 
-              {/* OPÇÃO DE LIMPEZA PRÉVIA */}
+              {/* OPÇÃO DE SINCRONIZAÇÃO DO ESTOQUE */}
               <div style={{ marginBottom: "1rem", backgroundColor: "#18181b", padding: "0.75rem", borderRadius: "6px", border: "1px solid #27272a" }}>
                 <label style={{ color: "#ef4444", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontWeight: "bold" }}>
                   <input
                     type="checkbox"
                     checked={limparAntes}
-                    disabled={parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0)}
+                    disabled={parsedData.unidades.some((unit: any) => blockingUnitIssues(unit).length > 0)}
                     onChange={(e) => setLimparAntes(e.target.checked)}
                   />
-                  <Trash2 style={{ width: "14px", height: "14px" }} /> Substituir estoque ativo atual deste empreendimento
+                  <Trash2 style={{ width: "14px", height: "14px" }} /> Sincronizar estoque ativo com esta tabela
                 </label>
-                {parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0) && <small style={{ display: "block", color: "#fbbf24", marginTop: 6 }}>Desativado para proteger o estoque: existem unidades pendentes que não serão gravadas.</small>}
+                <small style={{ display: "block", color: "#a1a1aa", marginTop: 6 }}>Não apaga unidades. Em multitorres, sincroniza somente as torres presentes neste lote; as demais permanecem intactas. Preços ausentes são preservados quando já existe cadastro.</small>
+                {parsedData.unidades.some((unit: any) => blockingUnitIssues(unit).length > 0) && <small style={{ display: "block", color: "#fbbf24", marginTop: 6 }}>Desativado porque existem linhas sem código, impedindo uma conciliação segura.</small>}
               </div>
 
               <div style={{ backgroundColor: "#18181b", padding: "0.75rem", borderRadius: "6px", marginBottom: "1rem", fontSize: "0.85rem", color: "#d4d4d8" }}>
                 <div><strong>Empreendimento Lido:</strong> {parsedData.empreendimento?.nome || "N/I"}</div>
                 <div><strong>Total Mapeado:</strong> {parsedData.unidades.length} unidades</div>
-                <div><strong>Prontas:</strong> {parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0).length} · <strong>Para revisar:</strong> {parsedData.unidades.filter((unit: any) => unitIssues(unit).length > 0).length}</div>
+                <div><strong>Com identidade:</strong> {parsedData.unidades.filter((unit: any) => blockingUnitIssues(unit).length === 0).length} · <strong>Sem código:</strong> {parsedData.unidades.filter((unit: any) => blockingUnitIssues(unit).length > 0).length}</div>
                 {parsedData.resumo_oficial?.encontrado !== false && <div><strong>Resumo oficial:</strong> {parsedData.resumo_oficial?.total ?? parsedData.resumo_oficial?.quantidade_total ?? "não informado"} total · {parsedData.resumo_oficial?.disponiveis ?? "?"} disponíveis · {parsedData.resumo_oficial?.reservadas ?? "?"} reservadas</div>}
               </div>
 
@@ -496,7 +596,7 @@ const UnidadesImporter: React.FC = () => {
                     <div key={idx} style={{ padding: "0.55rem 0.6rem", borderBottom: "1px solid #1f1f23", fontSize: "0.75rem", color: "#a1a1aa", background: issues.length ? "rgba(239,68,68,.07)" : "transparent" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: issues.length ? 7 : 0 }}>
                         <span><strong style={{ color: "#fff" }}>Linha {u._sourceIndex || idx + 1}</strong> · {u.tipologia || "Tipologia não informada"}</span>
-                        <span style={{ color: issues.length ? "#f87171" : "#22c55e", fontWeight: 700 }}>{issues.length ? `Revisar: ${issues.join(" e ")}` : "Pronta"}</span>
+                        <span style={{ color: blockingUnitIssues(u).length ? "#f87171" : issues.length ? "#fbbf24" : "#22c55e", fontWeight: 700 }}>{blockingUnitIssues(u).length ? `Bloqueada: ${blockingUnitIssues(u).join(" e ")}` : issues.length ? "Preço será preservado se já cadastrada" : "Pronta"}</span>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(90px,1fr) minmax(140px,1.4fr)", gap: 7 }}>
                         <label style={{ color: "#71717a" }}>Código<input value={u.codigo_unidade || ""} onChange={(event) => updateParsedUnit(idx, { codigo_unidade: event.target.value })} placeholder="Ex.: 401" style={{ width: "100%", boxSizing: "border-box", marginTop: 3, background: "#101012", color: "#fff", border: `1px solid ${!u.codigo_unidade ? "#ef4444" : "#34343a"}`, borderRadius: 4, padding: "6px 7px" }}/></label>
@@ -513,10 +613,10 @@ const UnidadesImporter: React.FC = () => {
 
               <button
                 onClick={handleExecuteImport}
-                disabled={loading || !selectedEmpId || Boolean(parsedData._summaryIssues?.length) || !parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0)}
-                style={{ width: "100%", backgroundColor: selectedEmpId && !parsedData._summaryIssues?.length && parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0) ? "#c5a059" : "#3f3f46", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: selectedEmpId && !parsedData._summaryIssues?.length && parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0) ? "pointer" : "not-allowed", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
+                disabled={loading || !selectedEmpId || estruturaTorres === "nao_informada" || Boolean(parsedData._summaryIssues?.length) || !parsedData.unidades.some((unit: any) => blockingUnitIssues(unit).length === 0)}
+                style={{ width: "100%", backgroundColor: selectedEmpId && estruturaTorres !== "nao_informada" && !parsedData._summaryIssues?.length && parsedData.unidades.some((unit: any) => blockingUnitIssues(unit).length === 0) ? "#c5a059" : "#3f3f46", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: selectedEmpId && estruturaTorres !== "nao_informada" && !parsedData._summaryIssues?.length && parsedData.unidades.some((unit: any) => blockingUnitIssues(unit).length === 0) ? "pointer" : "not-allowed", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
               >
-                {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : `Gravar ${parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0).length} válida(s) e salvar histórico`}
+                {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : `Conciliar ${parsedData.unidades.filter((unit: any) => blockingUnitIssues(unit).length === 0).length} unidade(s) e atualizar histórico`}
               </button>
             </div>
           )}

@@ -24,6 +24,8 @@ REGRAS OBRIGATÓRIAS
 18. Se o preço total não estiver escrito, mas TODAS as fases explícitas formarem uma soma completa e inequívoca, use a soma exata em comercial.valor_tabela e registre em validacao.alertas que o preço foi calculado. Se faltar qualquer fase, mova a linha para unidades_pendentes; nunca invente o preço.
 19. Cabeçalhos, linhas de tipologia, subtotais, vagas avulsas e observações não são unidades. Não os inclua no array unidades.
 20. Se o documento imprimir um resumo de estoque, transcreva-o literalmente em resumo_oficial ANTES de contar o array. Depois confronte total e cada status com unidades + unidades_pendentes. Se houver diferença, releia e corrija; se não conseguir conciliar, use PENDENTE_INFORMACAO e descreva a divergência.
+21. Para empreendimentos grandes ou multitorres, processe apenas a torre solicitada por vez. Nunca misture uma parte da Torre 1 com uma parte da Torre 2 para reduzir o tamanho da resposta.
+22. Preencha lote_importacao. Em escopo "torre", todas as unidades e pendências devem pertencer exatamente à torre informada. O resumo e a validação devem contar somente esse lote, salvo quando o documento imprimir explicitamente um resumo geral; nesse caso, registre o resumo geral nos alertas e não o use para invalidar a contagem do lote.
 
 SAÍDA
 Responda com um único bloco JSON válido, sem markdown, comentários ou reticências, neste formato:
@@ -31,6 +33,7 @@ Responda com um único bloco JSON válido, sem markdown, comentários ou reticê
   "status": "PRONTO_PARA_IMPORTAR",
   "versao_padrao": 2,
   "documento": { "arquivo": null, "data_tabela": null, "paginas_lidas": [], "moeda": "BRL" },
+  "lote_importacao": { "escopo": "empreendimento", "torre": null, "lote_atual": 1, "total_lotes": 1, "completo_no_escopo": true },
   "empreendimento": { "nome": null, "construtora": null, "cidade": null, "entrega": null },
   "regras_gerais": {
     "validade": null,
@@ -89,7 +92,7 @@ Responda com um único bloco JSON válido, sem markdown, comentários ou reticê
   }
 }
 
-Antes de responder, confira novamente a contagem de linhas, códigos repetidos, torres e totais financeiros. resumo_oficial deve reproduzir os números impressos, sem ser recalculado a partir do array. A soma de unidades + unidades_pendentes deve fechar exatamente com ele. Use PRONTO_PARA_IMPORTAR quando existir ao menos uma unidade válida e todas as contagens estiverem conciliadas; preserve linhas reais incompletas em unidades_pendentes. Use PENDENTE_INFORMACAO quando a contagem não fechar, nenhuma unidade puder ser importada ou uma dúvida global impedir interpretar o documento.`,m=`Você é um auditor técnico de memoriais, apresentações e materiais comerciais imobiliários. Analise integralmente todos os PDFs ou imagens anexados e estruture o empreendimento sem inventar informações.
+Antes de responder, confira novamente a contagem de linhas, códigos repetidos, torres e totais financeiros. resumo_oficial deve reproduzir os números impressos, sem ser recalculado a partir do array. A soma de unidades + unidades_pendentes deve fechar exatamente com o resumo do escopo processado. Use PRONTO_PARA_IMPORTAR quando existir ao menos uma unidade válida e todas as contagens estiverem conciliadas; preserve linhas reais incompletas em unidades_pendentes. Use PENDENTE_INFORMACAO quando a contagem não fechar, nenhuma unidade puder ser importada ou uma dúvida global impedir interpretar o documento.`,m=`Você é um auditor técnico de memoriais, apresentações e materiais comerciais imobiliários. Analise integralmente todos os PDFs ou imagens anexados e estruture o empreendimento sem inventar informações.
 
 OBJETIVO
 Criar um cadastro mestre completo do empreendimento, adequado para apresentação, busca, comparação, afiliados e posterior associação de unidades.

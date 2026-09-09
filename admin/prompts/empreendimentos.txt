@@ -18,6 +18,7 @@ CAMPOS OBRIGATÓRIOS PARA O SISTEMA
 7. Para cada unidade: codigo_unidade, torre, tipologia, quartos, valor_tabela, status e fluxo_dados.
 
 REGRAS DE EXTRAÇÃO
+0. Em empreendimento multitorres ou com muitas unidades, processe uma torre por vez quando solicitado. Declare lote_importacao com escopo "torre", o nome exato da torre e se o lote está completo. Não altere ou resuma outras torres.
 1. Leia todas as páginas, abas, cabeçalhos, rodapés, notas, legendas e condições gerais.
 2. Extraia todas as unidades encontradas, sem pular vendidas ou indisponíveis.
 3. Preserve regras diferentes por unidade. Só replique um fluxo quando o material disser claramente que ele vale para aquele grupo.
@@ -62,6 +63,7 @@ QUANDO HOUVER PENDÊNCIA
 FORMATO EXATO DE SUCESSO
 {
   "status": "PRONTO_PARA_IMPORTAR",
+  "lote_importacao": {"escopo":"empreendimento","torre":null,"lote_atual":1,"total_lotes":1,"completo_no_escopo":true},
   "empreendimento": {
     "nome": "Nome oficial",
     "cidade": "Cidade - UF",
