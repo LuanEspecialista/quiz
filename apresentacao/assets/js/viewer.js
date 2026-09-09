@@ -35,6 +35,7 @@ function iniciarViewer() {
         url.searchParams.set('disponibilidade', 'DISPONIVEL');
         if (selectTipologiaUnidades?.value) url.searchParams.set('tipologia', `EXACT:${selectTipologiaUnidades.value}`);
         btnUnidades.href = url.toString();
+        btnUnidades.target = '_self';
     }
 
     function popularTipologiasUnidades() {

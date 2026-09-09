@@ -48,7 +48,10 @@
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeSelector();
   });
-  document.body.appendChild(selector);
+  // A apresentação possui controles críticos no cabeçalho e no rodapé.
+  // O idioma escolhido anteriormente continua valendo, mas o seletor não é
+  // exibido nesta tela para nunca encobrir tela cheia, sair ou ver unidades.
+  if (!location.pathname.startsWith("/apresentacao")) document.body.appendChild(selector);
 
   // A tradução visual não depende da rede: deve acontecer imediatamente.
   document.querySelectorAll("[data-i18n]").forEach((element) => {

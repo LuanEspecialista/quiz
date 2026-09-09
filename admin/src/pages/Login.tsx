@@ -2,8 +2,17 @@ import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Eye, EyeOff, Lock, Mail, Loader2, UserRound } from "lucide-react";
 import { clearAuthUrl, getPanelUrl } from "@/lib/authRedirect";
+import { useLocale } from "@/lib/i18n";
+
+const loginCopy = {
+  "pt-BR": { subtitle:"Plataforma de Inteligência Patrimonial", fullName:"Nome completo", yourName:"Seu nome", identifier:"E-mail ou usuário", password:"Senha", newPassword:"Nova senha", confirmPassword:"Confirmar nova senha", forgot:"Esqueci minha senha", stay:"Sua sessão permanece conectada neste dispositivo até você sair do painel.", accessAs:"Quero acesso como", client:"Cliente", affiliate:"Afiliado", requestInfo:"A solicitação não cria uma conta. O acesso só será liberado após sua aprovação.", enter:"Entrar no Painel", request:"Enviar solicitação pelo WhatsApp", savePassword:"Salvar nova senha", recovery:"Enviar link de recuperação", back:"Voltar ao login", askAccess:"Solicitar acesso", badLogin:"E-mail, usuário ou senha incorretos.", emailRecovery:"Informe o e-mail da conta para recuperar a senha.", sentRecovery:"Enviamos o link de recuperação. Verifique também a caixa de spam.", minPassword:"A nova senha deve ter pelo menos 8 caracteres.", equalPassword:"As duas senhas precisam ser iguais.", updatedPassword:"Senha atualizada e acesso mantido neste dispositivo.", requestError:"Não foi possível registrar a solicitação. Confira os dados e tente novamente.", requestOk:"Solicitação registrada. Se desejar, avise também pelo WhatsApp." },
+  "en-US": { subtitle:"Wealth Intelligence Platform", fullName:"Full name", yourName:"Your name", identifier:"Email or username", password:"Password", newPassword:"New password", confirmPassword:"Confirm new password", forgot:"Forgot my password", stay:"Your session remains connected on this device until you sign out.", accessAs:"Request access as", client:"Client", affiliate:"Affiliate", requestInfo:"This request does not create an account. Access is granted only after approval.", enter:"Sign in", request:"Send request via WhatsApp", savePassword:"Save new password", recovery:"Send recovery link", back:"Back to sign in", askAccess:"Request access", badLogin:"Incorrect email, username or password.", emailRecovery:"Enter the account email to recover the password.", sentRecovery:"We sent the recovery link. Please also check your spam folder.", minPassword:"The new password must contain at least 8 characters.", equalPassword:"Both passwords must match.", updatedPassword:"Password updated and access retained on this device.", requestError:"We could not register the request. Check the information and try again.", requestOk:"Request registered. You may also notify us via WhatsApp." },
+  es: { subtitle:"Plataforma de Inteligencia Patrimonial", fullName:"Nombre completo", yourName:"Tu nombre", identifier:"Correo electrónico o usuario", password:"Contraseña", newPassword:"Nueva contraseña", confirmPassword:"Confirmar nueva contraseña", forgot:"Olvidé mi contraseña", stay:"Tu sesión permanecerá conectada en este dispositivo hasta que cierres sesión.", accessAs:"Solicitar acceso como", client:"Cliente", affiliate:"Afiliado", requestInfo:"La solicitud no crea una cuenta. El acceso se habilitará únicamente después de la aprobación.", enter:"Ingresar al panel", request:"Enviar solicitud por WhatsApp", savePassword:"Guardar nueva contraseña", recovery:"Enviar enlace de recuperación", back:"Volver al inicio de sesión", askAccess:"Solicitar acceso", badLogin:"Correo, usuario o contraseña incorrectos.", emailRecovery:"Introduce el correo de la cuenta para recuperar la contraseña.", sentRecovery:"Enviamos el enlace de recuperación. Revisa también la carpeta de spam.", minPassword:"La nueva contraseña debe tener al menos 8 caracteres.", equalPassword:"Las dos contraseñas deben coincidir.", updatedPassword:"Contraseña actualizada y acceso mantenido en este dispositivo.", requestError:"No fue posible registrar la solicitud. Revisa los datos e inténtalo de nuevo.", requestOk:"Solicitud registrada. Si lo deseas, avísanos también por WhatsApp." }
+} as const;
 
 export default function Login({ externalError = "", recoveryMode = false, onPasswordUpdated }: { externalError?: string; recoveryMode?: boolean; onPasswordUpdated?: () => void }) {
+  const locale = useLocale();
+  const c = loginCopy[locale];
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -41,32 +50,32 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     }
 
     if (loginError) {
-      setError("E-mail, usuário ou senha incorretos.");
+      setError(c.badLogin);
     }
     setLoading(false);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!identifier.trim() || !identifier.includes("@")) return setError("Informe o e-mail da conta para recuperar a senha.");
+    if (!identifier.trim() || !identifier.includes("@")) return setError(c.emailRecovery);
     setLoading(true); setError(null); setNotice(null);
     const redirectTo = getPanelUrl({ recovery: "1" });
     const { error } = await supabase.auth.resetPasswordForEmail(identifier.trim().toLowerCase(), { redirectTo });
     setLoading(false);
-    if (error) setError(error.message); else setNotice("Enviamos o link de recuperação. Verifique também a caixa de spam.");
+    if (error) setError(error.message); else setNotice(c.sentRecovery);
   };
 
   const handleNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) return setError("A nova senha deve ter pelo menos 8 caracteres.");
-    if (password !== passwordConfirmation) return setError("As duas senhas precisam ser iguais.");
+    if (password.length < 8) return setError(c.minPassword);
+    if (password !== passwordConfirmation) return setError(c.equalPassword);
     setLoading(true); setError(null);
     const { error } = await supabase.auth.updateUser({ password });
     if (!error) await supabase.auth.refreshSession();
     setLoading(false);
     if (error) setError(error.message); else {
       clearAuthUrl();
-      setNotice("Senha atualizada e acesso mantido neste dispositivo.");
+      setNotice(c.updatedPassword);
       onPasswordUpdated?.();
     }
   };
@@ -76,9 +85,13 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     setLoading(true); setError(null); setNotice(null);
     const { error: requestError } = await supabase.rpc("solicitar_acesso", { p_nome: requestName.trim(), p_email: identifier.trim().toLowerCase(), p_tipo: accessType });
     setLoading(false);
-    if (requestError) return setError("Não foi possível registrar a solicitação. Confira os dados e tente novamente.");
-    setNotice("Solicitação registrada. Se desejar, avise também pelo WhatsApp.");
-    const message = ["Olá, Luan! Gostaria de solicitar acesso à plataforma.", `Nome: ${requestName.trim()}`, `E-mail: ${identifier.trim()}`, `Tipo de acesso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Se aprovado, aguardo as instruções para entrar."].join("\n");
+    if (requestError) return setError(c.requestError);
+    setNotice(c.requestOk);
+    const message = (locale === "es"
+      ? ["Hola, Luan. Quisiera solicitar acceso a la plataforma.", `Nombre: ${requestName.trim()}`, `Correo: ${identifier.trim()}`, `Tipo de acceso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Si se aprueba, espero las instrucciones de acceso."]
+      : locale === "en-US"
+        ? ["Hello, Luan. I would like to request access to the platform.", `Name: ${requestName.trim()}`, `Email: ${identifier.trim()}`, `Access type: ${accessType === "cliente" ? "Client" : "Affiliate"}`, "If approved, I will wait for the access instructions."]
+        : ["Olá, Luan! Gostaria de solicitar acesso à plataforma.", `Nome: ${requestName.trim()}`, `E-mail: ${identifier.trim()}`, `Tipo de acesso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Se aprovado, aguardo as instruções para entrar."]).join("\n");
     window.open(`https://wa.me/5547992120915?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -89,7 +102,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
         <div className="login-brand" style={{ textAlign: "center", marginBottom: "2rem" }}>
           <a href="/" aria-label="Ir para a página inicial"><img src="/imagens/logo.png" alt="Luan Especialista" style={{ width: 58, height: 58, objectFit: "contain", marginBottom: 12, opacity: .92 }} /></a>
           <h1 style={{ color: "#c5a059", fontSize: "1.75rem", fontWeight: "bold", margin: "0 0 0.5rem 0", letterSpacing: "1px" }}>LUAN ESPECIALISTA</h1>
-          <p style={{ color: "#a1a1aa", fontSize: "0.875rem", margin: 0 }}>Plataforma de Inteligência Patrimonial</p>
+          <p style={{ color: "#a1a1aa", fontSize: "0.875rem", margin: 0 }}>{c.subtitle}</p>
         </div>
 
         {(error || externalError) && (
@@ -101,10 +114,10 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
         {notice && <div style={{ backgroundColor: "rgba(34,197,94,.1)", border: "1px solid rgba(34,197,94,.35)", color: "#4ade80", padding: "0.75rem", borderRadius: "6px", fontSize: "0.875rem", marginBottom: "1.5rem" }}>{notice}</div>}
 
         <form onSubmit={requestMode ? handleAccessRequest : recoveryMode ? handleNewPassword : forgotMode ? handleForgotPassword : handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          {requestMode && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Nome completo</label><input required value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome" style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px", boxSizing: "border-box" }} /></div>}
+          {requestMode && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{c.fullName}</label><input required value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder={c.yourName} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px", boxSizing: "border-box" }} /></div>}
           {!recoveryMode && (
           <div>
-            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{forgotMode || requestMode ? "E-mail" : "E-mail ou usuário"}</label>
+            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{forgotMode || requestMode ? "E-mail" : c.identifier}</label>
             <div style={{ position: "relative" }}>
               {forgotMode || requestMode ? <Mail style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} /> : <UserRound style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} />}
               <input
@@ -122,7 +135,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
           )}
 
           {!forgotMode && !requestMode && <div>
-            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{recoveryMode ? "Nova senha" : "Senha"}</label>
+            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{recoveryMode ? c.newPassword : c.password}</label>
             <div style={{ position: "relative" }}>
               <Lock style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} />
               <input
@@ -146,7 +159,7 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
           </div>}
 
           {recoveryMode && <div>
-            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Confirmar nova senha</label>
+            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{c.confirmPassword}</label>
             <div style={{ position: "relative" }}>
               <Lock style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} />
               <input
@@ -160,19 +173,19 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
             </div>
           </div>}
 
-          {requestMode && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Quero acesso como</label><select value={accessType} onChange={(e) => setAccessType(e.target.value as "cliente" | "afiliado")} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px" }}><option value="cliente">Cliente</option><option value="afiliado">Afiliado</option></select><p style={{ color: "#71717a", fontSize: "0.75rem", lineHeight: 1.5 }}>A solicitação não cria uma conta. O acesso só será liberado após sua aprovação.</p></div>}
-          {!recoveryMode && !forgotMode && !requestMode && <button type="button" onClick={() => { setForgotMode(true); setError(null); }} style={{ alignSelf: "flex-end", background: "none", border: 0, color: "#c5a059", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>Esqueci minha senha</button>}
-          {!recoveryMode && !forgotMode && !requestMode && <p style={{ color: "#71717a", fontSize: "0.75rem", lineHeight: 1.5, margin: 0 }}>Sua sessão permanece conectada neste dispositivo até você sair do painel.</p>}
+          {requestMode && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{c.accessAs}</label><select value={accessType} onChange={(e) => setAccessType(e.target.value as "cliente" | "afiliado")} style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px" }}><option value="cliente">{c.client}</option><option value="afiliado">{c.affiliate}</option></select><p style={{ color: "#71717a", fontSize: "0.75rem", lineHeight: 1.5 }}>{c.requestInfo}</p></div>}
+          {!recoveryMode && !forgotMode && !requestMode && <button type="button" onClick={() => { setForgotMode(true); setError(null); }} style={{ alignSelf: "flex-end", background: "none", border: 0, color: "#c5a059", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>{c.forgot}</button>}
+          {!recoveryMode && !forgotMode && !requestMode && <p style={{ color: "#71717a", fontSize: "0.75rem", lineHeight: 1.5, margin: 0 }}>{c.stay}</p>}
 
           <button
             type="submit"
             disabled={loading}
             style={{ width: "100%", backgroundColor: "#c5a059", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: loading ? "not-allowed" : "pointer", marginTop: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
           >
-            {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : requestMode ? "Enviar solicitação pelo WhatsApp" : recoveryMode ? "Salvar nova senha" : forgotMode ? "Enviar link de recuperação" : "Entrar no Painel"}
+            {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : requestMode ? c.request : recoveryMode ? c.savePassword : forgotMode ? c.recovery : c.enter}
           </button>
-          {forgotMode && <button type="button" onClick={() => { setForgotMode(false); setError(null); setNotice(null); }} style={{ background: "none", border: 0, color: "#a1a1aa", cursor: "pointer" }}>Voltar ao login</button>}
-          {!recoveryMode && !forgotMode && <button type="button" onClick={() => { setRequestMode((value) => !value); setError(null); setNotice(null); }} style={{ background: "none", border: "1px solid #3f3524", color: "#d7ab63", padding: "0.7rem", borderRadius: "6px", cursor: "pointer" }}>{requestMode ? "Voltar ao login" : "Solicitar acesso"}</button>}
+          {forgotMode && <button type="button" onClick={() => { setForgotMode(false); setError(null); setNotice(null); }} style={{ background: "none", border: 0, color: "#a1a1aa", cursor: "pointer" }}>{c.back}</button>}
+          {!recoveryMode && !forgotMode && <button type="button" onClick={() => { setRequestMode((value) => !value); setError(null); setNotice(null); }} style={{ background: "none", border: "1px solid #3f3524", color: "#d7ab63", padding: "0.7rem", borderRadius: "6px", cursor: "pointer" }}>{requestMode ? c.back : c.askAccess}</button>}
         </form>
       </div>
     </div>

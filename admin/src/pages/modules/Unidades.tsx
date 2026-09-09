@@ -422,6 +422,11 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
     } else if (tipologia.startsWith("DORM:")) {
       const dormitoriosDesejados = Number(tipologia.split(":")[1]);
       matchesTipo = composicaoExata ? tipoInfo.dormitorios === dormitoriosDesejados : tipoInfo.dormitorios >= dormitoriosDesejados;
+    } else if (tipologia.startsWith("EXACT:")) {
+      const requested = decodeURIComponent(tipologia.slice(6)).trim().toLocaleLowerCase("pt-BR");
+      const parsedRequested = parseStandardTypology(requested);
+      const raw = String(u.tipologia_dados?.original || u.tipologia || "").trim().toLocaleLowerCase("pt-BR");
+      matchesTipo = raw === requested || tipoInfo.key === parsedRequested.key || tipoInfo.label.toLocaleLowerCase("pt-BR") === requested;
     } else {
       matchesTipo = true;
     }

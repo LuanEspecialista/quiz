@@ -25,7 +25,20 @@ Deno.serve(async(req:Request)=>{
   }
   if(!target){const {data,error}=await admin.auth.admin.createUser({email,email_confirm:true,user_metadata:{full_name:String(body.nome||"").trim()}});if(error)throw error;target=data.user;}
   if(!target)throw new Error("Não foi possível criar ou localizar a conta.");
-  const {error:profileError}=await admin.from("perfis_usuario").upsert({user_id:target.id,perfil:tipo,ativo:true,nome_exibicao:String(body.nome||"").trim()||null},{onConflict:"user_id"});
+  const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const random=(size:number)=>Array.from(crypto.getRandomValues(new Uint8Array(size)),value=>alphabet[value%alphabet.length]).join("");
+  const temporaryPassword=`Lu!${random(10)}7`;
+  const {error:passwordError}=await admin.auth.admin.updateUserById(target.id,{password:temporaryPassword,email_confirm:true});
+  if(passwordError)throw passwordError;
+  const {data:currentProfile}=await admin.from("perfis_usuario").select("usuario,perfil").eq("user_id",target.id).maybeSingle();
+  let username=currentProfile?.usuario||"";
+  if(!username){
+   const base=(email.split("@")[0]||"usuario").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9._-]/g,"").replace(/^[^a-z0-9]+/,"").slice(0,17)||"usuario";
+   for(let attempt=0;attempt<8&&!username;attempt++){const candidate=`${base.length>=3?base:"usuario"}.${random(4).toLowerCase()}`;const{data:used}=await admin.from("perfis_usuario").select("user_id").eq("usuario",candidate).maybeSingle();if(!used)username=candidate;}
+   if(!username)username=`usuario.${random(8).toLowerCase()}`;
+  }
+  const grantedRole=currentProfile?.perfil==="admin"?"admin":tipo;
+  const {error:profileError}=await admin.from("perfis_usuario").upsert({user_id:target.id,perfil:grantedRole,ativo:true,usuario:username,nome_exibicao:String(body.nome||"").trim()||null},{onConflict:"user_id"});
   if(profileError)throw profileError;
   const table=tipo==="afiliado"?"afiliados":"clientes";
   const activeField=tipo==="afiliado"?{ativo:true}:{acesso_portal:true};
@@ -34,9 +47,6 @@ Deno.serve(async(req:Request)=>{
   if(record){const {error}=await admin.from(table).update({user_id:target.id,...activeField}).eq("id",record.id);if(error)throw error;}
   else {const {error}=await admin.from(table).insert({nome:String(body.nome||email).trim(),email,user_id:target.id,...activeField});if(error)throw error;}
   if(body.solicitacao_id){const {error}=await admin.from("solicitacoes_acesso").update({status:"aprovada",user_id:target.id,analisado_em:new Date().toISOString(),analisado_por:user.id}).eq("id",body.solicitacao_id);if(error)throw error;}
-  const redirectTo=String(body.redirect_to||"");
-  const {data:link,error:linkError}=await admin.auth.admin.generateLink({type:"recovery",email,options:redirectTo?{redirectTo}:{}});
-  if(linkError)throw linkError;
-  return reply({ok:true,user_id:target.id,action_link:link.properties?.action_link});
+  return reply({ok:true,user_id:target.id,email,usuario:username,temporary_password:temporaryPassword});
  }catch(error){return reply({error:error instanceof Error?error.message:"Erro inesperado."},400);}
 });
