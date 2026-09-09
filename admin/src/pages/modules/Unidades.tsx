@@ -498,6 +498,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   // O estoque não é uma vitrine aberta: só aparece quando a pessoa informa ao
   // menos um critério de busca. Isso reduz ruído e protege a informação comercial.
   const hasActiveSearch = Boolean(
+    empreendimentoId ||
     searchTerm.trim() ||
     tipologia !== "TODAS" ||
     suitesMinimas !== "0" ||
