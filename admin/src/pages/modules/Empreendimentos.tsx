@@ -62,6 +62,7 @@ type Empreendimento = {
 
 type EmpreendimentoImagem = {
   id: string;
+  nome?: string | null;
   empreendimento_id: string;
   url: string;
   storage_path?: string | null;
@@ -74,6 +75,8 @@ type EmpreendimentoImagem = {
   created_at?: string;
   conteudo_hash?: string | null;
 };
+
+type LandingBlock = { tipo: "hero" | "texto" | "destaque" | "galeria" | "plantas" | "cidade"; titulo: string; texto: string; imagem_storage_path: string };
 
 type FormData = {
   nome: string;
@@ -108,6 +111,8 @@ type FormData = {
   descricao: string;
   imagem_url: string;
   ativo: boolean;
+  landing_layout: "editorial" | "imersivo" | "investidor";
+  landing_blocos: LandingBlock[];
 };
 
 const STATUS_OPTIONS = [
@@ -168,6 +173,8 @@ const EMPTY_FORM: FormData = {
   descricao: "",
   imagem_url: "",
   ativo: true,
+  landing_layout: "editorial",
+  landing_blocos: [],
 };
 
 function normalize(value: unknown) {
@@ -258,6 +265,7 @@ export default function Empreendimentos() {
   const [uploadingImages, setUploadingImages] = useState(false);
 
   const [galeriasMap, setGaleriasMap] = useState<Record<string, string[]>>({});
+  const [midiasMap, setMidiasMap] = useState<Record<string, EmpreendimentoImagem[]>>({});
   const [activeImageIndexes, setActiveImageIndexes] = useState<Record<string, number>>({});
 
   async function ensureBucketExists() {
@@ -331,9 +339,11 @@ export default function Empreendimentos() {
       }));
 
       const map: Record<string, string[]> = {};
+      const mediaByEnterprise: Record<string, EmpreendimentoImagem[]> = {};
       listaEmps.forEach((emp) => {
-        const imgsDoEmp = todasImagens
-          .filter((img) => img.empreendimento_id === emp.id)
+        const enterpriseMedia = todasImagens.filter((img) => img.empreendimento_id === emp.id);
+        mediaByEnterprise[emp.id] = enterpriseMedia;
+        const imgsDoEmp = enterpriseMedia
           .map((img) => img.url);
 
         const coverUrl = resolveCoverUrl(emp.imagem_url, todasImagens.filter((img) => img.empreendimento_id === emp.id));
@@ -348,6 +358,7 @@ export default function Empreendimentos() {
       });
 
       setGaleriasMap(map);
+      setMidiasMap(mediaByEnterprise);
       setEmpreendimentos(listaEmps);
       setConstrutoras((constRes.data || []) as any[]);
     } catch (err: any) {
@@ -448,6 +459,8 @@ export default function Empreendimentos() {
       descricao: item.descricao || "",
       imagem_url: item.imagem_url || "",
       ativo: item.ativo ?? true,
+      landing_layout: (["editorial","imersivo","investidor"].includes(String(item.caracteristicas?.landing_layout)) ? item.caracteristicas?.landing_layout : "editorial") as FormData["landing_layout"],
+      landing_blocos: Array.isArray(item.caracteristicas?.landing_blocos) ? item.caracteristicas.landing_blocos as LandingBlock[] : [],
     });
     setModalOpen(true);
   }
@@ -559,6 +572,8 @@ export default function Empreendimentos() {
           fluxo_comercial: commercialFlow,
         }),
         tipologias: form.tipologias_disponiveis,
+        landing_layout: form.landing_layout,
+        landing_blocos: form.landing_blocos.map((block, ordem) => ({ ...block, ordem })),
       };
 
       if (editing) {
@@ -1508,6 +1523,12 @@ export default function Empreendimentos() {
                     onChange={(e) => updateField("descricao", e.target.value)}
                     placeholder="Descrição comercial do empreendimento..."
                   />
+                </div>
+                <div className="emp-field full" style={{ display: "grid", gap: 10 }}>
+                  <div><label className="emp-label">Mini landing page do cliente</label><p style={{ color: "#71717a", fontSize: 11, margin: "5px 0" }}>Monte a narrativa na ordem em que o cliente verá. Você pode criar quantos blocos precisar.</p></div>
+                  <select className="emp-select" value={form.landing_layout} onChange={(e) => updateField("landing_layout", e.target.value as FormData["landing_layout"])}><option value="editorial">Editorial — elegante e equilibrado</option><option value="imersivo">Imersivo — imagens em destaque</option><option value="investidor">Investidor — argumentos e números</option></select>
+                  {form.landing_blocos.map((block, index) => <section key={index} style={{ border: "1px solid #303036", borderRadius: 9, padding: 11, display: "grid", gap: 8, background: "#0d0d10" }}><div style={{ display: "flex", gap: 7, alignItems: "center" }}><strong style={{ flex: 1, fontSize: 12 }}>Bloco {index + 1}</strong><button type="button" className="emp-secondary" disabled={index === 0} onClick={() => { const next=[...form.landing_blocos];[next[index-1],next[index]]=[next[index],next[index-1]];updateField("landing_blocos",next); }}>↑</button><button type="button" className="emp-secondary" disabled={index === form.landing_blocos.length - 1} onClick={() => { const next=[...form.landing_blocos];[next[index+1],next[index]]=[next[index],next[index+1]];updateField("landing_blocos",next); }}>↓</button><button type="button" className="emp-secondary" onClick={() => updateField("landing_blocos",form.landing_blocos.filter((_,position)=>position!==index))}><Trash2 size={13}/></button></div><select className="emp-select" value={block.tipo} onChange={(e) => updateField("landing_blocos",form.landing_blocos.map((item,position)=>position===index?{...item,tipo:e.target.value as LandingBlock["tipo"]}:item))}><option value="hero">Abertura / frase principal</option><option value="texto">História e argumento</option><option value="destaque">Gatilho ou diferencial</option><option value="galeria">Galeria de imagens</option><option value="plantas">Plantas e tipologias</option><option value="cidade">Cidade, praias e localização</option></select><input className="emp-input" value={block.titulo} onChange={(e) => updateField("landing_blocos",form.landing_blocos.map((item,position)=>position===index?{...item,titulo:e.target.value}:item))} placeholder="Título ou frase de impacto"/><textarea className="emp-textarea" value={block.texto} onChange={(e) => updateField("landing_blocos",form.landing_blocos.map((item,position)=>position===index?{...item,texto:e.target.value}:item))} placeholder="Texto, prova, benefício ou gatilho — sem promessas não comprovadas"/><select className="emp-select" value={block.imagem_storage_path} onChange={(e) => updateField("landing_blocos",form.landing_blocos.map((item,position)=>position===index?{...item,imagem_storage_path:e.target.value}:item))}><option value="">Imagem automática conforme o bloco</option>{(editing ? midiasMap[editing.id] || [] : []).map((media)=><option key={media.id} value={media.storage_path||""}>{media.titulo||media.nome||media.categoria||"Imagem"}</option>)}</select></section>)}
+                  <button type="button" className="emp-secondary" onClick={() => updateField("landing_blocos",[...form.landing_blocos,{tipo:form.landing_blocos.length?"texto":"hero",titulo:"",texto:"",imagem_storage_path:""}])}><Plus size={13}/>Adicionar bloco</button>
                 </div>
               </div>
             </div>

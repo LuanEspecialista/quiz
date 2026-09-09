@@ -220,6 +220,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
                 <button onClick={() => void saveDisplayName()} disabled={savingName || !displayName.trim()} title="Salvar nome" style={{ border: "1px solid #4a3a20", borderRadius: 5, background: "#211c13", color: "#d7ab63", padding: "0 8px", cursor: "pointer" }}><Save size={13} /></button>
               </div>
             </div>
+            <button onClick={() => { if (setActiveTab) setActiveTab("minha-conta"); setMenuOpen(false); }} style={{ width: "100%", background: "none", border: "none", color: "#e4e4e7", display: "flex", alignItems: "center", gap: ".5rem", padding: ".5rem", fontSize: ".78rem", cursor: "pointer", borderRadius: 4 }}><User style={{ width: 14, height: 14, color: "#c5a059" }} /> Minha conta, nickname e senha</button>
             {role !== "afiliado" && <button
               onClick={() => {
                 if (setActiveTab) setActiveTab("configuracoes");
