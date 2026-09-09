@@ -167,7 +167,8 @@ const UnidadesImporter: React.FC = () => {
       setParsedData(normalizedData);
       if (invalid.length) {
         const examples = invalid.slice(0, 5).map((unit: any) => `linha ${unit._sourceIndex}: ${unitIssues(unit).join(" e ")}`).join("; ");
-        setImportStatus({ error: `${invalid.length} unidade(s) precisam de revisão antes de gravar (${examples}${invalid.length > 5 ? "; …" : ""}). Corrija os campos destacados na prévia; o conteúdo colado foi mantido.` });
+        const ready = normalizedUnits.length - invalid.length;
+        setImportStatus({ error: `${invalid.length} unidade(s) ficaram pendentes (${examples}${invalid.length > 5 ? "; …" : ""}). ${ready > 0 ? `${ready} unidade(s) válidas podem ser gravadas sem inventar os dados ausentes.` : "Não há unidade válida para gravar."}` });
       } else {
         const calculated = normalizedUnits.filter((unit: any) => unit._priceSource === "soma_das_etapas").length;
         setImportStatus(calculated ? { success: `${normalizedUnits.length} unidades reconhecidas. Em ${calculated}, o valor total foi conciliado pela soma completa das etapas do fluxo.` } : null);
@@ -192,8 +193,13 @@ const UnidadesImporter: React.FC = () => {
     }
 
     const invalid = parsedData.unidades.filter((unit: any) => unitIssues(unit).length > 0);
-    if (invalid.length) {
-      setImportStatus({ error: `Revise ${invalid.length} unidade(s) destacada(s). Nenhum dado foi gravado e nenhum preço será convertido em R$ 0.` });
+    const validUnits = parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0);
+    if (!validUnits.length) {
+      setImportStatus({ error: "Nenhuma unidade possui código e valor total válidos. Nada foi gravado." });
+      return;
+    }
+    if (invalid.length && limparAntes) {
+      setImportStatus({ error: "Não é seguro substituir o estoque enquanto existem unidades pendentes. Desmarque “Substituir estoque” para gravar apenas as válidas." });
       return;
     }
 
@@ -204,7 +210,7 @@ const UnidadesImporter: React.FC = () => {
       const pctAtoCabecalho = parsedData.regras_cabecalho?.percentual_ato || null;
 
       // 1. Monta as unidades para a tabela principal (estoque ativo)
-      const unidadesParaInserir = parsedData.unidades.map((u: any) => {
+      const unidadesParaInserir = validUnits.map((u: any) => {
         const cod = (u.codigo_unidade || u.numero || "S/N").toString().trim();
         const torreClean = String(u.torre).trim();
         const valorTabela = parseBrazilNumber(u.valor_tabela);
@@ -291,10 +297,10 @@ const UnidadesImporter: React.FC = () => {
 
       setImportStatus({
         success: histError
-          ? `${unidadesParaInserir.length} unidades atualizadas. O histórico não foi salvo: ${histError.message}`
-          : `Sucesso! ${unidadesParaInserir.length} unidades atualizadas e histórico salvo para ${mesReferencia}/${anoReferencia}.`,
+          ? `${unidadesParaInserir.length} unidades válidas atualizadas. O histórico não foi salvo: ${histError.message}`
+          : `Sucesso! ${unidadesParaInserir.length} unidades válidas atualizadas e histórico salvo para ${mesReferencia}/${anoReferencia}.${invalid.length ? ` ${invalid.length} pendente(s) não foram gravadas por falta de código ou preço.` : ""}`,
       });
-      setJsonInput("");
+      if (!invalid.length) setJsonInput("");
       setParsedData(null);
 
     } catch (err: any) {
@@ -421,10 +427,12 @@ const UnidadesImporter: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={limparAntes}
+                    disabled={parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0)}
                     onChange={(e) => setLimparAntes(e.target.checked)}
                   />
                   <Trash2 style={{ width: "14px", height: "14px" }} /> Substituir estoque ativo atual deste empreendimento
                 </label>
+                {parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0) && <small style={{ display: "block", color: "#fbbf24", marginTop: 6 }}>Desativado para proteger o estoque: existem unidades pendentes que não serão gravadas.</small>}
               </div>
 
               <div style={{ backgroundColor: "#18181b", padding: "0.75rem", borderRadius: "6px", marginBottom: "1rem", fontSize: "0.85rem", color: "#d4d4d8" }}>
@@ -461,10 +469,10 @@ const UnidadesImporter: React.FC = () => {
 
               <button
                 onClick={handleExecuteImport}
-                disabled={loading || !selectedEmpId || parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0)}
-                style={{ width: "100%", backgroundColor: selectedEmpId && !parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0) ? "#c5a059" : "#3f3f46", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: selectedEmpId && !parsedData.unidades.some((unit: any) => unitIssues(unit).length > 0) ? "pointer" : "not-allowed", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
+                disabled={loading || !selectedEmpId || !parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0)}
+                style={{ width: "100%", backgroundColor: selectedEmpId && parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0) ? "#c5a059" : "#3f3f46", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: selectedEmpId && parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0) ? "pointer" : "not-allowed", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
               >
-                {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : "Gravar Estoque e Salvar Histórico"}
+                {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : `Gravar ${parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0).length} válida(s) e salvar histórico`}
               </button>
             </div>
           )}

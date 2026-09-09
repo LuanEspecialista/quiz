@@ -27,6 +27,7 @@ REGRAS OBRIGATÓRIAS
 SAÍDA
 Responda com um único bloco JSON válido, sem markdown, comentários ou reticências, neste formato:
 {
+  "status": "PRONTO_PARA_IMPORTAR",
   "versao_padrao": 2,
   "documento": { "arquivo": null, "data_tabela": null, "paginas_lidas": [], "moeda": "BRL" },
   "empreendimento": { "nome": null, "construtora": null, "cidade": null, "entrega": null },
