@@ -49,6 +49,9 @@ type Opportunity = {
   caracteristicas?: Record<string, any>;
   imagens?: PortalMedia[];
   plantas?: PortalMedia[];
+  layout?: "editorial" | "imersivo" | "investidor";
+  exibir_investimento?: boolean;
+  exibir_fluxo?: boolean;
 };
 type Portal = {
   cliente?: { nome?: string; objetivo?: string };
@@ -125,7 +128,7 @@ function OpportunityLanding({
   onProposal: (item: Opportunity) => void;
 }) {
   const blocks = (item.caracteristicas?.landing_blocos || []) as LandingBlock[];
-  const layout = String(item.caracteristicas?.landing_layout || "editorial");
+  const layout = String(item.layout || item.caracteristicas?.landing_layout || "editorial");
   const images = item.imagens || [];
   const plants = item.plantas || [];
   const fallback: LandingBlock[] = [
@@ -339,6 +342,10 @@ function OpportunityLanding({
             )}
           </div>
         )}
+        {(item.exibir_investimento || item.exibir_fluxo) && <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>
+          {item.exibir_investimento && <div style={{padding:15,borderRadius:10,background:layout==="investidor"?"#172016":"#18181b",border:"1px solid #2f3f2e"}}><strong style={{color:"#b9d89c"}}>Visão de investimento</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>Consulte os argumentos, diferenciais e premissas cadastrados para esta oportunidade. Projeções não representam garantia de rentabilidade.</p></div>}
+          {item.exibir_fluxo && <div style={{padding:15,borderRadius:10,background:"#18181b",border:"1px solid #3a3327"}}><strong style={{color:"#edcf91"}}>Condições comerciais</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>O fluxo será estruturado conforme sua entrada, capacidade mensal e reforços, sujeito à tabela vigente e aprovação da construtora.</p></div>}
+        </div>}
         <div
           style={{
             display: "grid",

@@ -175,6 +175,24 @@ Responda com um único bloco JSON válido, sem markdown, comentários ou reticê
 
 Antes de responder, faça uma segunda leitura para conferir números, nomes próprios, datas, contagens, áreas e registro de incorporação. Não resuma listas e nunca devolva apenas exemplos.`;
 
+const LANDING_PROMPT = `Você é um estrategista de conteúdo imobiliário e auditor de informações. Analise integralmente a apresentação da construtora e transforme somente o que estiver comprovado no material em conteúdo persuasivo para uma landing page de vendas.
+
+Crie uma narrativa visual que mantenha o cliente interessado, explique benefícios e conduza ao contato ou à proposta, sem inventar valorização, rentabilidade, distâncias, prazos ou atributos.
+
+REGRAS
+1. Identifique nome comercial, construtora, cidade, bairro e endereço para o sistema localizar o cadastro correto.
+2. Transforme características em benefícios, preservando o fato original.
+3. Gere entre 3 e 10 blocos relevantes, sem repetições ou parágrafos longos.
+4. Tipos permitidos: hero, texto, destaque, galeria, plantas e cidade.
+5. Indique a categoria de imagem: fachada, lazer, interiores, dormitorios, plantas ou localizacao.
+6. Separe moradia, estilo de vida e investimento. Projeções nunca são garantias.
+7. Campo ausente = null. Não use pesquisa externa. Não escreva fora do JSON.
+
+SAÍDA
+{"versao_padrao":1,"tipo_importacao":"landing_empreendimento","identificacao":{"nome_empreendimento":null,"construtora":null,"cidade":null,"bairro":null,"endereco":null},"landing_page":{"layout_sugerido":"editorial","publico_sugerido":[],"blocos":[{"tipo":"hero","titulo":"","texto":"","categoria_imagem":"fachada","objetivo":"gerar desejo","fonte_pagina":null,"ordem":1}],"frases_comerciais":[],"chamadas_para_acao":[]},"validacao":{"paginas_lidas":[],"alertas":[],"afirmacoes_nao_confirmadas":[]}}
+
+Use layout_sugerido editorial, imersivo ou investidor. Releia o material e remova afirmações que não sejam sustentadas pela apresentação.`;
+
 type PromptCardProps = { title: string; description: string; prompt: string; icon: typeof Layers3; copied: boolean; onCopy: () => void };
 
 function PromptCard({ title, description, prompt, icon: Icon, copied, onCopy }: PromptCardProps) {
@@ -219,6 +237,7 @@ export default function PromptsModule() {
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))", gap: 16 }}>
       <PromptCard title="Prompt de Unidades" description="Para tabelas de preço, estoque, disponibilidade e condições de pagamento." prompt={UNIT_PROMPT} icon={Layers3} copied={copied === "units"} onCopy={() => void copy("units", UNIT_PROMPT)} />
       <PromptCard title="Prompt de Empreendimentos" description="Para apresentações, memoriais, folders e materiais comerciais completos." prompt={ENTERPRISE_PROMPT} icon={Building2} copied={copied === "enterprise"} onCopy={() => void copy("enterprise", ENTERPRISE_PROMPT)} />
+      <PromptCard title="Prompt de Landing Persuasiva" description="Extrai narrativa, frases e blocos comerciais da apresentação da construtora." prompt={LANDING_PROMPT} icon={Clipboard} copied={copied === "landing"} onCopy={() => void copy("landing", LANDING_PROMPT)} />
     </div>
     <section style={{ background: "#101012", border: "1px solid #493a22", borderRadius: 12, padding: 22, display: "grid", gap: 14 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}><div style={{ width: 42, height: 42, borderRadius: 10, background: "rgba(213,164,87,.12)", color: "#d5a457", display: "grid", placeItems: "center" }}><BookOpen size={21}/></div><div><h2 style={{ margin: 0, fontSize: 18 }}>Prompt de artigo para o Blog</h2><p style={{ margin: "6px 0 0", color: "#92929d", lineHeight: 1.5, fontSize: 13 }}>Gera texto escaneável, SEO, blocos, plano de imagens, CTA e fontes em um único JSON importável.</p></div></div>
