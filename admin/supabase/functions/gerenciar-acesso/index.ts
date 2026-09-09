@@ -17,7 +17,9 @@ Deno.serve(async(req:Request)=>{
   if(profile?.perfil!=="admin"||!profile.ativo)return reply({error:"Apenas administradores podem gerenciar acessos."},403);
   const body=await req.json();
   const email=String(body.email||"").trim().toLowerCase(), tipo=body.tipo==="afiliado"?"afiliado":"cliente";
+  const requestedUsername=String(body.usuario||"").trim().toLowerCase();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return reply({error:"E-mail inválido."},400);
+  if(requestedUsername&&!/^[a-z0-9][a-z0-9._-]{2,23}$/.test(requestedUsername))return reply({error:"Nickname inválido."},400);
   let target=null as any;
   for(let page=1;page<=10&&!target;page++){
    const {data,error}=await admin.auth.admin.listUsers({page,perPage:100});
@@ -31,7 +33,8 @@ Deno.serve(async(req:Request)=>{
   const {error:passwordError}=await admin.auth.admin.updateUserById(target.id,{password:temporaryPassword,email_confirm:true});
   if(passwordError)throw passwordError;
   const {data:currentProfile}=await admin.from("perfis_usuario").select("usuario,perfil").eq("user_id",target.id).maybeSingle();
-  let username=currentProfile?.usuario||"";
+  let username=requestedUsername||currentProfile?.usuario||"";
+  if(username){const{data:used}=await admin.from("perfis_usuario").select("user_id").ilike("usuario",username).neq("user_id",target.id).maybeSingle();if(used)return reply({error:"Esse nickname já está em uso."},409);}
   if(!username){
    const base=(email.split("@")[0]||"usuario").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9._-]/g,"").replace(/^[^a-z0-9]+/,"").slice(0,17)||"usuario";
    for(let attempt=0;attempt<8&&!username;attempt++){const candidate=`${base.length>=3?base:"usuario"}.${random(4).toLowerCase()}`;const{data:used}=await admin.from("perfis_usuario").select("user_id").eq("usuario",candidate).maybeSingle();if(!used)username=candidate;}
