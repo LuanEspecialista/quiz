@@ -16,10 +16,21 @@ Deno.serve(async(req:Request)=>{
   const {data:profile}=await admin.from("perfis_usuario").select("perfil,ativo").eq("user_id",user.id).maybeSingle();
   if(profile?.perfil!=="admin"||!profile.ativo)return reply({error:"Apenas administradores podem gerenciar acessos."},403);
   const body=await req.json();
+  const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const random=(size:number)=>Array.from(crypto.getRandomValues(new Uint8Array(size)),value=>alphabet[value%alphabet.length]).join("");
+  if(body.acao==="redefinir_senha"){
+   const targetId=String(body.user_id||"");if(!targetId)return reply({error:"Conta sem vínculo de acesso."},400);
+   const {data:userData,error:userError}=await admin.auth.admin.getUserById(targetId);if(userError||!userData.user)return reply({error:"Conta não encontrada."},404);
+   const {data:targetProfile}=await admin.from("perfis_usuario").select("usuario").eq("user_id",targetId).maybeSingle();
+   const temporaryPassword=`Lu!${random(10)}7`;const{error:passwordError}=await admin.auth.admin.updateUserById(targetId,{password:temporaryPassword});if(passwordError)throw passwordError;
+   return reply({ok:true,email:userData.user.email,usuario:targetProfile?.usuario||"",temporary_password:temporaryPassword});
+  }
   const email=String(body.email||"").trim().toLowerCase(), tipo=body.tipo==="afiliado"?"afiliado":"cliente";
   const requestedUsername=String(body.usuario||"").trim().toLowerCase();
+  const birthday={aniversario_dia:Number(body.aniversario_dia)||null,aniversario_mes:Number(body.aniversario_mes)||null};
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return reply({error:"E-mail inválido."},400);
   if(requestedUsername&&!/^[a-z0-9][a-z0-9._-]{2,23}$/.test(requestedUsername))return reply({error:"Nickname inválido."},400);
+  if(!birthday.aniversario_dia||!birthday.aniversario_mes)return reply({error:"Informe dia e mês de aniversário."},400);
   let target=null as any;
   for(let page=1;page<=10&&!target;page++){
    const {data,error}=await admin.auth.admin.listUsers({page,perPage:100});
@@ -27,8 +38,6 @@ Deno.serve(async(req:Request)=>{
   }
   if(!target){const {data,error}=await admin.auth.admin.createUser({email,email_confirm:true,user_metadata:{full_name:String(body.nome||"").trim()}});if(error)throw error;target=data.user;}
   if(!target)throw new Error("Não foi possível criar ou localizar a conta.");
-  const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  const random=(size:number)=>Array.from(crypto.getRandomValues(new Uint8Array(size)),value=>alphabet[value%alphabet.length]).join("");
   const temporaryPassword=`Lu!${random(10)}7`;
   const {error:passwordError}=await admin.auth.admin.updateUserById(target.id,{password:temporaryPassword,email_confirm:true});
   if(passwordError)throw passwordError;
@@ -47,8 +56,8 @@ Deno.serve(async(req:Request)=>{
   const activeField=tipo==="afiliado"?{ativo:true}:{acesso_portal:true};
   const {data:record,error:findError}=await admin.from(table).select("id").ilike("email",email).limit(1).maybeSingle();
   if(findError)throw findError;
-  if(record){const {error}=await admin.from(table).update({user_id:target.id,...activeField}).eq("id",record.id);if(error)throw error;}
-  else {const {error}=await admin.from(table).insert({nome:String(body.nome||email).trim(),email,user_id:target.id,...activeField});if(error)throw error;}
+  if(record){const {error}=await admin.from(table).update({user_id:target.id,...activeField,...birthday}).eq("id",record.id);if(error)throw error;}
+  else {const {error}=await admin.from(table).insert({nome:String(body.nome||email).trim(),email,user_id:target.id,...activeField,...birthday});if(error)throw error;}
   if(body.solicitacao_id){const {error}=await admin.from("solicitacoes_acesso").update({status:"aprovada",user_id:target.id,analisado_em:new Date().toISOString(),analisado_por:user.id}).eq("id",body.solicitacao_id);if(error)throw error;}
   return reply({ok:true,user_id:target.id,email,usuario:username,temporary_password:temporaryPassword});
  }catch(error){return reply({error:error instanceof Error?error.message:"Erro inesperado."},400);}

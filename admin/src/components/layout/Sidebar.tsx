@@ -10,7 +10,6 @@ import {
   UserCheck, 
   UserCog,
   TrendingUp, 
-  Link2, 
   FileText,
   BookOpen,
   BrainCircuit,
@@ -19,9 +18,14 @@ import {
   Menu,
   X,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  ArrowUp,
+  ArrowDown,
+  SlidersHorizontal,
+  RotateCcw
 } from "lucide-react";
 import { useTranslation } from "../../lib/i18n";
+import { supabase } from "../../lib/supabase";
 
 interface SidebarProps {
   activeTab: string;
@@ -33,6 +37,8 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
   const [isOpenMobile, setIsOpenMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("luan.sidebar.collapsed") === "true");
+  const [customOrder,setCustomOrder]=useState<string[]>([]);
+  const [organizing,setOrganizing]=useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -57,27 +63,31 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
   });
 
   const menuItems = role === "afiliado" ? [
+    { id: "minha-conta", label: "Minha conta", icon: UserCheck },
     { id: "afiliados", label: t("catalog"), icon: UserCheck },
   ] : [
     { id: "dashboard", label: t("dashboard"), icon: LayoutDashboard },
-    { id: "construtoras", label: t("developers"), icon: Building2 },
-    { id: "empreendimentos", label: t("developments"), icon: Building },
-    { id: "apresentacoes", label: t("presentations"), icon: FileText },
-    { id: "blog", label: "Blog", icon: BookOpen },
-    { id: "unidades", label: t("units"), icon: Layers },
-    { id: "tipologias", label: "Tipologias e plantas", icon: Shapes },
-    { id: "importar-ia", label: t("importAI"), icon: Bot },
-    { id: "prompts", label: t("prompts"), icon: FileText },
-    { id: "fluxos", label: t("financialFlows"), icon: GitBranch },
-    { id: "clientes", label: t("clients"), icon: Users },
-    ...(role === "admin" ? [{ id: "usuarios-acessos", label: "Usuários e acessos", icon: UserCog }] : []),
-    { id: "afiliados", label: t("affiliates"), icon: UserCheck },
-    { id: "indicadores", label: t("indicators"), icon: TrendingUp },
-    { id: "links", label: t("temporaryLinks"), icon: Link2 },
-    { id: "configuracoes", label: t("settings"), icon: Settings },
     { id: "minha-conta", label: "Minha conta", icon: UserCheck },
+    { id: "clientes", label: t("clients"), icon: Users },
+    { id: "empreendimentos", label: t("developments"), icon: Building },
+    { id: "unidades", label: t("units"), icon: Layers },
+    { id: "fluxos", label: t("financialFlows"), icon: GitBranch },
+    { id: "apresentacoes", label: t("presentations"), icon: FileText },
+    { id: "importar-ia", label: t("importAI"), icon: Bot },
     { id: "playbook", label: "Playbook", icon: BrainCircuit },
+    { id: "afiliados", label: t("affiliates"), icon: UserCheck },
+    { id: "blog", label: "Blog", icon: BookOpen },
+    { id: "indicadores", label: t("indicators"), icon: TrendingUp },
+    { id: "construtoras", label: t("developers"), icon: Building2 },
+    { id: "tipologias", label: "Tipologias e plantas", icon: Shapes },
+    { id: "prompts", label: t("prompts"), icon: FileText },
+    ...(role === "admin" ? [{ id: "usuarios-acessos", label: "Usuários e acessos", icon: UserCog }] : []),
+    { id: "configuracoes", label: t("settings"), icon: Settings },
   ];
+  const orderedItems=[...menuItems].sort((a,b)=>{const ai=customOrder.indexOf(a.id),bi=customOrder.indexOf(b.id);return (ai<0?999:ai)-(bi<0?999:bi)});
+  useEffect(()=>{void supabase.auth.getUser().then(async({data})=>{if(!data.user)return;const{data:profile}=await supabase.from("perfis_usuario").select("menu_ordem").eq("user_id",data.user.id).maybeSingle();if(Array.isArray(profile?.menu_ordem))setCustomOrder(profile.menu_ordem.filter((id):id is string=>typeof id==="string"));});},[]);
+  async function persistOrder(next:string[]){setCustomOrder(next);await supabase.rpc("salvar_menu_ordem",{p_ordem:next});}
+  const move=(id:string,direction:-1|1)=>{const ids=orderedItems.map(item=>item.id),index=ids.indexOf(id),target=index+direction;if(target<0||target>=ids.length)return;[ids[index],ids[target]]=[ids[target],ids[index]];void persistOrder(ids)};
 
   const handleSelect = (id: string) => {
     setActiveTab(id);
@@ -144,7 +154,7 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
         </div>
 
         <nav style={{ display: "flex", flexDirection: "column", gap: "0.25rem", flex: 1, overflowY: "auto" }}>
-          {menuItems.map((item) => {
+          {orderedItems.map((item,index) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
@@ -171,10 +181,12 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
               >
                 <Icon size={18} style={{ color: isActive ? "#c5a059" : "#71717a" }} />
                 {(!collapsed || isMobile) && <span>{item.label}</span>}
+                {organizing&&(!collapsed||isMobile)&&<span style={{marginLeft:"auto",display:"flex",gap:3}}><span role="button" aria-label="Subir" onClick={event=>{event.stopPropagation();move(item.id,-1)}} style={{padding:3,opacity:index?1:.3}}><ArrowUp size={13}/></span><span role="button" aria-label="Descer" onClick={event=>{event.stopPropagation();move(item.id,1)}} style={{padding:3,opacity:index<orderedItems.length-1?1:.3}}><ArrowDown size={13}/></span></span>}
               </button>
             );
           })}
         </nav>
+        {(!collapsed||isMobile)&&<div style={{display:"grid",gap:6,paddingTop:8,borderTop:"1px solid #242428"}}><button type="button" onClick={()=>setOrganizing(value=>!value)} style={{border:0,background:"transparent",color:organizing?"#d7ab63":"#71717a",padding:8,textAlign:"left",cursor:"pointer"}}><SlidersHorizontal size={14}/> {organizing?"Concluir organização":"Organizar menu"}</button>{organizing&&<button type="button" onClick={()=>void persistOrder([])} style={{border:0,background:"transparent",color:"#71717a",padding:8,textAlign:"left",cursor:"pointer"}}><RotateCcw size={14}/> Restaurar padrão</button>}</div>}
       </aside>
 
       {/* Overlay escuro ao abrir o menu no celular */}
