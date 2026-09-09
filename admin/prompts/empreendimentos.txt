@@ -45,6 +45,7 @@ REGRAS DE EXTRAÇÃO
 25. Use exatamente os nomes codigo_unidade e valor_tabela; não os substitua por numero, preco, valor_total ou aliases.
 26. Se o valor total não estiver impresso, mas todas as etapas explícitas fecharem uma soma completa e inequívoca, use a soma exata como valor_tabela e identifique o cálculo nas observações. Se faltar qualquer etapa, mova a linha para unidades_pendentes; nunca invente o preço.
 27. Não transforme cabeçalhos, linhas de tipologia, subtotais, vagas avulsas ou observações em unidades.
+28. Transcreva qualquer resumo oficial impresso em resumo_oficial antes de contar as linhas. Compare total e cada status com unidades + unidades_pendentes. Se não fechar após releitura, retorne PENDENTE_INFORMACAO com a divergência; nunca complete a diferença criando unidades.
 
 QUANDO HOUVER PENDÊNCIA
 {
@@ -76,6 +77,7 @@ FORMATO EXATO DE SUCESSO
     "juros_pos_chaves_am": 0.89,
     "descricao_reajuste_extenso": "INCC até as chaves; IPCA + 0,89% a.m. após as chaves."
   },
+  "resumo_oficial": {"encontrado":false,"total":null,"disponiveis":null,"reservadas":null,"outros_status":{},"fonte":null},
   "unidades": [
     {
       "torre": "Torre A",

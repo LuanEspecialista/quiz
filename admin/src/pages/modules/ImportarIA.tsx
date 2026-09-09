@@ -122,6 +122,24 @@ const UnidadesImporter: React.FC = () => {
     return issues;
   };
 
+  const normalizedStatus = (value: unknown) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+  const summaryIssues = (data: any, units: any[]) => {
+    const summary = data.resumo_oficial || data.validacao?.resumo_oficial;
+    if (!summary) return ["O JSON não separou o resumo oficial impresso da contagem extraída. Gere novamente com o prompt atualizado antes de importar."];
+    if (summary.encontrado === false) return [];
+    const officialTotal = Number(summary.total ?? summary.quantidade_total);
+    const officialAvailable = Number(summary.disponiveis ?? summary.por_status?.Disponivel ?? summary.por_status?.["Disponível"]);
+    const officialReserved = Number(summary.reservadas ?? summary.por_status?.Reservada);
+    const extractedAvailable = units.filter((unit) => normalizedStatus(unit.status) === "disponivel").length;
+    const extractedReserved = units.filter((unit) => normalizedStatus(unit.status) === "reservada").length;
+    const issues: string[] = [];
+    if (Number.isFinite(officialTotal) && officialTotal !== units.length) issues.push(`total oficial ${officialTotal}, mas ${units.length} linhas foram extraídas`);
+    if (Number.isFinite(officialAvailable) && officialAvailable !== extractedAvailable) issues.push(`disponíveis no resumo ${officialAvailable}, mas extraídas ${extractedAvailable}`);
+    if (Number.isFinite(officialReserved) && officialReserved !== extractedReserved) issues.push(`reservadas no resumo ${officialReserved}, mas extraídas ${extractedReserved}`);
+    return issues;
+  };
+
   const updateParsedUnit = (index: number, changes: Record<string, unknown>) => {
     setParsedData((current: any) => current ? {
       ...current,
@@ -169,9 +187,12 @@ const UnidadesImporter: React.FC = () => {
       }
       const normalizedUnits = sourceUnits.map(normalizeUnit);
       const invalid = normalizedUnits.filter((unit: any) => unitIssues(unit).length > 0);
-      const normalizedData = { ...data, unidades: normalizedUnits };
+      const reconciliationIssues = summaryIssues(data, normalizedUnits);
+      const normalizedData = { ...data, unidades: normalizedUnits, _summaryIssues: reconciliationIssues };
       setParsedData(normalizedData);
-      if (invalid.length) {
+      if (reconciliationIssues.length) {
+        setImportStatus({ error: `Importação bloqueada por divergência de contagem: ${reconciliationIssues.join("; ")}. Nenhuma unidade será gravada até a extração fechar com o resumo oficial.` });
+      } else if (invalid.length) {
         const examples = invalid.slice(0, 5).map((unit: any) => `linha ${unit._sourceIndex}: ${unitIssues(unit).join(" e ")}`).join("; ");
         const ready = normalizedUnits.length - invalid.length;
         setImportStatus({ error: `${invalid.length} unidade(s) ficaram pendentes (${examples}${invalid.length > 5 ? "; …" : ""}). ${ready > 0 ? `${ready} unidade(s) válidas podem ser gravadas sem inventar os dados ausentes.` : "Não há unidade válida para gravar."}` });
@@ -200,6 +221,10 @@ const UnidadesImporter: React.FC = () => {
 
     const invalid = parsedData.unidades.filter((unit: any) => unitIssues(unit).length > 0);
     const validUnits = parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0);
+    if (parsedData._summaryIssues?.length) {
+      setImportStatus({ error: `Corrija a divergência com o resumo oficial antes de importar: ${parsedData._summaryIssues.join("; ")}.` });
+      return;
+    }
     if (!validUnits.length) {
       setImportStatus({ error: "Nenhuma unidade possui código e valor total válidos. Nada foi gravado." });
       return;
@@ -445,6 +470,7 @@ const UnidadesImporter: React.FC = () => {
                 <div><strong>Empreendimento Lido:</strong> {parsedData.empreendimento?.nome || "N/I"}</div>
                 <div><strong>Total Mapeado:</strong> {parsedData.unidades.length} unidades</div>
                 <div><strong>Prontas:</strong> {parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0).length} · <strong>Para revisar:</strong> {parsedData.unidades.filter((unit: any) => unitIssues(unit).length > 0).length}</div>
+                {parsedData.resumo_oficial?.encontrado !== false && <div><strong>Resumo oficial:</strong> {parsedData.resumo_oficial?.total ?? parsedData.resumo_oficial?.quantidade_total ?? "não informado"} total · {parsedData.resumo_oficial?.disponiveis ?? "?"} disponíveis · {parsedData.resumo_oficial?.reservadas ?? "?"} reservadas</div>}
               </div>
 
               <div style={{ maxHeight: "310px", overflowY: "auto", border: "1px solid #222", borderRadius: "6px", padding: "0.5rem", marginBottom: "1rem" }}>
@@ -475,8 +501,8 @@ const UnidadesImporter: React.FC = () => {
 
               <button
                 onClick={handleExecuteImport}
-                disabled={loading || !selectedEmpId || !parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0)}
-                style={{ width: "100%", backgroundColor: selectedEmpId && parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0) ? "#c5a059" : "#3f3f46", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: selectedEmpId && parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0) ? "pointer" : "not-allowed", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
+                disabled={loading || !selectedEmpId || Boolean(parsedData._summaryIssues?.length) || !parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0)}
+                style={{ width: "100%", backgroundColor: selectedEmpId && !parsedData._summaryIssues?.length && parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0) ? "#c5a059" : "#3f3f46", color: "#000", fontWeight: "bold", padding: "0.75rem", borderRadius: "6px", border: "none", cursor: selectedEmpId && !parsedData._summaryIssues?.length && parsedData.unidades.some((unit: any) => unitIssues(unit).length === 0) ? "pointer" : "not-allowed", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
               >
                 {loading ? <Loader2 style={{ animation: "spin 1s linear infinite", width: "18px", height: "18px" }} /> : `Gravar ${parsedData.unidades.filter((unit: any) => unitIssues(unit).length === 0).length} válida(s) e salvar histórico`}
               </button>
