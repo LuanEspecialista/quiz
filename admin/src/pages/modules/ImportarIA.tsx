@@ -126,7 +126,19 @@ const UnidadesImporter: React.FC = () => {
 
   const summaryIssues = (data: any, units: any[]) => {
     const summary = data.resumo_oficial || data.validacao?.resumo_oficial;
-    if (!summary) return ["O JSON não separou o resumo oficial impresso da contagem extraída. Gere novamente com o prompt atualizado antes de importar."];
+    if (!summary) {
+      const calculated = data.validacao || {};
+      const declaredTotal = Number(calculated.quantidade_total);
+      const declaredAvailable = Number(calculated.por_status?.Disponivel ?? calculated.por_status?.["Disponível"]);
+      const declaredReserved = Number(calculated.por_status?.Reservada);
+      const extractedAvailable = units.filter((unit) => normalizedStatus(unit.status) === "disponivel").length;
+      const extractedReserved = units.filter((unit) => normalizedStatus(unit.status) === "reservada").length;
+      const legacyIssues: string[] = [];
+      if (Number.isFinite(declaredTotal) && declaredTotal !== units.length) legacyIssues.push(`contagem declarada ${declaredTotal}, mas ${units.length} linhas foram extraídas`);
+      if (Number.isFinite(declaredAvailable) && declaredAvailable !== extractedAvailable) legacyIssues.push(`disponíveis declaradas ${declaredAvailable}, mas extraídas ${extractedAvailable}`);
+      if (Number.isFinite(declaredReserved) && declaredReserved !== extractedReserved) legacyIssues.push(`reservadas declaradas ${declaredReserved}, mas extraídas ${extractedReserved}`);
+      return legacyIssues;
+    }
     if (summary.encontrado === false) return [];
     const officialTotal = Number(summary.total ?? summary.quantidade_total);
     const officialAvailable = Number(summary.disponiveis ?? summary.por_status?.Disponivel ?? summary.por_status?.["Disponível"]);
