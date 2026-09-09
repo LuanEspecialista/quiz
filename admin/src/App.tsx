@@ -7,6 +7,7 @@ import ClientPortal from "./pages/ClientPortal";
 import { Loader2 } from "lucide-react";
 import LanguageSelector from "./components/LanguageSelector";
 import ModuleErrorBoundary from "./components/ModuleErrorBoundary";
+import UsernameSetup from "./components/UsernameSetup";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -15,13 +16,15 @@ export default function App() {
   const [accessRole, setAccessRole] = useState<"admin" | "cliente" | "afiliado">("admin");
   const [authError, setAuthError] = useState("");
   const [recoveringPassword, setRecoveringPassword] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+  const [usernameSkipped, setUsernameSkipped] = useState(false);
 
   const validateAccess = async (nextSession: Session | null) => {
     setSession(nextSession);
     if (!nextSession) { setAuthorized(false); return; }
-    let validationResult = await supabase.from("perfis_usuario").select("perfil,ativo").eq("user_id", nextSession.user.id).maybeSingle();
+    let validationResult = await supabase.from("perfis_usuario").select("perfil,ativo,usuario").eq("user_id", nextSession.user.id).maybeSingle();
     if (validationResult.error && !["42P01", "PGRST205"].includes(validationResult.error.code || "")) {
-      validationResult = await supabase.from("perfis_usuario").select("perfil,ativo").eq("user_id", nextSession.user.id).maybeSingle();
+      validationResult = await supabase.from("perfis_usuario").select("perfil,ativo,usuario").eq("user_id", nextSession.user.id).maybeSingle();
     }
     const { data, error } = validationResult;
     if (error) {
@@ -33,6 +36,7 @@ export default function App() {
     const allowedProfiles = ["admin", "cliente", "afiliado"];
     const allowed = allowedProfiles.includes(data?.perfil || "") && data?.ativo === true;
     if (allowed) setAccessRole(data?.perfil as "admin" | "cliente" | "afiliado");
+    if (allowed) setUsername(typeof data?.usuario === "string" ? data.usuario : null);
     setAuthorized(allowed);
     setAuthError(allowed ? "" : error ? "Não foi possível validar o acesso agora." : "Esta conta não possui um perfil de acesso ativo.");
     if (!allowed) await supabase.auth.signOut();
@@ -124,6 +128,10 @@ export default function App() {
 
   if (!session || !authorized) {
     return <><div style={{ position: "fixed", right: 18, top: 18, zIndex: 20 }}><LanguageSelector /></div><Login externalError={authError} /></>;
+  }
+
+  if (!username && !usernameSkipped) {
+    return <UsernameSetup onSaved={setUsername} onSkip={() => setUsernameSkipped(true)} />;
   }
 
   const metadata = session.user.user_metadata || {};

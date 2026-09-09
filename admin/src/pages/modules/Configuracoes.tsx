@@ -66,6 +66,7 @@ type SitePage = {
 type Quote = {
   cotacao: number | null;
   data_cotacao: string | null;
+  atualizado_em?: string | null;
   manual: boolean;
 };
 
@@ -554,7 +555,8 @@ export default function Configuracoes() {
                   </strong>
                   <small>
                     {quote.manual ? "Ajuste manual" : "Cotação oficial"} ·{" "}
-                    {quote.data_cotacao || "sem data"}
+                    {quote.data_cotacao ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(`${quote.data_cotacao}T12:00:00`)) : "sem data"}
+                    {quote.atualizado_em && <> · atualizado às {new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(quote.atualizado_em))}</>}
                   </small>
                 </div>
                 <label>

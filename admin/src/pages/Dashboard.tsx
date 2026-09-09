@@ -1,23 +1,27 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Sidebar } from "../components/layout/Sidebar";
 import { Header } from "../components/layout/Header";
 import { supabase } from "../lib/supabase";
-import { ConstrutorasModule } from "./modules/Construtoras";
-import EmpreendimentosModule from "./modules/Empreendimentos";
-import { UnidadesModule } from "./modules/Unidades";
-import FluxosModule from "./modules/Fluxos";
-import { ImportarIAModule } from "./modules/ImportarIA";
-import IndicadoresModule from "./modules/indicadores";
-import ConfiguracoesModule from "./modules/Configuracoes";
-import ApresentacoesModule from "./modules/Apresentacoes";
-import ClientesModule from "./modules/Clientes";
-import AfiliadosModule from "./modules/Afiliados";
 import SmartDashboard, { type SmartUnitFilters } from "../components/SmartDashboard";
-import PromptsModule from "./modules/Prompts";
 import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
-import LinksTemporariosModule from "./modules/LinksTemporarios";
-import BlogModule from "./modules/Blog";
-import PlaybookModule from "./modules/Playbook";
+
+const ConstrutorasModule = lazy(() => import("./modules/Construtoras").then((module) => ({ default: module.ConstrutorasModule })));
+const EmpreendimentosModule = lazy(() => import("./modules/Empreendimentos"));
+const UnidadesModule = lazy(() => import("./modules/Unidades").then((module) => ({ default: module.UnidadesModule })));
+const FluxosModule = lazy(() => import("./modules/Fluxos"));
+const ImportarIAModule = lazy(() => import("./modules/ImportarIA").then((module) => ({ default: module.ImportarIAModule })));
+const IndicadoresModule = lazy(() => import("./modules/indicadores"));
+const ConfiguracoesModule = lazy(() => import("./modules/Configuracoes"));
+const ApresentacoesModule = lazy(() => import("./modules/Apresentacoes"));
+const ClientesModule = lazy(() => import("./modules/Clientes"));
+const AfiliadosModule = lazy(() => import("./modules/Afiliados"));
+const PromptsModule = lazy(() => import("./modules/Prompts"));
+const LinksTemporariosModule = lazy(() => import("./modules/LinksTemporarios"));
+const BlogModule = lazy(() => import("./modules/Blog"));
+const PlaybookModule = lazy(() => import("./modules/Playbook"));
+const TipologiasModule = lazy(() => import("./modules/Tipologias"));
+const MinhaContaModule = lazy(() => import("./modules/MinhaConta"));
+const UsuariosAcessosModule = lazy(() => import("./modules/UsuariosAcessos"));
 
 interface DashboardProps { userName?: string; role?: "admin" | "equipe" | "afiliado" }
 
@@ -68,21 +72,26 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
     <div style={{ flex: 1, minWidth: 0, width: "100%" }}>
       <Header userName={userName} role={role} setActiveTab={setActiveTab} onTickerSelect={() => setActiveTab("indicadores")} />
       <main className="app-main" style={{ marginTop: 56, padding: "1.5rem 2rem", width: "100%", boxSizing: "border-box" }}>
+        <Suspense fallback={<div style={{ minHeight: 240, display: "grid", placeItems: "center", color: "#c5a059" }}>Carregando módulo…</div>}>
         {role !== "afiliado" && activeTab === "dashboard" && <SmartDashboard metrics={metrics} onSearch={searchUnits} onNavigate={setActiveTab} />}
         {role !== "afiliado" && activeTab === "construtoras" && <ConstrutorasModule />}
         {role !== "afiliado" && activeTab === "empreendimentos" && <EmpreendimentosModule />}
         {role !== "afiliado" && activeTab === "unidades" && <UnidadesModule empreendimentoId={empreendimentoId} disponibilidadeInicial={disponibilidade} tipologiaInicial={tipologiaInicial} filtrosIniciais={smartUnitFilters} onSimular={openFlow} />}
         {role !== "afiliado" && activeTab === "apresentacoes" && <ApresentacoesModule />}
         {role !== "afiliado" && activeTab === "blog" && <BlogModule />}
+        {role !== "afiliado" && activeTab === "tipologias" && <TipologiasModule />}
         {role !== "afiliado" && activeTab === "importar-ia" && <ImportarIAModule />}
         {role !== "afiliado" && activeTab === "prompts" && <PromptsModule />}
         {role !== "afiliado" && activeTab === "fluxos" && <FluxosModule initialUnitIds={flowUnitIds} initialClientId={flowClientId} />}
         {role !== "afiliado" && activeTab === "clientes" && <ClientesModule onOpenFlow={(ids,clientId) => { setFlowClientId(clientId); setFlowUnitIds(ids); setActiveTab("fluxos"); }} />}
+        {role === "admin" && activeTab === "usuarios-acessos" && <UsuariosAcessosModule />}
         {role !== "afiliado" && activeTab === "playbook" && <PlaybookModule />}
         {activeTab === "afiliados" && <AfiliadosModule role={role} />}
         {role !== "afiliado" && activeTab === "indicadores" && <ModuleErrorBoundary moduleName="Indicadores"><IndicadoresModule /></ModuleErrorBoundary>}
         {role !== "afiliado" && activeTab === "configuracoes" && <ConfiguracoesModule />}
         {role !== "afiliado" && activeTab === "links" && <LinksTemporariosModule />}
+        {activeTab === "minha-conta" && <MinhaContaModule />}
+        </Suspense>
       </main>
     </div>
   </div>;

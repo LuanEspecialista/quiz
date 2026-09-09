@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Loader2, UserRound } from "lucide-react";
 import { clearAuthUrl, getPanelUrl } from "@/lib/authRedirect";
 
 export default function Login({ externalError = "", recoveryMode = false, onPasswordUpdated }: { externalError?: string; recoveryMode?: boolean; onPasswordUpdated?: () => void }) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,23 +21,37 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    const login = identifier.trim().toLowerCase();
+    let loginError: { message: string } | null;
+    if (login.includes("@")) {
+      const result = await supabase.auth.signInWithPassword({ email: login, password });
+      loginError = result.error;
+    } else {
+      const result = await supabase.functions.invoke("login-usuario", {
+        body: { usuario: login, senha: password },
+      });
+      loginError = result.error;
+      if (!loginError && result.data?.access_token && result.data?.refresh_token) {
+        const sessionResult = await supabase.auth.setSession({
+          access_token: result.data.access_token,
+          refresh_token: result.data.refresh_token,
+        });
+        loginError = sessionResult.error;
+      }
+    }
 
-    if (error) {
-      setError(error.message === "Invalid login credentials" ? "E-mail ou senha incorretos." : error.message);
+    if (loginError) {
+      setError("E-mail, usuário ou senha incorretos.");
     }
     setLoading(false);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return setError("Informe seu e-mail.");
+    if (!identifier.trim() || !identifier.includes("@")) return setError("Informe o e-mail da conta para recuperar a senha.");
     setLoading(true); setError(null); setNotice(null);
     const redirectTo = getPanelUrl({ recovery: "1" });
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
+    const { error } = await supabase.auth.resetPasswordForEmail(identifier.trim().toLowerCase(), { redirectTo });
     setLoading(false);
     if (error) setError(error.message); else setNotice("Enviamos o link de recuperação. Verifique também a caixa de spam.");
   };
@@ -57,9 +71,14 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
     }
   };
 
-  const handleAccessRequest = (e: React.FormEvent) => {
+  const handleAccessRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    const message = ["Olá, Luan! Gostaria de solicitar acesso à plataforma.", `Nome: ${requestName.trim()}`, `E-mail: ${email.trim()}`, `Tipo de acesso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Se aprovado, aguardo as instruções para entrar."].join("\n");
+    setLoading(true); setError(null); setNotice(null);
+    const { error: requestError } = await supabase.rpc("solicitar_acesso", { p_nome: requestName.trim(), p_email: identifier.trim().toLowerCase(), p_tipo: accessType });
+    setLoading(false);
+    if (requestError) return setError("Não foi possível registrar a solicitação. Confira os dados e tente novamente.");
+    setNotice("Solicitação registrada. Se desejar, avise também pelo WhatsApp.");
+    const message = ["Olá, Luan! Gostaria de solicitar acesso à plataforma.", `Nome: ${requestName.trim()}`, `E-mail: ${identifier.trim()}`, `Tipo de acesso: ${accessType === "cliente" ? "Cliente" : "Afiliado"}`, "Se aprovado, aguardo as instruções para entrar."].join("\n");
     window.open(`https://wa.me/5547992120915?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -85,15 +104,17 @@ export default function Login({ externalError = "", recoveryMode = false, onPass
           {requestMode && <div><label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Nome completo</label><input required value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome" style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem", borderRadius: "6px", boxSizing: "border-box" }} /></div>}
           {!recoveryMode && (
           <div>
-            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>E-mail</label>
+            <label style={{ display: "block", color: "#a1a1aa", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{forgotMode || requestMode ? "E-mail" : "E-mail ou usuário"}</label>
             <div style={{ position: "relative" }}>
-              <Mail style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} />
+              {forgotMode || requestMode ? <Mail style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} /> : <UserRound style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#52525b", width: "18px", height: "18px" }} />}
               <input
-                type="email"
+                type={forgotMode || requestMode ? "email" : "text"}
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={forgotMode || requestMode ? "seu@email.com" : "seu@email.com ou seu.usuario"}
+                autoCapitalize="none"
+                autoCorrect="off"
                 style={{ width: "100%", backgroundColor: "#18181b", border: "1px solid #27272a", color: "#fff", padding: "0.75rem 0.75rem 0.75rem 2.5rem", borderRadius: "6px", outline: "none", boxSizing: "border-box" }}
               />
             </div>
