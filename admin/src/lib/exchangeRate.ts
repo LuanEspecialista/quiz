@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 export type ExchangeRate = {
   value: number;
   date: string | null;
+  updatedAt?: string | null;
   manual: boolean;
   source: "supabase" | "cache";
   trend?: number;
@@ -47,7 +48,7 @@ function remember(rate: ExchangeRate) {
 export async function getExchangeRate(): Promise<ExchangeRate | null> {
   try {
     const [{ data, error }, { data: historico }] = await Promise.all([
-      supabase.from("cotacao_usd_brl_atual").select("cotacao, data_cotacao, manual").maybeSingle(),
+      supabase.from("cotacao_usd_brl_atual").select("cotacao, data_cotacao, manual, atualizado_em").maybeSingle(),
       supabase.from("cotacoes_cambio").select("cotacao_venda, data_cotacao").eq("par", "USD/BRL").order("data_cotacao", { ascending: false }).limit(2),
     ]);
     if (error) throw error;
@@ -55,7 +56,7 @@ export async function getExchangeRate(): Promise<ExchangeRate | null> {
     if (Number.isFinite(value) && value > 0) {
       const previous = Number(historico?.[1]?.cotacao_venda);
       const variation = Number.isFinite(previous) && previous > 0 ? ((value - previous) / previous) * 100 : null;
-      const rate = { value, date: data?.data_cotacao || null, manual: Boolean(data?.manual), source: "supabase" as const, variation, trend: variation === null ? 0 : Math.sign(variation) };
+      const rate = { value, date: data?.data_cotacao || null, updatedAt: data?.atualizado_em || null, manual: Boolean(data?.manual), source: "supabase" as const, variation, trend: variation === null ? 0 : Math.sign(variation) };
       remember(rate);
       return rate;
     }
@@ -74,6 +75,7 @@ export async function refreshExchangeRate(): Promise<ExchangeRate | null> {
       const rate: ExchangeRate = {
         value: updatedValue,
         date: payload?.data_cotacao || null,
+        updatedAt: payload?.atualizado_em || new Date().toISOString(),
         manual: false,
         source: "supabase",
         provider: payload?.fonte || null,

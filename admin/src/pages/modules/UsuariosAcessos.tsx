@@ -1,0 +1,26 @@
+import {useEffect,useState} from "react";
+import {CheckCircle2,Copy,KeyRound,Plus,RefreshCw,UserCog,XCircle} from "lucide-react";
+import {supabase} from "@/lib/supabase";
+import {getPanelUrl} from "@/lib/authRedirect";
+
+type Request={id:string;nome:string;email:string;tipo:"cliente"|"afiliado";status:string;solicitado_em:string};
+const box={background:"#101012",border:"1px solid #29292e",borderRadius:12,padding:16} as const;
+const input={background:"#09090b",border:"1px solid #3f3f46",borderRadius:8,padding:10,color:"#fff",width:"100%",boxSizing:"border-box"} as const;
+const button={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:7,border:0,borderRadius:8,padding:"9px 12px",fontWeight:800,cursor:"pointer",background:"#c5a059",color:"#09090b"} as const;
+
+export default function UsuariosAcessos(){
+ const[items,setItems]=useState<Request[]>([]),[busy,setBusy]=useState(""),[message,setMessage]=useState(""),[link,setLink]=useState("");
+ const[manual,setManual]=useState(false),[form,setForm]=useState({nome:"",email:"",tipo:"cliente" as "cliente"|"afiliado"});
+ async function load(){const{data,error}=await supabase.from("solicitacoes_acesso").select("*").order("solicitado_em",{ascending:false});setItems((data||[]) as Request[]);if(error)setMessage(error.message)}
+ useEffect(()=>{void load()},[]);
+ async function approve(item:Pick<Request,"id"|"nome"|"email"|"tipo">){setBusy(item.id);setMessage("");setLink("");const{data,error}=await supabase.functions.invoke("gerenciar-acesso",{body:{solicitacao_id:item.id.startsWith("manual-")?null:item.id,nome:item.nome,email:item.email,tipo:item.tipo,redirect_to:getPanelUrl({recovery:"1"})}});setBusy("");if(error||data?.error)return setMessage(data?.error||error?.message||"Não foi possível aprovar.");setLink(data.action_link||"");setMessage("Acesso aprovado. Copie o link seguro e envie à pessoa.");void load()}
+ async function reject(item:Request){setBusy(item.id);const{error}=await supabase.from("solicitacoes_acesso").update({status:"recusada",analisado_em:new Date().toISOString()}).eq("id",item.id);setBusy("");setMessage(error?.message||"Solicitação recusada.");void load()}
+ async function copy(){if(!link)return;await navigator.clipboard.writeText(link);setMessage("Link copiado. Envie pelo WhatsApp; ele serve para a pessoa definir a própria senha.")}
+ const manualItem={id:`manual-${Date.now()}`,...form,status:"pendente",solicitado_em:new Date().toISOString()};
+ return <div style={{color:"#fff",display:"grid",gap:16}}>
+  <header style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}><div><h1 style={{margin:0,display:"flex",gap:9,alignItems:"center"}}><UserCog color="#c5a059"/>Usuários e acessos</h1><p style={{color:"#8b8b95"}}>Aprove clientes e afiliados e gere o primeiro acesso sem compartilhar senhas.</p></div><div style={{display:"flex",gap:8}}><button style={{...button,background:"#27272a",color:"#fff"}} onClick={()=>void load()}><RefreshCw size={15}/>Atualizar</button><button style={button} onClick={()=>setManual(v=>!v)}><Plus size={15}/>Criar acesso</button></div></header>
+  {message&&<div style={{...box,color:link?"#86efac":"#fbbf24"}}>{message}{link&&<div style={{display:"flex",gap:8,marginTop:10}}><input readOnly value={link} style={input}/><button style={button} onClick={()=>void copy()}><Copy size={15}/>Copiar</button></div>}</div>}
+  {manual&&<section style={{...box,display:"grid",gap:10}}><h3 style={{margin:0}}>Cliente ou afiliado que pediu pelo WhatsApp</h3><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:9}}><input style={input} placeholder="Nome" value={form.nome} onChange={e=>setForm({...form,nome:e.target.value})}/><input style={input} type="email" placeholder="E-mail" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/><select style={input} value={form.tipo} onChange={e=>setForm({...form,tipo:e.target.value as any})}><option value="cliente">Cliente</option><option value="afiliado">Afiliado</option></select></div><button disabled={!form.nome||!form.email||Boolean(busy)} style={button} onClick={()=>void approve(manualItem)}><KeyRound size={15}/>Criar/vincular e gerar link seguro</button></section>}
+  <section style={{display:"grid",gap:10}}>{items.map(item=><article key={item.id} style={{...box,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",opacity:item.status==="pendente"?1:.65}}><div style={{flex:1,minWidth:210}}><strong>{item.nome}</strong><small style={{display:"block",color:"#a1a1aa"}}>{item.email} · {item.tipo} · {new Date(item.solicitado_em).toLocaleString("pt-BR")}</small></div><span style={{color:item.status==="aprovada"?"#86efac":item.status==="recusada"?"#fca5a5":"#fbbf24"}}>{item.status}</span>{item.status==="pendente"&&<><button disabled={busy===item.id} style={button} onClick={()=>void approve(item)}><CheckCircle2 size={15}/>Aprovar</button><button disabled={busy===item.id} style={{...button,background:"#3f1d22",color:"#fecaca"}} onClick={()=>void reject(item)}><XCircle size={15}/>Recusar</button></>}</article>)}{!items.length&&<div style={box}>Nenhuma solicitação registrada. Para os pedidos antigos do WhatsApp, use “Criar acesso”.</div>}</section>
+ </div>
+}
