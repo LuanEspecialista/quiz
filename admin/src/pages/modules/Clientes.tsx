@@ -83,7 +83,10 @@ type Selection = {
   exibir_fluxo?: boolean;
   permitir_proposta?: boolean;
   mensagem_personalizada?: string | null;
+  imagem_ids_selecionadas?: string[];
+  landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
 };
+type CuradoriaMedia = { id:string; empreendimento_id:string; titulo?:string|null; categoria?:string|null; storage_path?:string|null; url?:string|null; preview_url?:string|null };
 type ClientProposal = {
   id: string;
   cliente_id: number;
@@ -218,6 +221,7 @@ export default function Clientes({
     [selections, setSelections] = useState<Selection[]>([]),
     [units, setUnits] = useState<Unit[]>([]);
   const [proposals, setProposals] = useState<ClientProposal[]>([]);
+  const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
   const [flowSelection, setFlowSelection] = useState<string[]>([]);
   const [form, setForm] = useState<Form>(empty),
     [query, setQuery] = useState(""),
@@ -256,7 +260,7 @@ export default function Clientes({
   }, [open, curating, comparing]);
 
   async function load() {
-    const [c, p, s, u, cp] = await Promise.all([
+    const [c, p, s, u, cp, media] = await Promise.all([
       supabase
         .from("clientes")
         .select("*")
@@ -274,6 +278,7 @@ export default function Clientes({
         .from("cliente_propostas")
         .select("*")
         .order("created_at", { ascending: false }),
+      supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem"),
     ]);
     if (c.error)
       setMessage(
@@ -289,6 +294,14 @@ export default function Clientes({
     if (!s.error) setSelections((s.data || []) as Selection[]);
     if (!u.error) setUnits((u.data || []) as Unit[]);
     if (!cp.error) setProposals((cp.data || []) as ClientProposal[]);
+    if (!media.error) {
+      const signed = await Promise.all(((media.data || []) as CuradoriaMedia[]).map(async item => {
+        if (!item.storage_path) return { ...item, preview_url:item.url };
+        const { data } = await supabase.storage.from("empreendimentos").createSignedUrl(item.storage_path,3600);
+        return { ...item, preview_url:data?.signedUrl || undefined };
+      }));
+      setCuradoriaMidias(signed);
+    }
   }
   useEffect(() => {
     void load();
@@ -457,6 +470,8 @@ export default function Clientes({
           exibir_investimento: false,
           exibir_fluxo: false,
           permitir_proposta: false,
+          imagem_ids_selecionadas: [],
+          landing_layout: "automatico",
         });
       if (error) return setMessage(error.message);
     }
@@ -1183,6 +1198,25 @@ export default function Clientes({
                               </label>
                             ))}
                           </div>
+                          <label style={{fontSize:11,color:"#d4d4d8"}}>Layout desta apresentação
+                            <select value={selection.landing_layout || "automatico"} onChange={(event)=>void updateSelection(curating.id,property.id,{landing_layout:event.target.value as Selection["landing_layout"]})} style={{...input,marginTop:5}}>
+                              <option value="automatico">Automático — alterna conforme a ordem</option>
+                              <option value="editorial">Editorial — narrativa equilibrada</option>
+                              <option value="imersivo">Imersivo — imagens maiores</option>
+                              <option value="investidor">Investidor — conteúdo e números</option>
+                            </select>
+                          </label>
+                          {selection.exibir_imagens && <div style={{display:"grid",gap:7}}>
+                            <strong style={{fontSize:11}}>Imagens desta landing ({selection.imagem_ids_selecionadas?.length || 0}/10)</strong>
+                            <small style={{color:"#71717a"}}>Toque na ordem desejada. Somente estas imagens serão entregues a este cliente.</small>
+                            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(105px,1fr))",gap:7}}>
+                              {curadoriaMidias.filter(media=>media.empreendimento_id===property.id).map(media=>{const selected=selection.imagem_ids_selecionadas || [];const position=selected.indexOf(media.id);return <button type="button" key={media.id} onClick={()=>{const next=position>=0?selected.filter(id=>id!==media.id):selected.length<10?[...selected,media.id]:selected;if(position<0&&selected.length>=10)return setMessage("Selecione no máximo 10 imagens por landing.");void updateSelection(curating.id,property.id,{imagem_ids_selecionadas:next});}} style={{position:"relative",padding:0,border:`2px solid ${position>=0?"#c5a059":"#303036"}`,borderRadius:7,overflow:"hidden",background:"#18181b",color:"#fff",cursor:"pointer"}}>
+                                {media.preview_url?<img src={media.preview_url} alt={media.titulo || "Imagem"} style={{width:"100%",height:76,objectFit:"cover",display:"block"}}/>:<span style={{height:76,display:"grid",placeItems:"center"}}>Sem prévia</span>}
+                                {position>=0&&<b style={{position:"absolute",top:4,left:4,width:23,height:23,borderRadius:20,display:"grid",placeItems:"center",background:"#c5a059",color:"#09090b"}}>{position+1}</b>}
+                                <small style={{display:"block",padding:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{media.categoria || media.titulo || "Imagem"}</small>
+                              </button>})}
+                            </div>
+                          </div>}
                           <textarea
                             rows={2}
                             value={selection.mensagem_personalizada || ""}
