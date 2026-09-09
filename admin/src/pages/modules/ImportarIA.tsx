@@ -75,8 +75,12 @@ const UnidadesImporter: React.FC = () => {
     const rawTypology = unit.tipologia || product.tipologia_original || product.tipologia_padrao || identification.tipo_ativo || "";
     const typology = parseStandardTypology(rawTypology, Number(unit.quartos ?? product.dormitorios ?? product.quartos ?? 0));
     const alternatives = commercial.alternativas_fluxo || unit.alternativas_fluxo || [];
-    const phases = alternatives?.[0]?.fases || unit.fluxo_dados?.condicoes?.etapas || unit.fluxo_dados?.fases || commercial.fases || [];
-    const flow = unit.fluxo_dados || { alternativas_fluxo: alternatives, fases: phases };
+    const firstAlternative = alternatives?.[0] || {};
+    const phases = firstAlternative.fases || unit.fluxo_dados?.condicoes?.etapas || unit.fluxo_dados?.fases || commercial.fases || [];
+    const flow = { ...(unit.fluxo_dados || {}), alternativas_fluxo: alternatives, fases: phases };
+    if (!flow.percentual_ate_chaves && firstAlternative.percentual_ate_chaves) flow.percentual_ate_chaves = firstAlternative.percentual_ate_chaves;
+    if (!flow.percentual_pos_chaves && firstAlternative.percentual_pos_chaves) flow.percentual_pos_chaves = firstAlternative.percentual_pos_chaves;
+    if (!flow.tipo && firstAlternative.modalidade) flow.tipo = firstAlternative.modalidade;
     const firstValue = (names: string[]) => phases.find((phase: any) => names.some((name) => String(phase.momento || phase.nome || "").toLowerCase().includes(name)));
     const ato = firstValue(["ato", "entrada", "reserva"]);
     if (ato && !flow.ato) flow.ato = parseBrazilNumber(ato.valor_total || ato.valor_unitario);
@@ -156,8 +160,10 @@ const UnidadesImporter: React.FC = () => {
         return;
       }
 
-      const sourceUnits = data.unidades || data.estoque || data.imoveis || data.dados?.unidades;
-      if (!Array.isArray(sourceUnits) || sourceUnits.length === 0) {
+      const readySource = data.unidades || data.estoque || data.imoveis || data.dados?.unidades;
+      const pendingSource = Array.isArray(data.unidades_pendentes) ? data.unidades_pendentes : [];
+      const sourceUnits = [...(Array.isArray(readySource) ? readySource : []), ...pendingSource];
+      if (sourceUnits.length === 0) {
         setImportStatus({ error: "Formato inválido: O JSON precisa conter a lista 'unidades'." });
         return;
       }
