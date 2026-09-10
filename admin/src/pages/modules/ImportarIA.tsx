@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { deliveryDateIso, normalizeDeliveryMonth } from "../../lib/deliveryDate";
-import { parseStandardTypology } from "../../lib/realEstateStandard";
+import { normalizeUnitAvailability, parseStandardTypology } from "../../lib/realEstateStandard";
 import { canonicalSku, normalizeTower, normalizeUnitCode, unitIdentity } from "../../lib/unitIdentity";
 import type { TowerStructure } from "../../lib/unitIdentity";
 import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks } from "lucide-react";
@@ -86,7 +86,14 @@ const UnidadesImporter: React.FC = () => {
     const alternatives = commercial.alternativas_fluxo || unit.alternativas_fluxo || [];
     const firstAlternative = alternatives?.[0] || {};
     const phases = firstAlternative.fases || unit.fluxo_dados?.condicoes?.etapas || unit.fluxo_dados?.fases || commercial.fases || [];
-    const flow = { ...(unit.fluxo_dados || {}), alternativas_fluxo: alternatives, fases: phases };
+    const sourceStatus = firstPresent(unit.status, commercial.status, "disponivel");
+    const canonicalStatus = normalizeUnitAvailability(sourceStatus);
+    const flow = {
+      ...(unit.fluxo_dados || {}),
+      alternativas_fluxo: alternatives,
+      fases: phases,
+      status_original: String(sourceStatus),
+    };
     if (!flow.percentual_ate_chaves && firstAlternative.percentual_ate_chaves) flow.percentual_ate_chaves = firstAlternative.percentual_ate_chaves;
     if (!flow.percentual_pos_chaves && firstAlternative.percentual_pos_chaves) flow.percentual_pos_chaves = firstAlternative.percentual_pos_chaves;
     if (!flow.tipo && firstAlternative.modalidade) flow.tipo = firstAlternative.modalidade;
@@ -116,7 +123,8 @@ const UnidadesImporter: React.FC = () => {
       area_privativa: unit.area_privativa ?? product.area_privativa_m2,
       vagas: unit.vagas ?? (Array.isArray(product.vagas) ? product.vagas.length : product.vagas),
       valor_tabela: parsedDirectPrice || calculatedPrice || 0,
-      status: unit.status ?? commercial.status ?? "disponivel",
+      status: canonicalStatus || String(sourceStatus),
+      _invalidStatus: canonicalStatus ? null : String(sourceStatus),
       fluxo_dados: flow,
       _tipology: typology,
       _sourceIndex: index + 1,
@@ -134,6 +142,7 @@ const UnidadesImporter: React.FC = () => {
   const blockingUnitIssues = (unit: any) => {
     const issues: string[] = [];
     if (!String(unit.codigo_unidade || "").trim()) issues.push("código da unidade");
+    if (unit._invalidStatus) issues.push(`status não reconhecido: ${unit._invalidStatus}`);
     return issues;
   };
 
@@ -346,7 +355,7 @@ const UnidadesImporter: React.FC = () => {
           area_privativa: parseBrazilNumber(u.area_privativa) || null,
           vagas: parseBrazilNumber(u.vagas) || 0,
           valor_tabela: valorTabela,
-          status: (u.status || "disponivel").toLowerCase(),
+          status: u.status || "disponivel",
           fluxo_dados: { ...fluxo, preco_preservado: extractedPrice <= 0, tipologia_extraida: { dormitorios: u._tipology?.dormitorios || 0, suites: u.suites || u._tipology?.suites || 0 } },
         }];
       });

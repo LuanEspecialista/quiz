@@ -7,6 +7,29 @@ export const TYPOLOGY_OPTIONS = [
 ] as const;
 
 export type UnitAvailability = "Disponível" | "Reservada" | "Proposta" | "Bloqueada" | "Vendida" | "Permutada" | "Fora de tabela";
+
+export type UnitAvailabilityValue = "disponivel" | "reservada" | "proposta" | "bloqueada" | "vendida" | "permutada" | "fora de tabela" | "indisponivel";
+
+const availabilityAliases: Array<[UnitAvailabilityValue, RegExp]> = [
+  ["disponivel", /^(disponivel|disponiveis|livre|livres)$/],
+  ["reservada", /^(reservad[ao]s?)$/],
+  ["proposta", /^(propostas?|em proposta)$/],
+  ["bloqueada", /^(bloquead[ao]s?|a consultar|sob consulta|consultar|consulte)$/],
+  ["vendida", /^(vendid[ao]s?)$/],
+  ["permutada", /^(permutad[ao]s?|permuta)$/],
+  ["fora de tabela", /^(fora (de|da) tabela)$/],
+  ["indisponivel", /^(indisponivel|indisponiveis)$/],
+];
+
+export function normalizeUnitAvailability(value: unknown): UnitAvailabilityValue | null {
+  const normalized = String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return "disponivel";
+  return availabilityAliases.find(([, pattern]) => pattern.test(normalized))?.[0] ?? null;
+}
 export type AssetKind = "Apartamento" | "Studio" | "Loft" | "Casa" | "Sobrado" | "Terreno" | "Sala comercial" | "Loja" | "Garagem" | "Residencial" | "Comercial" | "Outro";
 export type PaymentIndex = "Sem correção" | "CUB" | "INCC" | "IPCA" | "IGP-M" | "Poupança" | "CDI" | "Outro";
 export type PaymentDestination = "Construtora" | "Incorporadora" | "Financiamento bancário" | "Consórcio" | "Quitação" | "Outro";
