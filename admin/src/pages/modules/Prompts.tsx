@@ -8,6 +8,7 @@ OBJETIVO
 Extrair TODAS as unidades identificáveis e seus fluxos comerciais. Cada unidade deve permanecer vinculada ao empreendimento, bloco/torre e código corretos. A saída será importada em um sistema; precisão é mais importante que velocidade.
 
 REGRAS OBRIGATÓRIAS
+0. Antes de gerar PRONTO_PARA_IMPORTAR, confirme obrigatoriamente: nome do empreendimento, cidade, previsão de entrega e o fluxo comercial completo da tabela. Se qualquer um estiver ausente, pare e devolva PENDENTE_INFORMACAO com perguntas objetivas para o usuário responder. Depois de receber as respostas, incorpore-as ao JSON e identifique-as como informação fornecida pelo usuário.
 1. Leia todas as páginas, cabeçalhos, rodapés, legendas e observações.
 2. Diferencie apartamento, studio, loft, casa, terreno, sala, loja e garagem. Não transforme vaga extra em apartamento.
 3. Preserve Disponível, Reservada, Proposta, Bloqueada, Vendida, Permutada ou Fora de tabela. Se a tabela mostrar somente estoque atual, não invente unidades ausentes.
@@ -104,6 +105,7 @@ OBJETIVO
 Criar um cadastro mestre completo do empreendimento, adequado para apresentação, busca, comparação, afiliados e posterior associação de unidades.
 
 REGRAS OBRIGATÓRIAS
+0. Nome comercial, construtora, cidade, previsão de entrega e fluxo comercial são dados essenciais. Se algum deles não estiver confirmado no material, não gere o cadastro final: devolva status PENDENTE_INFORMACAO e pergunte cada dado faltante. Após a resposta do usuário, gere novamente o JSON completo e registre a origem como “informado pelo usuário”.
 1. Leia todas as páginas, inclusive plantas, mapas, legendas, textos pequenos, rodapés e registros legais.
 2. Consolide fatos repetidos, mas preserve divergências em “alertas”; não escolha silenciosamente uma versão.
 3. Diferencie construtora, incorporadora, proprietária/SPE, arquitetura, interiores e paisagismo.
@@ -118,6 +120,8 @@ REGRAS OBRIGATÓRIAS
 12. Campo ausente = null. Campo ilegível = null + alerta. Nunca use conhecimento externo para completar o material.
 13. Toda afirmação relevante deve apontar a página de origem.
 14. Não produza SQL nem texto fora do JSON.
+15. Cidade deve ser o nome oficial sem acrescentar “SC” ao próprio nome; grave o estado separadamente como “SC”. Exemplo: cidade “Penha”, estado “SC”; cidade “Balneário Piçarras”, estado “SC”. Nunca crie variações como “Penha SC”, “Penha - SC” ou apenas “Piçarras”.
+16. Para PENDENTE_INFORMACAO, use o mesmo envelope JSON, com “status”, “perguntas” e uma pergunta separada para cada campo essencial ausente.
 
 SAÍDA
 Responda com um único bloco JSON válido, sem markdown, comentários ou reticências:
@@ -187,6 +191,7 @@ REGRAS
 5. Indique a categoria de imagem: fachada, lazer, interiores, dormitorios, plantas ou localizacao.
 6. Separe moradia, estilo de vida e investimento. Projeções nunca são garantias.
 7. Campo ausente = null. Não use pesquisa externa. Não escreva fora do JSON.
+8. Nome do empreendimento e cidade oficial são obrigatórios para identificar o destino. Se faltarem, devolva PENDENTE_INFORMACAO e pergunte antes de criar os blocos.
 
 SAÍDA
 {"versao_padrao":1,"tipo_importacao":"landing_empreendimento","identificacao":{"nome_empreendimento":null,"construtora":null,"cidade":null,"bairro":null,"endereco":null},"landing_page":{"layout_sugerido":"editorial","publico_sugerido":[],"blocos":[{"tipo":"hero","titulo":"","texto":"","categoria_imagem":"fachada","objetivo":"gerar desejo","fonte_pagina":null,"ordem":1}],"frases_comerciais":[],"chamadas_para_acao":[]},"validacao":{"paginas_lidas":[],"alertas":[],"afirmacoes_nao_confirmadas":[]}}

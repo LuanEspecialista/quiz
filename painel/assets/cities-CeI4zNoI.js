@@ -1,0 +1,1 @@
+function e(e){return String(e||``).normalize(`NFD`).replace(/[\u0300-\u036f]/g,``).toLocaleLowerCase(`pt-BR`).replace(/\s*[-/]?\s*(sc|santa catarina)\s*$/i,``).replace(/^bal\.?\s+/i,`balneario `).replace(/^picarras$/i,`balneario picarras`).replace(/[^a-z0-9]+/g,`-`).replace(/^-|-$/g,``)}function t(t,n){let r=e(t),i=e(n);return!!(r&&i&&r===i)}export{t as n,e as t};

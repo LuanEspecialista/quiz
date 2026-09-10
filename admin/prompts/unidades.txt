@@ -6,12 +6,13 @@ OBJETIVO
 Extrair o cadastro geral do empreendimento sem misturar informações de unidades individuais. Não invente, estime ou complete dados por hábito. Preserve nomes comerciais e textos oficiais.
 
 REGRAS INEGOCIÁVEIS
+0. Nome comercial, construtora, cidade oficial, previsão de entrega e fluxo comercial são essenciais. Se qualquer um não estiver confirmado no material, não gere PRONTO_PARA_IMPORTAR: devolva PENDENTE_INFORMACAO, pergunte objetivamente o dado faltante e aguarde a resposta. Depois, incorpore a resposta ao JSON e marque a origem como “informado pelo usuário”.
 1. Leia todas as páginas, imagens, tabelas, legendas, notas, rodapés e anexos.
 2. Use somente informações explicitamente confirmadas no material.
 3. Nunca presuma cidade, construtora, endereço, quantidade, metragem, preço, prazo, valorização, lazer ou diferencial.
 4. Se houver divergência, ilegibilidade ou dúvida em um campo obrigatório, não gere importação: retorne PENDENTE_INFORMACAO.
 5. Nome e construtora são obrigatórios e devem reproduzir a grafia oficial.
-6. Cidade deve preferencialmente usar “Cidade - UF”.
+6. Cidade deve usar o nome oficial sem UF no mesmo campo; grave o estado separadamente. Ex.: cidade “Penha”, estado “SC”; cidade “Balneário Piçarras”, estado “SC”. Nunca use “Penha SC”, “Penha - SC” ou apenas “Piçarras”.
 7. previsao_entrega deve usar YYYY-MM-DD quando houver dia ou YYYY-MM quando houver apenas mês/ano.
 8. Números devem ser JSON numérico, sem “R$”, pontos de milhar, “m²” ou “%”. Ex.: R$ 1.250.000,00 vira 1250000; 12,5% vira 12.5.
 9. valorizacao_aa só pode ser preenchida se o percentual anual estiver declarado. Nunca calcule. Se ausente, use null.
@@ -114,7 +115,8 @@ FORMATO EXATO DE SUCESSO
 Antes de responder, confira silenciosamente:
 - JSON válido e sem vírgula sobrando.
 - status PRONTO_PARA_IMPORTAR.
-- empreendimento.nome e empreendimento.construtora preenchidos.
+- empreendimento.nome, empreendimento.construtora, empreendimento.cidade e empreendimento.previsao_entrega preenchidos.
+- ao menos um fluxo comercial confirmado; se não existir no documento, a resposta do usuário deve constar como fonte.
 - listas lazer, diferenciais e caracteristicas existentes.
 - todo item de caracteristicas com categoria, nome e valor confirmado.
 - campos ausentes representados por null e também listados em campos_nao_encontrados.
