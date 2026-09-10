@@ -30,6 +30,24 @@ export function normalizeUnitAvailability(value: unknown): UnitAvailabilityValue
   if (!normalized) return "disponivel";
   return availabilityAliases.find(([, pattern]) => pattern.test(normalized))?.[0] ?? null;
 }
+
+export function isUnitAvailable(value: unknown): boolean {
+  return normalizeUnitAvailability(value) === "disponivel";
+}
+
+export function unitAvailabilityLabel(value: unknown): string {
+  const status = normalizeUnitAvailability(value);
+  return ({
+    disponivel: "Disponível",
+    reservada: "Reservada",
+    proposta: "Em proposta",
+    bloqueada: "Bloqueada",
+    vendida: "Vendida",
+    permutada: "Permutada",
+    "fora de tabela": "Fora de tabela",
+    indisponivel: "Indisponível",
+  } as Record<UnitAvailabilityValue, string>)[status || "indisponivel"];
+}
 export type AssetKind = "Apartamento" | "Studio" | "Loft" | "Casa" | "Sobrado" | "Terreno" | "Sala comercial" | "Loja" | "Garagem" | "Residencial" | "Comercial" | "Outro";
 export type PaymentIndex = "Sem correção" | "CUB" | "INCC" | "IPCA" | "IGP-M" | "Poupança" | "CDI" | "Outro";
 export type PaymentDestination = "Construtora" | "Incorporadora" | "Financiamento bancário" | "Consórcio" | "Quitação" | "Outro";

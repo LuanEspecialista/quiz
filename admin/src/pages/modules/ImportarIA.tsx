@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { deliveryDateIso, normalizeDeliveryMonth } from "../../lib/deliveryDate";
-import { normalizeUnitAvailability, parseStandardTypology } from "../../lib/realEstateStandard";
+import { isUnitAvailable, normalizeUnitAvailability, parseStandardTypology, unitAvailabilityLabel } from "../../lib/realEstateStandard";
 import { canonicalSku, normalizeTower, normalizeUnitCode, unitIdentity } from "../../lib/unitIdentity";
 import type { TowerStructure } from "../../lib/unitIdentity";
 import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks } from "lucide-react";
@@ -135,7 +135,7 @@ const UnidadesImporter: React.FC = () => {
   const unitIssues = (unit: any) => {
     const issues: string[] = [];
     if (!String(unit.codigo_unidade || "").trim()) issues.push("código da unidade");
-    if (parseBrazilNumber(unit.valor_tabela) <= 0) issues.push("valor total da tabela");
+    if (isUnitAvailable(unit.status) && parseBrazilNumber(unit.valor_tabela) <= 0) issues.push("valor total da tabela");
     return issues;
   };
 
@@ -324,7 +324,7 @@ const UnidadesImporter: React.FC = () => {
         const existing = existingByIdentity.get(identity)?.[0];
         const extractedPrice = parseBrazilNumber(u.valor_tabela);
         const valorTabela = extractedPrice > 0 ? extractedPrice : parseBrazilNumber(existing?.valor_tabela);
-        if (valorTabela <= 0) {
+        if (valorTabela <= 0 && isUnitAvailable(u.status)) {
           unidadesPendentesSemPreco.push(u);
           return [];
         }
@@ -354,9 +354,9 @@ const UnidadesImporter: React.FC = () => {
           quartos: Number(u.quartos) || u._tipology?.dormitorios || 0,
           area_privativa: parseBrazilNumber(u.area_privativa) || null,
           vagas: parseBrazilNumber(u.vagas) || 0,
-          valor_tabela: valorTabela,
+          valor_tabela: Math.max(0, valorTabela),
           status: u.status || "disponivel",
-          fluxo_dados: { ...fluxo, preco_preservado: extractedPrice <= 0, tipologia_extraida: { dormitorios: u._tipology?.dormitorios || 0, suites: u.suites || u._tipology?.suites || 0 } },
+          fluxo_dados: { ...fluxo, preco_preservado: extractedPrice <= 0 && valorTabela > 0, preco_nao_publicado: extractedPrice <= 0 && valorTabela <= 0, tipologia_extraida: { dormitorios: u._tipology?.dormitorios || 0, suites: u.suites || u._tipology?.suites || 0 } },
         }];
       });
 
@@ -439,7 +439,7 @@ const UnidadesImporter: React.FC = () => {
       setImportStatus({
         success: histError
           ? `${unidadesParaInserir.length} unidades válidas atualizadas. O histórico não foi salvo: ${histError.message}`
-          : `Sucesso! ${unidadesParaInserir.length} unidades conciliadas e histórico de ${mesReferencia}/${anoReferencia} atualizado.${unidadesPendentesSemPreco.length ? ` ${unidadesPendentesSemPreco.length} unidade(s) nova(s) sem preço permaneceram pendentes.` : ""}${invalid.length ? ` ${invalid.length} linha(s) sem código não foram gravadas.` : ""}`,
+          : `Sucesso! ${unidadesParaInserir.length} unidades conciliadas e histórico de ${mesReferencia}/${anoReferencia} atualizado.${unidadesPendentesSemPreco.length ? ` ${unidadesPendentesSemPreco.length} unidade(s) disponível(is) sem preço permaneceram pendentes.` : ""}${invalid.length ? ` ${invalid.length} linha(s) sem código ou com status desconhecido não foram gravadas.` : ""}`,
       });
       if (!invalid.length) setJsonInput("");
       setParsedData(null);
@@ -600,19 +600,23 @@ const UnidadesImporter: React.FC = () => {
                   const pctAto = parsedData.regras_cabecalho?.percentual_ato;
                   const atoCalculado = u.fluxo_dados?.ato || (pctAto ? (valorTab * pctAto) / 100 : 0);
                   const issues = unitIssues(u);
+                  const available = isUnitAvailable(u.status);
+                  const missingPublishedPrice = valorTab <= 0;
+                  const statusLabel = unitAvailabilityLabel(u.status);
+                  const blocked = blockingUnitIssues(u).length > 0;
 
                   return (
-                    <div key={idx} style={{ padding: "0.55rem 0.6rem", borderBottom: "1px solid #1f1f23", fontSize: "0.75rem", color: "#a1a1aa", background: issues.length ? "rgba(239,68,68,.07)" : "transparent" }}>
+                    <div key={idx} style={{ padding: "0.55rem 0.6rem", borderBottom: "1px solid #1f1f23", fontSize: "0.75rem", color: "#a1a1aa", background: blocked ? "rgba(239,68,68,.07)" : available && issues.length ? "rgba(245,158,11,.07)" : "transparent" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: issues.length ? 7 : 0 }}>
                         <span><strong style={{ color: "#fff" }}>Linha {u._sourceIndex || idx + 1}</strong> · {u.tipologia || "Tipologia não informada"}</span>
-                        <span style={{ color: blockingUnitIssues(u).length ? "#f87171" : issues.length ? "#fbbf24" : "#22c55e", fontWeight: 700 }}>{blockingUnitIssues(u).length ? `Bloqueada: ${blockingUnitIssues(u).join(" e ")}` : issues.length ? "Preço será preservado se já cadastrada" : "Pronta"}</span>
+                        <span style={{ color: blocked ? "#f87171" : available && issues.length ? "#fbbf24" : available ? "#22c55e" : "#a1a1aa", fontWeight: 700 }}>{blocked ? `Bloqueada: ${blockingUnitIssues(u).join(" e ")}` : available && issues.length ? "Disponível sem preço — informe ou preserve o cadastro" : missingPublishedPrice ? `${statusLabel} — preço não publicado` : statusLabel}</span>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(90px,1fr) minmax(140px,1.4fr)", gap: 7 }}>
                         <label style={{ color: "#71717a" }}>Código<input value={u.codigo_unidade || ""} onChange={(event) => updateParsedUnit(idx, { codigo_unidade: event.target.value })} placeholder="Ex.: 401" style={{ width: "100%", boxSizing: "border-box", marginTop: 3, background: "#101012", color: "#fff", border: `1px solid ${!u.codigo_unidade ? "#ef4444" : "#34343a"}`, borderRadius: 4, padding: "6px 7px" }}/></label>
-                        <label style={{ color: "#71717a" }}>Valor total (R$)<input value={u.valor_tabela || ""} onChange={(event) => updateParsedUnit(idx, { valor_tabela: event.target.value, _priceSource: "revisado_manualmente" })} placeholder="Ex.: 850000" inputMode="decimal" style={{ width: "100%", boxSizing: "border-box", marginTop: 3, background: "#101012", color: "#fff", border: `1px solid ${valorTab <= 0 ? "#ef4444" : "#34343a"}`, borderRadius: 4, padding: "6px 7px" }}/></label>
+                        <label style={{ color: "#71717a" }}>Valor total (R$)<input value={u.valor_tabela || ""} onChange={(event) => updateParsedUnit(idx, { valor_tabela: event.target.value, _priceSource: "revisado_manualmente" })} placeholder={available ? "Ex.: 850000" : "Não publicado"} inputMode="decimal" style={{ width: "100%", boxSizing: "border-box", marginTop: 3, background: "#101012", color: "#fff", border: `1px solid ${available && valorTab <= 0 ? "#f59e0b" : "#34343a"}`, borderRadius: 4, padding: "6px 7px" }}/></label>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 5, fontSize: "0.65rem", color: "#71717a" }}>
-                        <span>{u._priceSource === "soma_das_etapas" ? "Valor conciliado pela soma das etapas" : u._priceSource === "revisado_manualmente" ? "Valor revisado manualmente" : u._priceSource === "ausente" ? "Valor não localizado" : "Valor lido do documento"}</span>
+                        <span>{u._priceSource === "soma_das_etapas" ? "Valor conciliado pela soma das etapas" : u._priceSource === "revisado_manualmente" ? "Valor revisado manualmente" : u._priceSource === "ausente" ? available ? "Valor necessário para ofertar a unidade" : "Sem preço porque não está disponível para venda" : "Valor lido do documento"}</span>
                         <span>Ato: {formatCurrency(atoCalculado)}</span>
                       </div>
                     </div>
