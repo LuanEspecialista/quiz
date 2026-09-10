@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { analyzeFlow, getCommercialFlowProfile, monthsUntilDelivery } from "../../lib/flowCompatibility";
-import { parseStandardTypology } from "../../lib/realEstateStandard";
+import { isUnitAvailable, normalizeUnitAvailability, parseStandardTypology, unitAvailabilityLabel } from "../../lib/realEstateStandard";
 import CurrencyInput from "../../components/CurrencyInput";
 import UnitFloorplanViewer from "../../components/UnitFloorplanViewer";
 
@@ -209,8 +209,9 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
   const toggleUnitStatus = async (unit: any, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    const statusAtual = String(unit.status || "").toLowerCase();
-    const isDisponivel = statusAtual === "disponivel" || statusAtual === "disponível" || unit.disponivel === true;
+    const statusAtual = normalizeUnitAvailability(unit.status);
+    const isDisponivel = isUnitAvailable(unit.status) || unit.disponivel === true;
+    if (!isDisponivel && statusAtual !== "indisponivel") return;
     const novoStatus = isDisponivel ? "Indisponivel" : "Disponivel";
 
     setUpdatingId(unit.id);
@@ -401,9 +402,8 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
       constNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cidadeNome.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const statusClean = String(u.status || "").toLowerCase();
-    const isDisp = statusClean === "disponivel" || statusClean === "disponível" || u.disponivel === true;
-    const isIndisp = statusClean === "indisponivel" || statusClean === "indisponível" || statusClean === "reservada" || statusClean === "vendida" || statusClean === "bloqueada";
+    const isDisp = isUnitAvailable(u.status) || u.disponivel === true;
+    const isIndisp = !isDisp;
 
     let matchesDisp = true;
     if (disponibilidade === "DISPONIVEL") {
@@ -797,8 +797,10 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
               const capacidadeInformada = parseCurrencyValue(entradaMaxRaw) > 0 || parseCurrencyValue(parcelaMaxRaw) > 0 || parseCurrencyValue(balaoMaxRaw) > 0;
               const analiseFluxo = analyzeFlow(u, { entrada: parseCurrencyValue(entradaMaxRaw), parcela: parseCurrencyValue(parcelaMaxRaw), balao: parseCurrencyValue(balaoMaxRaw) });
               
-              const statusClean = String(u.status || "").toLowerCase();
-              const isDisponivel = statusClean === "disponivel" || statusClean === "disponível" || u.disponivel === true;
+              const statusClean = normalizeUnitAvailability(u.status);
+              const isDisponivel = isUnitAvailable(u.status) || u.disponivel === true;
+              const canQuickToggle = isDisponivel || statusClean === "indisponivel";
+              const statusLabel = unitAvailabilityLabel(u.status);
 
               const emp = u.empreendimentos || {};
               const regrasCorrecao = emp.regras_correcao || u.regras_correcao || {};
@@ -808,7 +810,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
               return (
                 <div 
                   key={u.id} 
-                  onClick={() => !isEditing && toggleSelectUnit(u)}
+                  onClick={() => isDisponivel && !isEditing && toggleSelectUnit(u)}
                   style={{ 
                     backgroundColor: "#121212", 
                     border: isSelected ? "2px solid #c5a059" : "1px solid #1f1f23", 
@@ -817,7 +819,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                     display: "flex", 
                     flexDirection: "column", 
                     justifyContent: "space-between",
-                    cursor: isEditing ? "default" : "pointer",
+                    cursor: isDisponivel && !isEditing ? "pointer" : "default",
                     position: "relative",
                     transition: "all 0.2s",
                     opacity: isDisponivel ? 1 : 0.65
@@ -853,7 +855,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                       </div>
                     )}
 
-                    <div 
+                    {canQuickToggle && <div
                       onClick={(e) => toggleUnitStatus(u, e)}
                       title={isDisponivel ? "Status: Disponível" : "Status: Indisponível"}
                       style={{
@@ -875,13 +877,14 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                         transform: isDisponivel ? "translateX(14px)" : "translateX(0px)",
                         transition: "transform 0.2s ease"
                       }} />
-                    </div>
+                    </div>}
 
                     <input 
                       type="checkbox" 
-                      checked={isSelected}
+                      checked={isDisponivel && isSelected}
+                      disabled={!isDisponivel}
                       onChange={(e) => toggleSelectUnit(u, e as any)}
-                      style={{ accentColor: "#c5a059", cursor: "pointer", width: "16px", height: "16px" }}
+                      style={{ accentColor: "#c5a059", cursor: isDisponivel ? "pointer" : "not-allowed", width: "16px", height: "16px", opacity: isDisponivel ? 1 : 0.35 }}
                     />
                   </div>
 
@@ -904,7 +907,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
                         color: isDisponivel ? "#22c55e" : "#ef4444",
                         border: `1px solid ${isDisponivel ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`
                       }}>
-                        {isDisponivel ? "Disponível" : "Indisponível"}
+                        {statusLabel}
                       </span>
                     </div>
 
