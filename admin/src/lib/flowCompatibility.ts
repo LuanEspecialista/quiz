@@ -56,15 +56,16 @@ function percentFromRule(...values: unknown[]) {
 
 export function getCommercialFlowProfile(unit: any) {
   const flow = unit?.fluxo_dados || {};
+  const summary = flow.resumo_percentual || flow.resumo_percentuais || {};
   const enterprise = unit?.empreendimentos || {};
   const rules = enterprise.regras_correcao || {};
   const commercial = readCommercialFlow(enterprise);
-  const financingPercent = n(flow.percentual_financiamento, flow.percentual_pos_chaves, commercial.percentual_financiamento, commercial.percentual_pos_chaves, rules.percentual_financiamento);
+  const financingPercent = n(flow.percentual_financiamento, flow.percentual_pos_chaves, summary.pos_chaves, summary.financiamento, commercial.percentual_financiamento, commercial.percentual_pos_chaves, rules.percentual_financiamento);
   const distributedPreKeysPercent =
     n(flow.percentual_ato, commercial.percentual_ato, rules.percentual_ato) +
     n(flow.percentual_mensais, flow.percentual_parcelas, commercial.percentual_mensais, commercial.percentual_parcelas, rules.percentual_mensais) +
     n(flow.percentual_baloes, flow.percentual_balao, commercial.percentual_baloes, commercial.percentual_balao, rules.percentual_baloes);
-  const preKeysPercent = n(flow.percentual_ate_chaves, flow.percentual_pre_chaves, flow.percentual_durante_obra, commercial.percentual_ate_chaves, commercial.percentual_pre_chaves, rules.percentual_ate_chaves, rules.percentual_pre_chaves, distributedPreKeysPercent, financingPercent ? 100 - financingPercent : 0, percentFromRule(flow.regra_pagamento, flow.regra_pos_chaves, rules.regra_pagamento, rules.regra_pos_chaves));
+  const preKeysPercent = n(flow.percentual_ate_chaves, flow.percentual_pre_chaves, flow.percentual_durante_obra, summary.obra, summary.ate_chaves, summary.pre_chaves, commercial.percentual_ate_chaves, commercial.percentual_pre_chaves, rules.percentual_ate_chaves, rules.percentual_pre_chaves, distributedPreKeysPercent, financingPercent ? 100 - financingPercent : 0, percentFromRule(flow.regra_pagamento, flow.regra_pos_chaves, rules.regra_pagamento, rules.regra_pos_chaves));
   if (!preKeysPercent || preKeysPercent >= 100) return null;
   // O filtro usa faixas comerciais padronizadas (10/90, 20/80, 30/70...).
   // O cálculo da unidade mantém o percentual exato, sem arredondar valores.
@@ -82,14 +83,14 @@ export function analyzeFlow(unit: any, client: ClientCapacity): FlowCompatibilit
   const deliveryMonths = monthsUntilDelivery(enterprise.entrega || enterprise.previsao_entrega || enterprise.data_entrega || unit.data_entrega || unit.data_entrega_unidade);
   // A tabela da construtora prevalece quando informa a quantidade contratual
   // de parcelas. A data de entrega é a contingência para produtos sem tabela.
-  const months = Math.round(n(flow.meses_ate_chaves, flow.parcelas_antes_chaves, flow.quantidade_parcelas_ate_chaves, flow.numero_parcelas, commercial.parcelas_antes_chaves, deliveryMonths));
+  const months = Math.round(n(flow.meses_ate_chaves, flow.parcelas_antes_chaves, flow.quantidade_parcelas_ate_chaves, flow.numero_parcelas, flow.mensais_obra_qtd, flow.parcela_quantidade, flow.parcela_pre_chaves_quantidade, commercial.parcelas_antes_chaves, deliveryMonths));
   const preKeysPercent = getCommercialFlowProfile(unit)?.preKeysPercent || 0;
   const annualBalloons = n(commercial.baloes_por_ano);
-  const balloonCount = Math.max(0, Math.round(n(flow.quantidade_baloes, flow.numero_baloes, flow.quantidade_reforcos, annualBalloons && months ? annualBalloons * Math.floor(months / 12) : 0, months ? Math.floor(months / 12) : 0)));
+  const balloonCount = Math.max(0, Math.round(n(flow.quantidade_baloes, flow.numero_baloes, flow.quantidade_reforcos, flow.baloes_obra_qtd, flow.reforcos_obra_qtd, annualBalloons && months ? annualBalloons * Math.floor(months / 12) : 0, months ? Math.floor(months / 12) : 0)));
   const entryPercent = n(flow.percentual_ato, commercial.percentual_ato, rules.percentual_ato);
   // Ato de tabela (normalmente 10%) é uma sugestão de composição, não uma
   // barreira. Só os campos explicitamente "mínimo" bloqueiam uma negociação.
-  const suggestedDefaultEntry = n(unit.entrada_sugerida, unit.entrada, flow.ato, flow.entrada, price && entryPercent ? price * entryPercent / 100 : 0);
+  const suggestedDefaultEntry = n(unit.entrada_sugerida, unit.entrada, flow.ato, flow.entrada, flow.ato_valor, flow.entrada_valor, price && entryPercent ? price * entryPercent / 100 : 0);
   const hardMinimumEntry = n(flow.entrada_minima, flow.ato_minimo, flow.valor_minimo_ato, commercial.entrada_minima, commercial.ato_minimo, rules.entrada_minima, rules.ato_minimo);
   const blank: FlowCompatibility = { status: "incompleto", reason: "Cadastre valor, entrega e percentual até as chaves.", months, balloonCount, preKeysPercent, preKeysTarget: 0, suggestedEntry: 0, suggestedInstallment: 0, suggestedBalloon: 0, balanceAtKeys: 0, capacity: 0, coverage: 0 };
   if (!price || !months || !preKeysPercent) return blank;
