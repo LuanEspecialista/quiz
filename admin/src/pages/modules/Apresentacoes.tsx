@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Edit3, ExternalLink, FileText, Link2, Loader2, Play, RefreshCw, Save, Search, Upload, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { cityKey, sameCity } from "@/lib/cities";
 
 type Empreendimento = { id: string; nome?: string | null; cidade?: string | null; imagem_url?: string | null; caracteristicas?: Record<string, unknown> | null };
 type EmpreendimentoImagem = { empreendimento_id: string; url?: string | null; storage_path?: string | null; ordem?: number | null };
@@ -122,14 +123,14 @@ export default function Apresentacoes() {
 
   const cities = useMemo(() => [
     "Todas",
-    ...Array.from(new Set(empreendimentos.map((item) => item.cidade?.trim()).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    ...Array.from(new Map(empreendimentos.filter((item)=>item.cidade).map((item)=>[cityKey(item.cidade),item.cidade!.replace(/\s*[-/]?\s*SC\s*$/i,"").trim()])).values()).sort((a, b) => a.localeCompare(b, "pt-BR")),
   ], [empreendimentos]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-BR");
     return empreendimentos.filter((item) =>
       (!term || `${item.nome || ""} ${item.cidade || ""}`.toLocaleLowerCase("pt-BR").includes(term)) &&
-      (cityFilter === "Todas" || item.cidade?.trim() === cityFilter),
+      (cityFilter === "Todas" || sameCity(item.cidade, cityFilter)),
     );
   }, [empreendimentos, search, cityFilter]);
 

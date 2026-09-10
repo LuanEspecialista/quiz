@@ -23,6 +23,7 @@ import { supabase } from "../../lib/supabase";
 import { mergeEnterpriseStandard, parseStandardTypology, STANDARD_VERSION, TYPOLOGY_OPTIONS, type CommercialFlow } from "../../lib/realEstateStandard";
 import { deliveryDateIso, deliveryLabelPt, normalizeDeliveryMonth } from "../../lib/deliveryDate";
 import CurrencyInput from "../../components/CurrencyInput";
+import CitySelect from "../../components/CitySelect";
 
 type Empreendimento = {
   id: string;
@@ -31,6 +32,7 @@ type Empreendimento = {
   slug?: string | null;
   construtora_id?: string | null;
   cidade?: string | null;
+  cidade_id?: string | null;
   bairro?: string | null;
   endereco?: string | null;
   tipo?: string | null;
@@ -82,6 +84,7 @@ type FormData = {
   nome: string;
   construtora_id: string;
   cidade: string;
+  cidade_id: string;
   bairro: string;
   endereco: string;
   tipo: string;
@@ -144,6 +147,7 @@ const EMPTY_FORM: FormData = {
   nome: "",
   construtora_id: "",
   cidade: "",
+  cidade_id: "",
   bairro: "",
   endereco: "",
   tipo: "",
@@ -430,6 +434,7 @@ export default function Empreendimentos() {
       nome: item.nome || item.titulo || "",
       construtora_id: item.construtora_id || "",
       cidade: item.cidade || "",
+      cidade_id: item.cidade_id || "",
       bairro: item.bairro || "",
       endereco: item.endereco || "",
       tipo: item.tipo || "",
@@ -513,6 +518,7 @@ export default function Empreendimentos() {
         nome: form.nome.trim(),
         construtora_id: form.construtora_id || null,
         cidade: form.cidade.trim() || null,
+        cidade_id: form.cidade_id || null,
         bairro: form.bairro.trim() || null,
         endereco: form.endereco.trim() || null,
         tipo: form.tipo.trim() || null,
@@ -1277,12 +1283,7 @@ export default function Empreendimentos() {
                 </div>
                 <div className="emp-field">
                   <label className="emp-label">Cidade</label>
-                  <input
-                    className="emp-input"
-                    value={form.cidade}
-                    onChange={(e) => updateField("cidade", e.target.value)}
-                    placeholder="Ex.: Penha"
-                  />
+                  <CitySelect className="emp-select" value={form.cidade} cityId={form.cidade_id} required onChange={(name,id)=>setForm((current)=>({...current,cidade:name,cidade_id:id}))}/>
                 </div>
                 <div className="emp-field">
                   <label className="emp-label">Bairro</label>

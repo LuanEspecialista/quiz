@@ -5,6 +5,8 @@ import { isUnitAvailable, normalizeUnitAvailability, parseStandardTypology, unit
 import { canonicalSku, normalizeTower, normalizeUnitCode, unitIdentity } from "../../lib/unitIdentity";
 import type { TowerStructure } from "../../lib/unitIdentity";
 import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks } from "lucide-react";
+import CitySelect from "../../components/CitySelect";
+import { sameCity } from "../../lib/cities";
 
 const UnidadesImporter: React.FC = () => {
   const [jsonInput, setJsonInput] = useState("");
@@ -745,6 +747,7 @@ const EmpreendimentoImporter: React.FC = () => {
   const [empreendimentos, setEmpreendimentos] = useState<EmpreendimentoResumo[]>([]);
   const [construtoras, setConstrutoras] = useState<ConstrutoraResumo[]>([]);
   const [selectedConstrutoraId, setSelectedConstrutoraId] = useState("");
+  const [selectedCity, setSelectedCity] = useState({ id: "", name: "" });
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ error?: string; success?: string } | null>(null);
 
@@ -774,6 +777,9 @@ const EmpreendimentoImporter: React.FC = () => {
       if (data.status !== "PRONTO_PARA_IMPORTAR" || !data.empreendimento?.nome) {
         throw new Error("O JSON precisa ter status PRONTO_PARA_IMPORTAR e o nome do empreendimento.");
       }
+      if (!data.empreendimento.cidade || !normalizeDeliveryMonth(data.empreendimento.previsao_entrega)) {
+        throw new Error("Cidade e previsão de entrega são obrigatórias. Use PENDENTE_INFORMACAO no prompt e responda às perguntas antes de importar.");
+      }
       if (!Array.isArray(data.caracteristicas) || !Array.isArray(data.lazer) || !Array.isArray(data.diferenciais)) {
         throw new Error("O JSON precisa conter as listas caracteristicas, lazer e diferenciais, mesmo quando vazias.");
       }
@@ -781,6 +787,7 @@ const EmpreendimentoImporter: React.FC = () => {
       if (invalid) throw new Error("Cada característica precisa ter categoria, nome e valor confirmado.");
 
       setParsed(data);
+      setSelectedCity({ id: "", name: data.empreendimento.cidade });
       const builderName = normalizeBuilderName(data.empreendimento.construtora || "");
       const builderMatch = construtoras.find((item) => normalizeBuilderName(item.nome) === builderName);
       setSelectedConstrutoraId(builderMatch?.id || "");
@@ -791,11 +798,13 @@ const EmpreendimentoImporter: React.FC = () => {
   }
 
   async function save() {
-    if (!parsed?.empreendimento || !selectedConstrutoraId) return;
+    if (!parsed?.empreendimento || !selectedConstrutoraId || !selectedCity.id) return;
     const source = parsed.empreendimento;
     const payload: Record<string, unknown> = {
       nome: source.nome?.trim(),
       construtora_id: selectedConstrutoraId,
+      cidade: selectedCity.name,
+      cidade_id: selectedCity.id,
       ativo: true,
     };
     const normalizedDelivery = normalizeDeliveryMonth(source.previsao_entrega);
@@ -804,7 +813,7 @@ const EmpreendimentoImporter: React.FC = () => {
       payload.entrega_date = deliveryDateIso(normalizedDelivery);
     }
     const mapping: Array<[string, unknown]> = [
-      ["cidade", source.cidade], ["bairro", source.bairro], ["endereco", source.endereco],
+      ["bairro", source.bairro], ["endereco", source.endereco],
       ["tipo", source.tipo], ["status", source.status_obra], ["previsao_entrega", source.previsao_entrega],
       ["descricao", source.descricao], ["quantidade_torres", source.quantidade_torres],
       ["quantidade_unidades", source.quantidade_unidades], ["total_pavimentos", source.total_pavimentos],
@@ -827,7 +836,7 @@ const EmpreendimentoImporter: React.FC = () => {
     setStatus(null);
     const duplicate = empreendimentos.find((item) =>
       item.nome.trim().toLocaleLowerCase("pt-BR") === source.nome?.trim().toLocaleLowerCase("pt-BR") &&
-      (!source.cidade || item.cidade?.trim().toLocaleLowerCase("pt-BR") === source.cidade.trim().toLocaleLowerCase("pt-BR"))
+      (!source.cidade || sameCity(item.cidade, selectedCity.name))
     );
     if (duplicate) {
       setSaving(false);
@@ -842,6 +851,7 @@ const EmpreendimentoImporter: React.FC = () => {
       setJsonInput("");
       setParsed(null);
       setSelectedConstrutoraId("");
+      setSelectedCity({ id: "", name: "" });
     }
   }
 
@@ -868,6 +878,8 @@ const EmpreendimentoImporter: React.FC = () => {
           </select>
           {!selectedConstrutoraId && <div style={{ ...errorBox, marginTop: 10 }}>A construtora lida não foi localizada automaticamente. Confirme uma construtora existente ou cadastre-a primeiro na aba Construtoras.</div>}
           {builderDiffers && <div style={{ ...errorBox, marginTop: 10 }}>A construtora selecionada é diferente do nome lido no material. Revise antes de cadastrar.</div>}
+          <label style={{...labelStyle,marginTop:12}}>Confirmar cidade existente *</label>
+          <CitySelect value={selectedCity.name || parsed.empreendimento?.cidade || ""} cityId={selectedCity.id} required onChange={(name,id)=>setSelectedCity({name,id})} />
           <div style={summaryStyle}>
             <div><strong>Nome lido:</strong> {parsed.empreendimento?.nome}</div>
             <div><strong>Construtora lida:</strong> {parsed.empreendimento?.construtora}</div>
@@ -884,7 +896,7 @@ const EmpreendimentoImporter: React.FC = () => {
             {(parsed.caracteristicas || []).map((item, index) => <div key={`${item.categoria}-${item.nome}-${index}`} style={itemStyle}><div><strong style={{ color: "#fff" }}>{item.nome}</strong><small style={{ display: "block", color: "#71717a" }}>{item.categoria}{item.fonte ? ` · ${item.fonte}` : ""}</small></div><span style={{ color: "#c5a059", textAlign: "right" }}>{typeof item.valor === "object" ? JSON.stringify(item.valor) : String(item.valor)}{item.unidade ? ` ${item.unidade}` : ""}</span></div>)}
           </div>
           {(parsed.campos_nao_encontrados?.length || 0) > 0 && <p style={{ color: "#fbbf24", fontSize: 12 }}>Não encontrados: {parsed.campos_nao_encontrados?.join(", ")}</p>}
-          <button disabled={!selectedConstrutoraId || saving || builderDiffers} onClick={() => void save()} style={{ ...primaryActionStyle, opacity: !selectedConstrutoraId || saving || builderDiffers ? .45 : 1 }}>{saving ? <Loader2 size={18} /> : <ListChecks size={18} />}{saving ? "Cadastrando..." : "Cadastrar empreendimento"}</button>
+          <button disabled={!selectedConstrutoraId || !selectedCity.id || saving || builderDiffers} onClick={() => void save()} style={{ ...primaryActionStyle, opacity: !selectedConstrutoraId || !selectedCity.id || saving || builderDiffers ? .45 : 1 }}>{saving ? <Loader2 size={18} /> : <ListChecks size={18} />}{saving ? "Cadastrando..." : "Cadastrar empreendimento"}</button>
         </div>}
       </section>
     </div>
