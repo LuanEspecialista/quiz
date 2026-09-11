@@ -98,6 +98,7 @@ export default function BlogModule() {
   >(null);
   const [message, setMessage] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [empreendimentos, setEmpreendimentos] = useState<
     Array<{ id: string; nome: string; imagem_url: string | null }>
   >([]);
@@ -230,6 +231,24 @@ export default function BlogModule() {
     setPosts((current) => current.filter((item) => item.id !== post.id));
     setEditing((current) => current?.id === post.id ? null : current);
     setMessage("Artigo excluído. As imagens foram preservadas na biblioteca para reutilização.");
+  };
+
+  const togglePostVisibility = async (post: Post) => {
+    const publish = post.status !== "publicado";
+    const nextStatus: Status = publish ? "publicado" : "rascunho";
+    const publicadoEm = publish ? post.publicado_em || new Date().toISOString() : null;
+    setTogglingId(post.id);
+    const { error } = await supabase
+      .from("blog_posts")
+      .update({ status: nextStatus, publicado_em: publicadoEm, atualizado_em: new Date().toISOString() })
+      .eq("id", post.id);
+    setTogglingId(null);
+    if (error) {
+      setMessage(`Não foi possível ${publish ? "publicar" : "retirar"} o artigo: ${error.message}`);
+      return;
+    }
+    setPosts((current) => current.map((item) => item.id === post.id ? { ...item, status: nextStatus, publicado_em: publicadoEm, atualizado_em: new Date().toISOString() } : item));
+    setMessage(publish ? "Artigo publicado e visível no site." : "Artigo retirado do site e mantido como rascunho.");
   };
 
   const uploadImages = async (files: FileList | null) => {
@@ -514,13 +533,19 @@ export default function BlogModule() {
                 }}
               >
                 <small style={{ color: "#d7ab63" }}>{post.categoria}</small>
-                <small
-                  style={{
-                    color: post.status === "publicado" ? "#34d399" : "#a1a1aa",
-                  }}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={post.status === "publicado"}
+                  aria-label={`${post.status === "publicado" ? "Retirar" : "Publicar"} ${post.titulo}`}
+                  disabled={togglingId === post.id}
+                  onClick={() => void togglePostVisibility(post)}
+                  title={post.status === "publicado" ? "Clique para retirar do site" : "Clique para publicar no site"}
+                  style={{ border: 0, background: "transparent", color: post.status === "publicado" ? "#34d399" : "#a1a1aa", display: "inline-flex", alignItems: "center", gap: 6, cursor: togglingId === post.id ? "wait" : "pointer", padding: 0, fontSize: 11 }}
                 >
-                  {statusLabel[post.status]}
-                </small>
+                  <span style={{ width: 30, height: 17, padding: 2, borderRadius: 999, background: post.status === "publicado" ? "#22c55e" : "#3f3f46", display: "inline-flex", justifyContent: post.status === "publicado" ? "flex-end" : "flex-start", boxSizing: "border-box" }}><span style={{ width: 13, height: 13, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px #0008" }}/></span>
+                  {togglingId === post.id ? "Atualizando…" : statusLabel[post.status]}
+                </button>
               </div>
               <h2 style={{ fontSize: 16, margin: "7px 0" }}>{post.titulo}</h2>
               <p
