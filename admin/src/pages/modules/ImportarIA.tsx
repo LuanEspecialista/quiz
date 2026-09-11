@@ -362,86 +362,29 @@ const UnidadesImporter: React.FC = () => {
         }];
       });
 
-      // 2. Sincroniza sem apagar: unidades ausentes na nova tabela ficam indisponíveis.
+      // 2. Calcula sem alterar: a sincronização só será efetivada junto do histórico.
+      let absentIds: string[] = [];
       if (limparAntes) {
-        const absentIds = (existingUnits || []).filter((unit: any) => {
+        absentIds = (existingUnits || []).filter((unit: any) => {
           const towerKey = normalizeTower(unit.torre, estruturaTorres);
           const belongsToBatch = estruturaTorres === "unica" || importedTowerKeys.has(towerKey);
           return belongsToBatch && !incomingIdentities.has(unitIdentity(unit.codigo_unidade || unit.numero_unidade || unit.numero, unit.torre, estruturaTorres));
         }).map((unit: any) => unit.id);
-        if (absentIds.length) {
-          const { error: inactiveError } = await supabase.from("unidades").update({ status: "indisponivel" }).in("id", absentIds);
-          if (inactiveError) throw new Error("Erro ao marcar unidades ausentes como indisponíveis: " + inactiveError.message);
-        }
       }
 
-      // 3. Atualiza por ID conciliado e insere somente identidades realmente novas.
-      const existingPayloads = unidadesParaInserir.filter((unit: any) => unit.id);
-      const newPayloads = unidadesParaInserir.filter((unit: any) => !unit.id).map(({ id: _id, ...unit }: any) => unit);
-      const updatedRows = await Promise.all(existingPayloads.map(async ({ id, ...changes }: any) => {
-        const { data, error } = await supabase.from("unidades").update(changes).eq("id", id).select("id, codigo_unidade, torre").single();
-        if (error) throw error;
-        return data;
-      }));
-      let insertedRows: any[] = [];
-      if (newPayloads.length) {
-        const { data, error } = await supabase.from("unidades").insert(newPayloads).select("id, codigo_unidade, torre");
-        if (error) throw new Error("Erro ao gravar unidades novas: " + error.message);
-        insertedRows = data || [];
-      }
-      const unidadesGravadas = [...updatedRows, ...insertedRows];
-
-      // 4. GRAVA O HISTÓRICO DE PREÇOS (SNAPSHOT HISTÓRICO)
-      const historicoParaInserir = unidadesParaInserir.map((u: any) => {
-        const matchGrad = unidadesGravadas?.find((ug: any) => unitIdentity(ug.codigo_unidade, ug.torre, estruturaTorres) === unitIdentity(u.codigo_unidade, u.torre, estruturaTorres));
-        return {
-          empreendimento_id: selectedEmpId,
-          unidade_id: matchGrad?.id || null,
-          codigo_unidade: u.codigo_unidade,
-          mes_referencia: Number(mesReferencia),
-          ano_referencia: Number(anoReferencia),
-          valor_tabela: u.valor_tabela,
-          entrada_sugerida: u.fluxo_dados?.ato || 0,
-          fluxo_dados: u.fluxo_dados,
-          status_unidade: u.status,
-          atualizado_em: new Date().toISOString(),
-        };
+      // 3. Banco executa estoque, indisponibilizações e snapshot em uma transação.
+      const { data: syncResult, error: syncError } = await supabase.rpc("sincronizar_estoque_importado", {
+        p_empreendimento_id: selectedEmpId,
+        p_unidades: unidadesParaInserir,
+        p_unidades_ausentes: absentIds,
+        p_mes_referencia: Number(mesReferencia),
+        p_ano_referencia: Number(anoReferencia),
       });
-
-      let histError: any = null;
-      try {
-        const unitIds = historicoParaInserir.map((row: any) => row.unidade_id).filter(Boolean);
-        const { data: existingHistory, error: historyReadError } = await supabase
-          .from("historico_tabelas_preco")
-          .select("id, unidade_id")
-          .eq("empreendimento_id", selectedEmpId)
-          .eq("mes_referencia", Number(mesReferencia))
-          .eq("ano_referencia", Number(anoReferencia))
-          .in("unidade_id", unitIds);
-        if (historyReadError) throw historyReadError;
-        const historyByUnit = new Map((existingHistory || []).map((row: any) => [row.unidade_id, row.id]));
-        const historyUpdates = historicoParaInserir.filter((row: any) => historyByUnit.has(row.unidade_id));
-        const historyInserts = historicoParaInserir.filter((row: any) => !historyByUnit.has(row.unidade_id));
-        await Promise.all(historyUpdates.map(async (row: any) => {
-          const { error } = await supabase.from("historico_tabelas_preco").update(row).eq("id", historyByUnit.get(row.unidade_id));
-          if (error) throw error;
-        }));
-        if (historyInserts.length) {
-          const { error } = await supabase.from("historico_tabelas_preco").insert(historyInserts);
-          if (error) throw error;
-        }
-      } catch (historyError: any) {
-        histError = historyError;
-      }
-
-      if (histError) {
-        console.warn("Aviso: Falha ao registrar histórico de preços:", histError.message);
-      }
+      if (syncError) throw new Error("A importação foi cancelada sem alterar o estoque: " + syncError.message);
+      const summary = syncResult as { atualizadas?: number; inseridas?: number; indisponibilizadas?: number; historico?: number } | null;
 
       setImportStatus({
-        success: histError
-          ? `${unidadesParaInserir.length} unidades válidas atualizadas. O histórico não foi salvo: ${histError.message}`
-          : `Sucesso! ${unidadesParaInserir.length} unidades conciliadas e histórico de ${mesReferencia}/${anoReferencia} atualizado.${unidadesPendentesSemPreco.length ? ` ${unidadesPendentesSemPreco.length} unidade(s) disponível(is) sem preço permaneceram pendentes.` : ""}${invalid.length ? ` ${invalid.length} linha(s) sem código ou com status desconhecido não foram gravadas.` : ""}`,
+        success: `Sucesso! ${summary?.atualizadas || 0} unidade(s) atualizada(s), ${summary?.inseridas || 0} nova(s), ${summary?.indisponibilizadas || 0} indisponibilizada(s) e ${summary?.historico || 0} registro(s) no histórico de ${mesReferencia}/${anoReferencia}.${unidadesPendentesSemPreco.length ? ` ${unidadesPendentesSemPreco.length} unidade(s) disponível(is) sem preço permaneceram pendentes.` : ""}${invalid.length ? ` ${invalid.length} linha(s) sem código ou com status desconhecido não foram gravadas.` : ""}`,
       });
       if (!invalid.length) setJsonInput("");
       setParsedData(null);
