@@ -1,4 +1,4 @@
-export type EditorialSectionType = "texto" | "subtitulo" | "destaque" | "dado" | "lista" | "imagem" | "galeria" | "comparativo";
+export type EditorialSectionType = "texto" | "subtitulo" | "destaque" | "dado" | "lista" | "imagem" | "imagem_texto" | "galeria" | "video" | "pergunta" | "cta" | "comparativo";
 
 export type EditorialSection = {
   id: string;
@@ -11,6 +11,13 @@ export type EditorialSection = {
   legenda?: string;
   imagens?: Array<{ url: string; alt: string; legenda?: string }>;
   sugestao_imagem?: string;
+  tamanho?: "pequena" | "media" | "ampla";
+  alinhamento?: "esquerda" | "direita" | "centro";
+  proporcao?: "quadrada" | "vertical" | "paisagem";
+  video_url?: string;
+  video_titulo?: string;
+  acao_rotulo?: string;
+  acao_url?: string;
 };
 
 export type EditorialSource = {
@@ -28,6 +35,11 @@ export type StructuredEditorialBlocks = {
   cta?: string;
   secoes?: EditorialSection[];
   fontes?: EditorialSource[];
+  intencao?: "descoberta" | "guia" | "comparacao" | "decisao" | "oportunidade" | "autoridade";
+  leitura_minutos?: number;
+  aprendizados?: string[];
+  imagem_card_url?: string;
+  exibir_hero?: boolean;
 };
 
 export const sectionLabels: Record<EditorialSectionType, string> = {
@@ -37,7 +49,11 @@ export const sectionLabels: Record<EditorialSectionType, string> = {
   dado: "Dado importante",
   lista: "Lista objetiva",
   imagem: "Imagem",
+  imagem_texto: "Imagem com texto",
   galeria: "Galeria / slider",
+  video: "Vídeo",
+  pergunta: "Pergunta ao leitor",
+  cta: "Chamada para ação",
   comparativo: "Comparativo",
 };
 
@@ -48,7 +64,10 @@ export const newEditorialSection = (tipo: EditorialSectionType): EditorialSectio
   texto: "",
   itens: tipo === "lista" || tipo === "comparativo" ? [""] : undefined,
   imagens: tipo === "galeria" ? [] : undefined,
-  sugestao_imagem: tipo === "imagem" || tipo === "galeria" ? "" : undefined,
+  sugestao_imagem: tipo === "imagem" || tipo === "imagem_texto" || tipo === "galeria" ? "" : undefined,
+  tamanho: tipo === "imagem" || tipo === "imagem_texto" ? "media" : undefined,
+  alinhamento: tipo === "imagem" || tipo === "imagem_texto" ? "esquerda" : undefined,
+  proporcao: tipo === "imagem" || tipo === "imagem_texto" ? "paisagem" : undefined,
 });
 
 export const normalizeEditorialPackage = (value: unknown) => {
@@ -68,6 +87,9 @@ export const normalizeEditorialPackage = (value: unknown) => {
       texto: typeof section.texto === "string" ? section.texto : "",
       itens: Array.isArray(section.itens) ? section.itens.map(String) : undefined,
       imagens: Array.isArray(section.imagens) ? section.imagens : undefined,
+      tamanho: ["pequena", "media", "ampla"].includes(String(section.tamanho)) ? section.tamanho : "media",
+      alinhamento: ["esquerda", "direita", "centro"].includes(String(section.alinhamento)) ? section.alinhamento : "esquerda",
+      proporcao: ["quadrada", "vertical", "paisagem"].includes(String(section.proporcao)) ? section.proporcao : "paisagem",
     } as EditorialSection;
   });
   const rawSources = Array.isArray(blocks.fontes) ? blocks.fontes : Array.isArray(source.fontes) ? source.fontes : [];
@@ -80,6 +102,20 @@ export const normalizeEditorialPackage = (value: unknown) => {
 
 export type ParsedEditorialPackage = ReturnType<typeof normalizeEditorialPackage> & {
   repaired: boolean;
+  avisos: string[];
+};
+
+const editorialWarnings = (parsed: ReturnType<typeof normalizeEditorialPackage>) => {
+  const sections = parsed.blocos.secoes || [];
+  const media = sections.filter((item) => ["imagem", "imagem_texto", "galeria", "video"].includes(item.tipo));
+  const chars = sections.reduce((sum, item) => sum + (item.texto?.length || 0) + (item.itens || []).join(" ").length, 0);
+  const warnings: string[] = [];
+  if (sections.length > 10) warnings.push("Há blocos demais. Agrupe ideias para evitar uma leitura cansativa.");
+  if (chars > 6000) warnings.push("O conteúdo ultrapassa 6.000 caracteres e deve ser resumido antes da publicação.");
+  if (chars > 3500 && media.length < 3) warnings.push("Artigo longo com pouca mídia: use ao menos 3 imagens, galerias ou vídeos.");
+  if (sections.some((item) => (item.texto?.length || 0) > 900)) warnings.push("Existe bloco de texto acima de 900 caracteres.");
+  if (!sections.some((item) => ["pergunta", "cta"].includes(item.tipo))) warnings.push("Inclua ao menos uma interação ou chamada para ação durante a leitura.");
+  return warnings;
 };
 
 const jsonErrorPosition = (error: unknown) => {
@@ -128,7 +164,8 @@ export const parseEditorialPackage = (raw: string): ParsedEditorialPackage => {
   let lastError: unknown;
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
-      return { ...normalizeEditorialPackage(JSON.parse(candidate)), repaired };
+      const normalized = normalizeEditorialPackage(JSON.parse(candidate));
+      return { ...normalized, repaired, avisos: editorialWarnings(normalized) };
     } catch (error) {
       lastError = error;
       const position = jsonErrorPosition(error);
@@ -160,12 +197,22 @@ PESQUISA E CONFIABILIDADE
 4. Diferencie claramente fato, estimativa, cenário e opinião.
 5. Nunca apresente resultado financeiro como garantido.
 
+INTELIGÊNCIA EDITORIAL
+1. Classifique a intenção principal como descoberta, guia, comparacao, decisao, oportunidade ou autoridade. A intenção deve comandar a copy, o ritmo, o layout e a ação esperada.
+2. Produza de 5 a 9 blocos curtos, nunca um texto gigante. Se o assunto for amplo, agrupe por perfil ou decisão em vez de criar dezenas de parágrafos.
+3. Cada bloco de texto deve ter no máximo 700 caracteres e 2 ou 3 parágrafos curtos.
+4. Alterne texto, imagem com texto, dado, destaque, lista, comparação, galeria, vídeo, pergunta e CTA. Não coloque três blocos textuais consecutivos.
+5. Tema visual amplo (praias, cidades, turismo, imóveis, arquitetura): planeje de 6 a 12 imagens variadas. Tema técnico: de 3 a 6 mídias. Não repita a imagem do card na abertura nem no conteúdo.
+6. Para imagem com texto, defina posição esquerda/direita alternada, tamanho e proporção. Reserve imagem ampla somente para abertura ou momento realmente importante.
+7. Para várias imagens relacionadas, use galeria. Informe de 4 a 10 sugestões distintas e uma legenda útil para cada uma.
+8. Vídeo é opcional. Só crie bloco de vídeo quando houver URL informada ou quando o tema justificar que Luan selecione um vídeo depois; nunca invente URL.
+9. Distribua uma microação natural no meio e uma ação principal no final: avaliar conteúdo, responder uma pergunta, compartilhar, WhatsApp ou agendar conversa. Sem urgência artificial.
+10. Abra com benefício concreto e curiosidade; entregue valor antes de vender. Use frases curtas, linguagem humana e autoridade local de Luan Santos.
+
 ARQUITETURA EDITORIAL
-1. Produza de 3 a 7 blocos curtos, não um texto gigante.
+1. Produza uma experiência escaneável, com ritmo e espaços de respiração.
 2. Cada bloco de texto deve ter no máximo 2 ou 3 parágrafos curtos.
-3. Alterne texto com dado, destaque, lista, comparação ou imagem quando isso melhorar a leitura.
-4. Sugira de 1 a 5 imagens conforme a necessidade real. Para cada imagem, descreva o que procurar e onde ela deve aparecer. Não invente URLs.
-5. Escolha um layout entre: artigo, guia, mercado, comparativo, case ou imovel.
+3. Escolha um layout entre: artigo, guia, mercado, comparativo, case ou imovel de acordo com a intenção, não aleatoriamente.
 6. Use CTA consultivo ligado ao tema e ao atendimento de Luan Santos.
 7. Gere SEO natural para buscas do público, sem repetição artificial de palavras-chave.
 
@@ -183,14 +230,27 @@ Responda somente com JSON válido, sem markdown, introdução ou comentários. U
   "palavras_chave": [""],
   "blocos": {
     "versao": 2,
+    "intencao": "descoberta | guia | comparacao | decisao | oportunidade | autoridade",
+    "leitura_minutos": 0,
+    "aprendizados": ["três benefícios objetivos que o leitor encontrará"],
+    "imagem_card_sugestao": "imagem exclusiva para a vitrine, diferente da abertura",
+    "hero_sugestao": "imagem de abertura opcional e diferente da imagem do card",
+    "exibir_hero": true,
     "cta": "",
     "secoes": [
       {
-        "tipo": "texto | subtitulo | destaque | dado | lista | imagem | galeria | comparativo",
+        "tipo": "texto | subtitulo | destaque | dado | lista | imagem | imagem_texto | galeria | video | pergunta | cta | comparativo",
         "titulo": "",
         "texto": "",
         "itens": ["use somente para lista ou comparativo"],
-        "sugestao_imagem": "descreva a imagem e termos de busca; não invente URL"
+        "sugestao_imagem": "descreva uma imagem distinta e onde ela entra; não invente URL",
+        "tamanho": "pequena | media | ampla",
+        "alinhamento": "esquerda | direita | centro",
+        "proporcao": "quadrada | vertical | paisagem",
+        "video_url": "URL fornecida ou vazio",
+        "video_titulo": "",
+        "acao_rotulo": "",
+        "acao_url": ""
       }
     ],
     "fontes": [
@@ -199,4 +259,4 @@ Responda somente com JSON válido, sem markdown, introdução ou comentários. U
   }
 }
 
-Antes de responder, valide o JSON como se fosse executar JSON.parse: use barra invertida antes de qualquer aspa interna ao texto, não use quebras de linha literais dentro de valores, não deixe vírgula após o último item e feche todas as chaves e listas. Revise também tamanho dos blocos, coerência do CTA, SEO, atualidade dos dados, correspondência entre afirmações e fontes. Não encurte nem interrompa o JSON.`;
+Antes de responder, valide o JSON como se fosse executar JSON.parse: use barra invertida antes de qualquer aspa interna ao texto, não use quebras de linha literais dentro de valores, não deixe vírgula após o último item e feche todas as chaves e listas. Revise também tamanho dos blocos, variedade e não repetição das imagens, coerência do CTA, SEO, atualidade dos dados, correspondência entre afirmações e fontes. Não encurte nem interrompa o JSON.`;
