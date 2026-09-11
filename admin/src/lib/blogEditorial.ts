@@ -78,6 +78,73 @@ export const normalizeEditorialPackage = (value: unknown) => {
   return { source, blocos: { ...blocks, versao: 2, secoes, fontes } as StructuredEditorialBlocks };
 };
 
+export type ParsedEditorialPackage = ReturnType<typeof normalizeEditorialPackage> & {
+  repaired: boolean;
+};
+
+const jsonErrorPosition = (error: unknown) => {
+  const match = error instanceof Error ? error.message.match(/position\s+(\d+)/i) : null;
+  return match ? Number(match[1]) : null;
+};
+
+const isEscaped = (value: string, index: number) => {
+  let slashes = 0;
+  for (let cursor = index - 1; cursor >= 0 && value[cursor] === "\\"; cursor -= 1) slashes += 1;
+  return slashes % 2 === 1;
+};
+
+const escapeLiteralLineBreaks = (value: string) => {
+  let result = "";
+  let inString = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (char === '"' && !isEscaped(value, index)) inString = !inString;
+    if (inString && (char === "\n" || char === "\r")) result += "\\n";
+    else result += char;
+  }
+  return result;
+};
+
+const cleanJsonEnvelope = (raw: string) => {
+  const withoutFence = raw.replace(/^\uFEFF/, "").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "");
+  const start = withoutFence.indexOf("{");
+  const end = withoutFence.lastIndexOf("}");
+  return start >= 0 && end > start ? withoutFence.slice(start, end + 1) : withoutFence;
+};
+
+export const describeJsonError = (raw: string, error: unknown) => {
+  const position = jsonErrorPosition(error);
+  if (position === null) return error instanceof Error ? error.message : "JSON inválido.";
+  const before = raw.slice(0, position);
+  const line = before.split("\n").length;
+  const column = position - before.lastIndexOf("\n");
+  const excerpt = raw.slice(Math.max(0, position - 42), Math.min(raw.length, position + 42)).replace(/\s+/g, " ").trim();
+  return `Erro próximo da linha ${line}, coluna ${column}: “…${excerpt}…”. Verifique aspas, vírgulas e chaves nesse trecho.`;
+};
+
+export const parseEditorialPackage = (raw: string): ParsedEditorialPackage => {
+  let candidate = escapeLiteralLineBreaks(cleanJsonEnvelope(raw)).replace(/,\s*([}\]])/g, "$1");
+  let repaired = candidate !== raw.trim();
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    try {
+      return { ...normalizeEditorialPackage(JSON.parse(candidate)), repaired };
+    } catch (error) {
+      lastError = error;
+      const position = jsonErrorPosition(error);
+      if (position === null || position < 1 || position >= candidate.length) break;
+      const unexpected = candidate[position];
+      if (!/[\p{L}\p{N}]/u.test(unexpected)) break;
+      let quote = position - 1;
+      while (quote >= 0 && (candidate[quote] !== '"' || isEscaped(candidate, quote))) quote -= 1;
+      if (quote < 0) break;
+      candidate = `${candidate.slice(0, quote)}\\${candidate.slice(quote)}`;
+      repaired = true;
+    }
+  }
+  throw new Error(describeJsonError(candidate, lastError));
+};
+
 export const buildBlogPrompt = (tema: string) => `Você é um editor-chefe especializado em conteúdo patrimonial, imobiliário, econômico e regional para o site de Luan Santos, corretor e especialista no litoral norte de Santa Catarina.
 
 TEMA PRINCIPAL
@@ -132,4 +199,4 @@ Responda somente com JSON válido, sem markdown, introdução ou comentários. U
   }
 }
 
-Antes de responder, revise tamanho dos blocos, coerência do CTA, SEO, atualidade dos dados, correspondência entre afirmações e fontes e validade do JSON.`;
+Antes de responder, valide o JSON como se fosse executar JSON.parse: use barra invertida antes de qualquer aspa interna ao texto, não use quebras de linha literais dentro de valores, não deixe vírgula após o último item e feche todas as chaves e listas. Revise também tamanho dos blocos, coerência do CTA, SEO, atualidade dos dados, correspondência entre afirmações e fontes. Não encurte nem interrompa o JSON.`;
