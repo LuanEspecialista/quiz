@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { 
   LayoutDashboard, 
   Building2, 
@@ -21,8 +21,10 @@ import {
   PanelLeftOpen,
   ArrowUp,
   ArrowDown,
-  SlidersHorizontal,
-  RotateCcw
+  RotateCcw,
+  Pencil,
+  Check,
+  GripVertical
 } from "lucide-react";
 import { useTranslation } from "../../lib/i18n";
 import { supabase } from "../../lib/supabase";
@@ -39,6 +41,8 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("luan.sidebar.collapsed") === "true");
   const [customOrder,setCustomOrder]=useState<string[]>([]);
   const [organizing,setOrganizing]=useState(false);
+  const [dragging,setDragging]=useState<string|null>(null);
+  const customOrderRef=useRef<string[]>([]);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -85,9 +89,13 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
     { id: "configuracoes", label: t("settings"), icon: Settings },
   ];
   const orderedItems=[...menuItems].sort((a,b)=>{const ai=customOrder.indexOf(a.id),bi=customOrder.indexOf(b.id);return (ai<0?999:ai)-(bi<0?999:bi)});
-  useEffect(()=>{void supabase.auth.getUser().then(async({data})=>{if(!data.user)return;const{data:profile}=await supabase.from("perfis_usuario").select("menu_ordem").eq("user_id",data.user.id).maybeSingle();if(Array.isArray(profile?.menu_ordem))setCustomOrder(profile.menu_ordem.filter((id):id is string=>typeof id==="string"));});},[]);
-  async function persistOrder(next:string[]){setCustomOrder(next);await supabase.rpc("salvar_menu_ordem",{p_ordem:next});}
+  useEffect(()=>{void supabase.auth.getUser().then(async({data})=>{if(!data.user)return;const{data:profile}=await supabase.from("perfis_usuario").select("menu_ordem").eq("user_id",data.user.id).maybeSingle();if(Array.isArray(profile?.menu_ordem)){const next=profile.menu_ordem.filter((id):id is string=>typeof id==="string");customOrderRef.current=next;setCustomOrder(next);}});},[]);
+  async function persistOrder(next:string[]){customOrderRef.current=next;setCustomOrder(next);const{error}=await supabase.rpc("salvar_menu_ordem",{p_ordem:next});if(error)console.error("Não foi possível salvar a ordem do menu",error);}
   const move=(id:string,direction:-1|1)=>{const ids=orderedItems.map(item=>item.id),index=ids.indexOf(id),target=index+direction;if(target<0||target>=ids.length)return;[ids[index],ids[target]]=[ids[target],ids[index]];void persistOrder(ids)};
+  const moveTo=(id:string,targetId:string)=>{if(id===targetId)return;const currentIds=[...menuItems].sort((a,b)=>{const ai=customOrderRef.current.indexOf(a.id),bi=customOrderRef.current.indexOf(b.id);return(ai<0?999:ai)-(bi<0?999:bi)}).map(item=>item.id);const from=currentIds.indexOf(id),to=currentIds.indexOf(targetId);if(from<0||to<0)return;currentIds.splice(to,0,currentIds.splice(from,1)[0]);customOrderRef.current=currentIds;setCustomOrder(currentIds)};
+  const startDrag=(event:ReactPointerEvent<HTMLButtonElement>,id:string)=>{event.preventDefault();event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);setDragging(id)};
+  const continueDrag=(event:ReactPointerEvent<HTMLButtonElement>)=>{if(!dragging)return;event.preventDefault();const target=document.elementFromPoint(event.clientX,event.clientY)?.closest<HTMLElement>("[data-menu-id]");const targetId=target?.dataset.menuId;if(targetId)moveTo(dragging,targetId)};
+  const finishDrag=(event:ReactPointerEvent<HTMLButtonElement>)=>{if(!dragging)return;event.preventDefault();event.stopPropagation();setDragging(null);void persistOrder(customOrderRef.current)};
 
   const handleSelect = (id: string) => {
     setActiveTab(id);
@@ -158,35 +166,35 @@ export function Sidebar({ activeTab, setActiveTab, role = "admin" }: SidebarProp
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
-              <button
+              <div
                 key={item.id}
-                onClick={() => handleSelect(item.id)}
-                title={collapsed && !isMobile ? item.label : undefined}
+                data-menu-id={item.id}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.75rem",
-                  padding: collapsed && !isMobile ? "0.65rem" : "0.6rem 0.8rem",
                   borderRadius: "6px",
-                  border: "none",
                   backgroundColor: isActive ? "#1c1917" : "transparent",
-                  color: isActive ? "#c5a059" : "#a1a1aa",
-                  fontWeight: isActive ? "bold" : "normal",
-                  fontSize: "0.85rem",
-                  cursor: "pointer",
-                  textAlign: collapsed && !isMobile ? "center" : "left",
-                  justifyContent: collapsed && !isMobile ? "center" : "flex-start",
-                  transition: "all 0.2s ease"
+                  border: dragging===item.id ? "1px solid #8e672e" : "1px solid transparent",
+                  opacity: dragging===item.id ? .72 : 1,
+                  transition: "background-color .2s ease, border-color .2s ease"
                 }}
               >
-                <Icon size={18} style={{ color: isActive ? "#c5a059" : "#71717a" }} />
-                {(!collapsed || isMobile) && <span>{item.label}</span>}
-                {organizing&&(!collapsed||isMobile)&&<span style={{marginLeft:"auto",display:"flex",gap:3}}><span role="button" aria-label="Subir" onClick={event=>{event.stopPropagation();move(item.id,-1)}} style={{padding:3,opacity:index?1:.3}}><ArrowUp size={13}/></span><span role="button" aria-label="Descer" onClick={event=>{event.stopPropagation();move(item.id,1)}} style={{padding:3,opacity:index<orderedItems.length-1?1:.3}}><ArrowDown size={13}/></span></span>}
-              </button>
+                {organizing&&<button type="button" aria-label={`Arrastar ${item.label}`} title="Arrastar para reorganizar" onPointerDown={event=>startDrag(event,item.id)} onPointerMove={continueDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag} style={{alignSelf:"stretch",display:"grid",placeItems:"center",border:0,background:"transparent",color:"#d7ab63",padding:collapsed&&!isMobile?4:"0 3px 0 7px",cursor:dragging===item.id?"grabbing":"grab",touchAction:"none"}}><GripVertical size={15}/></button>}
+                <button
+                  type="button"
+                  onClick={() => handleSelect(item.id)}
+                  title={collapsed && !isMobile ? item.label : undefined}
+                  style={{display:"flex",alignItems:"center",gap:"0.75rem",flex:1,minWidth:0,padding:collapsed&&!isMobile?"0.65rem":"0.6rem 0.5rem",border:0,background:"transparent",color:isActive?"#c5a059":"#a1a1aa",fontWeight:isActive?"bold":"normal",fontSize:"0.85rem",cursor:"pointer",textAlign:collapsed&&!isMobile?"center":"left",justifyContent:collapsed&&!isMobile?"center":"flex-start"}}
+                >
+                  <Icon size={18} style={{ color: isActive ? "#c5a059" : "#71717a", flexShrink:0 }} />
+                  {(!collapsed || isMobile) && <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{item.label}</span>}
+                </button>
+                {organizing&&(!collapsed||isMobile)&&<span style={{display:"flex",gap:1,paddingRight:3}}><button type="button" aria-label={`Mover ${item.label} para cima`} disabled={!index} onClick={()=>move(item.id,-1)} style={{display:"grid",placeItems:"center",border:0,background:"transparent",color:"#a1a1aa",padding:5,opacity:index?1:.25,cursor:index?"pointer":"default"}}><ArrowUp size={13}/></button><button type="button" aria-label={`Mover ${item.label} para baixo`} disabled={index===orderedItems.length-1} onClick={()=>move(item.id,1)} style={{display:"grid",placeItems:"center",border:0,background:"transparent",color:"#a1a1aa",padding:5,opacity:index<orderedItems.length-1?1:.25,cursor:index<orderedItems.length-1?"pointer":"default"}}><ArrowDown size={13}/></button></span>}
+              </div>
             );
           })}
         </nav>
-        {(!collapsed||isMobile)&&<div style={{display:"grid",gap:6,paddingTop:8,borderTop:"1px solid #242428"}}><button type="button" onClick={()=>setOrganizing(value=>!value)} style={{border:0,background:"transparent",color:organizing?"#d7ab63":"#71717a",padding:8,textAlign:"left",cursor:"pointer"}}><SlidersHorizontal size={14}/> {organizing?"Concluir organização":"Organizar menu"}</button>{organizing&&<button type="button" onClick={()=>void persistOrder([])} style={{border:0,background:"transparent",color:"#71717a",padding:8,textAlign:"left",cursor:"pointer"}}><RotateCcw size={14}/> Restaurar padrão</button>}</div>}
+        <div style={{display:"flex",justifyContent:collapsed&&!isMobile?"center":"flex-end",gap:4,paddingTop:8,borderTop:"1px solid #242428"}}>{organizing&&<button type="button" onClick={()=>void persistOrder([])} title="Restaurar ordem padrão" aria-label="Restaurar ordem padrão" style={{display:"grid",placeItems:"center",border:0,background:"transparent",color:"#71717a",padding:8,cursor:"pointer"}}><RotateCcw size={15}/></button>}<button type="button" onClick={()=>{setDragging(null);setOrganizing(value=>!value)}} title={organizing?"Concluir organização":"Organizar menu"} aria-label={organizing?"Concluir organização do menu":"Organizar menu"} aria-pressed={organizing} style={{display:"grid",placeItems:"center",border:`1px solid ${organizing?"#8e672e":"#34343a"}`,borderRadius:6,background:organizing?"#2a2113":"#161618",color:organizing?"#d7ab63":"#8b8b95",padding:8,cursor:"pointer"}}>{organizing?<Check size={16}/>:<Pencil size={15}/>}</button></div>
       </aside>
 
       {/* Overlay escuro ao abrir o menu no celular */}
