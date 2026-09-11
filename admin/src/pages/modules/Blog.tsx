@@ -97,6 +97,7 @@ export default function BlogModule() {
     (Omit<Post, "id" | "atualizado_em"> & { id?: string }) | null
   >(null);
   const [message, setMessage] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [empreendimentos, setEmpreendimentos] = useState<
     Array<{ id: string; nome: string; imagem_url: string | null }>
   >([]);
@@ -212,6 +213,23 @@ export default function BlogModule() {
     setEditing(null);
     setMessage("Artigo salvo.");
     void load();
+  };
+
+  const removePost = async (post: Pick<Post, "id" | "titulo" | "status">) => {
+    const publishedWarning = post.status === "publicado"
+      ? " Ele também deixará de aparecer imediatamente no site público."
+      : "";
+    if (!window.confirm(`Excluir definitivamente o artigo “${post.titulo}”?${publishedWarning}\n\nAs imagens serão preservadas para reutilização em outros artigos.`)) return;
+    setDeletingId(post.id);
+    const { error } = await supabase.from("blog_posts").delete().eq("id", post.id);
+    setDeletingId(null);
+    if (error) {
+      setMessage(`Não foi possível excluir o artigo: ${error.message}`);
+      return;
+    }
+    setPosts((current) => current.filter((item) => item.id !== post.id));
+    setEditing((current) => current?.id === post.id ? null : current);
+    setMessage("Artigo excluído. As imagens foram preservadas na biblioteca para reutilização.");
   };
 
   const uploadImages = async (files: FileList | null) => {
@@ -515,17 +533,37 @@ export default function BlogModule() {
               >
                 {post.resumo || "Sem resumo."}
               </p>
-              <button
-                onClick={() => setEditing(post)}
-                style={{
-                  ...field,
-                  cursor: "pointer",
-                  padding: "8px 10px",
-                  color: "#d7ab63",
-                }}
-              >
-                Editar
-              </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 7 }}>
+                <button
+                  type="button"
+                  onClick={() => setEditing(post)}
+                  style={{
+                    ...field,
+                    cursor: "pointer",
+                    padding: "8px 10px",
+                    color: "#d7ab63",
+                  }}
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Excluir ${post.titulo}`}
+                  title="Excluir artigo"
+                  disabled={deletingId === post.id}
+                  onClick={() => void removePost(post)}
+                  style={{
+                    border: "1px solid #7f1d1d",
+                    borderRadius: 7,
+                    background: "#250d0d",
+                    color: "#fca5a5",
+                    padding: "8px 11px",
+                    cursor: deletingId === post.id ? "wait" : "pointer",
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </div>
           </article>
         ))}
@@ -993,35 +1031,46 @@ export default function BlogModule() {
             <footer
               style={{
                 display: "flex",
-                justifyContent: "flex-end",
+                justifyContent: editing.id ? "space-between" : "flex-end",
+                flexWrap: "wrap",
                 gap: 9,
                 marginTop: 16,
               }}
             >
-              <button
-                onClick={() => setEditing(null)}
-                style={{ ...field, width: "auto", cursor: "pointer" }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={save}
-                style={{
-                  background: "#d6a94f",
-                  color: "#16110a",
-                  border: 0,
-                  borderRadius: 7,
-                  padding: "10px 13px",
-                  cursor: "pointer",
-                  fontWeight: 800,
-                  display: "inline-flex",
-                  gap: 6,
-                  alignItems: "center",
-                }}
-              >
-                <Send size={15} />
-                Salvar artigo
-              </button>
+              {editing.id && <button
+                type="button"
+                disabled={deletingId === editing.id}
+                onClick={() => void removePost(editing as Post)}
+                style={{ border: "1px solid #7f1d1d", borderRadius: 7, background: "#250d0d", color: "#fca5a5", padding: "10px 13px", cursor: deletingId === editing.id ? "wait" : "pointer", fontWeight: 700, display: "inline-flex", gap: 6, alignItems: "center" }}
+              ><Trash2 size={15}/>{deletingId === editing.id ? "Excluindo..." : "Excluir artigo"}</button>}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}>
+                <button
+                  type="button"
+                  onClick={() => setEditing(null)}
+                  style={{ ...field, width: "auto", cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={save}
+                  style={{
+                    background: "#d6a94f",
+                    color: "#16110a",
+                    border: 0,
+                    borderRadius: 7,
+                    padding: "10px 13px",
+                    cursor: "pointer",
+                    fontWeight: 800,
+                    display: "inline-flex",
+                    gap: 6,
+                    alignItems: "center",
+                  }}
+                >
+                  <Send size={15} />
+                  Salvar artigo
+                </button>
+              </div>
             </footer>
           </section>
         </div>
