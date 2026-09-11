@@ -285,7 +285,7 @@ export default function BlogModule() {
     );
     setEditing({
       ...editing,
-      imagem_capa_url: editing.imagem_capa_url || uploads[0]?.url || "",
+      blocos: { ...(editing.blocos || {}), imagem_card_url: editing.blocos?.imagem_card_url || uploads[0]?.url || "" },
       imagens: [...(editing.imagens || []), ...uploads],
     });
     setMessage(
@@ -330,7 +330,7 @@ export default function BlogModule() {
         current
           ? {
               ...current,
-              imagem_capa_url: current.imagem_capa_url || publicUrl,
+              blocos: { ...(current.blocos || {}), imagem_card_url: current.blocos?.imagem_card_url || publicUrl },
               imagens: [
                 ...current.imagens,
                 {
@@ -768,7 +768,7 @@ export default function BlogModule() {
                 </select>
               </label>
               <label style={{ gridColumn: "1/-1" }}>
-                Imagem de capa (URL opcional)
+                Imagem de abertura do artigo (URL opcional)
                 <input
                   value={editing.imagem_capa_url || ""}
                   onChange={(event) =>
@@ -780,6 +780,13 @@ export default function BlogModule() {
                   placeholder="Ou selecione/ envie abaixo pela biblioteca de mídia"
                   style={field}
                 />
+              </label>
+              <label style={{ gridColumn: "1/-1" }}>
+                Imagem exclusiva do card na vitrine
+                <select value={editing.blocos?.imagem_card_url || ""} onChange={(event) => setEditing({ ...editing, blocos: { ...(editing.blocos || {}), imagem_card_url: event.target.value } })} style={field}>
+                  <option value="">Usar a abertura apenas como compatibilidade</option>
+                  {(editing.imagens || []).map((image) => <option key={image.url} value={image.url}>{image.alt || "Imagem sem descrição"}</option>)}
+                </select>
               </label>
               {editing.empreendimento_id && (
                 <div
@@ -867,7 +874,7 @@ export default function BlogModule() {
                 >
                   Envie uma ou várias imagens apenas quando elas ainda não
                   existirem em um empreendimento. A primeira pode ser usada como
-                  capa; as demais entram na galeria do layout escolhido.
+                  card; escolha separadamente uma imagem diferente para a abertura e distribua as demais nos blocos.
                 </small>
                 <label
                   style={{
