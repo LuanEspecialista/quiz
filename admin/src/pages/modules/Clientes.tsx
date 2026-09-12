@@ -101,6 +101,7 @@ type ClientProposal = {
   status: string;
   created_at: string;
 };
+type BlogLead = { user_id:string; nome?:string|null; email:string; interesses?:string[]|null; status:string; criado_em:string; blog_posts?:{ titulo?:string|null }|null };
 type Form = {
   nome: string;
   telefone: string;
@@ -227,6 +228,7 @@ export default function Clientes({
     [selections, setSelections] = useState<Selection[]>([]),
     [units, setUnits] = useState<Unit[]>([]);
   const [proposals, setProposals] = useState<ClientProposal[]>([]);
+  const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
   const [flowSelection, setFlowSelection] = useState<string[]>([]);
   const [form, setForm] = useState<Form>(empty),
@@ -266,7 +268,7 @@ export default function Clientes({
   }, [open, curating, comparing]);
 
   async function load() {
-    const [c, p, s, u, cp, media] = await Promise.all([
+    const [c, p, s, u, cp, media, leads] = await Promise.all([
       supabase
         .from("clientes")
         .select("*")
@@ -285,6 +287,7 @@ export default function Clientes({
         .select("*")
         .order("created_at", { ascending: false }),
       supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem"),
+      supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,blog_posts(titulo)").order("criado_em", { ascending:false }),
     ]);
     if (c.error)
       setMessage(
@@ -300,6 +303,7 @@ export default function Clientes({
     if (!s.error) setSelections((s.data || []) as Selection[]);
     if (!u.error) setUnits((u.data || []) as Unit[]);
     if (!cp.error) setProposals((cp.data || []) as ClientProposal[]);
+    if (!leads.error) setBlogLeads((leads.data || []) as unknown as BlogLead[]);
     if (!media.error) {
       const signed = await Promise.all(((media.data || []) as CuradoriaMedia[]).map(async item => {
         if (!item.storage_path) return { ...item, preview_url:item.url };
@@ -557,6 +561,7 @@ export default function Clientes({
           {message}
         </div>
       )}
+      {blogLeads.length > 0 && <details style={panel} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Leads identificados pelo Blog ({blogLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{blogLeads.map((lead)=><article key={lead.user_id} style={{border:"1px solid #303036",borderRadius:8,padding:11}}><strong>{lead.nome || "Leitor identificado"}</strong><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.email}{lead.blog_posts?.titulo ? ` · Origem: ${lead.blog_posts.titulo}` : ""}</small>{lead.interesses?.length ? <p style={{fontSize:12,color:"#d4d4d8",marginBottom:0}}>Interesses: {lead.interesses.join(" · ")}</p> : <small style={{color:"#71717a"}}>Ainda não informou interesses.</small>}</article>)}</div></details>}
       {proposals.length > 0 && (
         <details style={panel} open>
           <summary

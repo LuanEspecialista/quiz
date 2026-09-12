@@ -1,0 +1,11 @@
+create table public.blog_leads (user_id uuid primary key references auth.users(id) on delete cascade,email text not null,nome text,origem_post_id uuid references public.blog_posts(id) on delete set null,interesses text[] not null default '{}',status text not null default 'novo' check(status in ('novo','em_contato','qualificado','convertido','inativo')),criado_em timestamptz not null default now(),atualizado_em timestamptz not null default now());
+alter table public.blog_leads enable row level security;
+create policy blog_lead_proprio_select on public.blog_leads for select to authenticated using ((select auth.uid())=user_id);
+create policy blog_lead_proprio_insert on public.blog_leads for insert to authenticated with check ((select auth.uid())=user_id);
+create policy blog_lead_proprio_update on public.blog_leads for update to authenticated using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
+create policy blog_leads_admin on public.blog_leads for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+grant select,insert,update on public.blog_leads to authenticated;
+alter table public.blog_comentarios add column user_id uuid references auth.users(id) on delete set null;
+create index blog_comentarios_user_id_idx on public.blog_comentarios(user_id);
+create index blog_leads_origem_post_id_idx on public.blog_leads(origem_post_id);
+create or replace function public.enviar_comentario_blog(p_post_id uuid,p_sessao_id uuid,p_nome text,p_comentario text) returns void language plpgsql security definer set search_path='' as $$ begin if char_length(trim(p_comentario)) not between 10 and 1200 or not exists(select 1 from public.blog_posts where id=p_post_id and status='publicado') then raise exception 'Comentário inválido'; end if; if (select count(*) from public.blog_comentarios where post_id=p_post_id and (sessao_id=p_sessao_id or user_id=(select auth.uid())) and criado_em>now()-interval '1 day')>=3 then raise exception 'Limite diário atingido'; end if; insert into public.blog_comentarios(post_id,sessao_id,user_id,nome,comentario) values(p_post_id,p_sessao_id,(select auth.uid()),nullif(left(trim(p_nome),80),''),trim(p_comentario)); end $$;
