@@ -182,7 +182,7 @@ export const parseEditorialPackage = (raw: string): ParsedEditorialPackage => {
   throw new Error(describeJsonError(candidate, lastError));
 };
 
-export const buildBlogPrompt = (tema: string) => `Você é um editor-chefe especializado em conteúdo patrimonial, imobiliário, econômico e regional para o site de Luan Santos, corretor e especialista no litoral norte de Santa Catarina.
+export const buildBlogPrompt = (tema: string) => `Você é um editor-chefe especializado em conteúdo patrimonial, imobiliário, econômico e regional para a marca Luan Especialista, com atuação no litoral norte de Santa Catarina.
 
 TEMA PRINCIPAL
 ${tema.trim() || "[INFORME AQUI O TEMA DO ARTIGO]"}
@@ -207,13 +207,13 @@ INTELIGÊNCIA EDITORIAL
 7. Para várias imagens relacionadas, use galeria. Informe de 4 a 10 sugestões distintas e uma legenda útil para cada uma.
 8. Vídeo é opcional. Só crie bloco de vídeo quando houver URL informada ou quando o tema justificar que Luan selecione um vídeo depois; nunca invente URL.
 9. Distribua uma microação natural no meio e uma ação principal no final: avaliar conteúdo, responder uma pergunta, compartilhar, WhatsApp ou agendar conversa. Sem urgência artificial.
-10. Abra com benefício concreto e curiosidade; entregue valor antes de vender. Use frases curtas, linguagem humana e autoridade local de Luan Santos.
+10. Abra com benefício concreto e curiosidade; entregue valor antes de vender. Use frases curtas, linguagem humana e a autoridade local da marca Luan Especialista.
 
 ARQUITETURA EDITORIAL
 1. Produza uma experiência escaneável, com ritmo e espaços de respiração.
 2. Cada bloco de texto deve ter no máximo 2 ou 3 parágrafos curtos.
 3. Escolha um layout entre: artigo, guia, mercado, comparativo, case ou imovel de acordo com a intenção, não aleatoriamente.
-6. Use CTA consultivo ligado ao tema e ao atendimento de Luan Santos.
+6. Use CTA consultivo ligado ao tema e ao atendimento da equipe Luan Especialista. Prefira “Falar com a equipe”, “Quero orientação” ou “Conversar com o suporte”; nunca use “Conversar com Luan”.
 7. Gere SEO natural para buscas do público, sem repetição artificial de palavras-chave.
 
 FORMATO OBRIGATÓRIO
