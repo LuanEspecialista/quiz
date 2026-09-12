@@ -6,7 +6,9 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: "../painel",
-    emptyOutDir: true,
+    // Preserve hashed chunks while existing sessions finish using the previous build.
+    // Otherwise a tab left open across deployments requests a chunk that was deleted.
+    emptyOutDir: false,
     rollupOptions: {
       output: {
         manualChunks(id) {
