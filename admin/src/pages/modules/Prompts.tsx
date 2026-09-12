@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Building2, Check, Clipboard, Copy, Layers3, ShieldCheck } from "lucide-react";
+import { BookOpen, Building2, Check, Clipboard, Copy, Layers3, ShieldCheck, UserCheck } from "lucide-react";
 import { buildBlogPrompt } from "../../lib/blogEditorial";
 
 const UNIT_PROMPT = `Você é um auditor de tabelas imobiliárias. Analise integralmente o PDF ou imagem anexado e transforme a tabela de vendas em dados estruturados, sem inventar, completar por suposição ou arredondar valores.
@@ -198,6 +198,23 @@ SAÍDA
 
 Use layout_sugerido editorial, imersivo ou investidor. Releia o material e remova afirmações que não sejam sustentadas pela apresentação.`;
 
+const INDICATOR_PROMPT = `Você é um analista comercial e auditor de materiais. Leia integralmente o book/apresentação e a tabela anexados e crie um Kit do Indicador. O indicador apenas identifica interesse e encaminha o contato; ele não anuncia, negocia condições, recebe valores nem se apresenta como corretor.
+
+ANTES DE RESPONDER
+Confirme: tipo do produto (imovel ou carta_credito), identificação do material, cidade/abrangência, faixa real de valores, público provável e páginas/fontes usadas. Se faltar dado essencial, responda somente {"status":"PENDENTE_INFORMACAO","perguntas":[...]}. Não invente, não use pesquisa externa e não transforme projeção em garantia.
+
+CONTEÚDO
+- Use título público que desperte interesse sem revelar construtora ou empreendimento quando isso facilitar contato direto.
+- Crie resumo curto, público ideal, diferenciais comprovados, perguntas abertas de qualificação, roteiro natural e respostas prudentes às objeções.
+- Separe conteúdo autorizado ao interessado do roteiro interno do indicador.
+- Em cuidados, proíba publicação, encaminhamento de materiais, promessa de condição, negociação e recebimento de valores.
+- Para imóvel, codigo começa com IMO-. Para carta de crédito, começa com CAR-. Valores são números BRL sem R$ ou separador de milhar.
+- imagem_ids deve ficar vazio: as imagens serão escolhidas no sistema a partir do empreendimento original, sem duplicar arquivos.
+
+SAÍDA
+Entregue somente JSON válido, sem markdown, comentário ou texto antes/depois:
+{"tipo":"imovel","empreendimento_id":null,"codigo":"IMO-001","titulo":"Oportunidade residencial no litoral","cidade":null,"regiao_aproximada":null,"faixa_preco_min":null,"faixa_preco_max":null,"resumo":"","publico_ideal":[],"diferenciais":[],"perguntas":[],"objecoes":[{"objecao":"","resposta":""}],"roteiro":"","cuidados":"","imagem_ids":[],"ativo":false,"validacao":{"fontes":[{"pagina":null,"informacao":""}],"alertas":[],"campos_nao_confirmados":[]}}`;
+
 type PromptCardProps = { title: string; description: string; prompt: string; icon: typeof Layers3; copied: boolean; onCopy: () => void };
 
 function PromptCard({ title, description, prompt, icon: Icon, copied, onCopy }: PromptCardProps) {
@@ -243,6 +260,7 @@ export default function PromptsModule() {
       <PromptCard title="Prompt de Unidades" description="Para tabelas de preço, estoque, disponibilidade e condições de pagamento." prompt={UNIT_PROMPT} icon={Layers3} copied={copied === "units"} onCopy={() => void copy("units", UNIT_PROMPT)} />
       <PromptCard title="Prompt de Empreendimentos" description="Para apresentações, memoriais, folders e materiais comerciais completos." prompt={ENTERPRISE_PROMPT} icon={Building2} copied={copied === "enterprise"} onCopy={() => void copy("enterprise", ENTERPRISE_PROMPT)} />
       <PromptCard title="Prompt de Landing Persuasiva" description="Extrai narrativa, frases e blocos comerciais da apresentação da construtora." prompt={LANDING_PROMPT} icon={Clipboard} copied={copied === "landing"} onCopy={() => void copy("landing", LANDING_PROMPT)} />
+      <PromptCard title="Kit do Indicador" description="Analisa book + tabela e gera o produto, roteiro SDR e perguntas em JSON revisável." prompt={INDICATOR_PROMPT} icon={UserCheck} copied={copied === "indicator"} onCopy={() => void copy("indicator", INDICATOR_PROMPT)} />
     </div>
     <section style={{ background: "#101012", border: "1px solid #493a22", borderRadius: 12, padding: 22, display: "grid", gap: 14 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}><div style={{ width: 42, height: 42, borderRadius: 10, background: "rgba(213,164,87,.12)", color: "#d5a457", display: "grid", placeItems: "center" }}><BookOpen size={21}/></div><div><h2 style={{ margin: 0, fontSize: 18 }}>Prompt de artigo para o Blog</h2><p style={{ margin: "6px 0 0", color: "#92929d", lineHeight: 1.5, fontSize: 13 }}>Gera texto escaneável, SEO, blocos, plano de imagens, CTA e fontes em um único JSON importável.</p></div></div>
