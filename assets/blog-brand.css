@@ -1,0 +1,57 @@
+/* Mantém a composição editorial, mas reconecta o blog à identidade Luan Especialista. */
+:root{
+  --blog-brand-bg:#040506;
+  --blog-brand-panel:#101010;
+  --blog-brand-panel-soft:#171512;
+  --blog-brand-gold:#d7ab63;
+  --blog-brand-gold-soft:#f0cc82;
+  --blog-brand-text:#f5f2ec;
+  --blog-brand-muted:#b8b1a5;
+  --blog-brand-line:rgba(215,171,99,.25);
+}
+
+body{background:var(--blog-brand-bg)!important;color:var(--blog-brand-text)!important}
+.site-header{background:#040506!important;border-bottom:1px solid rgba(215,171,99,.18)!important;box-shadow:none!important}
+.site-header a{color:rgba(245,242,236,.78)!important}
+.site-header .active,.site-header a:hover{color:var(--blog-brand-gold)!important}
+.site-header .contact{border-color:rgba(215,171,99,.48)!important;color:var(--blog-brand-gold-soft)!important}
+
+.intro{padding-top:76px!important}
+.intro .eyebrow,.article-head .eyebrow{color:var(--blog-brand-gold)!important}
+.intro h1,.article-head h1,.content-block h2,.block-heading h2,.post h2,.featured h2{color:var(--blog-brand-text)!important}
+.intro h1 em{color:var(--blog-brand-gold-soft)!important}
+.lead,.deck{color:var(--blog-brand-muted)!important}
+.filter{background:transparent!important;color:var(--blog-brand-muted)!important;border-color:var(--blog-brand-line)!important}
+.filter.active{background:var(--blog-brand-gold)!important;border-color:var(--blog-brand-gold)!important;color:#17120a!important}
+
+.post,.post.featured{background:linear-gradient(155deg,#171512,#0d0d0c)!important;border-color:rgba(215,171,99,.2)!important;box-shadow:0 12px 28px rgba(0,0,0,.22)!important}
+.post:hover{border-color:rgba(215,171,99,.62)!important;box-shadow:0 16px 36px rgba(0,0,0,.34)!important}
+.post-meta,.post a,.micro-action{color:var(--blog-brand-gold)!important}
+.post p,.block-text p,.block-list li{color:var(--blog-brand-muted)!important}
+
+.article{background:transparent!important;color:var(--blog-brand-text)!important}
+.article .back{color:var(--blog-brand-gold-soft)!important}
+.hero-figure img,.media-copy img{box-shadow:0 14px 34px rgba(0,0,0,.3)!important}
+.hero-figure figcaption,figure figcaption,.media-copy figcaption{color:#938b7d!important}
+.body blockquote,blockquote.content-block{background:linear-gradient(105deg,#241a0b,#14110d)!important;border-left-color:var(--blog-brand-gold)!important;color:#f3ddb0!important}
+.fact p{background:#18140e!important;color:#e4dccf!important;border:1px solid rgba(215,171,99,.2)!important}
+.compare-grid article{background:#151411!important;border-color:rgba(215,171,99,.2)!important;color:#d8d0c3!important}
+.prompt{background:#16130e!important;border-color:rgba(215,171,99,.26)!important;color:#e6ddcf!important}
+.carousel button.prev,.carousel button.next{background:#16120be8!important;color:var(--blog-brand-gold)!important;border-color:rgba(215,171,99,.5)!important}
+
+.article-cta,.newsletter{background:linear-gradient(120deg,#20170a,#0f0f0e)!important;border:1px solid rgba(215,171,99,.34)!important}
+.article-cta .eyebrow{color:var(--blog-brand-gold)!important}
+.article-cta a,.newsletter button{background:var(--blog-brand-gold)!important;color:#17120a!important}
+.newsletter h2{color:var(--blog-brand-text)!important}
+.newsletter p,.newsletter label{color:var(--blog-brand-muted)!important}
+.newsletter input{background:#0b0b0a!important;color:var(--blog-brand-text)!important;border:1px solid rgba(215,171,99,.25)!important}
+
+.engagement{background:#151310!important;border-color:rgba(215,171,99,.24)!important;color:var(--blog-brand-text)!important}
+.stars button{color:#645d52!important}.stars button.is-active{color:var(--blog-brand-gold)!important}.rating-selection{color:var(--blog-brand-muted)!important}
+.lead-box,.interest-grid label{background:#0d0d0c!important;border-color:rgba(215,171,99,.2)!important}.lead-box p{color:var(--blog-brand-muted)!important}
+.magic-login input,.comment textarea,.comment input{background:#0b0b0a!important;color:var(--blog-brand-text)!important;border-color:rgba(215,171,99,.25)!important}
+.google-login,.magic-login button,.save-interests,.comment button{background:var(--blog-brand-gold)!important;color:#17120a!important;border-color:var(--blog-brand-gold)!important}
+.team-whatsapp{color:var(--blog-brand-gold-soft)!important;border-color:var(--blog-brand-gold)!important}
+
+footer{color:#9b9284!important;border-top-color:rgba(215,171,99,.18)!important}footer a{color:#c9b184!important}
+
