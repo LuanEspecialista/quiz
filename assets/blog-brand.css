@@ -55,3 +55,10 @@ body{background:var(--blog-brand-bg)!important;color:var(--blog-brand-text)!impo
 
 footer{color:#9b9284!important;border-top-color:rgba(215,171,99,.18)!important}footer a{color:#c9b184!important}
 
+
+/* Contraste de leitura: todos os textos editoriais devem permanecer legíveis no fundo escuro. */
+.article-flow,.article-flow .content-block,.media-copy>div{color:var(--blog-brand-text)!important}
+.article-flow p,.media-copy p,.media-copy li,.media-copy div,.content-block li{color:#ded8ce!important}
+.article-flow a,.media-copy a,.content-block a{color:var(--blog-brand-gold-soft)!important;text-decoration-color:rgba(240,204,130,.55)!important}
+.content-block h2,.media-copy h2,.fact h2,.prompt h2{color:var(--blog-brand-text)!important}
+.sources,.sources summary{color:#c6beb1!important}.sources a{color:var(--blog-brand-gold-soft)!important}
