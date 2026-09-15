@@ -870,7 +870,7 @@ export default function BlogModule() {
                 }}
               >
                 <strong style={{ display: "block", marginBottom: 5 }}>
-                  Biblioteca de imagens
+                  Imagens exclusivas deste artigo
                 </strong>
                 <small
                   style={{
@@ -879,9 +879,10 @@ export default function BlogModule() {
                     marginBottom: 9,
                   }}
                 >
-                  Envie uma ou várias imagens apenas quando elas ainda não
-                  existirem em um empreendimento. A primeira pode ser usada como
-                  card; escolha separadamente uma imagem diferente para a abertura e distribua as demais nos blocos.
+                  Use a Biblioteca de mídia acima para reaproveitar imagens.
+                  Envie aqui apenas imagens exclusivas deste artigo. A primeira
+                  pode ser usada como card; escolha separadamente uma imagem
+                  diferente para a abertura e distribua as demais nos blocos.
                 </small>
                 <label
                   style={{
