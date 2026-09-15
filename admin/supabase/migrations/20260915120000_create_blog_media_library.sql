@@ -25,6 +25,9 @@ create index if not exists blog_media_items_collection_created_idx
 alter table public.blog_media_collections enable row level security;
 alter table public.blog_media_items enable row level security;
 
+drop policy if exists blog_media_collections_admin_only on public.blog_media_collections;
+drop policy if exists blog_media_items_admin_only on public.blog_media_items;
+
 create policy blog_media_collections_admin_only on public.blog_media_collections
   for all to authenticated
   using (exists (select 1 from public.perfis_usuario p where p.user_id = (select auth.uid()) and p.ativo = true and p.perfil = 'admin'))
@@ -34,6 +37,10 @@ create policy blog_media_items_admin_only on public.blog_media_items
   for all to authenticated
   using (exists (select 1 from public.perfis_usuario p where p.user_id = (select auth.uid()) and p.ativo = true and p.perfil = 'admin'))
   with check (exists (select 1 from public.perfis_usuario p where p.user_id = (select auth.uid()) and p.ativo = true and p.perfil = 'admin'));
+
+drop policy if exists blog_media_admin_uploads on storage.objects;
+drop policy if exists blog_media_admin_updates on storage.objects;
+drop policy if exists blog_media_admin_deletes on storage.objects;
 
 create policy blog_media_admin_uploads on storage.objects
   for insert to authenticated
