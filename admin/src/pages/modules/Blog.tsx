@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import BlogComposer from "../../components/BlogComposer";
+import BlogMediaLibrary from "../../components/BlogMediaLibrary";
 import type { StructuredEditorialBlocks } from "../../lib/blogEditorial";
 
 type Status = "rascunho" | "revisao" | "publicado" | "arquivado";
@@ -747,6 +748,7 @@ export default function BlogModule() {
                   style={field}
                 />
               </label>
+              <BlogComposer editing={editing} setEditing={(value) => setEditing(value as typeof editing)} field={field} setMessage={setMessage} />
               <label style={{ gridColumn: "1/-1" }}>
                 Vincular a empreendimento (opcional)
                 <select
@@ -853,6 +855,11 @@ export default function BlogModule() {
                   </div>
                 </div>
               )}
+              <BlogMediaLibrary onUse={(image) => {
+                if (editing.imagens.some((item) => item.url === image.url)) { setMessage("Essa imagem já está selecionada para o artigo."); return; }
+                setEditing({ ...editing, imagem_capa_url: editing.imagem_capa_url || image.url, blocos: { ...(editing.blocos || {}), imagem_card_url: editing.blocos?.imagem_card_url || image.url }, imagens: [...editing.imagens, image] });
+                setMessage("Imagem selecionada da Biblioteca de mídia. Agora ela pode ser usada no card, abertura ou galeria.");
+              }} />
               <div
                 style={{
                   gridColumn: "1/-1",
@@ -863,7 +870,7 @@ export default function BlogModule() {
                 }}
               >
                 <strong style={{ display: "block", marginBottom: 5 }}>
-                  Biblioteca de imagens
+                  Imagens exclusivas deste artigo
                 </strong>
                 <small
                   style={{
@@ -872,9 +879,10 @@ export default function BlogModule() {
                     marginBottom: 9,
                   }}
                 >
-                  Envie uma ou várias imagens apenas quando elas ainda não
-                  existirem em um empreendimento. A primeira pode ser usada como
-                  card; escolha separadamente uma imagem diferente para a abertura e distribua as demais nos blocos.
+                  Use a Biblioteca de mídia acima para reaproveitar imagens.
+                  Envie aqui apenas imagens exclusivas deste artigo. A primeira
+                  pode ser usada como card; escolha separadamente uma imagem
+                  diferente para a abertura e distribua as demais nos blocos.
                 </small>
                 <label
                   style={{
@@ -984,7 +992,6 @@ export default function BlogModule() {
                   style={field}
                 />
               </label>
-              <BlogComposer editing={editing} setEditing={(value) => setEditing(value as typeof editing)} field={field} setMessage={setMessage} />
               {!editing.blocos?.secoes?.length && <div
                 style={{
                   gridColumn: "1/-1",
@@ -1110,3 +1117,4 @@ export default function BlogModule() {
     </div>
   );
 }
+
