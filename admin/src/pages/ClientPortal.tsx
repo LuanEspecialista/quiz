@@ -64,6 +64,28 @@ const money = (value?: number | null) =>
         style: "currency",
         currency: "BRL",
       }).format(value);
+
+function curationPositioning(item: Opportunity) {
+  const name = String(item.nome || "").toLowerCase();
+  if (name.includes("viverde"))
+    return "Um clube residencial completo para aproveitar o litoral com a família e avaliar uma exploração flexível.";
+  if (name.includes("verde mar"))
+    return "Uma base nova e completa em Penha para unir praticidade, lazer e uma possível estratégia de locação.";
+  if (name.includes("praia alegre"))
+    return "Mais espaço e privacidade a poucos passos da praia, com perfil para uso próprio e hospedagens especiais.";
+  if (name.includes("niki lauda"))
+    return "Um apartamento mobiliado, amplo e próximo do mar para começar a aproveitar sem esperar uma nova estrutura.";
+  return "Uma oportunidade selecionada para você avaliar com calma, de acordo com o seu momento e objetivo.";
+}
+
+function curationPrompt(item: Opportunity) {
+  const name = String(item.nome || "").toLowerCase();
+  if (name.includes("viverde")) return "estrutura de lazer e experiência de clube";
+  if (name.includes("verde mar")) return "praticidade, lazer e localização em Penha";
+  if (name.includes("praia alegre")) return "proximidade da praia, espaço e privacidade";
+  if (name.includes("niki lauda")) return "apartamento mobiliado e proximidade do mar";
+  return "o que mais chamou a sua atenção";
+}
 const input = {
   width: "100%",
   boxSizing: "border-box" as const,
@@ -405,6 +427,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState("");
+  const [curationMessage, setCurationMessage] = useState("");
+  const [curationSent, setCurationSent] = useState("");
 
   useEffect(() => {
     void supabase
@@ -521,6 +545,17 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         : "Interesse registrado. Seu especialista receberá este cenário para análise com a construtora.",
     );
   };
+  const sendCurationMessage = () => {
+    const text = curationMessage.trim();
+    if (!text) {
+      setCurationSent("Escreva uma preferência para eu entender melhor a sua busca.");
+      return;
+    }
+    const context = firstName ? `Cliente: ${firstName}. ` : "";
+    const message = `${context}Estou analisando a curadoria de imóveis do litoral. O que procuro é: ${text}`;
+    window.open(`https://wa.me/5547992120915?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    setCurationSent("Mensagem preparada no WhatsApp. A conversa continua por lá.");
+  };
 
   return (
     <main
@@ -542,17 +577,12 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           }}
         >
           <div>
-            <a
-              href="/"
-              style={{
-                color: "#d7ab63",
-                textDecoration: "none",
-                fontWeight: 800,
-                fontSize: 12,
-                letterSpacing: ".12em",
-              }}
-            >
-              LUAN ESPECIALISTA
+            <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 12, color: "#fff", textDecoration: "none" }}>
+              <img src="/imagens/logo.png" alt="Luan Especialista" style={{ width: 48, height: 48, objectFit: "contain" }} />
+              <span>
+                <strong style={{ display: "block", color: "#f5f5f5", fontSize: 15, letterSpacing: ".08em" }}>LUAN <span style={{ color: "#d7ab63" }}>ESPECIALISTA</span></strong>
+                <small style={{ display: "block", marginTop: 4, color: "#a1a1aa", fontSize: 9, letterSpacing: ".18em" }}>ESTRATÉGIAS PATRIMONIAIS</small>
+              </span>
             </a>
             <h1
               style={{ fontSize: "clamp(28px,5vw,48px)", margin: "10px 0 8px" }}
@@ -560,7 +590,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               Bem-vindo{firstName ? `, ${firstName}` : ""}.
             </h1>
             <p style={{ color: "#a1a1aa", margin: 0 }}>
-              Uma curadoria pessoal de oportunidades selecionadas para você.
+              {opportunities.length
+                ? `Selecionei ${opportunities.length} oportunidade${opportunities.length === 1 ? "" : "s"} para você conhecer com calma.`
+                : "Uma curadoria pessoal de oportunidades selecionadas para você."}
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -688,6 +720,19 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                         ? `A partir de ${money(item.preco)}`
                         : "Consulte os detalhes liberados"}
                     </span>
+                    <p
+                      style={{
+                        color: "#d4d4d8",
+                        fontSize: 13,
+                        lineHeight: 1.55,
+                        margin: "2px 0 0",
+                      }}
+                    >
+                      {curationPositioning(item)}
+                    </p>
+                    <small style={{ color: "#8f8f98", lineHeight: 1.45 }}>
+                      Destaque: {curationPrompt(item)}.
+                    </small>
                     <span
                       style={{
                         display: "flex",
@@ -704,6 +749,58 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 </button>
               );
             })}
+          </section>
+        )}
+        {!activeOpportunity && opportunities.length > 0 && (
+          <section
+            style={{
+              marginTop: 24,
+              padding: "clamp(20px,4vw,30px)",
+              border: "1px solid #332d22",
+              borderRadius: 13,
+              background: "linear-gradient(135deg,#17130d,#101012)",
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".08em" }}>
+              A CURADORIA COMEÇA COM VOCÊ
+            </small>
+            <h2 style={{ margin: 0, fontSize: "clamp(21px,3vw,30px)" }}>
+              O que precisa fazer sentido para a sua decisão?
+            </h2>
+            <p style={{ margin: 0, color: "#b4b4bb", lineHeight: 1.65, maxWidth: 760 }}>
+              Estas são algumas possibilidades selecionadas para você. Se a sua busca tiver outro caminho, descreva o que é importante — localização, espaço, uso, prazo ou estilo — e eu ajusto a conversa ao que realmente procura.
+            </p>
+            <textarea
+              value={curationMessage}
+              onChange={(event) => {
+                setCurationMessage(event.target.value);
+                setCurationSent("");
+              }}
+              rows={3}
+              maxLength={1000}
+              placeholder="Ex.: procuro um imóvel próximo da praia, para usar com a família e alugar em alguns períodos."
+              style={{ ...input, resize: "vertical", marginTop: 4 }}
+            />
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={sendCurationMessage}
+                style={{
+                  border: 0,
+                  background: "#d7ab63",
+                  color: "#09090b",
+                  borderRadius: 8,
+                  padding: "12px 16px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Enviar o que estou buscando
+              </button>
+              {curationSent && <span style={{ color: "#d4d4d8", fontSize: 13 }}>{curationSent}</span>}
+            </div>
           </section>
         )}
         {activeOpportunity && (
@@ -924,6 +1021,30 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             </section>
           </div>
         )}
+        <footer
+          style={{
+            marginTop: 48,
+            paddingTop: 22,
+            borderTop: "1px solid #27272a",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
+            color: "#71717a",
+            fontSize: 12,
+          }}
+        >
+          <span>LUAN ESPECIALISTA · ESTRATÉGIAS PATRIMONIAIS</span>
+          <span>
+            <a href="mailto:contato@luan-especialista.pro" style={{ color: "#a1a1aa", textDecoration: "none" }}>
+              contato@luan-especialista.pro
+            </a>{" "}·{" "}
+            <a href="https://wa.me/5547992120915" target="_blank" rel="noreferrer" style={{ color: "#d7ab63", textDecoration: "none" }}>
+              WhatsApp
+            </a>
+          </span>
+        </footer>
       </div>
     </main>
   );
