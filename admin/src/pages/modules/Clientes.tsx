@@ -479,7 +479,7 @@ export default function Clientes({
           empreendimento_id: property.id,
           ordem: nextOrder,
           motivo: "Selecionado para a curadoria do cliente",
-          exibir_imagens: false,
+          exibir_imagens: true,
           exibir_descricao: false,
           exibir_preco: false,
           exibir_especificacoes: false,
