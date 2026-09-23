@@ -66,6 +66,8 @@ function curationPositioning(item: Opportunity) {
   const name = String(item.nome || "").toLowerCase();
   if (name.includes("azure"))
     return "Um endereço na Praia da Armação para viver o litoral com estrutura, bem-estar e uma leitura patrimonial cuidadosa.";
+  if (name.includes("trianon"))
+    return "Arquitetura clássica, vista mar definitiva e uma experiência de permanência a 100 metros do mar.";
   if (name.includes("viverde"))
     return "Um clube residencial completo para aproveitar o litoral com a família e avaliar uma exploração flexível.";
   if (name.includes("verde mar"))
@@ -80,6 +82,7 @@ function curationPositioning(item: Opportunity) {
 function curationPrompt(item: Opportunity) {
   const name = String(item.nome || "").toLowerCase();
   if (name.includes("azure")) return "mar, bem-estar e uso flexível entre viver e investir";
+  if (name.includes("trianon")) return "vista, presença arquitetônica e qualidade de permanência";
   if (name.includes("viverde")) return "estrutura de lazer e experiência de clube";
   if (name.includes("verde mar")) return "praticidade, lazer e localização em Penha";
   if (name.includes("praia alegre")) return "proximidade da praia, espaço e privacidade";
@@ -177,6 +180,7 @@ function OpportunityLanding({
   const heroImage = images[0]?.url;
   const currentImage = gallery[galleryIndex % Math.max(gallery.length, 1)]?.url || heroImage;
   const story = blocks.length ? blocks : [{ tipo: "texto" as const, titulo: item.nome, texto: item.descricao }];
+  const heroBlock = story.find((block) => block.tipo === "hero");
   const amenities = textItems(item.lazer);
   const differentiators = textItems(item.diferenciais);
   const azure = String(item.nome || "").toLowerCase().includes("azure");
@@ -194,10 +198,10 @@ function OpportunityLanding({
             {[item.bairro, item.cidade].filter(Boolean).join(" · ")}
           </small>
           <h2 style={{ fontSize: "clamp(42px,8vw,88px)", lineHeight: .94, margin: "14px 0 18px", maxWidth: 800 }}>
-            {azure ? "Quando o azul vira destino." : item.nome}
+            {azure ? "Quando o azul vira destino." : heroBlock?.titulo || item.nome}
           </h2>
           <p style={{ fontSize: "clamp(17px,2vw,22px)", lineHeight: 1.55, color: "#eee", maxWidth: 720, margin: 0 }}>
-            {azure ? "Um endereço na Praia da Armação para transformar a proximidade do mar em parte da sua vida — com estrutura para morar, veranear e avaliar como patrimônio." : item.descricao}
+            {azure ? "Um endereço na Praia da Armação para transformar a proximidade do mar em parte da sua vida — com estrutura para morar, veranear e avaliar como patrimônio." : heroBlock?.texto || item.descricao}
           </p>
           <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 24 }}>
             {facts.map((fact) => <span key={fact} style={{ padding: "9px 13px", border: "1px solid #d7ab6380", background: "#0b0b0dcc", borderRadius: 999, color: "#f5dca5", fontSize: 13 }}>{fact}</span>)}
