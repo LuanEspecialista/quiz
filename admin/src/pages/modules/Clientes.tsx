@@ -239,6 +239,7 @@ export default function Clientes({
   const [editingId, setEditingId] = useState<string | null>(null),
     [curating, setCurating] = useState<Client | null>(null),
     [comparing, setComparing] = useState<Client | null>(null);
+  const [openGallery, setOpenGallery] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open && !curating && !comparing) return;
@@ -1225,17 +1226,26 @@ export default function Clientes({
                               <option value="investidor">Investidor — conteúdo e números</option>
                             </select>
                           </label>
-                          {selection.exibir_imagens && <div style={{display:"grid",gap:7}}>
-                            <strong style={{fontSize:11}}>Imagens desta landing ({selection.imagem_ids_selecionadas?.length || 0}/10)</strong>
-                            <small style={{color:"#71717a"}}>{selection.imagem_ids_selecionadas?.length ? "Toque nas imagens para escolher e ordenar a galeria deste cliente." : "Nenhuma imagem escolhida manualmente: a apresentação usará automaticamente a capa e a galeria cadastradas no empreendimento."}</small>
-                            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(105px,1fr))",gap:7}}>
-                              {curadoriaMidias.filter(media=>media.empreendimento_id===property.id).map(media=>{const selected=selection.imagem_ids_selecionadas || [];const position=selected.indexOf(media.id);return <button type="button" key={media.id} onClick={()=>{const next=position>=0?selected.filter(id=>id!==media.id):selected.length<10?[...selected,media.id]:selected;if(position<0&&selected.length>=10)return setMessage("Selecione no máximo 10 imagens por landing.");void updateSelection(curating.id,property.id,{imagem_ids_selecionadas:next});}} style={{position:"relative",padding:0,border:`2px solid ${position>=0?"#c5a059":"#303036"}`,borderRadius:7,overflow:"hidden",background:"#18181b",color:"#fff",cursor:"pointer"}}>
-                                {media.preview_url?<img src={media.preview_url} alt={media.titulo || "Imagem"} style={{width:"100%",height:76,objectFit:"cover",display:"block"}}/>:<span style={{height:76,display:"grid",placeItems:"center"}}>Sem prévia</span>}
-                                {position>=0&&<b style={{position:"absolute",top:4,left:4,width:23,height:23,borderRadius:20,display:"grid",placeItems:"center",background:"#c5a059",color:"#09090b"}}>{position+1}</b>}
-                                <small style={{display:"block",padding:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{media.categoria || media.titulo || "Imagem"}</small>
+                          {selection.exibir_imagens && <>
+                            <button type="button" onClick={() => setOpenGallery((current) => current === property.id ? null : property.id)} style={{...button,width:"100%",justifyContent:"space-between",background:"#18181b",border:"1px solid #3f3f46",color:"#e4e4e7",fontSize:12,marginTop:4}}>
+                              <span>{openGallery === property.id ? "Ocultar galeria" : "Gerenciar galeria"}</span>
+                              <span style={{color:"#c5a059"}}>{selection.imagem_ids_selecionadas?.length || 0} selecionadas</span>
+                            </button>
+                            {openGallery === property.id && <div style={{display:"grid",gap:9,marginTop:4}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                              <strong style={{fontSize:12}}>Galeria desta landing</strong>
+                              <span style={{fontSize:11,color:"#c5a059",fontWeight:700}}>{selection.imagem_ids_selecionadas?.length || 0} selecionadas · até 100</span>
+                            </div>
+                            <small style={{color:"#71717a"}}>{selection.imagem_ids_selecionadas?.length ? "Clique nas miniaturas para selecionar e ordenar a galeria deste cliente." : "Sem seleção manual: a apresentação usará automaticamente a capa e a galeria cadastradas no empreendimento."}</small>
+                            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(145px,1fr))",gap:9,maxHeight:390,overflowY:"auto",padding:4,border:"1px solid #27272a",borderRadius:10,background:"#101014",alignItems:"start"}}>
+                              {curadoriaMidias.filter(media=>media.empreendimento_id===property.id).map(media=>{const selected=selection.imagem_ids_selecionadas || [];const position=selected.indexOf(media.id);return <button type="button" key={media.id} onClick={()=>{const next=position>=0?selected.filter(id=>id!==media.id):selected.length<100?[...selected,media.id]:selected;if(position<0&&selected.length>=100)return setMessage("Selecione no máximo 100 imagens por landing.");void updateSelection(curating.id,property.id,{imagem_ids_selecionadas:next});}} style={{position:"relative",width:"100%",minWidth:0,padding:0,border:`2px solid ${position>=0?"#c5a059":"#303036"}`,borderRadius:8,overflow:"hidden",background:"#18181b",color:"#fff",cursor:"pointer",textAlign:"left"}}>
+                                {media.preview_url?<img src={media.preview_url} alt={media.titulo || "Imagem"} style={{width:"100%",height:96,objectFit:"cover",display:"block"}}/>:<span style={{height:96,display:"grid",placeItems:"center",fontSize:11,color:"#71717a"}}>Sem prévia</span>}
+                                {position>=0&&<b style={{position:"absolute",top:5,left:5,width:24,height:24,borderRadius:20,display:"grid",placeItems:"center",background:"#c5a059",color:"#09090b"}}>{position+1}</b>}
+                                <small style={{display:"block",padding:"6px 7px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontSize:11}}>{media.titulo || media.categoria || "Imagem"}</small>
                               </button>})}
                             </div>
-                          </div>}
+                            </div>}
+                          </>}
                           <textarea
                             rows={2}
                             value={selection.mensagem_personalizada || ""}
