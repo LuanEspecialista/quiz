@@ -60,7 +60,7 @@ as $$
                       'titulo', ei.titulo,
                       'categoria', ei.categoria,
                       'storage_path', ei.storage_path,
-                      'url', case when ei.storage_path is null then ei.url end
+                      'url', case when ei.storage_path is null or ei.storage_path = '' then ei.url end
                     )
                     order by ord.pos
                   )
@@ -78,7 +78,7 @@ as $$
                     'titulo', ei.titulo,
                     'categoria', ei.categoria,
                     'storage_path', ei.storage_path,
-                    'url', case when ei.storage_path is null then ei.url end
+                    'url', case when ei.storage_path is null or ei.storage_path = '' then ei.url end
                   )
                   order by ei.ordem nulls last, ei.created_at
                 )
