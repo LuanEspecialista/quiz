@@ -67,7 +67,7 @@ as $$
                   from jsonb_array_elements_text(coalesce(ce.imagem_ids_selecionadas, '[]'::jsonb)) with ordinality ord(id, pos)
                   join public.empreendimento_imagens ei on ei.id::text = ord.id
                   where ei.empreendimento_id = e.id
-                  limit 10
+                  limit 50
                 ),
                 '[]'::jsonb
               ),
@@ -84,7 +84,7 @@ as $$
                 )
                 from public.empreendimento_imagens ei
                 where ei.empreendimento_id = e.id
-                limit 10
+                  limit 50
               ),
               '[]'::jsonb
             )

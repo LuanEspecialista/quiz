@@ -2,10 +2,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Building2,
-  CalendarDays,
   ChevronRight,
-  Images,
-  Landmark,
   LogOut,
   Send,
   UserRound,
@@ -67,6 +64,8 @@ const money = (value?: number | null) =>
 
 function curationPositioning(item: Opportunity) {
   const name = String(item.nome || "").toLowerCase();
+  if (name.includes("azure"))
+    return "Um endereço na Praia da Armação para viver o litoral com estrutura, bem-estar e uma leitura patrimonial cuidadosa.";
   if (name.includes("viverde"))
     return "Um clube residencial completo para aproveitar o litoral com a família e avaliar uma exploração flexível.";
   if (name.includes("verde mar"))
@@ -80,6 +79,7 @@ function curationPositioning(item: Opportunity) {
 
 function curationPrompt(item: Opportunity) {
   const name = String(item.nome || "").toLowerCase();
+  if (name.includes("azure")) return "mar, bem-estar e uso flexível entre viver e investir";
   if (name.includes("viverde")) return "estrutura de lazer e experiência de clube";
   if (name.includes("verde mar")) return "praticidade, lazer e localização em Penha";
   if (name.includes("praia alegre")) return "proximidade da praia, espaço e privacidade";
@@ -142,6 +142,18 @@ function MoneyScenario({
   );
 }
 
+function textItems(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item === "string") return [item];
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      return [String(record.titulo || record.nome || record.label || "")].filter(Boolean);
+    }
+    return [];
+  });
+}
+
 function OpportunityLanding({
   item,
   onProposal,
@@ -149,265 +161,81 @@ function OpportunityLanding({
   item: Opportunity;
   onProposal: (item: Opportunity) => void;
 }) {
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const blocks = (item.caracteristicas?.landing_blocos || []) as LandingBlock[];
-  const layout = String(item.layout || item.caracteristicas?.landing_layout || "editorial");
-  const images = item.imagens || [];
-  const plants = item.plantas || [];
-  const fallback: LandingBlock[] = [
-    {
-      tipo: "hero",
-      titulo: item.nome,
-      texto: item.descricao,
-      imagem_url: images[0]?.url,
-    },
-    ...(images.length > 1
-      ? [{ tipo: "galeria" as const, titulo: "Conheça o empreendimento" }]
-      : []),
-    ...(plants.length
-      ? [{ tipo: "plantas" as const, titulo: "Plantas disponíveis" }]
-      : []),
-  ];
-  const story = blocks.length ? blocks : fallback;
-  const renderMedia = (media: PortalMedia[], height = 230) => (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: `repeat(auto-fit,minmax(${layout === "imersivo" ? "240px" : "180px"},1fr))`,
-        gap: 9,
-      }}
-    >
-      {media.map((image) => (
-        <figure key={image.id} style={{ margin: 0 }}>
-          {image.url && (
-            <img
-              src={image.url}
-              alt={image.titulo || item.nome || "Imagem do empreendimento"}
-              style={{
-                width: "100%",
-                height,
-                objectFit: "cover",
-                borderRadius: 10,
-              }}
-            />
-          )}
-          {image.titulo && (
-            <figcaption
-              style={{ fontSize: 11, color: "#a1a1aa", marginTop: 5 }}
-            >
-              {image.titulo}
-            </figcaption>
-          )}
-        </figure>
-      ))}
-    </div>
-  );
+  const images = (item.imagens || []).filter((media) => media.url);
+  const plants = (item.plantas || []).filter((media) => media.url);
+  const gallery = images.filter((media) => !media.titulo?.toLowerCase().includes("capa"));
+  const heroImage = images[0]?.url;
+  const currentImage = gallery[galleryIndex % Math.max(gallery.length, 1)]?.url || heroImage;
+  const story = blocks.length ? blocks : [{ tipo: "texto" as const, titulo: item.nome, texto: item.descricao }];
+  const amenities = textItems(item.lazer);
+  const differentiators = textItems(item.diferenciais);
+  const azure = String(item.nome || "").toLowerCase().includes("azure");
+  const facts = [
+    item.preco != null ? `A partir de ${money(item.preco)}` : null,
+    item.area_minima != null ? `${item.area_minima}${item.area_maxima && item.area_maxima !== item.area_minima ? `–${item.area_maxima}` : ""} m²` : null,
+    [item.bairro, item.cidade].filter(Boolean).join(" · ") || null,
+  ].filter(Boolean) as string[];
+
   return (
-    <article
-      style={{
-        border: "1px solid #332d22",
-        background: "#101012",
-        borderRadius: 15,
-        overflow: "hidden",
-      }}
-    >
-      {story.map((block, index) => {
-        const hero = block.tipo === "hero";
-        if (block.tipo === "galeria")
-          return images.length ? (
-            <section key={index} style={{ padding: "clamp(18px,4vw,34px)" }}>
-              <h3>
-                <Images size={18} /> {block.titulo || "Galeria"}
-              </h3>
-              {block.texto && (
-                <p style={{ color: "#b4b4bb", lineHeight: 1.65 }}>
-                  {block.texto}
-                </p>
-              )}
-              {renderMedia(images, layout === "imersivo" ? 290 : 210)}
-            </section>
-          ) : null;
-        if (block.tipo === "plantas")
-          return plants.length ? (
-            <section
-              key={index}
-              style={{ padding: "clamp(18px,4vw,34px)", background: "#0c0c0f" }}
-            >
-              <h3>
-                <Building2 size={18} /> {block.titulo || "Plantas"}
-              </h3>
-              {block.texto && <p style={{ color: "#b4b4bb" }}>{block.texto}</p>}
-              {renderMedia(plants, 260)}
-            </section>
-          ) : null;
-        const image = block.imagem_url || (hero ? images[0]?.url : undefined);
-        return (
-          <section
-            key={index}
-            style={{
-              minHeight: hero && image ? 330 : undefined,
-              padding: hero && !image ? "24px" : "clamp(22px,5vw,52px)",
-              position: "relative",
-              display: "grid",
-              alignContent: "center",
-              background: image
-                ? `linear-gradient(90deg,rgba(7,7,9,.94),rgba(7,7,9,.38)),url(${image}) center/cover`
-                : block.tipo === "destaque"
-                  ? "#19150f"
-                  : "transparent",
-            }}
-          >
-            <div style={{ maxWidth: hero ? 720 : 850 }}>
-              {hero && (
-                <small
-                  style={{
-                    color: "#e0b965",
-                    fontWeight: 800,
-                    letterSpacing: ".12em",
-                  }}
-                >
-                  {[item.bairro, item.cidade].filter(Boolean).join(" · ")}
-                </small>
-              )}
-              <h2
-                style={{
-                  fontSize: hero
-                    ? "clamp(30px,6vw,58px)"
-                    : "clamp(22px,4vw,34px)",
-                  margin: "8px 0",
-                  lineHeight: 1.05,
-                }}
-              >
-                {block.titulo || item.nome}
-              </h2>
-              {block.texto && (
-                <p
-                  style={{
-                    fontSize: hero ? 17 : 15,
-                    color: "#d4d4d8",
-                    lineHeight: 1.7,
-                    whiteSpace: "pre-line",
-                  }}
-                >
-                  {block.texto}
-                </p>
-              )}
-            </div>
-          </section>
-        );
-      })}
-      <section
-        style={{
-          padding: "clamp(20px,4vw,36px)",
-          borderTop: "1px solid #2f291e",
-          display: "grid",
-          gap: 16,
-        }}
-      >
-        {item.mensagem && (
-          <p
-            style={{
-              margin: 0,
-              padding: "12px 14px",
-              borderLeft: "3px solid #d7ab63",
-              background: "#17140e",
-              lineHeight: 1.6,
-            }}
-          >
-            {item.mensagem}
+    <article style={{ background: "#0c0c0f", border: "1px solid #3a3021", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 80px #0008" }}>
+      <section style={{ minHeight: "min(680px,76vh)", position: "relative", display: "grid", alignItems: "end", background: heroImage ? `linear-gradient(0deg,#09090b 2%,#09090b44 48%,#09090b22),url(${heroImage}) center/cover` : "linear-gradient(135deg,#1a160e,#0d0d10)" }}>
+        <div style={{ padding: "clamp(28px,6vw,78px)", maxWidth: 850 }}>
+          <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase" }}>
+            {[item.bairro, item.cidade].filter(Boolean).join(" · ")}
+          </small>
+          <h2 style={{ fontSize: "clamp(42px,8vw,88px)", lineHeight: .94, margin: "14px 0 18px", maxWidth: 800 }}>
+            {azure ? "Quando o azul vira destino." : item.nome}
+          </h2>
+          <p style={{ fontSize: "clamp(17px,2vw,22px)", lineHeight: 1.55, color: "#eee", maxWidth: 720, margin: 0 }}>
+            {azure ? "Um endereço na Praia da Armação para transformar a proximidade do mar em parte da sua vida — com estrutura para morar, veranear e avaliar como patrimônio." : item.descricao}
           </p>
-        )}
-        {(item.preco != null || item.area_minima != null) && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
-              gap: 10,
-            }}
-          >
-            {item.preco != null && (
-              <span
-                style={{
-                  padding: 13,
-                  background: "#18181b",
-                  borderRadius: 9,
-                  color: "#aaa",
-                }}
-              >
-                A partir de
-                <strong
-                  style={{ display: "block", color: "#fff", fontSize: 18 }}
-                >
-                  {money(item.preco)}
-                </strong>
-              </span>
-            )}
-            {item.area_minima != null && (
-              <span
-                style={{
-                  padding: 13,
-                  background: "#18181b",
-                  borderRadius: 9,
-                  color: "#aaa",
-                }}
-              >
-                Área
-                <strong
-                  style={{ display: "block", color: "#fff", fontSize: 18 }}
-                >
-                  {item.area_minima}
-                  {item.area_maxima && item.area_maxima !== item.area_minima
-                    ? `–${item.area_maxima}`
-                    : ""}{" "}
-                  m²
-                </strong>
-              </span>
-            )}
+          <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 24 }}>
+            {facts.map((fact) => <span key={fact} style={{ padding: "9px 13px", border: "1px solid #d7ab6380", background: "#0b0b0dcc", borderRadius: 999, color: "#f5dca5", fontSize: 13 }}>{fact}</span>)}
           </div>
-        )}
-        {(item.exibir_investimento || item.exibir_fluxo) && <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>
-          {item.exibir_investimento && <div style={{padding:15,borderRadius:10,background:layout==="investidor"?"#172016":"#18181b",border:"1px solid #2f3f2e"}}><strong style={{color:"#b9d89c"}}>Visão de investimento</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>Consulte os argumentos, diferenciais e premissas cadastrados para esta oportunidade. Projeções não representam garantia de rentabilidade.</p></div>}
-          {item.exibir_fluxo && <div style={{padding:15,borderRadius:10,background:"#18181b",border:"1px solid #3a3327"}}><strong style={{color:"#edcf91"}}>Condições comerciais</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>O fluxo será estruturado conforme sua entrada, capacidade mensal e reforços, sujeito à tabela vigente e aprovação da construtora.</p></div>}
-        </div>}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))",
-            gap: 9,
-          }}
-        >
-          {item.permitir_proposta && (
-            <button
-              onClick={() => onProposal(item)}
-              style={{
-                border: 0,
-                background: "#d7ab63",
-                color: "#09090b",
-                borderRadius: 8,
-                padding: 13,
-                fontWeight: 800,
-                cursor: "pointer",
-              }}
-            >
-              <Landmark size={15} /> Montar e enviar proposta
-            </button>
-          )}
-          <a
-            href="https://wa.me/5547992120915"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              textAlign: "center",
-              border: "1px solid #54452c",
-              color: "#ead5aa",
-              textDecoration: "none",
-              borderRadius: 8,
-              padding: 12,
-              fontWeight: 700,
-            }}
-          >
-            <CalendarDays size={15} /> Falar com o especialista
-          </a>
         </div>
+      </section>
+
+      <section style={{ padding: "clamp(24px,5vw,58px)", display: "grid", gap: 22 }}>
+        {story.map((block, index) => block.tipo !== "galeria" && block.tipo !== "plantas" ? (
+          <div key={index} style={{ maxWidth: 820, padding: index === 0 ? 0 : "22px 0", borderTop: index === 0 ? 0 : "1px solid #2c261d" }}>
+            <small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>{index === 0 ? "A leitura deste imóvel" : block.tipo || "Oportunidade"}</small>
+            <h3 style={{ fontSize: "clamp(25px,4vw,42px)", lineHeight: 1.05, margin: "9px 0 12px" }}>{block.titulo || item.nome}</h3>
+            {block.texto && <p style={{ color: "#c9c9ce", lineHeight: 1.8, fontSize: 16, margin: 0 }}>{block.texto}</p>}
+          </div>
+        ) : null)}
+
+        {gallery.length > 0 && <section style={{ paddingTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, marginBottom: 12 }}>
+            <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A EXPERIÊNCIA</small><h3 style={{ margin: "7px 0 0", fontSize: "clamp(24px,4vw,38px)" }}>Veja o que existe por trás do endereço.</h3></div>
+            <span style={{ color: "#92929b", fontSize: 13 }}>{(galleryIndex % gallery.length) + 1} / {gallery.length}</span>
+          </div>
+          <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#050505" }}>
+            {currentImage && <img src={currentImage} alt={gallery[galleryIndex % gallery.length]?.titulo || item.nome} style={{ width: "100%", height: "min(58vw,520px)", minHeight: 260, objectFit: "cover", display: "block" }} />}
+            <div style={{ position: "absolute", inset: "auto 14px 14px", display: "flex", justifyContent: "space-between" }}>
+              <button type="button" onClick={() => setGalleryIndex((galleryIndex - 1 + gallery.length) % gallery.length)} style={{ border: "1px solid #fff6", background: "#000b", color: "#fff", borderRadius: 999, padding: "10px 15px", cursor: "pointer" }}>‹ Anterior</button>
+              <button type="button" onClick={() => setGalleryIndex((galleryIndex + 1) % gallery.length)} style={{ border: "1px solid #fff6", background: "#000b", color: "#fff", borderRadius: 999, padding: "10px 15px", cursor: "pointer" }}>Próxima ›</button>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingTop: 10 }}>
+            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => setGalleryIndex(index)} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 90px", cursor: "pointer" }}><img src={image.url} alt="" style={{ width: 90, height: 62, objectFit: "cover", display: "block" }} /></button>)}
+          </div>
+        </section>}
+
+        {(amenities.length > 0 || differentiators.length > 0) && <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))", gap: 28, paddingTop: 20 }}>
+          {amenities.length > 0 && <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>MOMENTOS POSSÍVEIS</small><h3 style={{ margin: "8px 0 15px", fontSize: 28 }}>Uma estrutura que acompanha diferentes momentos.</h3><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{amenities.map((value) => <span key={value} style={{ padding: "9px 11px", borderRadius: 8, background: "#171513", border: "1px solid #403522", color: "#ded5c5", fontSize: 13 }}>{value}</span>)}</div></div>}
+          {differentiators.length > 0 && <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>DETALHES QUE DECIDEM</small><h3 style={{ margin: "8px 0 15px", fontSize: 28 }}>Conforto pensado para o uso real.</h3><ul style={{ margin: 0, paddingLeft: 18, color: "#c9c9ce", lineHeight: 1.9 }}>{differentiators.map((value) => <li key={value}>{value}</li>)}</ul></div>}
+        </section>}
+
+        {plants.length > 0 && <section style={{ paddingTop: 20, borderTop: "1px solid #2c261d" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A PLANTA PRECISA COMBINAR COM A SUA VIDA</small><h3 style={{ margin: "8px 0 16px", fontSize: 30 }}>Escolha o formato que faz sentido para você.</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10 }}>{plants.map((plant) => <figure key={plant.id} style={{ margin: 0, background: "#141416", borderRadius: 10, overflow: "hidden" }}><img src={plant.url} alt={plant.titulo || "Planta"} style={{ width: "100%", height: 210, objectFit: "contain", background: "#fff", display: "block" }} /><figcaption style={{ padding: 10, color: "#bdbdc4", fontSize: 12 }}>{plant.titulo || "Planta do empreendimento"}</figcaption></figure>)}</div></section>}
+
+        <section style={{ marginTop: 12, padding: "24px", borderRadius: 13, background: "linear-gradient(135deg,#1d180f,#131313)", border: "1px solid #5b4728", display: "grid", gap: 13 }}>
+          <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".12em" }}>A DECISÃO É SUA — A LEITURA É NOSSA</small>
+          <h3 style={{ margin: 0, fontSize: "clamp(24px,4vw,38px)" }}>{azure ? "O Azure combina com a forma como você quer viver o litoral?" : "Este imóvel combina com o momento que você está vivendo?"}</h3>
+          <p style={{ color: "#c9c9ce", lineHeight: 1.65, margin: 0 }}>O próximo passo não precisa ser uma decisão apressada. Fale comigo sobre uso próprio, locação, prazo e condições para entender o cenário com clareza.</p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button type="button" onClick={() => onProposal(item)} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: "13px 17px", fontWeight: 800, cursor: "pointer" }}>Quero conversar sobre este imóvel</button><a href="https://wa.me/5547992120915" target="_blank" rel="noreferrer" style={{ border: "1px solid #80683c", color: "#f0d59c", textDecoration: "none", borderRadius: 8, padding: "12px 16px", fontWeight: 700 }}>Falar no WhatsApp</a></div>
+        </section>
       </section>
     </article>
   );
