@@ -242,6 +242,34 @@ export default function Clientes({
   const [openGallery, setOpenGallery] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!openGallery || !curating) {
+      setCuradoriaMidias([]);
+      return;
+    }
+    let cancelled = false;
+    const loadGallery = async () => {
+      const { data, error } = await supabase
+        .from("empreendimento_imagens")
+        .select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem")
+        .eq("empreendimento_id", openGallery)
+        .order("ordem")
+        .limit(100);
+      if (error || cancelled) return;
+      const signed = await Promise.all(((data || []) as CuradoriaMedia[]).map(async (item) => {
+        if (item.storage_path?.startsWith("r2://")) {
+          return { ...item, preview_url: `https://media.luan-especialista.pro/${item.storage_path.slice(5)}` };
+        }
+        if (!item.storage_path) return { ...item, preview_url: item.url };
+        const { data: signedData } = await supabase.storage.from("empreendimentos").createSignedUrl(item.storage_path, 3600);
+        return { ...item, preview_url: signedData?.signedUrl || item.url || undefined };
+      }));
+      if (!cancelled) setCuradoriaMidias(signed);
+    };
+    void loadGallery();
+    return () => { cancelled = true; };
+  }, [openGallery, curating]);
+
+  useEffect(() => {
     if (!open && !curating && !comparing) return;
     const dismiss = () => {
       if (comparing) setComparing(null);
@@ -269,7 +297,7 @@ export default function Clientes({
   }, [open, curating, comparing]);
 
   async function load() {
-    const [c, p, s, u, cp, media, leads] = await Promise.all([
+    const [c, p, s, u, cp, leads] = await Promise.all([
       supabase
         .from("clientes")
         .select("*")
@@ -287,7 +315,6 @@ export default function Clientes({
         .from("cliente_propostas")
         .select("*")
         .order("created_at", { ascending: false }),
-      supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem"),
       supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,blog_posts(titulo)").order("criado_em", { ascending:false }),
     ]);
     if (c.error)
@@ -305,14 +332,6 @@ export default function Clientes({
     if (!u.error) setUnits((u.data || []) as Unit[]);
     if (!cp.error) setProposals((cp.data || []) as ClientProposal[]);
     if (!leads.error) setBlogLeads((leads.data || []) as unknown as BlogLead[]);
-    if (!media.error) {
-      const signed = await Promise.all(((media.data || []) as CuradoriaMedia[]).map(async item => {
-        if (!item.storage_path) return { ...item, preview_url:item.url };
-        const { data } = await supabase.storage.from("empreendimentos").createSignedUrl(item.storage_path,3600);
-        return { ...item, preview_url:data?.signedUrl || undefined };
-      }));
-      setCuradoriaMidias(signed);
-    }
   }
   useEffect(() => {
     void load();
@@ -638,6 +657,11 @@ export default function Clientes({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Search size={16} color="#71717a" />
           <input
+            type="search"
+            name="client-search"
+            autoComplete="new-password"
+            autoCapitalize="none"
+            spellCheck={false}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por nome, telefone, e-mail ou cidade"
