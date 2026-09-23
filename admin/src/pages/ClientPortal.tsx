@@ -92,6 +92,38 @@ function curationPrompt(item: Opportunity) {
   if (name.includes("niki lauda")) return "apartamento mobiliado e proximidade do mar";
   return "o que mais chamou a sua atenção";
 }
+
+function isPlaceholder(value?: string | null) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return !normalized || ["texto", "conteúdo", "descricao", "descrição", "código", "codigo", "oportunidade"].includes(normalized);
+}
+
+function editorialSectionLabel(block: LandingBlock, index: number) {
+  if (index === 0) return "Uma leitura para o seu momento";
+  if (block.tipo === "destaque") return "O que diferencia este projeto";
+  if (block.tipo === "cidade") return "O endereço e o entorno";
+  return "Uma forma de viver este endereço";
+}
+
+function editorialTitle(item: Opportunity, block: LandingBlock, index: number) {
+  if (!isPlaceholder(block.titulo)) return block.titulo;
+  if (index === 0) return `Um endereço escolhido para ${curationPrompt(item)}.`;
+  if (block.tipo === "cidade") return "A localização que muda a experiência.";
+  if (block.tipo === "destaque") return "Detalhes que aparecem no uso cotidiano.";
+  return "Mais do que uma planta: uma escolha de vida.";
+}
+
+function editorialText(item: Opportunity, block: LandingBlock, index: number) {
+  if (!isPlaceholder(block.texto) && block.texto && block.texto.length > 45) return block.texto;
+  if (index === 0) return curationPositioning(item);
+  if (block.tipo === "cidade") return `A localização foi considerada nesta curadoria porque aproxima você de ${[item.bairro, item.cidade].filter(Boolean).join(" e ") || "uma região com vocação para viver, descansar e preservar valor"}.`;
+  if (block.tipo === "destaque") return `A proposta combina ${curationPrompt(item)} com uma leitura prática de uso. O importante é entender como o projeto se comporta na sua rotina — e não apenas conferir uma lista de atributos.`;
+  return `Este é o tipo de escolha que merece ser visto com calma: imagine seus dias aqui, observe o que realmente combina com a sua fase e depois conversamos sobre condições, prazo e estratégia.`;
+}
+
+function mediaTitle(media: PortalMedia, fallback: string) {
+  return isPlaceholder(media.titulo) || String(media.titulo || "").length < 3 ? fallback : media.titulo;
+}
 const input = {
   width: "100%",
   boxSizing: "border-box" as const,
@@ -192,11 +224,10 @@ function OpportunityLanding({
     const timer = window.setInterval(() => setGalleryIndex((current) => (current + 1) % gallery.length), 6000);
     return () => window.clearInterval(timer);
   }, [autoplay, gallery.length]);
-  const story = blocks.length ? blocks : [{ tipo: "texto" as const, titulo: item.nome, texto: item.descricao }];
+  const story = blocks.length ? blocks : [{ tipo: "texto" as const, titulo: "A escolha por trás do endereço", texto: item.descricao }];
   const heroBlock = story.find((block) => block.tipo === "hero");
   const amenities = textItems(item.lazer);
   const differentiators = textItems(item.diferenciais);
-  const azure = String(item.nome || "").toLowerCase().includes("azure");
   const facts = [
     item.preco != null ? `A partir de ${money(item.preco)}` : null,
     item.area_minima != null ? `${item.area_minima}${item.area_maxima && item.area_maxima !== item.area_minima ? `–${item.area_maxima}` : ""} m²` : null,
@@ -213,10 +244,10 @@ function OpportunityLanding({
             {[item.bairro, item.cidade].filter(Boolean).join(" · ")}
           </small>
           <h2 style={{ fontSize: "clamp(42px,8vw,88px)", lineHeight: .94, margin: "14px 0 18px", maxWidth: 800 }}>
-            {azure ? "Quando o azul vira destino." : heroBlock?.titulo || item.nome}
+            {!isPlaceholder(heroBlock?.titulo) ? heroBlock?.titulo : `Um endereço para ${curationPrompt(item)}.`}
           </h2>
           <p style={{ fontSize: "clamp(17px,2vw,22px)", lineHeight: 1.55, color: "#eee", maxWidth: 720, margin: 0 }}>
-            {azure ? "Um endereço na Praia da Armação para transformar a proximidade do mar em parte da sua vida — com estrutura para morar, veranear e avaliar como patrimônio." : heroBlock?.texto || item.descricao}
+            {!isPlaceholder(heroBlock?.texto) && (heroBlock?.texto?.length || 0) > 45 ? heroBlock?.texto : curationPositioning(item)}
           </p>
           <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 24 }}>
             {facts.map((fact) => <span key={fact} style={{ padding: "9px 13px", border: "1px solid #d7ab6380", background: "#0b0b0dcc", borderRadius: 999, color: "#f5dca5", fontSize: 13 }}>{fact}</span>)}
@@ -227,26 +258,26 @@ function OpportunityLanding({
       <section style={{ padding: "clamp(24px,5vw,58px)", display: "grid", gap: 22 }}>
         {story.map((block, index) => block.tipo !== "hero" && block.tipo !== "galeria" && block.tipo !== "plantas" ? (
           <div key={index} style={{ maxWidth: 820, padding: index === 0 ? 0 : "22px 0", borderTop: index === 0 ? 0 : "1px solid #2c261d" }}>
-            <small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>{index === 0 ? "A leitura deste imóvel" : block.tipo || "Oportunidade"}</small>
-            <h3 style={{ fontSize: "clamp(25px,4vw,42px)", lineHeight: 1.05, margin: "9px 0 12px" }}>{block.titulo || item.nome}</h3>
-            {block.texto && <p style={{ color: "#c9c9ce", lineHeight: 1.8, fontSize: 16, margin: 0 }}>{block.texto}</p>}
+            <small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>{editorialSectionLabel(block, index)}</small>
+            <h3 style={{ fontSize: "clamp(25px,4vw,42px)", lineHeight: 1.05, margin: "9px 0 12px" }}>{editorialTitle(item, block, index)}</h3>
+            <p style={{ color: "#c9c9ce", lineHeight: 1.8, fontSize: 16, margin: 0 }}>{editorialText(item, block, index)}</p>
           </div>
         ) : null)}
 
         {gallery.length > 0 && <section style={{ paddingTop: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, marginBottom: 12 }}>
-            <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A EXPERIÊNCIA</small><h3 style={{ margin: "7px 0 0", fontSize: "clamp(24px,4vw,38px)" }}>Veja o que existe por trás do endereço.</h3></div>
+            <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A EXPERIÊNCIA EM IMAGENS</small><h3 style={{ margin: "7px 0 0", fontSize: "clamp(24px,4vw,38px)" }}>Veja como este projeto se revela.</h3></div>
             <span style={{ color: "#92929b", fontSize: 13 }}>{(galleryIndex % gallery.length) + 1} / {gallery.length}</span>
           </div>
           <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#050505" }}>
             {currentImage && <img src={currentImage} alt={currentMedia?.titulo || item.nome} onError={() => markBroken(currentMedia?.id)} style={{ width: "100%", height: "min(58vw,520px)", minHeight: 260, objectFit: "cover", display: "block" }} />}
             <div style={{ position: "absolute", inset: "auto 14px 14px", display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12 }}>
-              <div style={{padding:"10px 13px",borderRadius:10,background:"#050505c9",backdropFilter:"blur(8px)",maxWidth:"62%"}}><strong style={{display:"block",fontSize:14}}>{currentMedia?.titulo || "Experiência do empreendimento"}</strong><small style={{color:"#d7ab63"}}>{currentMedia?.categoria || "Curadoria visual"}</small></div>
+              <div style={{padding:"10px 13px",borderRadius:10,background:"#050505c9",backdropFilter:"blur(8px)",maxWidth:"62%"}}><strong style={{display:"block",fontSize:14}}>{currentMedia ? mediaTitle(currentMedia, "Detalhe do projeto") : "Experiência do empreendimento"}</strong><small style={{color:"#d7ab63"}}>{!isPlaceholder(currentMedia?.categoria) ? currentMedia?.categoria : "Curadoria visual"}</small></div>
               <div style={{display:"flex",gap:7}}><button type="button" aria-label="Imagem anterior" onClick={() => setGalleryIndex((galleryIndex - 1 + gallery.length) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronLeft size={18}/></button><button type="button" aria-label={autoplay ? "Pausar apresentação" : "Reproduzir apresentação"} onClick={() => setAutoplay((current) => !current)} style={{border:"1px solid #d7ab63",background:"#d7ab63",color:"#09090b",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}>{autoplay ? <Pause size={16}/> : <Play size={16}/>}</button><button type="button" aria-label="Próxima imagem" onClick={() => setGalleryIndex((galleryIndex + 1) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronRight size={18}/></button></div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingTop: 10 }}>
-            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => { setGalleryIndex(index); setAutoplay(false); }} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 110px", cursor: "pointer", textAlign:"left" }}><img src={image.url} alt={image.titulo || ""} onError={() => markBroken(image.id)} style={{ width: 110, height: 68, objectFit: "cover", display: "block" }} /><small style={{display:"block",padding:"5px 6px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#c9c9ce",fontSize:10}}>{image.titulo || "Imagem"}</small></button>)}
+            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => { setGalleryIndex(index); setAutoplay(false); }} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 110px", cursor: "pointer", textAlign:"left" }}><img src={image.url} alt={mediaTitle(image, "Imagem do projeto")} onError={() => markBroken(image.id)} style={{ width: 110, height: 68, objectFit: "cover", display: "block" }} /><small style={{display:"block",padding:"5px 6px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#c9c9ce",fontSize:10}}>{mediaTitle(image, "Imagem do projeto")}</small></button>)}
           </div>
         </section>}
 
@@ -255,11 +286,11 @@ function OpportunityLanding({
           {differentiators.length > 0 && <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>DETALHES QUE DECIDEM</small><h3 style={{ margin: "8px 0 15px", fontSize: 28 }}>Conforto pensado para o uso real.</h3><ul style={{ margin: 0, paddingLeft: 18, color: "#c9c9ce", lineHeight: 1.9 }}>{differentiators.map((value) => <li key={value}>{value}</li>)}</ul></div>}
         </section>}
 
-        {plants.length > 0 && <section style={{ paddingTop: 20, borderTop: "1px solid #2c261d" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A PLANTA PRECISA COMBINAR COM A SUA VIDA</small><h3 style={{ margin: "8px 0 16px", fontSize: 30 }}>Escolha o formato que faz sentido para você.</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10 }}>{plants.map((plant) => <figure key={plant.id} style={{ margin: 0, background: "#141416", borderRadius: 10, overflow: "hidden" }}><img src={plant.url} alt={plant.titulo || "Planta"} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: 210, objectFit: "contain", background: "#fff", display: "block" }} /><figcaption style={{ padding: 10, color: "#bdbdc4", fontSize: 12 }}>{plant.titulo || "Planta do empreendimento"}</figcaption></figure>)}</div></section>}
+        {plants.length > 0 && <section style={{ paddingTop: 20, borderTop: "1px solid #2c261d" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>OS FORMATOS POSSÍVEIS</small><h3 style={{ margin: "8px 0 16px", fontSize: 30 }}>Escolha a planta que acompanha a sua rotina.</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 14 }}>{plants.map((plant, index) => <figure key={plant.id} style={{ margin: 0, background: "#141416", borderRadius: 12, overflow: "hidden", border:"1px solid #332d22" }}><div style={{background:"#f7f5ef",padding:8}}><img src={plant.url} alt={mediaTitle(plant, `Planta ${index + 1}`)} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: 250, objectFit: "contain", background: "#fff", display: "block" }} /></div><figcaption style={{ padding: "11px 13px", color: "#d8d4cc", fontSize: 13, lineHeight:1.45 }}>{mediaTitle(plant, `Planta ${index + 1}`)}</figcaption></figure>)}</div></section>}
 
         <section style={{ marginTop: 12, padding: "24px", borderRadius: 13, background: "linear-gradient(135deg,#1d180f,#131313)", border: "1px solid #5b4728", display: "grid", gap: 13 }}>
           <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".12em" }}>A DECISÃO É SUA — A LEITURA É NOSSA</small>
-          <h3 style={{ margin: 0, fontSize: "clamp(24px,4vw,38px)" }}>{azure ? "O Azure combina com a forma como você quer viver o litoral?" : "Este imóvel combina com o momento que você está vivendo?"}</h3>
+          <h3 style={{ margin: 0, fontSize: "clamp(24px,4vw,38px)" }}>Este projeto combina com o momento que você está vivendo?</h3>
           <p style={{ color: "#c9c9ce", lineHeight: 1.65, margin: 0 }}>O próximo passo não precisa ser uma decisão apressada. Fale comigo sobre uso próprio, locação, prazo e condições para entender o cenário com clareza.</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button type="button" onClick={() => onProposal(item)} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: "13px 17px", fontWeight: 800, cursor: "pointer" }}>Quero conversar sobre este imóvel</button><a href="https://wa.me/5547992120915" target="_blank" rel="noreferrer" style={{ border: "1px solid #80683c", color: "#f0d59c", textDecoration: "none", borderRadius: 8, padding: "12px 16px", fontWeight: 700 }}>Falar no WhatsApp</a></div>
         </section>
