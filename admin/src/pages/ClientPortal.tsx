@@ -235,11 +235,11 @@ function OpportunityLanding({
   ].filter(Boolean) as string[];
 
   return (
-    <article style={{ background: "#0c0c0f", border: "1px solid #3a3021", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 80px #0008" }}>
+    <article className="opportunity-landing" style={{ background: "#0c0c0f", border: "1px solid #3a3021", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 80px #0008" }}>
       <section style={{ minHeight: "min(680px,76vh)", position: "relative", display: "grid", alignItems: "end", background: "linear-gradient(135deg,#1a160e,#0d0d10)" }}>
         {heroImage && !heroBroken && <img src={heroImage} alt="" onError={() => setHeroBroken(true)} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.72}}/>}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(0deg,#09090b 2%,#09090b66 52%,#09090b2b 100%)"}} />
-        <div style={{ padding: "clamp(28px,6vw,78px)", maxWidth: 850, position:"relative", zIndex:1 }}>
+        <div className="landing-hero-copy" style={{ padding: "clamp(28px,6vw,78px)", maxWidth: 850, position:"relative", zIndex:1 }}>
           <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase" }}>
             {[item.bairro, item.cidade].filter(Boolean).join(" · ")}
           </small>
@@ -249,7 +249,7 @@ function OpportunityLanding({
           <p style={{ fontSize: "clamp(17px,2vw,22px)", lineHeight: 1.55, color: "#eee", maxWidth: 720, margin: 0 }}>
             {!isPlaceholder(heroBlock?.texto) && (heroBlock?.texto?.length || 0) > 45 ? heroBlock?.texto : curationPositioning(item)}
           </p>
-          <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 24 }}>
+          <div className="landing-facts" style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 24 }}>
             {facts.map((fact) => <span key={fact} style={{ padding: "9px 13px", border: "1px solid #d7ab6380", background: "#0b0b0dcc", borderRadius: 999, color: "#f5dca5", fontSize: 13 }}>{fact}</span>)}
           </div>
         </div>
@@ -265,19 +265,19 @@ function OpportunityLanding({
         ) : null)}
 
         {gallery.length > 0 && <section style={{ paddingTop: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, marginBottom: 12 }}>
+          <div className="landing-gallery-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, marginBottom: 12 }}>
             <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A EXPERIÊNCIA EM IMAGENS</small><h3 style={{ margin: "7px 0 0", fontSize: "clamp(24px,4vw,38px)" }}>Veja como este projeto se revela.</h3></div>
             <span style={{ color: "#92929b", fontSize: 13 }}>{(galleryIndex % gallery.length) + 1} / {gallery.length}</span>
           </div>
-          <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#050505" }}>
+          <div className="landing-gallery-frame" style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#050505" }}>
             {currentImage && <img src={currentImage} alt={currentMedia?.titulo || item.nome} onError={() => markBroken(currentMedia?.id)} style={{ width: "100%", height: "min(58vw,520px)", minHeight: 260, objectFit: "cover", display: "block" }} />}
-            <div style={{ position: "absolute", inset: "auto 14px 14px", display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12 }}>
-              <div style={{padding:"10px 13px",borderRadius:10,background:"#050505c9",backdropFilter:"blur(8px)",maxWidth:"62%"}}><strong style={{display:"block",fontSize:14}}>{currentMedia ? mediaTitle(currentMedia, "Detalhe do projeto") : "Experiência do empreendimento"}</strong><small style={{color:"#d7ab63"}}>{!isPlaceholder(currentMedia?.categoria) ? currentMedia?.categoria : "Curadoria visual"}</small></div>
-              <div style={{display:"flex",gap:7}}><button type="button" aria-label="Imagem anterior" onClick={() => setGalleryIndex((galleryIndex - 1 + gallery.length) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronLeft size={18}/></button><button type="button" aria-label={autoplay ? "Pausar apresentação" : "Reproduzir apresentação"} onClick={() => setAutoplay((current) => !current)} style={{border:"1px solid #d7ab63",background:"#d7ab63",color:"#09090b",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}>{autoplay ? <Pause size={16}/> : <Play size={16}/>}</button><button type="button" aria-label="Próxima imagem" onClick={() => setGalleryIndex((galleryIndex + 1) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronRight size={18}/></button></div>
+            <div className="landing-gallery-overlay" style={{ position: "absolute", inset: "auto 14px 14px", display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12 }}>
+              <div className="landing-gallery-label" style={{padding:"10px 13px",borderRadius:10,background:"#050505c9",backdropFilter:"blur(8px)",maxWidth:"62%"}}><strong style={{display:"block",fontSize:14}}>{currentMedia ? mediaTitle(currentMedia, "Detalhe do projeto") : "Experiência do empreendimento"}</strong><small style={{color:"#d7ab63"}}>{!isPlaceholder(currentMedia?.categoria) ? currentMedia?.categoria : "Curadoria visual"}</small></div>
+              <div className="landing-gallery-buttons" style={{display:"flex",gap:7}}><button type="button" aria-label="Imagem anterior" onClick={() => setGalleryIndex((galleryIndex - 1 + gallery.length) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronLeft size={18}/></button><button type="button" aria-label={autoplay ? "Pausar apresentação" : "Reproduzir apresentação"} onClick={() => setAutoplay((current) => !current)} style={{border:"1px solid #d7ab63",background:"#d7ab63",color:"#09090b",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}>{autoplay ? <Pause size={16}/> : <Play size={16}/>}</button><button type="button" aria-label="Próxima imagem" onClick={() => setGalleryIndex((galleryIndex + 1) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronRight size={18}/></button></div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingTop: 10 }}>
-            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => { setGalleryIndex(index); setAutoplay(false); }} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 110px", cursor: "pointer", textAlign:"left" }}><img src={image.url} alt={mediaTitle(image, "Imagem do projeto")} onError={() => markBroken(image.id)} style={{ width: 110, height: 68, objectFit: "cover", display: "block" }} /><small style={{display:"block",padding:"5px 6px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#c9c9ce",fontSize:10}}>{mediaTitle(image, "Imagem do projeto")}</small></button>)}
+          <div className="landing-thumbs" style={{ display: "flex", gap: 8, overflowX: "auto", paddingTop: 10 }}>
+            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => { setGalleryIndex(index); setAutoplay(false); }} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 110px", cursor: "pointer", textAlign:"left" }}><img src={image.url} alt={mediaTitle(image, "Imagem do projeto")} onError={() => markBroken(image.id)} style={{ width: 110, height: 68, objectFit: "cover", display: "block" }} /><small className="landing-thumb-label" style={{display:"block",padding:"5px 6px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#c9c9ce",fontSize:10}}>{mediaTitle(image, "Imagem do projeto")}</small></button>)}
           </div>
         </section>}
 
@@ -286,7 +286,7 @@ function OpportunityLanding({
           {differentiators.length > 0 && <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>DETALHES QUE DECIDEM</small><h3 style={{ margin: "8px 0 15px", fontSize: 28 }}>Conforto pensado para o uso real.</h3><ul style={{ margin: 0, paddingLeft: 18, color: "#c9c9ce", lineHeight: 1.9 }}>{differentiators.map((value) => <li key={value}>{value}</li>)}</ul></div>}
         </section>}
 
-        {plants.length > 0 && <section style={{ paddingTop: 20, borderTop: "1px solid #2c261d" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>OS FORMATOS POSSÍVEIS</small><h3 style={{ margin: "8px 0 16px", fontSize: 30 }}>Escolha a planta que acompanha a sua rotina.</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 14 }}>{plants.map((plant, index) => <figure key={plant.id} style={{ margin: 0, background: "#141416", borderRadius: 12, overflow: "hidden", border:"1px solid #332d22" }}><div style={{background:"#f7f5ef",padding:8}}><img src={plant.url} alt={mediaTitle(plant, `Planta ${index + 1}`)} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: 250, objectFit: "contain", background: "#fff", display: "block" }} /></div><figcaption style={{ padding: "11px 13px", color: "#d8d4cc", fontSize: 13, lineHeight:1.45 }}>{mediaTitle(plant, `Planta ${index + 1}`)}</figcaption></figure>)}</div></section>}
+        {plants.length > 0 && <section style={{ paddingTop: 20, borderTop: "1px solid #2c261d" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>OS FORMATOS POSSÍVEIS</small><h3 style={{ margin: "8px 0 16px", fontSize: 30 }}>Escolha a planta que acompanha a sua rotina.</h3><div className="landing-plants-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 14 }}>{plants.map((plant, index) => <figure key={plant.id} style={{ margin: 0, background: "#141416", borderRadius: 12, overflow: "hidden", border:"1px solid #332d22" }}><div style={{background:"#f7f5ef",padding:8}}><img src={plant.url} alt={mediaTitle(plant, `Planta ${index + 1}`)} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: 250, objectFit: "contain", background: "#fff", display: "block" }} /></div><figcaption style={{ padding: "11px 13px", color: "#d8d4cc", fontSize: 13, lineHeight:1.45 }}>{mediaTitle(plant, `Planta ${index + 1}`)}</figcaption></figure>)}</div></section>}
 
         <section style={{ marginTop: 12, padding: "24px", borderRadius: 13, background: "linear-gradient(135deg,#1d180f,#131313)", border: "1px solid #5b4728", display: "grid", gap: 13 }}>
           <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".12em" }}>A DECISÃO É SUA — A LEITURA É NOSSA</small>
@@ -447,13 +447,51 @@ export default function ClientPortal({ userName }: { userName?: string }) {
 
   return (
     <main
+      className="client-portal"
       style={{
         minHeight: "100vh",
         background: "#09090b",
         color: "#f4f4f5",
         padding: "clamp(20px,4vw,56px)",
+        overflowX: "hidden",
       }}
     >
+      <style>{`
+        .client-portal, .client-portal * { box-sizing: border-box; }
+        .client-portal > div { width: 100%; min-width: 0; }
+        .client-portal h1, .client-portal h2, .client-portal h3, .client-portal p, .client-portal small, .client-portal span, .client-portal strong { max-width: 100%; overflow-wrap: anywhere; }
+        .client-portal button, .client-portal a, .client-portal section, .client-portal article, .client-portal figure { min-width: 0; max-width: 100%; }
+        .opportunity-landing { min-width: 0; width: 100%; overflow: hidden; }
+        .landing-hero-copy { width: min(850px, 100%); }
+        .landing-gallery-toolbar { flex-wrap: wrap; }
+        .landing-gallery-label { min-width: 0; overflow-wrap: anywhere; }
+        .landing-thumb-label { white-space: normal !important; min-height: 32px; }
+        @media (max-width: 640px) {
+          .client-portal { padding: 14px !important; }
+          .client-portal header { margin-bottom: 20px !important; }
+          .client-portal header > div:last-child { width: 100%; }
+          .client-portal header > div:last-child button { flex: 1 1 140px; justify-content: center; }
+          .landing-hero-copy { padding: 28px 20px !important; }
+          .landing-hero-copy h2 { font-size: clamp(34px, 12vw, 54px) !important; line-height: 1 !important; }
+          .landing-hero-copy p { font-size: 16px !important; line-height: 1.5 !important; }
+          .landing-facts { display: grid !important; grid-template-columns: 1fr 1fr; }
+          .landing-facts span { min-width: 0; border-radius: 10px !important; }
+          .landing-gallery-toolbar > div:first-child { width: 100%; }
+          .landing-gallery-toolbar > span { align-self: flex-start; }
+          .landing-gallery-frame img { height: min(92vw, 390px) !important; min-height: 220px !important; }
+          .landing-gallery-overlay { inset: auto 9px 9px !important; align-items: end !important; }
+          .landing-gallery-label { max-width: calc(100% - 142px) !important; padding: 8px 9px !important; font-size: 12px !important; }
+          .landing-gallery-buttons { flex: 0 0 auto; gap: 4px !important; }
+          .landing-gallery-buttons button { width: 34px !important; height: 34px !important; }
+          .landing-thumbs { padding-bottom: 5px; }
+          .landing-thumbs button { flex-basis: 94px !important; }
+          .landing-thumbs img { width: 94px !important; height: 58px !important; }
+          .landing-plants-grid { grid-template-columns: 1fr !important; }
+          .landing-plants-grid img { height: min(72vw, 280px) !important; }
+          .client-portal .opportunity-landing > section { min-width: 0; }
+          .client-portal textarea, .client-portal input, .client-portal select { max-width: 100%; }
+        }
+      `}</style>
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <header
           style={{
