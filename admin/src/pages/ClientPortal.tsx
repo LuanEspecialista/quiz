@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Building2,
+  ChevronLeft,
   ChevronRight,
   LogOut,
+  Pause,
+  Play,
   Send,
   UserRound,
   X,
@@ -173,12 +176,22 @@ function OpportunityLanding({
   onProposal: (item: Opportunity) => void;
 }) {
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [autoplay, setAutoplay] = useState(true);
+  const [brokenMediaIds, setBrokenMediaIds] = useState<string[]>([]);
+  const [heroBroken, setHeroBroken] = useState(false);
   const blocks = (item.caracteristicas?.landing_blocos || []) as LandingBlock[];
-  const images = (item.imagens || []).filter((media) => media.url);
+  const images = (item.imagens || []).filter((media) => media.url && !brokenMediaIds.includes(media.id));
   const plants = (item.plantas || []).filter((media) => media.url);
   const gallery = images.filter((media) => !media.titulo?.toLowerCase().includes("capa"));
   const heroImage = images[0]?.url;
   const currentImage = gallery[galleryIndex % Math.max(gallery.length, 1)]?.url || heroImage;
+  const currentMedia = gallery[galleryIndex % Math.max(gallery.length, 1)];
+  const markBroken = (id?: string) => { if (id) setBrokenMediaIds((current) => current.includes(id) ? current : [...current, id]); };
+  useEffect(() => {
+    if (!autoplay || gallery.length < 2) return;
+    const timer = window.setInterval(() => setGalleryIndex((current) => (current + 1) % gallery.length), 6000);
+    return () => window.clearInterval(timer);
+  }, [autoplay, gallery.length]);
   const story = blocks.length ? blocks : [{ tipo: "texto" as const, titulo: item.nome, texto: item.descricao }];
   const heroBlock = story.find((block) => block.tipo === "hero");
   const amenities = textItems(item.lazer);
@@ -192,8 +205,10 @@ function OpportunityLanding({
 
   return (
     <article style={{ background: "#0c0c0f", border: "1px solid #3a3021", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 80px #0008" }}>
-      <section style={{ minHeight: "min(680px,76vh)", position: "relative", display: "grid", alignItems: "end", background: heroImage ? `linear-gradient(0deg,#09090b 2%,#09090b44 48%,#09090b22),url(${heroImage}) center/cover` : "linear-gradient(135deg,#1a160e,#0d0d10)" }}>
-        <div style={{ padding: "clamp(28px,6vw,78px)", maxWidth: 850 }}>
+      <section style={{ minHeight: "min(680px,76vh)", position: "relative", display: "grid", alignItems: "end", background: "linear-gradient(135deg,#1a160e,#0d0d10)" }}>
+        {heroImage && !heroBroken && <img src={heroImage} alt="" onError={() => setHeroBroken(true)} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.72}}/>}
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(0deg,#09090b 2%,#09090b66 52%,#09090b2b 100%)"}} />
+        <div style={{ padding: "clamp(28px,6vw,78px)", maxWidth: 850, position:"relative", zIndex:1 }}>
           <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase" }}>
             {[item.bairro, item.cidade].filter(Boolean).join(" · ")}
           </small>
@@ -210,7 +225,7 @@ function OpportunityLanding({
       </section>
 
       <section style={{ padding: "clamp(24px,5vw,58px)", display: "grid", gap: 22 }}>
-        {story.map((block, index) => block.tipo !== "galeria" && block.tipo !== "plantas" ? (
+        {story.map((block, index) => block.tipo !== "hero" && block.tipo !== "galeria" && block.tipo !== "plantas" ? (
           <div key={index} style={{ maxWidth: 820, padding: index === 0 ? 0 : "22px 0", borderTop: index === 0 ? 0 : "1px solid #2c261d" }}>
             <small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>{index === 0 ? "A leitura deste imóvel" : block.tipo || "Oportunidade"}</small>
             <h3 style={{ fontSize: "clamp(25px,4vw,42px)", lineHeight: 1.05, margin: "9px 0 12px" }}>{block.titulo || item.nome}</h3>
@@ -224,14 +239,14 @@ function OpportunityLanding({
             <span style={{ color: "#92929b", fontSize: 13 }}>{(galleryIndex % gallery.length) + 1} / {gallery.length}</span>
           </div>
           <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#050505" }}>
-            {currentImage && <img src={currentImage} alt={gallery[galleryIndex % gallery.length]?.titulo || item.nome} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "min(58vw,520px)", minHeight: 260, objectFit: "cover", display: "block" }} />}
-            <div style={{ position: "absolute", inset: "auto 14px 14px", display: "flex", justifyContent: "space-between" }}>
-              <button type="button" onClick={() => setGalleryIndex((galleryIndex - 1 + gallery.length) % gallery.length)} style={{ border: "1px solid #fff6", background: "#000b", color: "#fff", borderRadius: 999, padding: "10px 15px", cursor: "pointer" }}>‹ Anterior</button>
-              <button type="button" onClick={() => setGalleryIndex((galleryIndex + 1) % gallery.length)} style={{ border: "1px solid #fff6", background: "#000b", color: "#fff", borderRadius: 999, padding: "10px 15px", cursor: "pointer" }}>Próxima ›</button>
+            {currentImage && <img src={currentImage} alt={currentMedia?.titulo || item.nome} onError={() => markBroken(currentMedia?.id)} style={{ width: "100%", height: "min(58vw,520px)", minHeight: 260, objectFit: "cover", display: "block" }} />}
+            <div style={{ position: "absolute", inset: "auto 14px 14px", display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12 }}>
+              <div style={{padding:"10px 13px",borderRadius:10,background:"#050505c9",backdropFilter:"blur(8px)",maxWidth:"62%"}}><strong style={{display:"block",fontSize:14}}>{currentMedia?.titulo || "Experiência do empreendimento"}</strong><small style={{color:"#d7ab63"}}>{currentMedia?.categoria || "Curadoria visual"}</small></div>
+              <div style={{display:"flex",gap:7}}><button type="button" aria-label="Imagem anterior" onClick={() => setGalleryIndex((galleryIndex - 1 + gallery.length) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronLeft size={18}/></button><button type="button" aria-label={autoplay ? "Pausar apresentação" : "Reproduzir apresentação"} onClick={() => setAutoplay((current) => !current)} style={{border:"1px solid #d7ab63",background:"#d7ab63",color:"#09090b",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}>{autoplay ? <Pause size={16}/> : <Play size={16}/>}</button><button type="button" aria-label="Próxima imagem" onClick={() => setGalleryIndex((galleryIndex + 1) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronRight size={18}/></button></div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingTop: 10 }}>
-            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => setGalleryIndex(index)} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 90px", cursor: "pointer" }}><img src={image.url} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: 90, height: 62, objectFit: "cover", display: "block" }} /></button>)}
+            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => { setGalleryIndex(index); setAutoplay(false); }} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 110px", cursor: "pointer", textAlign:"left" }}><img src={image.url} alt={image.titulo || ""} onError={() => markBroken(image.id)} style={{ width: 110, height: 68, objectFit: "cover", display: "block" }} /><small style={{display:"block",padding:"5px 6px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#c9c9ce",fontSize:10}}>{image.titulo || "Imagem"}</small></button>)}
           </div>
         </section>}
 
@@ -297,11 +312,11 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             const images = await Promise.all((item.imagens || []).map(sign));
             const plants = await Promise.all((item.plantas || []).map(sign));
             const storedCoverPath = coverStoragePath(item);
-            let coverUrl =
-              item.imagem_url &&
-              !item.imagem_url.startsWith(COVER_STORAGE_PREFIX)
+            let coverUrl = r2MediaUrl(item.imagem_url) || (
+              item.imagem_url && !item.imagem_url.startsWith(COVER_STORAGE_PREFIX) && !item.imagem_url.startsWith(R2_MEDIA_PREFIX)
                 ? item.imagem_url
-                : undefined;
+                : undefined
+            );
             if (storedCoverPath) {
               const existingCover = images.find(
                 (media) => media.storage_path === storedCoverPath,
