@@ -98,6 +98,14 @@ const input = {
 };
 
 const COVER_STORAGE_PREFIX = "storage://empreendimentos/";
+const R2_MEDIA_PREFIX = "r2://";
+const R2_MEDIA_BASE = "https://media.luan-especialista.pro/";
+
+function r2MediaUrl(path?: string | null) {
+  return path?.startsWith(R2_MEDIA_PREFIX)
+    ? `${R2_MEDIA_BASE}${path.slice(R2_MEDIA_PREFIX.length)}`
+    : undefined;
+}
 
 function coverStoragePath(item: Opportunity) {
   if (item.imagem_storage_path) return item.imagem_storage_path;
@@ -212,14 +220,14 @@ function OpportunityLanding({
             <span style={{ color: "#92929b", fontSize: 13 }}>{(galleryIndex % gallery.length) + 1} / {gallery.length}</span>
           </div>
           <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#050505" }}>
-            {currentImage && <img src={currentImage} alt={gallery[galleryIndex % gallery.length]?.titulo || item.nome} style={{ width: "100%", height: "min(58vw,520px)", minHeight: 260, objectFit: "cover", display: "block" }} />}
+            {currentImage && <img src={currentImage} alt={gallery[galleryIndex % gallery.length]?.titulo || item.nome} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "min(58vw,520px)", minHeight: 260, objectFit: "cover", display: "block" }} />}
             <div style={{ position: "absolute", inset: "auto 14px 14px", display: "flex", justifyContent: "space-between" }}>
               <button type="button" onClick={() => setGalleryIndex((galleryIndex - 1 + gallery.length) % gallery.length)} style={{ border: "1px solid #fff6", background: "#000b", color: "#fff", borderRadius: 999, padding: "10px 15px", cursor: "pointer" }}>‹ Anterior</button>
               <button type="button" onClick={() => setGalleryIndex((galleryIndex + 1) % gallery.length)} style={{ border: "1px solid #fff6", background: "#000b", color: "#fff", borderRadius: 999, padding: "10px 15px", cursor: "pointer" }}>Próxima ›</button>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingTop: 10 }}>
-            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => setGalleryIndex(index)} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 90px", cursor: "pointer" }}><img src={image.url} alt="" style={{ width: 90, height: 62, objectFit: "cover", display: "block" }} /></button>)}
+            {gallery.map((image, index) => <button type="button" key={image.id} onClick={() => setGalleryIndex(index)} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 90px", cursor: "pointer" }}><img src={image.url} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: 90, height: 62, objectFit: "cover", display: "block" }} /></button>)}
           </div>
         </section>}
 
@@ -228,7 +236,7 @@ function OpportunityLanding({
           {differentiators.length > 0 && <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>DETALHES QUE DECIDEM</small><h3 style={{ margin: "8px 0 15px", fontSize: 28 }}>Conforto pensado para o uso real.</h3><ul style={{ margin: 0, paddingLeft: 18, color: "#c9c9ce", lineHeight: 1.9 }}>{differentiators.map((value) => <li key={value}>{value}</li>)}</ul></div>}
         </section>}
 
-        {plants.length > 0 && <section style={{ paddingTop: 20, borderTop: "1px solid #2c261d" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A PLANTA PRECISA COMBINAR COM A SUA VIDA</small><h3 style={{ margin: "8px 0 16px", fontSize: 30 }}>Escolha o formato que faz sentido para você.</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10 }}>{plants.map((plant) => <figure key={plant.id} style={{ margin: 0, background: "#141416", borderRadius: 10, overflow: "hidden" }}><img src={plant.url} alt={plant.titulo || "Planta"} style={{ width: "100%", height: 210, objectFit: "contain", background: "#fff", display: "block" }} /><figcaption style={{ padding: 10, color: "#bdbdc4", fontSize: 12 }}>{plant.titulo || "Planta do empreendimento"}</figcaption></figure>)}</div></section>}
+        {plants.length > 0 && <section style={{ paddingTop: 20, borderTop: "1px solid #2c261d" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A PLANTA PRECISA COMBINAR COM A SUA VIDA</small><h3 style={{ margin: "8px 0 16px", fontSize: 30 }}>Escolha o formato que faz sentido para você.</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10 }}>{plants.map((plant) => <figure key={plant.id} style={{ margin: 0, background: "#141416", borderRadius: 10, overflow: "hidden" }}><img src={plant.url} alt={plant.titulo || "Planta"} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: 210, objectFit: "contain", background: "#fff", display: "block" }} /><figcaption style={{ padding: 10, color: "#bdbdc4", fontSize: 12 }}>{plant.titulo || "Planta do empreendimento"}</figcaption></figure>)}</div></section>}
 
         <section style={{ marginTop: 12, padding: "24px", borderRadius: 13, background: "linear-gradient(135deg,#1d180f,#131313)", border: "1px solid #5b4728", display: "grid", gap: 13 }}>
           <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".12em" }}>A DECISÃO É SUA — A LEITURA É NOSSA</small>
@@ -272,6 +280,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         const opportunities = await Promise.all(
           (result.oportunidades || []).map(async (item) => {
             const sign = async (media: PortalMedia) => {
+              const r2Url = r2MediaUrl(media.storage_path);
+              if (r2Url) return { ...media, url: r2Url };
               if (!media.storage_path) return media;
               const { data: signed } = await supabase.storage
                 .from("empreendimentos")
