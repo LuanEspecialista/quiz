@@ -95,7 +95,7 @@ function curationPrompt(item: Opportunity) {
 
 function isPlaceholder(value?: string | null) {
   const normalized = String(value || "").trim().toLowerCase();
-  return !normalized || ["texto", "conteúdo", "descricao", "descrição", "código", "codigo", "oportunidade"].includes(normalized);
+  return !normalized || ["texto", "conteúdo", "descricao", "descrição", "código", "codigo", "oportunidade"].includes(normalized) || /^(c[oó]digo|planta\s*tipo|tipo\s*\d+)/.test(normalized);
 }
 
 function editorialSectionLabel(block: LandingBlock, index: number) {
