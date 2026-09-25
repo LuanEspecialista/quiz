@@ -13,7 +13,9 @@ import {
   Unlock, 
   Layers, 
   X,
-  Search
+  Search,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 
 export const ConstrutorasModule: FC = () => {
@@ -144,6 +146,28 @@ export const ConstrutorasModule: FC = () => {
     setLoading(false);
   };
 
+  const toggleConstrutora = async (item: any, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const next = item.ativo === false;
+    const { error } = await supabase.from("construtoras").update({ ativo: next }).eq("id", item.id);
+    if (error) {
+      alert("Não foi possível alterar o status da construtora: " + error.message);
+      return;
+    }
+    setConstrutoras((current) => current.map((entry) => entry.id === item.id ? { ...entry, ativo: next } : entry));
+  };
+
+  const toggleEmpreendimento = async (item: any, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const next = item.ativo === false;
+    const { error } = await supabase.from("empreendimentos").update({ ativo: next }).eq("id", item.id);
+    if (error) {
+      alert("Não foi possível alterar o status do empreendimento: " + error.message);
+      return;
+    }
+    setEmpreendimentos((current) => current.map((entry) => entry.id === item.id ? { ...entry, ativo: next } : entry));
+  };
+
   const handleDeleteConstrutora = async (id: string, nome: string) => {
     const vinculados = empreendimentos.filter((e) => e.construtora_id === id);
     if (vinculados.length > 0) {
@@ -173,7 +197,7 @@ export const ConstrutorasModule: FC = () => {
   return (
     <div style={{ color: "#e4e4e7", fontFamily: "sans-serif" }}>
       {/* HEADER DISCRETO */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
         <div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: "600", color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <Building style={{ width: "20px", height: "20px", color: "#c5a059" }} /> Gestão de Construtoras
@@ -211,12 +235,20 @@ export const ConstrutorasModule: FC = () => {
           const empsDaConstrutora = empreendimentos.filter((e) => e.construtora_id === item.id);
           const isExpanded = expandedId === item.id;
 
+          const construtoraAtiva = item.ativo !== false;
+
           return (
-            <div key={item.id} style={{ backgroundColor: "#121212", border: "1px solid #222", borderRadius: "8px", overflow: "hidden" }}>
+            <div key={item.id} style={{ backgroundColor: "#121212", border: `1px solid ${construtoraAtiva ? "#222" : "#3a2727"}`, borderRadius: "8px", overflow: "hidden", opacity: construtoraAtiva ? 1 : .72 }}>
               {/* LINHA PRINCIPAL DA CONSTRUTORA */}
-              <div style={{ padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#151518" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                  <span style={{ backgroundColor: "#27272a", color: "#c5a059", padding: "0.2rem 0.5rem", borderRadius: "4px", fontSize: "0.75rem", fontFamily: "monospace", fontWeight: "bold" }}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedId(isExpanded ? null : item.id); } }}
+                style={{ padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", background: "#151518", cursor: "pointer" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem", minWidth: 0 }}>
+                  <span style={{ backgroundColor: "#27272a", color: "#c5a059", padding: "0.2rem 0.5rem", borderRadius: "4px", fontSize: "0.75rem", fontFamily: "monospace", fontWeight: "bold", flexShrink: 0 }}>
                     {item.sku || "SEM-SKU"}
                   </span>
                   <div>
@@ -231,9 +263,18 @@ export const ConstrutorasModule: FC = () => {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
                   <button
-                    onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                    onClick={(event) => toggleConstrutora(item, event)}
+                    title={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"}
+                    aria-label={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"}
+                    aria-pressed={construtoraAtiva}
+                    style={{ background: "transparent", border: 0, color: construtoraAtiva ? "#4ade80" : "#71717a", cursor: "pointer", padding: "0.2rem" }}
+                  >
+                    {construtoraAtiva ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                  </button>
+                  <button
+                    onClick={(event) => { event.stopPropagation(); setExpandedId(isExpanded ? null : item.id); }}
                     style={{ backgroundColor: "transparent", border: "1px solid #27272a", color: "#a1a1aa", padding: "0.3rem 0.6rem", borderRadius: "4px", fontSize: "0.75rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem" }}
                   >
                     <Layers style={{ width: "14px", height: "14px" }} />
@@ -241,10 +282,10 @@ export const ConstrutorasModule: FC = () => {
                     {isExpanded ? <ChevronUp style={{ width: "14px", height: "14px" }} /> : <ChevronDown style={{ width: "14px", height: "14px" }} />}
                   </button>
 
-                  <button onClick={() => handleOpenModal(item)} style={{ background: "none", border: "none", color: "#a1a1aa", cursor: "pointer", padding: "0.2rem" }}>
+                  <button onClick={(event) => { event.stopPropagation(); handleOpenModal(item); }} style={{ background: "none", border: "none", color: "#a1a1aa", cursor: "pointer", padding: "0.2rem" }}>
                     <Edit3 style={{ width: "15px", height: "15px" }} />
                   </button>
-                  <button onClick={() => handleDeleteConstrutora(item.id, item.nome)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "0.2rem" }}>
+                  <button onClick={(event) => { event.stopPropagation(); handleDeleteConstrutora(item.id, item.nome); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "0.2rem" }}>
                     <Trash2 style={{ width: "15px", height: "15px" }} />
                   </button>
                 </div>
@@ -261,22 +302,24 @@ export const ConstrutorasModule: FC = () => {
                       Nenhum empreendimento vinculado a esta construtora até o momento.
                     </div>
                   ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "0.5rem" }}>
-                      {empsDaConstrutora.map((emp) => (
-                        <div key={emp.id} style={{ backgroundColor: "#141417", border: "1px solid #27272a", borderRadius: "6px", padding: "0.6rem 0.8rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div>
-                            <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: "#d4d4d8" }}>{emp.nome}</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "0.5rem" }}>
+                      {empsDaConstrutora.map((emp) => {
+                        const empreendimentoAtivo = emp.ativo !== false;
+                        return <div key={emp.id} style={{ backgroundColor: "#141417", border: `1px solid ${empreendimentoAtivo ? "#27272a" : "#4a2929"}`, borderRadius: "6px", padding: "0.6rem 0.8rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", opacity: empreendimentoAtivo ? 1 : .65 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: "#d4d4d8", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.nome}</div>
                             <div style={{ fontSize: "0.7rem", color: "#71717a" }}>SKU: {emp.sku || "N/A"} • {emp.cidade || "Sem Cidade"}</div>
                           </div>
-                          <button
-                            onClick={() => handleDeleteEmpreendimento(emp.id, emp.nome)}
-                            title="Excluir Empreendimento"
-                            style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", opacity: 0.7 }}
-                          >
-                            <Trash2 style={{ width: "14px", height: "14px" }} />
-                          </button>
-                        </div>
-                      ))}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0 }}>
+                            <button onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo} style={{ background: "transparent", border: 0, color: empreendimentoAtivo ? "#4ade80" : "#71717a", cursor: "pointer", padding: "0.15rem" }}>
+                              {empreendimentoAtivo ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+                            </button>
+                            <button onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", opacity: 0.7, padding: "0.2rem" }}>
+                              <Trash2 style={{ width: "14px", height: "14px" }} />
+                            </button>
+                          </div>
+                        </div>;
+                      })}
                     </div>
                   )}
                 </div>
@@ -289,7 +332,7 @@ export const ConstrutorasModule: FC = () => {
       {/* MODAL DE CADASTRO / EDIÇÃO */}
       {isModalOpen && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 999 }}>
-          <div style={{ backgroundColor: "#121212", border: "1px solid #27272a", borderRadius: "8px", width: "100%", maxWidth: "480px", padding: "1.5rem" }}>
+          <div role="dialog" aria-modal="true" style={{ backgroundColor: "#121212", border: "1px solid #27272a", borderRadius: "8px", width: "min(100%, 480px)", maxHeight: "calc(100dvh - 24px)", overflowY: "auto", padding: "clamp(1rem, 4vw, 1.5rem)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h3 style={{ margin: 0, color: "#fff", fontSize: "1.1rem" }}>
                 {editingItem ? "Editar Construtora" : "Nova Construtora"}
