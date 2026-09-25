@@ -135,6 +135,13 @@ function tipologiaBedrooms(value: string) {
   return Array.from(value.matchAll(/(\d+)\s*[QS]/gi)).reduce((total, match) => total + Number(match[1]), 0);
 }
 
+function storedProductNumber(item: Empreendimento, key: string) {
+  const produto = item.caracteristicas?.produto;
+  if (!produto || typeof produto !== "object") return null;
+  const value = (produto as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 function storedTipologias(item: Empreendimento) {
   const configured = item.caracteristicas && Array.isArray(item.caracteristicas.tipologias)
     ? item.caracteristicas.tipologias.filter((value): value is string => typeof value === "string")
@@ -1194,11 +1201,11 @@ export default function Empreendimentos() {
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Unidades</span>
-                        <span className="emp-info-value">{item.unidades_cadastradas ?? item.numero_unidades ?? "—"}</span>
+                        <span className="emp-info-value">{item.unidades_cadastradas ?? item.numero_unidades ?? storedProductNumber(item, "unidades") ?? "—"}</span>
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Pavimentos</span>
-                        <span className="emp-info-value">{item.numero_pavimentos ?? "—"}</span>
+                        <span className="emp-info-value">{item.numero_pavimentos ?? storedProductNumber(item, "pavimentos") ?? "—"}</span>
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Faixa de valores</span>
