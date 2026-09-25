@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Building2,
-  CalendarDays,
+  ChevronLeft,
   ChevronRight,
-  Images,
-  Landmark,
   LogOut,
+  Pause,
+  Play,
   Send,
   UserRound,
   X,
@@ -64,6 +64,63 @@ const money = (value?: number | null) =>
         style: "currency",
         currency: "BRL",
       }).format(value);
+
+function curationPositioning(item: Opportunity) {
+  const name = String(item.nome || "").toLowerCase();
+  if (name.includes("azure"))
+    return "Um endereço na Praia da Armação para viver o litoral com estrutura, bem-estar e uma leitura patrimonial cuidadosa.";
+  if (name.includes("trianon"))
+    return "Arquitetura clássica, vista mar definitiva e uma experiência de permanência a 100 metros do mar.";
+  if (name.includes("viverde"))
+    return "Um clube residencial completo para aproveitar o litoral com a família e avaliar uma exploração flexível.";
+  if (name.includes("verde mar"))
+    return "Uma base nova e completa em Penha para unir praticidade, lazer e uma possível estratégia de locação.";
+  if (name.includes("praia alegre"))
+    return "Mais espaço e privacidade a poucos passos da praia, com perfil para uso próprio e hospedagens especiais.";
+  if (name.includes("niki lauda"))
+    return "Um apartamento mobiliado, amplo e próximo do mar para começar a aproveitar sem esperar uma nova estrutura.";
+  return "Uma oportunidade selecionada para você avaliar com calma, de acordo com o seu momento e objetivo.";
+}
+
+function curationPrompt(item: Opportunity) {
+  const name = String(item.nome || "").toLowerCase();
+  if (name.includes("azure")) return "mar, bem-estar e uso flexível entre viver e investir";
+  if (name.includes("trianon")) return "vista, presença arquitetônica e qualidade de permanência";
+  if (name.includes("viverde")) return "estrutura de lazer e experiência de clube";
+  if (name.includes("verde mar")) return "praticidade, lazer e localização em Penha";
+  if (name.includes("praia alegre")) return "proximidade da praia, espaço e privacidade";
+  if (name.includes("niki lauda")) return "apartamento mobiliado e proximidade do mar";
+  return "o que mais chamou a sua atenção";
+}
+
+function isPlaceholder(value?: string | null) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return !normalized || ["texto", "conteúdo", "descricao", "descrição", "código", "codigo", "oportunidade"].includes(normalized) || /^(c[oó]digo|planta\s*tipo|tipo\s*\d+)/.test(normalized);
+}
+
+function editorialSectionLabel(block: LandingBlock, index: number) {
+  if (index === 0) return "Uma leitura para o seu momento";
+  if (block.tipo === "destaque") return "O que diferencia este projeto";
+  if (block.tipo === "cidade") return "O endereço e o entorno";
+  return "Uma forma de viver este endereço";
+}
+
+function editorialTitle(item: Opportunity, block: LandingBlock, index: number) {
+  if (!isPlaceholder(block.titulo)) return block.titulo;
+  if (index === 0) return `Um endereço escolhido para ${curationPrompt(item)}.`;
+  if (block.tipo === "cidade") return "A localização que muda a experiência.";
+  if (block.tipo === "destaque") return "Detalhes que aparecem no uso cotidiano.";
+  return "Mais do que uma planta: uma escolha de vida.";
+}
+
+function editorialText(item: Opportunity, block: LandingBlock, index: number) {
+  if (!isPlaceholder(block.texto) && block.texto && block.texto.length > 45) return block.texto;
+  if (index === 0) return curationPositioning(item);
+  if (block.tipo === "cidade") return `A localização foi considerada nesta curadoria porque aproxima você de ${[item.bairro, item.cidade].filter(Boolean).join(" e ") || "uma região com vocação para viver, descansar e preservar valor"}.`;
+  if (block.tipo === "destaque") return `A proposta combina ${curationPrompt(item)} com uma leitura prática de uso. O importante é entender como o projeto se comporta na sua rotina — e não apenas conferir uma lista de atributos.`;
+  return `Este é o tipo de escolha que merece ser visto com calma: imagine seus dias aqui, observe o que realmente combina com a sua fase e depois conversamos sobre condições, prazo e estratégia.`;
+}
+
 const input = {
   width: "100%",
   boxSizing: "border-box" as const,
@@ -76,6 +133,14 @@ const input = {
 };
 
 const COVER_STORAGE_PREFIX = "storage://empreendimentos/";
+const R2_MEDIA_PREFIX = "r2://";
+const R2_MEDIA_BASE = "https://media.luan-especialista.pro/";
+
+function r2MediaUrl(path?: string | null) {
+  return path?.startsWith(R2_MEDIA_PREFIX)
+    ? `${R2_MEDIA_BASE}${path.slice(R2_MEDIA_PREFIX.length)}`
+    : undefined;
+}
 
 function coverStoragePath(item: Opportunity) {
   if (item.imagem_storage_path) return item.imagem_storage_path;
@@ -120,6 +185,18 @@ function MoneyScenario({
   );
 }
 
+function textItems(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item === "string") return [item];
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      return [String(record.titulo || record.nome || record.label || "")].filter(Boolean);
+    }
+    return [];
+  });
+}
+
 function OpportunityLanding({
   item,
   onProposal,
@@ -127,265 +204,92 @@ function OpportunityLanding({
   item: Opportunity;
   onProposal: (item: Opportunity) => void;
 }) {
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [autoplay, setAutoplay] = useState(true);
+  const [brokenMediaIds, setBrokenMediaIds] = useState<string[]>([]);
+  const [heroBroken, setHeroBroken] = useState(false);
   const blocks = (item.caracteristicas?.landing_blocos || []) as LandingBlock[];
-  const layout = String(item.layout || item.caracteristicas?.landing_layout || "editorial");
-  const images = item.imagens || [];
-  const plants = item.plantas || [];
-  const fallback: LandingBlock[] = [
-    {
-      tipo: "hero",
-      titulo: item.nome,
-      texto: item.descricao,
-      imagem_url: images[0]?.url,
-    },
-    ...(images.length > 1
-      ? [{ tipo: "galeria" as const, titulo: "Conheça o empreendimento" }]
-      : []),
-    ...(plants.length
-      ? [{ tipo: "plantas" as const, titulo: "Plantas disponíveis" }]
-      : []),
-  ];
-  const story = blocks.length ? blocks : fallback;
-  const renderMedia = (media: PortalMedia[], height = 230) => (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: `repeat(auto-fit,minmax(${layout === "imersivo" ? "240px" : "180px"},1fr))`,
-        gap: 9,
-      }}
-    >
-      {media.map((image) => (
-        <figure key={image.id} style={{ margin: 0 }}>
-          {image.url && (
-            <img
-              src={image.url}
-              alt={image.titulo || item.nome || "Imagem do empreendimento"}
-              style={{
-                width: "100%",
-                height,
-                objectFit: "cover",
-                borderRadius: 10,
-              }}
-            />
-          )}
-          {image.titulo && (
-            <figcaption
-              style={{ fontSize: 11, color: "#a1a1aa", marginTop: 5 }}
-            >
-              {image.titulo}
-            </figcaption>
-          )}
-        </figure>
-      ))}
-    </div>
-  );
+  const images = (item.imagens || []).filter((media) => media.url && !brokenMediaIds.includes(media.id));
+  const plants = (item.plantas || []).filter((media) => media.url);
+  const gallery = images.filter((media) => !media.titulo?.toLowerCase().includes("capa"));
+  const heroImage = images[0]?.url;
+  const currentImage = gallery[galleryIndex % Math.max(gallery.length, 1)]?.url || heroImage;
+  const currentMedia = gallery[galleryIndex % Math.max(gallery.length, 1)];
+  const markBroken = (id?: string) => { if (id) setBrokenMediaIds((current) => current.includes(id) ? current : [...current, id]); };
+  useEffect(() => {
+    if (!autoplay || gallery.length < 2) return;
+    const timer = window.setInterval(() => setGalleryIndex((current) => (current + 1) % gallery.length), 6000);
+    return () => window.clearInterval(timer);
+  }, [autoplay, gallery.length]);
+  const story = blocks.length ? blocks : [{ tipo: "texto" as const, titulo: "A escolha por trás do endereço", texto: item.descricao }];
+  const heroBlock = story.find((block) => block.tipo === "hero");
+  const amenities = textItems(item.lazer);
+  const differentiators = textItems(item.diferenciais);
+  const facts = [
+    item.preco != null ? `A partir de ${money(item.preco)}` : null,
+    item.area_minima != null ? `${item.area_minima}${item.area_maxima && item.area_maxima !== item.area_minima ? `–${item.area_maxima}` : ""} m²` : null,
+    [item.bairro, item.cidade].filter(Boolean).join(" · ") || null,
+  ].filter(Boolean) as string[];
+
   return (
-    <article
-      style={{
-        border: "1px solid #332d22",
-        background: "#101012",
-        borderRadius: 15,
-        overflow: "hidden",
-      }}
-    >
-      {story.map((block, index) => {
-        const hero = block.tipo === "hero";
-        if (block.tipo === "galeria")
-          return images.length ? (
-            <section key={index} style={{ padding: "clamp(18px,4vw,34px)" }}>
-              <h3>
-                <Images size={18} /> {block.titulo || "Galeria"}
-              </h3>
-              {block.texto && (
-                <p style={{ color: "#b4b4bb", lineHeight: 1.65 }}>
-                  {block.texto}
-                </p>
-              )}
-              {renderMedia(images, layout === "imersivo" ? 290 : 210)}
-            </section>
-          ) : null;
-        if (block.tipo === "plantas")
-          return plants.length ? (
-            <section
-              key={index}
-              style={{ padding: "clamp(18px,4vw,34px)", background: "#0c0c0f" }}
-            >
-              <h3>
-                <Building2 size={18} /> {block.titulo || "Plantas"}
-              </h3>
-              {block.texto && <p style={{ color: "#b4b4bb" }}>{block.texto}</p>}
-              {renderMedia(plants, 260)}
-            </section>
-          ) : null;
-        const image = block.imagem_url || (hero ? images[0]?.url : undefined);
-        return (
-          <section
-            key={index}
-            style={{
-              minHeight: hero && image ? 330 : undefined,
-              padding: hero && !image ? "24px" : "clamp(22px,5vw,52px)",
-              position: "relative",
-              display: "grid",
-              alignContent: "center",
-              background: image
-                ? `linear-gradient(90deg,rgba(7,7,9,.94),rgba(7,7,9,.38)),url(${image}) center/cover`
-                : block.tipo === "destaque"
-                  ? "#19150f"
-                  : "transparent",
-            }}
-          >
-            <div style={{ maxWidth: hero ? 720 : 850 }}>
-              {hero && (
-                <small
-                  style={{
-                    color: "#e0b965",
-                    fontWeight: 800,
-                    letterSpacing: ".12em",
-                  }}
-                >
-                  {[item.bairro, item.cidade].filter(Boolean).join(" · ")}
-                </small>
-              )}
-              <h2
-                style={{
-                  fontSize: hero
-                    ? "clamp(30px,6vw,58px)"
-                    : "clamp(22px,4vw,34px)",
-                  margin: "8px 0",
-                  lineHeight: 1.05,
-                }}
-              >
-                {block.titulo || item.nome}
-              </h2>
-              {block.texto && (
-                <p
-                  style={{
-                    fontSize: hero ? 17 : 15,
-                    color: "#d4d4d8",
-                    lineHeight: 1.7,
-                    whiteSpace: "pre-line",
-                  }}
-                >
-                  {block.texto}
-                </p>
-              )}
-            </div>
-          </section>
-        );
-      })}
-      <section
-        style={{
-          padding: "clamp(20px,4vw,36px)",
-          borderTop: "1px solid #2f291e",
-          display: "grid",
-          gap: 16,
-        }}
-      >
-        {item.mensagem && (
-          <p
-            style={{
-              margin: 0,
-              padding: "12px 14px",
-              borderLeft: "3px solid #d7ab63",
-              background: "#17140e",
-              lineHeight: 1.6,
-            }}
-          >
-            {item.mensagem}
+    <article className="opportunity-landing" style={{ background: "#0c0c0f", border: "1px solid #3a3021", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 80px #0008" }}>
+      <section style={{ minHeight: "min(680px,76vh)", position: "relative", display: "grid", alignItems: "end", background: "linear-gradient(135deg,#1a160e,#0d0d10)" }}>
+        {heroImage && !heroBroken && <img src={heroImage} alt="" onError={() => setHeroBroken(true)} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.72}}/>}
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(0deg,#09090b 2%,#09090b66 52%,#09090b2b 100%)"}} />
+        <div className="landing-hero-copy" style={{ padding: "clamp(28px,6vw,78px)", maxWidth: 850, position:"relative", zIndex:1 }}>
+          <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase" }}>
+            {[item.bairro, item.cidade].filter(Boolean).join(" · ")}
+          </small>
+          <h2 style={{ fontSize: "clamp(42px,8vw,88px)", lineHeight: .94, margin: "14px 0 18px", maxWidth: 800 }}>
+            {!isPlaceholder(heroBlock?.titulo) ? heroBlock?.titulo : `Um endereço para ${curationPrompt(item)}.`}
+          </h2>
+          <p style={{ fontSize: "clamp(17px,2vw,22px)", lineHeight: 1.55, color: "#eee", maxWidth: 720, margin: 0 }}>
+            {!isPlaceholder(heroBlock?.texto) && (heroBlock?.texto?.length || 0) > 45 ? heroBlock?.texto : curationPositioning(item)}
           </p>
-        )}
-        {(item.preco != null || item.area_minima != null) && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
-              gap: 10,
-            }}
-          >
-            {item.preco != null && (
-              <span
-                style={{
-                  padding: 13,
-                  background: "#18181b",
-                  borderRadius: 9,
-                  color: "#aaa",
-                }}
-              >
-                A partir de
-                <strong
-                  style={{ display: "block", color: "#fff", fontSize: 18 }}
-                >
-                  {money(item.preco)}
-                </strong>
-              </span>
-            )}
-            {item.area_minima != null && (
-              <span
-                style={{
-                  padding: 13,
-                  background: "#18181b",
-                  borderRadius: 9,
-                  color: "#aaa",
-                }}
-              >
-                Área
-                <strong
-                  style={{ display: "block", color: "#fff", fontSize: 18 }}
-                >
-                  {item.area_minima}
-                  {item.area_maxima && item.area_maxima !== item.area_minima
-                    ? `–${item.area_maxima}`
-                    : ""}{" "}
-                  m²
-                </strong>
-              </span>
-            )}
+          <div className="landing-facts" style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 24 }}>
+            {facts.map((fact) => <span key={fact} style={{ padding: "9px 13px", border: "1px solid #d7ab6380", background: "#0b0b0dcc", borderRadius: 999, color: "#f5dca5", fontSize: 13 }}>{fact}</span>)}
           </div>
-        )}
-        {(item.exibir_investimento || item.exibir_fluxo) && <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>
-          {item.exibir_investimento && <div style={{padding:15,borderRadius:10,background:layout==="investidor"?"#172016":"#18181b",border:"1px solid #2f3f2e"}}><strong style={{color:"#b9d89c"}}>Visão de investimento</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>Consulte os argumentos, diferenciais e premissas cadastrados para esta oportunidade. Projeções não representam garantia de rentabilidade.</p></div>}
-          {item.exibir_fluxo && <div style={{padding:15,borderRadius:10,background:"#18181b",border:"1px solid #3a3327"}}><strong style={{color:"#edcf91"}}>Condições comerciais</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>O fluxo será estruturado conforme sua entrada, capacidade mensal e reforços, sujeito à tabela vigente e aprovação da construtora.</p></div>}
-        </div>}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))",
-            gap: 9,
-          }}
-        >
-          {item.permitir_proposta && (
-            <button
-              onClick={() => onProposal(item)}
-              style={{
-                border: 0,
-                background: "#d7ab63",
-                color: "#09090b",
-                borderRadius: 8,
-                padding: 13,
-                fontWeight: 800,
-                cursor: "pointer",
-              }}
-            >
-              <Landmark size={15} /> Montar e enviar proposta
-            </button>
-          )}
-          <a
-            href="https://wa.me/5547992120915"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              textAlign: "center",
-              border: "1px solid #54452c",
-              color: "#ead5aa",
-              textDecoration: "none",
-              borderRadius: 8,
-              padding: 12,
-              fontWeight: 700,
-            }}
-          >
-            <CalendarDays size={15} /> Falar com o especialista
-          </a>
         </div>
+      </section>
+
+      <section style={{ padding: "clamp(24px,5vw,58px)", display: "grid", gap: 22 }}>
+        {story.map((block, index) => block.tipo !== "hero" && block.tipo !== "galeria" && block.tipo !== "plantas" ? (
+          <div key={index} style={{ maxWidth: 820, padding: index === 0 ? 0 : "22px 0", borderTop: index === 0 ? 0 : "1px solid #2c261d" }}>
+            <small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>{editorialSectionLabel(block, index)}</small>
+            <h3 style={{ fontSize: "clamp(25px,4vw,42px)", lineHeight: 1.05, margin: "9px 0 12px" }}>{editorialTitle(item, block, index)}</h3>
+            <p style={{ color: "#c9c9ce", lineHeight: 1.8, fontSize: 16, margin: 0 }}>{editorialText(item, block, index)}</p>
+          </div>
+        ) : null)}
+
+        {gallery.length > 0 && <section style={{ paddingTop: 12 }}>
+          <div className="landing-gallery-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, marginBottom: 12 }}>
+            <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>A EXPERIÊNCIA EM IMAGENS</small><h3 style={{ margin: "7px 0 0", fontSize: "clamp(24px,4vw,38px)" }}>Veja como este projeto se revela.</h3></div>
+            <span style={{ color: "#92929b", fontSize: 13 }}>{(galleryIndex % gallery.length) + 1} / {gallery.length}</span>
+          </div>
+          <div className="landing-gallery-frame" style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#050505" }}>
+            {currentImage && <img src={currentImage} alt={currentMedia?.titulo || item.nome} onError={() => markBroken(currentMedia?.id)} style={{ width: "100%", height: "min(58vw,520px)", minHeight: 260, objectFit: "cover", display: "block" }} />}
+            <div className="landing-gallery-overlay" style={{ position: "absolute", inset: "auto 14px 14px", display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12 }}>
+              <div className="landing-gallery-buttons" style={{display:"flex",gap:7,marginLeft:"auto"}}><button type="button" aria-label="Imagem anterior" onClick={() => setGalleryIndex((galleryIndex - 1 + gallery.length) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronLeft size={18}/></button><button type="button" aria-label={autoplay ? "Pausar apresentação" : "Reproduzir apresentação"} onClick={() => setAutoplay((current) => !current)} style={{border:"1px solid #d7ab63",background:"#d7ab63",color:"#09090b",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}>{autoplay ? <Pause size={16}/> : <Play size={16}/>}</button><button type="button" aria-label="Próxima imagem" onClick={() => setGalleryIndex((galleryIndex + 1) % gallery.length)} style={{border:"1px solid #fff6",background:"#000b",color:"#fff",borderRadius:999,width:40,height:40,display:"grid",placeItems:"center",cursor:"pointer"}}><ChevronRight size={18}/></button></div>
+            </div>
+          </div>
+          <div className="landing-thumbs" style={{ display: "flex", gap: 8, overflowX: "auto", paddingTop: 10 }}>
+            {gallery.map((image, index) => <button type="button" key={image.id} aria-label={`Selecionar imagem ${index + 1}`} onClick={() => { setGalleryIndex(index); setAutoplay(false); }} style={{ border: index === galleryIndex % gallery.length ? "2px solid #d7ab63" : "1px solid #333", background: "none", padding: 0, borderRadius: 8, overflow: "hidden", flex: "0 0 110px", cursor: "pointer" }}><img src={image.url} alt="" onError={() => markBroken(image.id)} style={{ width: 110, height: 68, objectFit: "cover", display: "block" }} /></button>)}
+          </div>
+        </section>}
+
+        {(amenities.length > 0 || differentiators.length > 0) && <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))", gap: 28, paddingTop: 20 }}>
+          {amenities.length > 0 && <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>MOMENTOS POSSÍVEIS</small><h3 style={{ margin: "8px 0 15px", fontSize: 28 }}>Uma estrutura que acompanha diferentes momentos.</h3><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{amenities.map((value) => <span key={value} style={{ padding: "9px 11px", borderRadius: 8, background: "#171513", border: "1px solid #403522", color: "#ded5c5", fontSize: 13 }}>{value}</span>)}</div></div>}
+          {differentiators.length > 0 && <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>DETALHES QUE DECIDEM</small><h3 style={{ margin: "8px 0 15px", fontSize: 28 }}>Conforto pensado para o uso real.</h3><ul style={{ margin: 0, paddingLeft: 18, color: "#c9c9ce", lineHeight: 1.9 }}>{differentiators.map((value) => <li key={value}>{value}</li>)}</ul></div>}
+        </section>}
+
+        {plants.length > 0 && <section style={{ paddingTop: 20, borderTop: "1px solid #2c261d" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".12em" }}>OS FORMATOS POSSÍVEIS</small><h3 style={{ margin: "8px 0 16px", fontSize: 30 }}>Escolha a planta que acompanha a sua rotina.</h3><div className="landing-plants-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 14 }}>{plants.map((plant, index) => <figure key={plant.id} style={{ margin: 0, background: "#141416", borderRadius: 12, overflow: "hidden", border:"1px solid #332d22" }}><div style={{background:"#f7f5ef",padding:8}}><img src={plant.url} alt={`Planta ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: 250, objectFit: "contain", background: "#fff", display: "block" }} /></div></figure>)}</div></section>}
+
+        <section style={{ marginTop: 12, padding: "24px", borderRadius: 13, background: "linear-gradient(135deg,#1d180f,#131313)", border: "1px solid #5b4728", display: "grid", gap: 13 }}>
+          <small style={{ color: "#e4bb70", fontWeight: 800, letterSpacing: ".12em" }}>A DECISÃO É SUA — A LEITURA É NOSSA</small>
+          <h3 style={{ margin: 0, fontSize: "clamp(24px,4vw,38px)" }}>Este projeto combina com o momento que você está vivendo?</h3>
+          <p style={{ color: "#c9c9ce", lineHeight: 1.65, margin: 0 }}>O próximo passo não precisa ser uma decisão apressada. Fale comigo sobre uso próprio, locação, prazo e condições para entender o cenário com clareza.</p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button type="button" onClick={() => onProposal(item)} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: "13px 17px", fontWeight: 800, cursor: "pointer" }}>Quero conversar sobre este imóvel</button><a href="https://wa.me/5547992120915" target="_blank" rel="noreferrer" style={{ border: "1px solid #80683c", color: "#f0d59c", textDecoration: "none", borderRadius: 8, padding: "12px 16px", fontWeight: 700 }}>Falar no WhatsApp</a></div>
+        </section>
       </section>
     </article>
   );
@@ -405,6 +309,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState("");
+  const [curationMessage, setCurationMessage] = useState("");
+  const [curationSent, setCurationSent] = useState("");
 
   useEffect(() => {
     void supabase
@@ -420,6 +326,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         const opportunities = await Promise.all(
           (result.oportunidades || []).map(async (item) => {
             const sign = async (media: PortalMedia) => {
+              const r2Url = r2MediaUrl(media.storage_path);
+              if (r2Url) return { ...media, url: r2Url };
               if (!media.storage_path) return media;
               const { data: signed } = await supabase.storage
                 .from("empreendimentos")
@@ -431,11 +339,11 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             const images = await Promise.all((item.imagens || []).map(sign));
             const plants = await Promise.all((item.plantas || []).map(sign));
             const storedCoverPath = coverStoragePath(item);
-            let coverUrl =
-              item.imagem_url &&
-              !item.imagem_url.startsWith(COVER_STORAGE_PREFIX)
+            let coverUrl = r2MediaUrl(item.imagem_url) || (
+              item.imagem_url && !item.imagem_url.startsWith(COVER_STORAGE_PREFIX) && !item.imagem_url.startsWith(R2_MEDIA_PREFIX)
                 ? item.imagem_url
-                : undefined;
+                : undefined
+            );
             if (storedCoverPath) {
               const existingCover = images.find(
                 (media) => media.storage_path === storedCoverPath,
@@ -521,16 +429,65 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         : "Interesse registrado. Seu especialista receberá este cenário para análise com a construtora.",
     );
   };
+  const sendCurationMessage = () => {
+    const text = curationMessage.trim();
+    if (!text) {
+      setCurationSent("Escreva uma preferência para eu entender melhor a sua busca.");
+      return;
+    }
+    const context = firstName ? `Cliente: ${firstName}. ` : "";
+    const message = `${context}Estou analisando a curadoria de imóveis do litoral. O que procuro é: ${text}`;
+    window.open(`https://wa.me/5547992120915?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    setCurationSent("Mensagem preparada no WhatsApp. A conversa continua por lá.");
+  };
 
   return (
     <main
+      className="client-portal"
       style={{
         minHeight: "100vh",
         background: "#09090b",
         color: "#f4f4f5",
         padding: "clamp(20px,4vw,56px)",
+        overflowX: "hidden",
       }}
     >
+      <style>{`
+        .client-portal, .client-portal * { box-sizing: border-box; }
+        .client-portal > div { width: 100%; min-width: 0; }
+        .client-portal h1, .client-portal h2, .client-portal h3, .client-portal p, .client-portal small, .client-portal span, .client-portal strong { max-width: 100%; overflow-wrap: anywhere; }
+        .client-portal button, .client-portal a, .client-portal section, .client-portal article, .client-portal figure { min-width: 0; max-width: 100%; }
+        .opportunity-landing { min-width: 0; width: 100%; overflow: hidden; }
+        .landing-hero-copy { width: min(850px, 100%); }
+        .landing-gallery-toolbar { flex-wrap: wrap; }
+        .landing-gallery-label { min-width: 0; overflow-wrap: anywhere; }
+        .landing-thumb-label { white-space: normal !important; min-height: 32px; }
+        @media (max-width: 640px) {
+          .client-portal { padding: 14px !important; }
+          .client-portal header { margin-bottom: 20px !important; }
+          .client-portal header > div:last-child { width: 100%; }
+          .client-portal header > div:last-child button { flex: 1 1 140px; justify-content: center; }
+          .landing-hero-copy { padding: 28px 20px !important; }
+          .landing-hero-copy h2 { font-size: clamp(34px, 12vw, 54px) !important; line-height: 1 !important; }
+          .landing-hero-copy p { font-size: 16px !important; line-height: 1.5 !important; }
+          .landing-facts { display: grid !important; grid-template-columns: 1fr 1fr; }
+          .landing-facts span { min-width: 0; border-radius: 10px !important; }
+          .landing-gallery-toolbar > div:first-child { width: 100%; }
+          .landing-gallery-toolbar > span { align-self: flex-start; }
+          .landing-gallery-frame img { height: min(92vw, 390px) !important; min-height: 220px !important; }
+          .landing-gallery-overlay { inset: auto 9px 9px !important; align-items: end !important; }
+          .landing-gallery-label { max-width: calc(100% - 142px) !important; padding: 8px 9px !important; font-size: 12px !important; }
+          .landing-gallery-buttons { flex: 0 0 auto; gap: 4px !important; }
+          .landing-gallery-buttons button { width: 34px !important; height: 34px !important; }
+          .landing-thumbs { padding-bottom: 5px; }
+          .landing-thumbs button { flex-basis: 94px !important; }
+          .landing-thumbs img { width: 94px !important; height: 58px !important; }
+          .landing-plants-grid { grid-template-columns: 1fr !important; }
+          .landing-plants-grid img { height: min(72vw, 280px) !important; }
+          .client-portal .opportunity-landing > section { min-width: 0; }
+          .client-portal textarea, .client-portal input, .client-portal select { max-width: 100%; }
+        }
+      `}</style>
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <header
           style={{
@@ -542,17 +499,12 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           }}
         >
           <div>
-            <a
-              href="/"
-              style={{
-                color: "#d7ab63",
-                textDecoration: "none",
-                fontWeight: 800,
-                fontSize: 12,
-                letterSpacing: ".12em",
-              }}
-            >
-              LUAN ESPECIALISTA
+            <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 12, color: "#fff", textDecoration: "none" }}>
+              <img src="/imagens/logo.png" alt="Luan Especialista" style={{ width: 48, height: 48, objectFit: "contain" }} />
+              <span>
+                <strong style={{ display: "block", color: "#f5f5f5", fontSize: 15, letterSpacing: ".08em" }}>LUAN <span style={{ color: "#d7ab63" }}>ESPECIALISTA</span></strong>
+                <small style={{ display: "block", marginTop: 4, color: "#a1a1aa", fontSize: 9, letterSpacing: ".18em" }}>ESTRATÉGIAS PATRIMONIAIS</small>
+              </span>
             </a>
             <h1
               style={{ fontSize: "clamp(28px,5vw,48px)", margin: "10px 0 8px" }}
@@ -560,7 +512,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               Bem-vindo{firstName ? `, ${firstName}` : ""}.
             </h1>
             <p style={{ color: "#a1a1aa", margin: 0 }}>
-              Uma curadoria pessoal de oportunidades selecionadas para você.
+              {opportunities.length
+                ? `Selecionei ${opportunities.length} oportunidade${opportunities.length === 1 ? "" : "s"} para você conhecer com calma.`
+                : "Uma curadoria pessoal de oportunidades selecionadas para você."}
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -688,6 +642,19 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                         ? `A partir de ${money(item.preco)}`
                         : "Consulte os detalhes liberados"}
                     </span>
+                    <p
+                      style={{
+                        color: "#d4d4d8",
+                        fontSize: 13,
+                        lineHeight: 1.55,
+                        margin: "2px 0 0",
+                      }}
+                    >
+                      {curationPositioning(item)}
+                    </p>
+                    <small style={{ color: "#8f8f98", lineHeight: 1.45 }}>
+                      Destaque: {curationPrompt(item)}.
+                    </small>
                     <span
                       style={{
                         display: "flex",
@@ -704,6 +671,58 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 </button>
               );
             })}
+          </section>
+        )}
+        {!activeOpportunity && opportunities.length > 0 && (
+          <section
+            style={{
+              marginTop: 24,
+              padding: "clamp(20px,4vw,30px)",
+              border: "1px solid #332d22",
+              borderRadius: 13,
+              background: "linear-gradient(135deg,#17130d,#101012)",
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".08em" }}>
+              A CURADORIA COMEÇA COM VOCÊ
+            </small>
+            <h2 style={{ margin: 0, fontSize: "clamp(21px,3vw,30px)" }}>
+              O que precisa fazer sentido para a sua decisão?
+            </h2>
+            <p style={{ margin: 0, color: "#b4b4bb", lineHeight: 1.65, maxWidth: 760 }}>
+              Estas são algumas possibilidades selecionadas para você. Se a sua busca tiver outro caminho, descreva o que é importante — localização, espaço, uso, prazo ou estilo — e eu ajusto a conversa ao que realmente procura.
+            </p>
+            <textarea
+              value={curationMessage}
+              onChange={(event) => {
+                setCurationMessage(event.target.value);
+                setCurationSent("");
+              }}
+              rows={3}
+              maxLength={1000}
+              placeholder="Ex.: procuro um imóvel próximo da praia, para usar com a família e alugar em alguns períodos."
+              style={{ ...input, resize: "vertical", marginTop: 4 }}
+            />
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={sendCurationMessage}
+                style={{
+                  border: 0,
+                  background: "#d7ab63",
+                  color: "#09090b",
+                  borderRadius: 8,
+                  padding: "12px 16px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Enviar o que estou buscando
+              </button>
+              {curationSent && <span style={{ color: "#d4d4d8", fontSize: 13 }}>{curationSent}</span>}
+            </div>
           </section>
         )}
         {activeOpportunity && (
@@ -924,6 +943,30 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             </section>
           </div>
         )}
+        <footer
+          style={{
+            marginTop: 48,
+            paddingTop: 22,
+            borderTop: "1px solid #27272a",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
+            color: "#71717a",
+            fontSize: 12,
+          }}
+        >
+          <span>LUAN ESPECIALISTA · ESTRATÉGIAS PATRIMONIAIS</span>
+          <span>
+            <a href="mailto:contato@luan-especialista.pro" style={{ color: "#a1a1aa", textDecoration: "none" }}>
+              contato@luan-especialista.pro
+            </a>{" "}·{" "}
+            <a href="https://wa.me/5547992120915" target="_blank" rel="noreferrer" style={{ color: "#d7ab63", textDecoration: "none" }}>
+              WhatsApp
+            </a>
+          </span>
+        </footer>
       </div>
     </main>
   );
