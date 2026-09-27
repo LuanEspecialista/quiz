@@ -229,94 +229,89 @@ export const ConstrutorasModule: FC = () => {
         </div>
       </div>
 
-      {/* LISTAGEM DISCRETA (TABELA / CARDS COMPACTOS) */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      <style>{`
+        .builder-card-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: 1rem; background: #151518; }
+        .builder-card-info { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: .9rem; align-items: center; min-width: 0; }
+        .builder-cover-placeholder { width: 84px; height: 64px; display: grid; place-items: center; border: 1px solid #34343a; border-radius: 7px; background: linear-gradient(135deg, #242124, #111114); color: #c5a059; }
+        .builder-card-title { min-width: 0; color: #fff; font-size: 1rem; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+        .builder-card-meta { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+        .builder-card-actions { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; flex-wrap: wrap; }
+        .builder-action { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-height: 34px; border-radius: 6px; cursor: pointer; }
+        .builder-emp-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; align-items: center; }
+        @media (max-width: 620px) {
+          .builder-card-head { grid-template-columns: 1fr; gap: .85rem; padding: .9rem; }
+          .builder-card-info { grid-template-columns: 72px minmax(0, 1fr); gap: .7rem; }
+          .builder-cover-placeholder { width: 72px; height: 58px; }
+          .builder-card-actions { justify-content: flex-start; padding-top: .7rem; border-top: 1px solid #29292e; }
+          .builder-card-actions .builder-action { flex: 0 0 auto; }
+          .builder-emp-card { grid-template-columns: 1fr; align-items: stretch; }
+          .builder-emp-card > div:last-child { justify-content: flex-start; }
+        }
+      `}</style>
+
+      {/* CARDS RESPONSIVOS: uma hierarquia clara para construtora, status e empreendimentos */}
+      <div style={{ display: "grid", gap: "0.75rem" }}>
         {filteredConstrutoras.map((item) => {
           const empsDaConstrutora = empreendimentos.filter((e) => e.construtora_id === item.id);
           const isExpanded = expandedId === item.id;
-
           const construtoraAtiva = item.ativo !== false;
 
           return (
-            <div key={item.id} style={{ backgroundColor: "#121212", border: `1px solid ${construtoraAtiva ? "#222" : "#3a2727"}`, borderRadius: "8px", overflow: "hidden", opacity: construtoraAtiva ? 1 : .72 }}>
-              {/* LINHA PRINCIPAL DA CONSTRUTORA */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedId(isExpanded ? null : item.id); } }}
-                style={{ padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", background: "#151518", cursor: "pointer" }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem", minWidth: 0 }}>
-                  <span style={{ backgroundColor: "#27272a", color: "#c5a059", padding: "0.2rem 0.5rem", borderRadius: "4px", fontSize: "0.75rem", fontFamily: "monospace", fontWeight: "bold", flexShrink: 0 }}>
-                    {item.sku || "SEM-SKU"}
-                  </span>
-                  <div>
-                    <span style={{ fontWeight: "600", color: "#fff", fontSize: "0.95rem" }}>{item.nome}</span>
-                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.2rem", flexWrap: "wrap" }}>
-                      {item.cidades_atuacao?.map((cid: string, idx: number) => (
-                        <span key={idx} style={{ color: "#a1a1aa", fontSize: "0.7rem", display: "inline-flex", alignItems: "center", gap: "0.2rem", backgroundColor: "#1f1f23", padding: "0.1rem 0.4rem", borderRadius: "3px" }}>
-                          <MapPin style={{ width: "10px", height: "10px" }} /> {cid}
-                        </span>
-                      ))}
+            <article key={item.id} style={{ backgroundColor: "#121212", border: `1px solid ${construtoraAtiva ? "#29292e" : "#4a2929"}`, borderRadius: "10px", overflow: "hidden", opacity: construtoraAtiva ? 1 : .72 }}>
+              <div className="builder-card-head">
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                  aria-expanded={isExpanded}
+                  style={{ display: "block", width: "100%", minWidth: 0, padding: 0, border: 0, background: "transparent", color: "inherit", textAlign: "left", cursor: "pointer" }}
+                >
+                  <div className="builder-card-info">
+                    <div className="builder-cover-placeholder" aria-label={`Capa da construtora ${item.nome || "sem nome"}`} title="Capa da construtora — disponível para adicionar futuramente">
+                      <Building size={25} strokeWidth={1.5} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="builder-card-title">{item.nome}</div>
+                      <div className="builder-card-meta">
+                        <span style={{ backgroundColor: "#27272a", color: "#d7ab63", padding: ".22rem .48rem", borderRadius: "4px", fontSize: ".7rem", fontFamily: "monospace", fontWeight: "bold" }}>{item.sku || "SEM-SKU"}</span>
+                        {item.cidades_atuacao?.map((cid: string, idx: number) => (
+                          <span key={idx} style={{ color: "#a1a1aa", fontSize: ".7rem", display: "inline-flex", alignItems: "center", gap: ".2rem", backgroundColor: "#1f1f23", padding: ".22rem .45rem", borderRadius: "4px" }}>
+                            <MapPin size={10} /> {cid}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </button>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
-                  <button
-                    onClick={(event) => toggleConstrutora(item, event)}
-                    title={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"}
-                    aria-label={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"}
-                    aria-pressed={construtoraAtiva}
-                    style={{ background: "transparent", border: 0, color: construtoraAtiva ? "#4ade80" : "#71717a", cursor: "pointer", padding: "0.2rem" }}
-                  >
-                    {construtoraAtiva ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                <div className="builder-card-actions">
+                  <button className="builder-action" onClick={(event) => toggleConstrutora(item, event)} title={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"} aria-label={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"} aria-pressed={construtoraAtiva} style={{ background: construtoraAtiva ? "#10291b" : "#202024", border: `1px solid ${construtoraAtiva ? "#237a49" : "#3f3f46"}`, color: construtoraAtiva ? "#4ade80" : "#a1a1aa", padding: ".25rem .55rem" }}>
+                    {construtoraAtiva ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}<span style={{ fontSize: ".7rem", fontWeight: 700 }}>{construtoraAtiva ? "Ativa" : "Inativa"}</span>
                   </button>
-                  <button
-                    onClick={(event) => { event.stopPropagation(); setExpandedId(isExpanded ? null : item.id); }}
-                    style={{ backgroundColor: "transparent", border: "1px solid #27272a", color: "#a1a1aa", padding: "0.3rem 0.6rem", borderRadius: "4px", fontSize: "0.75rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem" }}
-                  >
-                    <Layers style={{ width: "14px", height: "14px" }} />
-                    {empsDaConstrutora.length} Empreendimentos
-                    {isExpanded ? <ChevronUp style={{ width: "14px", height: "14px" }} /> : <ChevronDown style={{ width: "14px", height: "14px" }} />}
+                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); setExpandedId(isExpanded ? null : item.id); }} style={{ backgroundColor: "#18181b", border: "1px solid #34343a", color: "#c4c4cc", padding: ".25rem .55rem", fontSize: ".72rem" }}>
+                    <Layers size={14} /> {empsDaConstrutora.length} {empsDaConstrutora.length === 1 ? "empreendimento" : "empreendimentos"} {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>
-
-                  <button onClick={(event) => { event.stopPropagation(); handleOpenModal(item); }} style={{ background: "none", border: "none", color: "#a1a1aa", cursor: "pointer", padding: "0.2rem" }}>
-                    <Edit3 style={{ width: "15px", height: "15px" }} />
-                  </button>
-                  <button onClick={(event) => { event.stopPropagation(); handleDeleteConstrutora(item.id, item.nome); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "0.2rem" }}>
-                    <Trash2 style={{ width: "15px", height: "15px" }} />
-                  </button>
+                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleOpenModal(item); }} title="Editar construtora" aria-label={`Editar ${item.nome}`} style={{ background: "transparent", border: "1px solid #34343a", color: "#c4c4cc", padding: ".35rem" }}><Edit3 size={16} /></button>
+                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteConstrutora(item.id, item.nome); }} title="Excluir construtora" aria-label={`Excluir ${item.nome}`} style={{ background: "transparent", border: "1px solid #4a2929", color: "#ef4444", padding: ".35rem" }}><Trash2 size={16} /></button>
                 </div>
               </div>
 
-              {/* ABA EXPANSÍVEL: EMPREENDIMENTOS DA CONSTRUTORA */}
               {isExpanded && (
-                <div style={{ borderTop: "1px solid #222", backgroundColor: "#0b0b0c", padding: "0.85rem 1.25rem" }}>
-                  <div style={{ fontSize: "0.75rem", color: "#71717a", marginBottom: "0.5rem", fontWeight: "bold", textTransform: "uppercase" }}>
-                    Empreendimentos Cadastrados
-                  </div>
+                <div style={{ borderTop: "1px solid #29292e", backgroundColor: "#0b0b0c", padding: ".85rem 1rem" }}>
+                  <div style={{ fontSize: ".7rem", color: "#8b8b95", marginBottom: ".55rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>Empreendimentos vinculados</div>
                   {empsDaConstrutora.length === 0 ? (
-                    <div style={{ color: "#52525b", fontSize: "0.8rem", fontStyle: "italic" }}>
-                      Nenhum empreendimento vinculado a esta construtora até o momento.
-                    </div>
+                    <div style={{ color: "#8b8b95", fontSize: ".8rem", padding: ".7rem .75rem", border: "1px dashed #34343a", borderRadius: "7px" }}>Nenhum empreendimento vinculado a esta construtora. O cadastro pode ser feito na gestão de empreendimentos.</div>
                   ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "0.5rem" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: ".55rem" }}>
                       {empsDaConstrutora.map((emp) => {
                         const empreendimentoAtivo = emp.ativo !== false;
-                        return <div key={emp.id} style={{ backgroundColor: "#141417", border: `1px solid ${empreendimentoAtivo ? "#27272a" : "#4a2929"}`, borderRadius: "6px", padding: "0.6rem 0.8rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", opacity: empreendimentoAtivo ? 1 : .65 }}>
+                        return <div className="builder-emp-card" key={emp.id} style={{ backgroundColor: "#141417", border: `1px solid ${empreendimentoAtivo ? "#27272a" : "#4a2929"}`, borderRadius: "7px", padding: ".65rem .75rem", opacity: empreendimentoAtivo ? 1 : .65 }}>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: "#d4d4d8", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.nome}</div>
-                            <div style={{ fontSize: "0.7rem", color: "#71717a" }}>SKU: {emp.sku || "N/A"} • {emp.cidade || "Sem Cidade"}</div>
+                            <div style={{ fontSize: ".84rem", fontWeight: 700, color: "#e4e4e7", overflowWrap: "anywhere" }}>{emp.nome}</div>
+                            <div style={{ fontSize: ".7rem", color: "#85858f", marginTop: ".25rem" }}>SKU: {emp.sku || "N/A"} · {emp.cidade || "Sem cidade"}</div>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0 }}>
-                            <button onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo} style={{ background: "transparent", border: 0, color: empreendimentoAtivo ? "#4ade80" : "#71717a", cursor: "pointer", padding: "0.15rem" }}>
-                              {empreendimentoAtivo ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
-                            </button>
-                            <button onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", opacity: 0.7, padding: "0.2rem" }}>
-                              <Trash2 style={{ width: "14px", height: "14px" }} />
-                            </button>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: ".35rem" }}>
+                            <button className="builder-action" onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo} style={{ background: "transparent", border: 0, color: empreendimentoAtivo ? "#4ade80" : "#71717a", padding: ".15rem" }}>{empreendimentoAtivo ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}</button>
+                            <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`} style={{ background: "transparent", border: 0, color: "#ef4444", padding: ".15rem" }}><Trash2 size={15} /></button>
                           </div>
                         </div>;
                       })}
@@ -324,7 +319,7 @@ export const ConstrutorasModule: FC = () => {
                   )}
                 </div>
               )}
-            </div>
+            </article>
           );
         })}
       </div>
