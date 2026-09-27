@@ -21,6 +21,7 @@ import {
 export const ConstrutorasModule: FC = () => {
   const [construtoras, setConstrutoras] = useState<any[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<any[]>([]);
+  const [empreendimentoCovers, setEmpreendimentoCovers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -44,11 +45,27 @@ export const ConstrutorasModule: FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: constData } = await supabase.from("construtoras").select("*").order("nome");
-    const { data: empData } = await supabase.from("empreendimentos").select("id, nome, cidade, sku, construtora_id");
+    const [{ data: constData }, { data: empData }, { data: imageData }] = await Promise.all([
+      supabase.from("construtoras").select("*").order("nome"),
+      supabase.from("empreendimentos").select("id, nome, cidade, sku, construtora_id, descricao, imagem_url, area_minima, area_maxima, status, ativo").order("nome"),
+      supabase.from("empreendimento_imagens").select("empreendimento_id, url, storage_path, ordem").order("ordem", { ascending: true }),
+    ]);
 
     if (constData) setConstrutoras(constData);
     if (empData) setEmpreendimentos(empData);
+    const covers: Record<string, string> = {};
+    for (const image of (imageData || []) as any[]) {
+      if (covers[image.empreendimento_id]) continue;
+      if (image.url) { covers[image.empreendimento_id] = image.url; continue; }
+      if (image.storage_path) {
+        const { data } = await supabase.storage.from("empreendimentos").createSignedUrl(image.storage_path, 3600);
+        if (data?.signedUrl) covers[image.empreendimento_id] = data.signedUrl;
+      }
+    }
+    (empData || []).forEach((emp: any) => {
+      if (!covers[emp.id] && emp.imagem_url && !String(emp.imagem_url).startsWith("storage://")) covers[emp.id] = emp.imagem_url;
+    });
+    setEmpreendimentoCovers(covers);
     setLoading(false);
   };
 
@@ -237,14 +254,20 @@ export const ConstrutorasModule: FC = () => {
         .builder-card-meta { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
         .builder-card-actions { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; flex-wrap: wrap; }
         .builder-action { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-height: 34px; border-radius: 6px; cursor: pointer; }
-        .builder-emp-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; align-items: center; }
+        .builder-emp-card { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 0; align-items: stretch; }
+        .builder-emp-cover { min-height: 148px; background: linear-gradient(135deg, #292018, #111114); overflow: hidden; }
+        .builder-emp-cover img { width: 100%; height: 100%; min-height: 148px; object-fit: cover; display: block; }
+        .builder-emp-cover-empty { height: 100%; min-height: 148px; display: grid; place-items: center; align-content: center; gap: 5px; color: #c5a059; font-size: .62rem; text-align: center; padding: 6px; }
+        .builder-emp-content { min-width: 0; padding: .75rem; display: flex; flex-direction: column; justify-content: space-between; }
         @media (max-width: 620px) {
           .builder-card-head { grid-template-columns: 1fr; gap: .85rem; padding: .9rem; }
           .builder-card-info { grid-template-columns: 72px minmax(0, 1fr); gap: .7rem; }
           .builder-cover-placeholder { width: 72px; height: 58px; }
           .builder-card-actions { justify-content: flex-start; padding-top: .7rem; border-top: 1px solid #29292e; }
           .builder-card-actions .builder-action { flex: 0 0 auto; }
-          .builder-emp-card { grid-template-columns: 1fr; align-items: stretch; }
+          .builder-emp-card { grid-template-columns: 88px minmax(0, 1fr); align-items: stretch; }
+          .builder-emp-cover, .builder-emp-cover img, .builder-emp-cover-empty { min-height: 154px; }
+          .builder-emp-content { padding: .7rem; }
           .builder-emp-card > div:last-child { justify-content: flex-start; }
         }
       `}</style>
@@ -304,14 +327,23 @@ export const ConstrutorasModule: FC = () => {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: ".55rem" }}>
                       {empsDaConstrutora.map((emp) => {
                         const empreendimentoAtivo = emp.ativo !== false;
-                        return <div className="builder-emp-card" key={emp.id} style={{ backgroundColor: "#141417", border: `1px solid ${empreendimentoAtivo ? "#27272a" : "#4a2929"}`, borderRadius: "7px", padding: ".65rem .75rem", opacity: empreendimentoAtivo ? 1 : .65 }}>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: ".84rem", fontWeight: 700, color: "#e4e4e7", overflowWrap: "anywhere" }}>{emp.nome}</div>
-                            <div style={{ fontSize: ".7rem", color: "#85858f", marginTop: ".25rem" }}>SKU: {emp.sku || "N/A"} · {emp.cidade || "Sem cidade"}</div>
+                        const cover = empreendimentoCovers[emp.id] || emp.imagem_url;
+                        const area = emp.area_minima && emp.area_maxima ? `${emp.area_minima}–${emp.area_maxima} m²` : emp.area_minima ? `a partir de ${emp.area_minima} m²` : "Metragem não informada";
+                        return <div className="builder-emp-card" key={emp.id} style={{ backgroundColor: "#141417", border: `1px solid ${empreendimentoAtivo ? "#27272a" : "#4a2929"}`, borderRadius: "8px", overflow: "hidden", opacity: empreendimentoAtivo ? 1 : .65 }}>
+                          <div className="builder-emp-cover">
+                            {cover ? <img src={cover} alt={`Capa de ${emp.nome}`} loading="lazy" /> : <div className="builder-emp-cover-empty"><Building size={22} /><span>Foto pendente</span></div>}
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: ".35rem" }}>
-                            <button className="builder-action" onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo} style={{ background: "transparent", border: 0, color: empreendimentoAtivo ? "#4ade80" : "#71717a", padding: ".15rem" }}>{empreendimentoAtivo ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}</button>
-                            <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`} style={{ background: "transparent", border: 0, color: "#ef4444", padding: ".15rem" }}><Trash2 size={15} /></button>
+                          <div className="builder-emp-content">
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: ".92rem", fontWeight: 700, color: "#f4f4f5", overflowWrap: "anywhere" }}>{emp.nome}</div>
+                              <div style={{ fontSize: ".7rem", color: "#c5a059", marginTop: ".25rem" }}>{emp.cidade || "Cidade não informada"} · {area}</div>
+                              <p style={{ fontSize: ".72rem", lineHeight: 1.4, color: "#a1a1aa", margin: ".45rem 0 0" }}>{emp.descricao || "Descrição do empreendimento ainda não cadastrada."}</p>
+                              <div style={{ fontSize: ".66rem", color: "#71717a", marginTop: ".4rem" }}>SKU: {emp.sku || "N/A"} · {empreendimentoAtivo ? "Ativo" : "Inativo"}</div>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: ".35rem", marginTop: ".6rem" }}>
+                              <button className="builder-action" onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo} style={{ background: "transparent", border: 0, color: empreendimentoAtivo ? "#4ade80" : "#71717a", padding: ".15rem" }}>{empreendimentoAtivo ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}</button>
+                              <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`} style={{ background: "transparent", border: 0, color: "#ef4444", padding: ".15rem" }}><Trash2 size={15} /></button>
+                            </div>
                           </div>
                         </div>;
                       })}
