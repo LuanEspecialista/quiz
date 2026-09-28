@@ -319,7 +319,7 @@ export const ConstrutorasModule: FC = () => {
         .builder-product-select-indicator { position: absolute; z-index: 2; top: 10px; left: 10px; display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #777; border-radius: 6px; background: rgba(9,9,11,.82); color: #111; }
         .builder-product-modal-card.is-selected .builder-product-select-indicator { border-color: #e7c778; background: #e7c778; }
         .builder-product-select-indicator span { display: block; width: 10px; height: 10px; border: 1px solid #71717a; border-radius: 3px; }
-        .builder-global-selection-bar { position: sticky; bottom: 12px; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 13px; border: 1px solid #8b6a2e; border-radius: 8px; background: rgba(35,29,17,.97); color: #d4d4d8; font-size: .76rem; box-shadow: 0 8px 25px rgba(0,0,0,.25); }
+        .builder-global-selection-bar { position: fixed; top: 68px; left: 50%; transform: translateX(-50%); z-index: 1400; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: min(920px, calc(100vw - 24px)); box-sizing: border-box; flex-wrap: wrap; padding: 10px 13px; border: 1px solid #c5a059; border-radius: 8px; background: rgba(35,29,17,.98); color: #d4d4d8; font-size: .76rem; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
         .builder-global-selection-bar > span { min-width: 0; }
         .builder-global-selection-bar strong { color: #f5d58b; }
         .builder-global-selection-bar > div { display: flex; gap: 7px; flex-wrap: wrap; }
@@ -442,7 +442,7 @@ export const ConstrutorasModule: FC = () => {
       </div>
 
       {selectedEnterpriseIds.length > 0 && <div className="builder-global-selection-bar">
-        <span><strong>{selectedEnterpriseIds.length}</strong> empreendimento{selectedEnterpriseIds.length === 1 ? " selecionado" : "s selecionados"} — a seleção continua mesmo ao trocar de construtora.</span>
+        <span><strong>{selectedEnterpriseIds.length}</strong> empreendimento{selectedEnterpriseIds.length === 1 ? " selecionado" : "s selecionados"}: {selectedEnterprises.map((emp) => emp.nome).join(" · ")}.</span>
         <div>
           <button type="button" onClick={() => setSelectedEnterpriseIds([])}>Limpar seleção</button>
           {selectedEnterpriseIds.length === 1 && <button type="button" className="primary" onClick={openSelectedUnits}><Layers size={14} /> Ver unidades</button>}
