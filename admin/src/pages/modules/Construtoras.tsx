@@ -11,6 +11,7 @@ import {
   Unlock, 
   Layers, 
   X,
+  Check,
   Search,
   LayoutGrid,
   List,
@@ -47,6 +48,8 @@ export const ConstrutorasModule: FC = () => {
   // Modais e Expansão
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBuilder, setSelectedBuilder] = useState<any | null>(null);
+  const [selectedEnterpriseIds, setSelectedEnterpriseIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
 
   // Form State
@@ -244,6 +247,18 @@ export const ConstrutorasModule: FC = () => {
     }
   };
 
+  const toggleEnterpriseSelection = (id: string) => {
+    setSelectedEnterpriseIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  };
+
+  const openSelectedUnits = () => {
+    if (selectedEnterpriseIds.length !== 1) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", "unidades");
+    url.searchParams.set("empreendimento", selectedEnterpriseIds[0]);
+    window.location.assign(url.toString());
+  };
+
   const filteredConstrutoras = construtoras.filter((c) =>
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.sku?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -297,6 +312,25 @@ export const ConstrutorasModule: FC = () => {
         .builder-products-modal-head p { margin: 4px 0 0; color: #8b8b95; font-size: .78rem; }
         .builder-modal-close { display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px; border: 1px solid #3f3f46; border-radius: 7px; background: #18181b; color: #d4d4d8; cursor: pointer; }
         .builder-products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; padding: 16px 20px 20px; }
+        .builder-product-modal-card { position: relative; cursor: pointer; transition: border-color .16s, transform .16s; }
+        .builder-product-modal-card:hover { border-color: #8b6a2e; transform: translateY(-1px); }
+        .builder-product-modal-card.is-selected { border-color: #d6a94f; box-shadow: 0 0 0 1px #d6a94f, 0 8px 30px rgba(197,160,89,.14); }
+        .builder-product-select-indicator { position: absolute; z-index: 2; top: 10px; left: 10px; display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #777; border-radius: 6px; background: rgba(9,9,11,.82); color: #111; }
+        .builder-product-modal-card.is-selected .builder-product-select-indicator { border-color: #e7c778; background: #e7c778; }
+        .builder-product-select-indicator span { display: block; width: 10px; height: 10px; border: 1px solid #71717a; border-radius: 3px; }
+        .builder-selection-bar { position: sticky; bottom: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 11px 20px; border-top: 1px solid #4b3a1e; background: rgba(16,16,18,.98); color: #d4d4d8; font-size: .76rem; }
+        .builder-selection-bar strong { margin-right: auto; color: #f5d58b; }
+        .builder-selection-bar button { border: 1px solid #3f3f46; border-radius: 6px; padding: 7px 9px; background: #18181b; color: #d4d4d8; cursor: pointer; font-size: .7rem; }
+        .builder-selection-bar button.primary { display: inline-flex; align-items: center; gap: 5px; border-color: #c5a059; background: #c5a059; color: #111; font-weight: 700; }
+        .builder-compare-backdrop { position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.82); }
+        .builder-compare-modal { width: min(960px, 100%); max-height: calc(100dvh - 40px); overflow: auto; border: 1px solid #765d2c; border-radius: 14px; background: #101012; box-shadow: 0 24px 90px rgba(0,0,0,.7); }
+        .builder-compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; padding: 16px 20px 20px; }
+        .builder-compare-column { padding: 13px; border: 1px solid #303036; border-radius: 9px; background: #151518; }
+        .builder-compare-column h3 { margin: 0 0 4px; color: #f4f4f5; font-size: .95rem; }
+        .builder-compare-column > strong { color: #c5a059; font-size: .7rem; }
+        .builder-compare-column dl { margin: 14px 0 0; display: grid; grid-template-columns: 1fr 1.3fr; gap: 8px 6px; font-size: .7rem; }
+        .builder-compare-column dt { color: #71717a; }
+        .builder-compare-column dd { margin: 0; color: #e7c778; text-align: right; overflow-wrap: anywhere; }
         .builder-product-modal-card { overflow: hidden; border: 1px solid #2f2f35; border-radius: 10px; background: #151518; }
         .builder-product-modal-cover { height: 142px; background: linear-gradient(135deg,#292018,#111114); }
         .builder-product-modal-cover img { width: 100%; height: 100%; display: block; object-fit: cover; }
@@ -385,7 +419,7 @@ export const ConstrutorasModule: FC = () => {
                   <button className="builder-action" onClick={(event) => toggleConstrutora(item, event)} title={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"} aria-label={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"} aria-pressed={construtoraAtiva} style={{ background: construtoraAtiva ? "#10291b" : "#202024", border: `1px solid ${construtoraAtiva ? "#237a49" : "#3f3f46"}`, color: construtoraAtiva ? "#4ade80" : "#a1a1aa", padding: ".25rem .55rem" }}>
                     {construtoraAtiva ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}<span style={{ fontSize: ".7rem", fontWeight: 700 }}>{construtoraAtiva ? "Ativa" : "Inativa"}</span>
                   </button>
-                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); setSelectedBuilder(item); }} style={{ backgroundColor: "#18181b", border: "1px solid #34343a", color: "#c4c4cc", padding: ".25rem .55rem", fontSize: ".72rem" }}>
+                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); setSelectedEnterpriseIds([]); setSelectedBuilder(item); }} style={{ backgroundColor: "#18181b", border: "1px solid #34343a", color: "#c4c4cc", padding: ".25rem .55rem", fontSize: ".72rem" }}>
                     <Layers size={14} /> {empsDaConstrutora.length} {empsDaConstrutora.length === 1 ? "empreendimento" : "empreendimentos"}
                   </button>
                   <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleOpenModal(item); }} title="Editar construtora" aria-label={`Editar ${item.nome}`} style={{ background: "transparent", border: "1px solid #34343a", color: "#c4c4cc", padding: ".35rem" }}><Edit3 size={16} /></button>
@@ -415,7 +449,9 @@ export const ConstrutorasModule: FC = () => {
               {modalEmpreendimentos.map((emp) => {
                 const empreendimentoAtivo = emp.ativo !== false;
                 const cover = empreendimentoCovers[emp.id] || emp.imagem_url;
-                return <article className="builder-product-modal-card" key={emp.id}>
+                const isSelected = selectedEnterpriseIds.includes(emp.id);
+                return <article className={`builder-product-modal-card ${isSelected ? "is-selected" : ""}`} key={emp.id} onClick={() => toggleEnterpriseSelection(emp.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleEnterpriseSelection(emp.id); } }} tabIndex={0} role="button" aria-pressed={isSelected}>
+                  <div className="builder-product-select-indicator">{isSelected ? <Check size={14} /> : <span />}</div>
                   <div className="builder-product-modal-cover">{cover ? <img src={cover} alt={`Capa de ${emp.nome}`} /> : <div><Building size={28} /><span>Foto pendente</span></div>}</div>
                   <div className="builder-product-modal-body">
                     <div className="builder-product-modal-status" data-active={empreendimentoAtivo}>{empreendimentoAtivo ? "Ativo" : "Inativo"}</div>
@@ -437,7 +473,19 @@ export const ConstrutorasModule: FC = () => {
                 </article>;
               })}
             </div>}
+            {selectedEnterpriseIds.length > 0 && <div className="builder-selection-bar">
+              <strong>{selectedEnterpriseIds.length} selecionado{selectedEnterpriseIds.length === 1 ? "" : "s"}</strong>
+              <button type="button" onClick={() => setSelectedEnterpriseIds([])}>Limpar</button>
+              {selectedEnterpriseIds.length === 1 && <button type="button" className="primary" onClick={openSelectedUnits}><Layers size={14} /> Ver unidades</button>}
+              {selectedEnterpriseIds.length > 1 && <button type="button" className="primary" onClick={() => setCompareOpen(true)}>Comparar selecionados</button>}
+            </div>}
           </section>
+          {compareOpen && <div className="builder-compare-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCompareOpen(false); }}>
+            <section className="builder-compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+              <div className="builder-products-modal-head"><div><div className="builder-modal-eyebrow">Comparação rápida</div><h2 id="compare-title">Empreendimentos selecionados</h2><p>Compare os dados objetivos antes de escolher onde abrir o estoque.</p></div><button type="button" onClick={() => setCompareOpen(false)} className="builder-modal-close" aria-label="Fechar comparação"><X size={20} /></button></div>
+              <div className="builder-compare-grid">{modalEmpreendimentos.filter((emp) => selectedEnterpriseIds.includes(emp.id)).map((emp) => { const metric = empreendimentoMetrics[emp.id]; const min = metric?.minPrice ?? emp.menor_preco_disponivel ?? emp.faixa_preco; const max = metric?.maxPrice ?? emp.maior_preco_disponivel ?? emp.faixa_preco; return <div className="builder-compare-column" key={emp.id}><h3>{emp.nome}</h3><strong>{emp.cidade || "Cidade não informada"}</strong><dl><dt>Ticket</dt><dd>{min == null ? "—" : `${formatCompactCurrency(Number(min))}${max != null && max !== min ? `–${formatCompactCurrency(Number(max))}` : ""}`}</dd><dt>Áreas</dt><dd>{emp.area_minima != null && emp.area_maxima != null ? `${emp.area_minima}–${emp.area_maxima} m²` : "—"}</dd><dt>Tipologias</dt><dd>{metric?.typologies?.join(" · ") || emp.tipologias_disponiveis?.join(" · ") || "—"}</dd><dt>Lazer</dt><dd>{emp.quantidade_areas_lazer != null ? `${emp.quantidade_areas_lazer} áreas` : "—"}</dd><dt>Unidades</dt><dd>{metric?.units ?? emp.numero_unidades ?? "—"}</dd></dl></div>; })}</div>
+            </section>
+          </div>}
         </div>;
       })()}
 
