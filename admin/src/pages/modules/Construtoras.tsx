@@ -263,6 +263,7 @@ export const ConstrutorasModule: FC = () => {
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.sku?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const selectedEnterprises = empreendimentos.filter((emp) => selectedEnterpriseIds.includes(emp.id));
 
   return (
     <div style={{ color: "#e4e4e7", fontFamily: "sans-serif" }}>
@@ -318,6 +319,13 @@ export const ConstrutorasModule: FC = () => {
         .builder-product-select-indicator { position: absolute; z-index: 2; top: 10px; left: 10px; display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #777; border-radius: 6px; background: rgba(9,9,11,.82); color: #111; }
         .builder-product-modal-card.is-selected .builder-product-select-indicator { border-color: #e7c778; background: #e7c778; }
         .builder-product-select-indicator span { display: block; width: 10px; height: 10px; border: 1px solid #71717a; border-radius: 3px; }
+        .builder-global-selection-bar { position: sticky; bottom: 12px; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 13px; border: 1px solid #8b6a2e; border-radius: 8px; background: rgba(35,29,17,.97); color: #d4d4d8; font-size: .76rem; box-shadow: 0 8px 25px rgba(0,0,0,.25); }
+        .builder-global-selection-bar > span { min-width: 0; }
+        .builder-global-selection-bar strong { color: #f5d58b; }
+        .builder-global-selection-bar > div { display: flex; gap: 7px; flex-wrap: wrap; }
+        .builder-global-selection-bar button { border: 1px solid #3f3f46; border-radius: 6px; padding: 7px 9px; background: #18181b; color: #d4d4d8; cursor: pointer; font-size: .7rem; }
+        .builder-global-selection-bar button.primary { display: inline-flex; align-items: center; gap: 5px; border-color: #c5a059; background: #c5a059; color: #111; font-weight: 700; }
+        .builder-compare-builder { margin-bottom: 4px; color: #c5a059; font-size: .61rem; text-transform: uppercase; letter-spacing: .06em; }
         .builder-selection-bar { position: sticky; bottom: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 11px 20px; border-top: 1px solid #4b3a1e; background: rgba(16,16,18,.98); color: #d4d4d8; font-size: .76rem; }
         .builder-selection-bar strong { margin-right: auto; color: #f5d58b; }
         .builder-selection-bar button { border: 1px solid #3f3f46; border-radius: 6px; padding: 7px 9px; background: #18181b; color: #d4d4d8; cursor: pointer; font-size: .7rem; }
@@ -419,7 +427,7 @@ export const ConstrutorasModule: FC = () => {
                   <button className="builder-action" onClick={(event) => toggleConstrutora(item, event)} title={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"} aria-label={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"} aria-pressed={construtoraAtiva} style={{ background: construtoraAtiva ? "#10291b" : "#202024", border: `1px solid ${construtoraAtiva ? "#237a49" : "#3f3f46"}`, color: construtoraAtiva ? "#4ade80" : "#a1a1aa", padding: ".25rem .55rem" }}>
                     {construtoraAtiva ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}<span style={{ fontSize: ".7rem", fontWeight: 700 }}>{construtoraAtiva ? "Ativa" : "Inativa"}</span>
                   </button>
-                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); setSelectedEnterpriseIds([]); setSelectedBuilder(item); }} style={{ backgroundColor: "#18181b", border: "1px solid #34343a", color: "#c4c4cc", padding: ".25rem .55rem", fontSize: ".72rem" }}>
+                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); setSelectedBuilder(item); }} style={{ backgroundColor: "#18181b", border: "1px solid #34343a", color: "#c4c4cc", padding: ".25rem .55rem", fontSize: ".72rem" }}>
                     <Layers size={14} /> {empsDaConstrutora.length} {empsDaConstrutora.length === 1 ? "empreendimento" : "empreendimentos"}
                   </button>
                   <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleOpenModal(item); }} title="Editar construtora" aria-label={`Editar ${item.nome}`} style={{ background: "transparent", border: "1px solid #34343a", color: "#c4c4cc", padding: ".35rem" }}><Edit3 size={16} /></button>
@@ -432,6 +440,15 @@ export const ConstrutorasModule: FC = () => {
           );
         })}
       </div>
+
+      {selectedEnterpriseIds.length > 0 && <div className="builder-global-selection-bar">
+        <span><strong>{selectedEnterpriseIds.length}</strong> empreendimento{selectedEnterpriseIds.length === 1 ? " selecionado" : "s selecionados"} — a seleção continua mesmo ao trocar de construtora.</span>
+        <div>
+          <button type="button" onClick={() => setSelectedEnterpriseIds([])}>Limpar seleção</button>
+          {selectedEnterpriseIds.length === 1 && <button type="button" className="primary" onClick={openSelectedUnits}><Layers size={14} /> Ver unidades</button>}
+          {selectedEnterpriseIds.length > 1 && <button type="button" className="primary" onClick={() => setCompareOpen(true)}>Comparar selecionados</button>}
+        </div>
+      </div>}
 
       {selectedBuilder && (() => {
         const modalEmpreendimentos = empreendimentos.filter((emp) => emp.construtora_id === selectedBuilder.id);
@@ -473,21 +490,18 @@ export const ConstrutorasModule: FC = () => {
                 </article>;
               })}
             </div>}
-            {selectedEnterpriseIds.length > 0 && <div className="builder-selection-bar">
-              <strong>{selectedEnterpriseIds.length} selecionado{selectedEnterpriseIds.length === 1 ? "" : "s"}</strong>
-              <button type="button" onClick={() => setSelectedEnterpriseIds([])}>Limpar</button>
-              {selectedEnterpriseIds.length === 1 && <button type="button" className="primary" onClick={openSelectedUnits}><Layers size={14} /> Ver unidades</button>}
-              {selectedEnterpriseIds.length > 1 && <button type="button" className="primary" onClick={() => setCompareOpen(true)}>Comparar selecionados</button>}
-            </div>}
+
           </section>
-          {compareOpen && <div className="builder-compare-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCompareOpen(false); }}>
-            <section className="builder-compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
-              <div className="builder-products-modal-head"><div><div className="builder-modal-eyebrow">Comparação rápida</div><h2 id="compare-title">Empreendimentos selecionados</h2><p>Compare os dados objetivos antes de escolher onde abrir o estoque.</p></div><button type="button" onClick={() => setCompareOpen(false)} className="builder-modal-close" aria-label="Fechar comparação"><X size={20} /></button></div>
-              <div className="builder-compare-grid">{modalEmpreendimentos.filter((emp) => selectedEnterpriseIds.includes(emp.id)).map((emp) => { const metric = empreendimentoMetrics[emp.id]; const min = metric?.minPrice ?? emp.menor_preco_disponivel ?? emp.faixa_preco; const max = metric?.maxPrice ?? emp.maior_preco_disponivel ?? emp.faixa_preco; return <div className="builder-compare-column" key={emp.id}><h3>{emp.nome}</h3><strong>{emp.cidade || "Cidade não informada"}</strong><dl><dt>Ticket</dt><dd>{min == null ? "—" : `${formatCompactCurrency(Number(min))}${max != null && max !== min ? `–${formatCompactCurrency(Number(max))}` : ""}`}</dd><dt>Áreas</dt><dd>{emp.area_minima != null && emp.area_maxima != null ? `${emp.area_minima}–${emp.area_maxima} m²` : "—"}</dd><dt>Tipologias</dt><dd>{metric?.typologies?.join(" · ") || emp.tipologias_disponiveis?.join(" · ") || "—"}</dd><dt>Lazer</dt><dd>{emp.quantidade_areas_lazer != null ? `${emp.quantidade_areas_lazer} áreas` : "—"}</dd><dt>Unidades</dt><dd>{metric?.units ?? emp.numero_unidades ?? "—"}</dd></dl></div>; })}</div>
-            </section>
-          </div>}
+
         </div>;
       })()}
+
+      {compareOpen && <div className="builder-compare-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCompareOpen(false); }}>
+        <section className="builder-compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+          <div className="builder-products-modal-head"><div><div className="builder-modal-eyebrow">Comparação rápida</div><h2 id="compare-title">Empreendimentos selecionados</h2><p>Compare produtos de construtoras diferentes antes de abrir o estoque.</p></div><button type="button" onClick={() => setCompareOpen(false)} className="builder-modal-close" aria-label="Fechar comparação"><X size={20} /></button></div>
+          <div className="builder-compare-grid">{selectedEnterprises.map((emp) => { const metric = empreendimentoMetrics[emp.id]; const min = metric?.minPrice ?? emp.menor_preco_disponivel ?? emp.faixa_preco; const max = metric?.maxPrice ?? emp.maior_preco_disponivel ?? emp.faixa_preco; return <div className="builder-compare-column" key={emp.id}><div className="builder-compare-builder">{construtoras.find((builder) => builder.id === emp.construtora_id)?.nome || "Construtora"}</div><h3>{emp.nome}</h3><strong>{emp.cidade || "Cidade não informada"}</strong><dl><dt>Ticket</dt><dd>{min == null ? "—" : `${formatCompactCurrency(Number(min))}${max != null && max !== min ? `–${formatCompactCurrency(Number(max))}` : ""}`}</dd><dt>Áreas</dt><dd>{emp.area_minima != null && emp.area_maxima != null ? `${emp.area_minima}–${emp.area_maxima} m²` : "—"}</dd><dt>Tipologias</dt><dd>{metric?.typologies?.join(" · ") || emp.tipologias_disponiveis?.join(" · ") || "—"}</dd><dt>Lazer</dt><dd>{emp.quantidade_areas_lazer != null ? `${emp.quantidade_areas_lazer} áreas` : "—"}</dd><dt>Unidades</dt><dd>{metric?.units ?? emp.numero_unidades ?? "—"}</dd></dl></div>; })}</div>
+        </section>
+      </div>}
 
       {/* MODAL DE CADASTRO / EDIÇÃO */}
       {isModalOpen && (
