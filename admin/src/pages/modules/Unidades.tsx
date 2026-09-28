@@ -70,7 +70,7 @@ function MoneyRangeFilter({ label, minRaw, maxRaw, onMinChange, onMaxChange }: {
   </div>;
 }
 
-export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeInicial, tipologiaInicial, filtrosIniciais }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string; disponibilidadeInicial?: string; tipologiaInicial?: string; filtrosIniciais?: InitialSmartFilters }) {
+export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds = [], disponibilidadeInicial, tipologiaInicial, filtrosIniciais }: { onSimular?: (unidades: any[]) => void; empreendimentoId?: string; empreendimentoIds?: string[]; disponibilidadeInicial?: string; tipologiaInicial?: string; filtrosIniciais?: InitialSmartFilters }) {
   const [unidades, setUnidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
 
   useEffect(() => {
     fetchUnidades();
-  }, [empreendimentoId]);
+  }, [empreendimentoId, empreendimentoIds.join(",")]);
 
   // ESC cancela a edição; fora dela, encerra a seleção e limpa a busca.
   useEffect(() => {
@@ -164,8 +164,11 @@ export function UnidadesModule({ onSimular, empreendimentoId, disponibilidadeIni
         .select("*, empreendimentos(*, construtoras(nome))")
         .order("created_at", { ascending: false });
 
-      if (empreendimentoId) {
-        query = query.eq("empreendimento_id", empreendimentoId);
+      const selectedEnterpriseIds = empreendimentoIds.length ? empreendimentoIds : (empreendimentoId ? [empreendimentoId] : []);
+      if (selectedEnterpriseIds.length === 1) {
+        query = query.eq("empreendimento_id", selectedEnterpriseIds[0]);
+      } else if (selectedEnterpriseIds.length > 1) {
+        query = query.in("empreendimento_id", selectedEnterpriseIds);
       }
 
       const [{ data, error }, enterprises] = await Promise.all([

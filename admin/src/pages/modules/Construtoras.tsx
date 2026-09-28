@@ -264,10 +264,11 @@ export const ConstrutorasModule: FC = () => {
   };
 
   const openSelectedUnits = () => {
-    if (selectedEnterpriseIds.length !== 1) return;
+    if (!selectedEnterpriseIds.length) return;
     const url = new URL(window.location.href);
     url.searchParams.set("tab", "unidades");
-    url.searchParams.set("empreendimento", selectedEnterpriseIds[0]);
+    url.searchParams.delete("empreendimento");
+    url.searchParams.set("empreendimentos", selectedEnterpriseIds.join(","));
     window.location.assign(url.toString());
   };
 
@@ -459,7 +460,7 @@ export const ConstrutorasModule: FC = () => {
         <span><strong>{selectedEnterpriseIds.length}</strong> empreendimento{selectedEnterpriseIds.length === 1 ? " selecionado" : "s selecionados"}: {selectedEnterprises.map((emp) => emp.nome).join(" · ")}.</span>
         <div>
           <button type="button" onClick={() => setSelectedEnterpriseIds([])}>Limpar seleção</button>
-          {selectedEnterpriseIds.length === 1 && <button type="button" className="primary" onClick={openSelectedUnits}><Layers size={14} /> Ver unidades</button>}
+          <button type="button" className="primary" onClick={openSelectedUnits}><Layers size={14} /> Ver unidades</button>
           {selectedEnterpriseIds.length > 1 && <button type="button" className="primary" onClick={() => setCompareOpen(true)}>Comparar selecionados</button>}
         </div>
       </div>}

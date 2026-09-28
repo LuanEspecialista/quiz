@@ -35,6 +35,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
   const [flowClientId, setFlowClientId] = useState<string>();
   const [metrics, setMetrics] = useState({ empreendimentos: 0, unidades: 0, clientes: 0, propostasEmAndamento: 0 });
   const empreendimentoId = initialParams.get("empreendimento") || undefined;
+  const empreendimentoIds = (initialParams.get("empreendimentos") || "").split(",").map((value) => value.trim()).filter(Boolean);
   const disponibilidade = initialParams.get("disponibilidade") || undefined;
   const tipologiaInicial = initialParams.get("tipologia") || undefined;
 
@@ -90,7 +91,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         <Suspense fallback={<div style={{ minHeight: 240, display: "grid", placeItems: "center", color: "#c5a059" }}>Carregando módulo…</div>}>
         {role !== "afiliado" && activeTab === "dashboard" && <SmartDashboard metrics={metrics} onSearch={searchUnits} onNavigate={setActiveTab} />}
         {role === "admin" && activeTab === "construtoras" && <ConstrutorasModule />}
-        {role !== "afiliado" && activeTab === "unidades" && <UnidadesModule empreendimentoId={empreendimentoId} disponibilidadeInicial={disponibilidade} tipologiaInicial={tipologiaInicial} filtrosIniciais={smartUnitFilters} onSimular={openFlow} />}
+        {role !== "afiliado" && activeTab === "unidades" && <UnidadesModule empreendimentoId={empreendimentoId} empreendimentoIds={empreendimentoIds} disponibilidadeInicial={disponibilidade} tipologiaInicial={tipologiaInicial} filtrosIniciais={smartUnitFilters} onSimular={openFlow} />}
         {role !== "afiliado" && activeTab === "apresentacoes" && <ApresentacoesModule />}
         {role !== "afiliado" && activeTab === "blog" && <BlogModule />}
         {role !== "afiliado" && activeTab === "tipologias" && <TipologiasModule />}
