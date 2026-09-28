@@ -115,6 +115,8 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
   const [prazoMeses, setPrazoMeses] = useState<number>(filtrosIniciais?.prazoMeses || 0);
 
   const [visibleCount, setVisibleCount] = useState(12);
+  const selectedEnterpriseIds = empreendimentoIds.length ? empreendimentoIds : (empreendimentoId ? [empreendimentoId] : []);
+  const selectedEnterpriseNames = enterpriseOptions.filter((enterprise) => selectedEnterpriseIds.includes(enterprise.id)).map((enterprise) => enterprise.nome);
   const empreendimentoNome = unidades[0]?.empreendimentos?.nome || null;
 
   useEffect(() => {
@@ -502,6 +504,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
   // menos um critério de busca. Isso reduz ruído e protege a informação comercial.
   const hasActiveSearch = Boolean(
     empreendimentoId ||
+    selectedEnterpriseIds.length > 0 ||
     searchTerm.trim() ||
     tipologia !== "TODAS" ||
     suitesMinimas !== "0" ||
@@ -544,15 +547,16 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Layers style={{ width: "20px", height: "20px", color: "#c5a059" }} /> {empreendimentoId ? `Unidades disponíveis${empreendimentoNome ? ` — ${empreendimentoNome}` : ""}` : "Gestão & Comparador de Unidades"}
+            <Layers style={{ width: "20px", height: "20px", color: "#c5a059" }} /> {selectedEnterpriseIds.length ? `Unidades selecionadas${selectedEnterpriseIds.length === 1 && empreendimentoNome ? ` — ${empreendimentoNome}` : ""}` : "Gestão & Comparador de Unidades"}
           </h1>
+          {selectedEnterpriseIds.length > 0 && <div style={{ marginTop: 8, padding: "8px 10px", border: "1px solid #765d2c", borderRadius: 7, background: "#211b12", color: "#e7c778", fontSize: 12 }}><strong>Empreendimentos pré-selecionados:</strong> {selectedEnterpriseNames.length ? selectedEnterpriseNames.join(" · ") : `${selectedEnterpriseIds.length} selecionado(s)`}</div>}
           <p style={{ color: "#71717a", fontSize: "0.75rem", margin: "0.2rem 0 0 0" }}>
             {hasActiveSearch
               ? `Exibindo ${visibleUnidades.length} de ${filteredUnidades.length} unidades encontradas.`
               : "Informe ao menos um critério para consultar o estoque disponível."}
           </p>
           {usandoCompactosComoAlternativa && <p style={{ color: "#d7ab63", fontSize: "0.72rem", margin: "0.3rem 0 0" }}>Nenhuma unidade atendeu à composição solicitada. Exibindo Studio/Loft como alternativa.</p>}
-          {empreendimentoId && <a href="/painel/?tab=unidades" style={{ color: "#c5a059", fontSize: "0.72rem", textDecoration: "none", display: "inline-block", marginTop: 5 }}>Ver unidades de todos os empreendimentos</a>}
+          {selectedEnterpriseIds.length > 0 && <a href="/painel/?tab=unidades" style={{ color: "#c5a059", fontSize: "0.72rem", textDecoration: "none", display: "inline-block", marginTop: 5 }}>Ver unidades de todos os empreendimentos</a>}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
