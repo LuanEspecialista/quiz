@@ -14,6 +14,8 @@ import {
   Layers, 
   X,
   Search,
+  LayoutGrid,
+  List,
   ToggleLeft,
   ToggleRight
 } from "lucide-react";
@@ -24,6 +26,7 @@ export const ConstrutorasModule: FC = () => {
   const [empreendimentoCovers, setEmpreendimentoCovers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "cards">("list");
   
   // Modais e Expansão
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -233,20 +236,31 @@ export const ConstrutorasModule: FC = () => {
       </div>
 
       {/* FILTRO E PESQUISA */}
-      <div style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
-        <div style={{ position: "relative", flex: 1 }}>
+      <div style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem", alignItems: "stretch" }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
           <Search style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", width: "16px", height: "16px", color: "#71717a" }} />
           <input
             type="text"
             placeholder="Pesquisar por nome ou SKU..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.55rem 0.75rem 0.55rem 2.2rem", borderRadius: "6px", fontSize: "0.85rem", boxSizing: "border-box" }}
+            style={{ width: "100%", height: "100%", backgroundColor: "#121212", border: "1px solid #27272a", color: "#fff", padding: "0.55rem 0.75rem 0.55rem 2.2rem", borderRadius: "6px", fontSize: "0.85rem", boxSizing: "border-box" }}
           />
+        </div>
+        <div className="builder-view-switch" role="group" aria-label="Modo de visualização">
+          <button type="button" onClick={() => setViewMode("list")} aria-label="Visualizar construtoras em lista" aria-pressed={viewMode === "list"} className={viewMode === "list" ? "is-active" : ""}><List size={16} /><span>Lista</span></button>
+          <button type="button" onClick={() => setViewMode("cards")} aria-label="Visualizar construtoras em cards" aria-pressed={viewMode === "cards"} className={viewMode === "cards" ? "is-active" : ""}><LayoutGrid size={16} /><span>Cards</span></button>
         </div>
       </div>
 
       <style>{`
+        .builder-view-switch { display: inline-flex; flex: 0 0 auto; align-items: stretch; padding: 3px; gap: 2px; border: 1px solid #34343a; border-radius: 7px; background: #121214; }
+        .builder-view-switch button { display: inline-flex; align-items: center; gap: .35rem; border: 0; border-radius: 5px; padding: .45rem .6rem; background: transparent; color: #85858f; font-size: .72rem; cursor: pointer; }
+        .builder-view-switch button.is-active { background: #2b2418; color: #f5d58b; box-shadow: inset 0 0 0 1px #765d2c; }
+        .builder-collection.cards { grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)) !important; align-items: start; }
+        .builder-collection.cards > article { height: 100%; }
+        .builder-collection.cards .builder-card-head { grid-template-columns: 1fr; align-items: stretch; }
+        .builder-collection.cards .builder-card-actions { justify-content: flex-start; padding-top: .75rem; border-top: 1px solid #29292e; }
         .builder-card-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: 1rem; background: #151518; }
         .builder-card-info { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: .9rem; align-items: center; min-width: 0; }
         .builder-cover-placeholder { width: 84px; height: 64px; display: grid; place-items: center; border: 1px solid #34343a; border-radius: 7px; background: linear-gradient(135deg, #242124, #111114); color: #c5a059; }
@@ -273,7 +287,7 @@ export const ConstrutorasModule: FC = () => {
       `}</style>
 
       {/* CARDS RESPONSIVOS: uma hierarquia clara para construtora, status e empreendimentos */}
-      <div style={{ display: "grid", gap: "0.75rem" }}>
+      <div className={`builder-collection ${viewMode}`} style={{ display: "grid", gap: "0.75rem" }}>
         {filteredConstrutoras.map((item) => {
           const empsDaConstrutora = empreendimentos.filter((e) => e.construtora_id === item.id);
           const isExpanded = expandedId === item.id;
