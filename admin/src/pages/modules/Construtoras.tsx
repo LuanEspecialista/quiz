@@ -7,8 +7,6 @@ import {
   Trash2, 
   Edit3, 
   MapPin, 
-  ChevronDown, 
-  ChevronUp, 
   Lock, 
   Unlock, 
   Layers, 
@@ -30,7 +28,7 @@ export const ConstrutorasModule: FC = () => {
   
   // Modais e Expansão
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedBuilder, setSelectedBuilder] = useState<any | null>(null);
   const [editingItem, setEditingItem] = useState<any | null>(null);
 
   // Form State
@@ -254,6 +252,28 @@ export const ConstrutorasModule: FC = () => {
       </div>
 
       <style>{`
+        .builder-products-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.78); }
+        .builder-products-modal { width: min(980px, 100%); max-height: min(820px, calc(100dvh - 40px)); overflow: auto; background: #101012; border: 1px solid #4b3a1e; border-radius: 14px; box-shadow: 0 24px 90px rgba(0,0,0,.6); }
+        .builder-products-modal-head { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 18px 20px; background: rgba(16,16,18,.97); border-bottom: 1px solid #29292e; }
+        .builder-modal-eyebrow { color: #c5a059; font-size: .66rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+        .builder-products-modal h2 { margin: 4px 0 0; color: #fff; font-size: 1.25rem; }
+        .builder-products-modal-head p { margin: 4px 0 0; color: #8b8b95; font-size: .78rem; }
+        .builder-modal-close { display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px; border: 1px solid #3f3f46; border-radius: 7px; background: #18181b; color: #d4d4d8; cursor: pointer; }
+        .builder-products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; padding: 16px 20px 20px; }
+        .builder-product-modal-card { overflow: hidden; border: 1px solid #2f2f35; border-radius: 10px; background: #151518; }
+        .builder-product-modal-cover { height: 142px; background: linear-gradient(135deg,#292018,#111114); }
+        .builder-product-modal-cover img { width: 100%; height: 100%; display: block; object-fit: cover; }
+        .builder-product-modal-cover > div { height: 100%; display: grid; place-items: center; align-content: center; gap: 5px; color: #c5a059; font-size: .68rem; }
+        .builder-product-modal-body { position: relative; padding: 13px; }
+        .builder-product-modal-status { position: absolute; top: 12px; right: 12px; padding: 3px 7px; border-radius: 99px; background: #4a2929; color: #fecaca; font-size: .62rem; }
+        .builder-product-modal-status[data-active="true"] { background: #14532d; color: #bbf7d0; }
+        .builder-product-modal-body h3 { margin: 0 72px 4px 0; color: #f4f4f5; font-size: .95rem; }
+        .builder-product-modal-meta { color: #c5a059; font-size: .7rem; }
+        .builder-product-modal-body p { min-height: 38px; margin: 9px 0; color: #a1a1aa; font-size: .73rem; line-height: 1.45; }
+        .builder-product-modal-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 9px; border-top: 1px solid #29292e; }
+        .builder-product-modal-footer small { color: #71717a; font-size: .65rem; }
+        .builder-product-modal-footer > div { display: flex; gap: 4px; }
+        .builder-products-empty { padding: 35px 20px; color: #a1a1aa; text-align: center; }
         .builder-view-switch { display: inline-flex; flex: 0 0 auto; align-items: stretch; padding: 3px; gap: 2px; border: 1px solid #34343a; border-radius: 7px; background: #121214; }
         .builder-view-switch button { display: inline-flex; align-items: center; gap: .35rem; border: 0; border-radius: 5px; padding: .45rem .6rem; background: transparent; color: #85858f; font-size: .72rem; cursor: pointer; }
         .builder-view-switch button.is-active { background: #2b2418; color: #f5d58b; box-shadow: inset 0 0 0 1px #765d2c; }
@@ -290,7 +310,6 @@ export const ConstrutorasModule: FC = () => {
       <div className={`builder-collection ${viewMode}`} style={{ display: "grid", gap: "0.75rem" }}>
         {filteredConstrutoras.map((item) => {
           const empsDaConstrutora = empreendimentos.filter((e) => e.construtora_id === item.id);
-          const isExpanded = expandedId === item.id;
           const construtoraAtiva = item.ativo !== false;
 
           return (
@@ -298,8 +317,8 @@ export const ConstrutorasModule: FC = () => {
               <div className="builder-card-head">
                 <button
                   type="button"
-                  onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                  aria-expanded={isExpanded}
+                  onClick={() => setSelectedBuilder(item)}
+                  aria-expanded={false}
                   style={{ display: "block", width: "100%", minWidth: 0, padding: 0, border: 0, background: "transparent", color: "inherit", textAlign: "left", cursor: "pointer" }}
                 >
                   <div className="builder-card-info">
@@ -324,51 +343,55 @@ export const ConstrutorasModule: FC = () => {
                   <button className="builder-action" onClick={(event) => toggleConstrutora(item, event)} title={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"} aria-label={construtoraAtiva ? "Desativar construtora" : "Ativar construtora"} aria-pressed={construtoraAtiva} style={{ background: construtoraAtiva ? "#10291b" : "#202024", border: `1px solid ${construtoraAtiva ? "#237a49" : "#3f3f46"}`, color: construtoraAtiva ? "#4ade80" : "#a1a1aa", padding: ".25rem .55rem" }}>
                     {construtoraAtiva ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}<span style={{ fontSize: ".7rem", fontWeight: 700 }}>{construtoraAtiva ? "Ativa" : "Inativa"}</span>
                   </button>
-                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); setExpandedId(isExpanded ? null : item.id); }} style={{ backgroundColor: "#18181b", border: "1px solid #34343a", color: "#c4c4cc", padding: ".25rem .55rem", fontSize: ".72rem" }}>
-                    <Layers size={14} /> {empsDaConstrutora.length} {empsDaConstrutora.length === 1 ? "empreendimento" : "empreendimentos"} {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  <button className="builder-action" onClick={(event) => { event.stopPropagation(); setSelectedBuilder(item); }} style={{ backgroundColor: "#18181b", border: "1px solid #34343a", color: "#c4c4cc", padding: ".25rem .55rem", fontSize: ".72rem" }}>
+                    <Layers size={14} /> {empsDaConstrutora.length} {empsDaConstrutora.length === 1 ? "empreendimento" : "empreendimentos"}
                   </button>
                   <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleOpenModal(item); }} title="Editar construtora" aria-label={`Editar ${item.nome}`} style={{ background: "transparent", border: "1px solid #34343a", color: "#c4c4cc", padding: ".35rem" }}><Edit3 size={16} /></button>
                   <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteConstrutora(item.id, item.nome); }} title="Excluir construtora" aria-label={`Excluir ${item.nome}`} style={{ background: "transparent", border: "1px solid #4a2929", color: "#ef4444", padding: ".35rem" }}><Trash2 size={16} /></button>
                 </div>
               </div>
 
-              {isExpanded && (
-                <div style={{ borderTop: "1px solid #29292e", backgroundColor: "#0b0b0c", padding: ".85rem 1rem" }}>
-                  <div style={{ fontSize: ".7rem", color: "#8b8b95", marginBottom: ".55rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>Empreendimentos vinculados</div>
-                  {empsDaConstrutora.length === 0 ? (
-                    <div style={{ color: "#8b8b95", fontSize: ".8rem", padding: ".7rem .75rem", border: "1px dashed #34343a", borderRadius: "7px" }}>Nenhum empreendimento vinculado a esta construtora. O cadastro pode ser feito na gestão de empreendimentos.</div>
-                  ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: ".55rem" }}>
-                      {empsDaConstrutora.map((emp) => {
-                        const empreendimentoAtivo = emp.ativo !== false;
-                        const cover = empreendimentoCovers[emp.id] || emp.imagem_url;
-                        const area = emp.area_minima && emp.area_maxima ? `${emp.area_minima}–${emp.area_maxima} m²` : emp.area_minima ? `a partir de ${emp.area_minima} m²` : "Metragem não informada";
-                        return <div className="builder-emp-card" key={emp.id} style={{ backgroundColor: "#141417", border: `1px solid ${empreendimentoAtivo ? "#27272a" : "#4a2929"}`, borderRadius: "8px", overflow: "hidden", opacity: empreendimentoAtivo ? 1 : .65 }}>
-                          <div className="builder-emp-cover">
-                            {cover ? <img src={cover} alt={`Capa de ${emp.nome}`} loading="lazy" /> : <div className="builder-emp-cover-empty"><Building size={22} /><span>Foto pendente</span></div>}
-                          </div>
-                          <div className="builder-emp-content">
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: ".92rem", fontWeight: 700, color: "#f4f4f5", overflowWrap: "anywhere" }}>{emp.nome}</div>
-                              <div style={{ fontSize: ".7rem", color: "#c5a059", marginTop: ".25rem" }}>{emp.cidade || "Cidade não informada"} · {area}</div>
-                              <p style={{ fontSize: ".72rem", lineHeight: 1.4, color: "#a1a1aa", margin: ".45rem 0 0" }}>{emp.descricao || "Descrição do empreendimento ainda não cadastrada."}</p>
-                              <div style={{ fontSize: ".66rem", color: "#71717a", marginTop: ".4rem" }}>SKU: {emp.sku || "N/A"} · {empreendimentoAtivo ? "Ativo" : "Inativo"}</div>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: ".35rem", marginTop: ".6rem" }}>
-                              <button className="builder-action" onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo} style={{ background: "transparent", border: 0, color: empreendimentoAtivo ? "#4ade80" : "#71717a", padding: ".15rem" }}>{empreendimentoAtivo ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}</button>
-                              <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`} style={{ background: "transparent", border: 0, color: "#ef4444", padding: ".15rem" }}><Trash2 size={15} /></button>
-                            </div>
-                          </div>
-                        </div>;
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Os empreendimentos são exibidos no modal contextual abaixo. */}
             </article>
           );
         })}
       </div>
+
+      {selectedBuilder && (() => {
+        const modalEmpreendimentos = empreendimentos.filter((emp) => emp.construtora_id === selectedBuilder.id);
+        return <div className="builder-products-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedBuilder(null); }}>
+          <section className="builder-products-modal" role="dialog" aria-modal="true" aria-labelledby="builder-products-title">
+            <div className="builder-products-modal-head">
+              <div>
+                <div className="builder-modal-eyebrow">Construtora selecionada</div>
+                <h2 id="builder-products-title">{selectedBuilder.nome}</h2>
+                <p>{modalEmpreendimentos.length} {modalEmpreendimentos.length === 1 ? "empreendimento disponível" : "empreendimentos disponíveis"}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedBuilder(null)} className="builder-modal-close" aria-label="Fechar empreendimentos"><X size={20} /></button>
+            </div>
+            {modalEmpreendimentos.length === 0 ? <div className="builder-products-empty">Nenhum empreendimento vinculado a esta construtora.</div> : <div className="builder-products-grid">
+              {modalEmpreendimentos.map((emp) => {
+                const empreendimentoAtivo = emp.ativo !== false;
+                const cover = empreendimentoCovers[emp.id] || emp.imagem_url;
+                const area = emp.area_minima && emp.area_maxima ? `${emp.area_minima}–${emp.area_maxima} m²` : emp.area_minima ? `A partir de ${emp.area_minima} m²` : "Metragem não informada";
+                return <article className="builder-product-modal-card" key={emp.id}>
+                  <div className="builder-product-modal-cover">{cover ? <img src={cover} alt={`Capa de ${emp.nome}`} /> : <div><Building size={28} /><span>Foto pendente</span></div>}</div>
+                  <div className="builder-product-modal-body">
+                    <div className="builder-product-modal-status" data-active={empreendimentoAtivo}>{empreendimentoAtivo ? "Ativo" : "Inativo"}</div>
+                    <h3>{emp.nome}</h3>
+                    <div className="builder-product-modal-meta">{emp.cidade || "Cidade não informada"} · {area}</div>
+                    <p>{emp.descricao || "Descrição do empreendimento ainda não cadastrada."}</p>
+                    <div className="builder-product-modal-footer"><small>SKU: {emp.sku || "N/A"}</small><div>
+                      <button className="builder-action" onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo}>{empreendimentoAtivo ? <ToggleRight size={21} /> : <ToggleLeft size={21} />}</button>
+                      <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`}><Trash2 size={15} /></button>
+                    </div></div>
+                  </div>
+                </article>;
+              })}
+            </div>}
+          </section>
+        </div>;
+      })()}
 
       {/* MODAL DE CADASTRO / EDIÇÃO */}
       {isModalOpen && (
