@@ -18,10 +18,18 @@ import {
   ToggleRight
 } from "lucide-react";
 
+const formatCompactCurrency = (value: number) => {
+  if (!Number.isFinite(value)) return "—";
+  if (value >= 1000000) return `R$ ${(value / 1000000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi`;
+  if (value >= 1000) return `R$ ${(value / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil`;
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value);
+};
+
 export const ConstrutorasModule: FC = () => {
   const [construtoras, setConstrutoras] = useState<any[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<any[]>([]);
   const [empreendimentoCovers, setEmpreendimentoCovers] = useState<Record<string, string>>({});
+  const [empreendimentoMetrics, setEmpreendimentoMetrics] = useState<Record<string, { units: number; minPrice: number | null; maxPrice: number | null; typologies: string[] }>>({});
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "cards">(() => {
@@ -56,14 +64,33 @@ export const ConstrutorasModule: FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: constData }, { data: empData }, { data: imageData }] = await Promise.all([
+    const [{ data: constData }, { data: empData }, { data: imageData }, { data: unitData }] = await Promise.all([
       supabase.from("construtoras").select("*").order("nome"),
-      supabase.from("empreendimentos").select("id, nome, cidade, sku, construtora_id, descricao, imagem_url, area_minima, area_maxima, status, ativo").order("nome"),
+      supabase.from("empreendimentos").select("*").order("nome"),
       supabase.from("empreendimento_imagens").select("empreendimento_id, url, storage_path, ordem").order("ordem", { ascending: true }),
+      supabase.from("unidades").select("empreendimento_id, tipologia, tipologia_dados, valor_tabela, status"),
     ]);
 
     if (constData) setConstrutoras(constData);
     if (empData) setEmpreendimentos(empData);
+    const metrics: Record<string, { units: number; minPrice: number | null; maxPrice: number | null; typologies: string[] }> = {};
+    for (const unit of (unitData || []) as any[]) {
+      const id = String(unit.empreendimento_id || "");
+      if (!id) continue;
+      const current = metrics[id] || { units: 0, minPrice: null, maxPrice: null, typologies: [] };
+      current.units += 1;
+      const label = String(unit.tipologia_dados?.original || unit.tipologia || "").trim();
+      if (label && !current.typologies.includes(label)) current.typologies.push(label);
+      const status = String(unit.status || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const price = Number(unit.valor_tabela);
+      if (["disponivel", "disponíveis", "disponiveis"].some((value) => status.includes(value)) && Number.isFinite(price) && price > 0) {
+        current.minPrice = current.minPrice == null ? price : Math.min(current.minPrice, price);
+        current.maxPrice = current.maxPrice == null ? price : Math.max(current.maxPrice, price);
+      }
+      current.typologies.sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+      metrics[id] = current;
+    }
+    setEmpreendimentoMetrics(metrics);
     const covers: Record<string, string> = {};
     for (const image of (imageData || []) as any[]) {
       if (covers[image.empreendimento_id]) continue;
@@ -283,6 +310,11 @@ export const ConstrutorasModule: FC = () => {
         .builder-product-modal-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 9px; border-top: 1px solid #29292e; }
         .builder-product-modal-footer small { color: #71717a; font-size: .65rem; }
         .builder-product-modal-footer > div { display: flex; gap: 4px; }
+        .builder-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: .75rem; }
+        .builder-summary-grid > div, .builder-product-summary-grid > div { min-width: 0; padding: 7px; border: 1px solid #2b2b31; border-radius: 6px; background: #111114; }
+        .builder-summary-grid small, .builder-product-summary-grid small { display: block; color: #71717a; font-size: .59rem; text-transform: uppercase; letter-spacing: .04em; }
+        .builder-summary-grid strong, .builder-product-summary-grid strong { display: block; margin-top: 3px; color: #e7c778; font-size: .72rem; line-height: 1.25; overflow-wrap: anywhere; }
+        .builder-product-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 12px; }
         .builder-products-empty { padding: 35px 20px; color: #a1a1aa; text-align: center; }
         .builder-view-switch { display: inline-flex; flex: 0 0 auto; align-items: stretch; padding: 3px; gap: 2px; border: 1px solid #34343a; border-radius: 7px; background: #121214; }
         .builder-view-switch button { display: inline-flex; align-items: center; gap: .35rem; border: 0; border-radius: 5px; padding: .45rem .6rem; background: transparent; color: #85858f; font-size: .72rem; cursor: pointer; }
@@ -383,14 +415,20 @@ export const ConstrutorasModule: FC = () => {
               {modalEmpreendimentos.map((emp) => {
                 const empreendimentoAtivo = emp.ativo !== false;
                 const cover = empreendimentoCovers[emp.id] || emp.imagem_url;
-                const area = emp.area_minima && emp.area_maxima ? `${emp.area_minima}–${emp.area_maxima} m²` : emp.area_minima ? `A partir de ${emp.area_minima} m²` : "Metragem não informada";
                 return <article className="builder-product-modal-card" key={emp.id}>
                   <div className="builder-product-modal-cover">{cover ? <img src={cover} alt={`Capa de ${emp.nome}`} /> : <div><Building size={28} /><span>Foto pendente</span></div>}</div>
                   <div className="builder-product-modal-body">
                     <div className="builder-product-modal-status" data-active={empreendimentoAtivo}>{empreendimentoAtivo ? "Ativo" : "Inativo"}</div>
                     <h3>{emp.nome}</h3>
-                    <div className="builder-product-modal-meta">{emp.cidade || "Cidade não informada"} · {area}</div>
-                    <p>{emp.descricao || "Descrição do empreendimento ainda não cadastrada."}</p>
+                    <div className="builder-product-modal-meta">{emp.cidade || "Cidade não informada"}</div>
+                    <div className="builder-product-summary-grid">
+                      <div><small>Ticket</small><strong>{(() => { const metric = empreendimentoMetrics[emp.id]; const min = metric?.minPrice ?? emp.menor_preco_disponivel ?? emp.faixa_preco; const max = metric?.maxPrice ?? emp.maior_preco_disponivel ?? emp.faixa_preco; if (min == null && max == null) return "—"; if (min === max || max == null) return formatCompactCurrency(Number(min)); return `${formatCompactCurrency(Number(min))}–${formatCompactCurrency(Number(max))}`; })()}</strong></div>
+                      <div><small>Áreas</small><strong>{emp.area_minima != null && emp.area_maxima != null ? `${emp.area_minima}–${emp.area_maxima} m²` : emp.area_minima != null ? `a partir de ${emp.area_minima} m²` : "—"}</strong></div>
+                      <div><small>Tipologias</small><strong>{(empreendimentoMetrics[emp.id]?.typologies?.length ? empreendimentoMetrics[emp.id].typologies : (emp.tipologias_disponiveis || emp.tipologias_estoque || emp.quartos_disponiveis?.map((value: number) => value === 0 ? "Studio" : `${value}Q`) || [])).join(" · ") || "—"}</strong></div>
+                      <div><small>Áreas de lazer</small><strong>{emp.quantidade_areas_lazer != null ? `${emp.quantidade_areas_lazer} áreas` : "—"}</strong></div>
+                      <div><small>Unidades</small><strong>{empreendimentoMetrics[emp.id]?.units ?? emp.unidades_cadastradas ?? emp.numero_unidades ?? "—"}</strong></div>
+                      <div><small>Entrega</small><strong>{emp.entrega_date || emp.entrega || emp.previsao_entrega || "—"}</strong></div>
+                    </div>
                     <div className="builder-product-modal-footer"><small>SKU: {emp.sku || "N/A"}</small><div>
                       <button className="builder-action" onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo}>{empreendimentoAtivo ? <ToggleRight size={21} /> : <ToggleLeft size={21} />}</button>
                       <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`}><Trash2 size={15} /></button>
