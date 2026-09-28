@@ -24,8 +24,18 @@ export const ConstrutorasModule: FC = () => {
   const [empreendimentoCovers, setEmpreendimentoCovers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "cards">("list");
+  const [viewMode, setViewMode] = useState<"list" | "cards">(() => {
+    try {
+      return window.localStorage.getItem("luan-admin-construtoras-view") === "list" ? "list" : "cards";
+    } catch {
+      return "cards";
+    }
+  });
   
+  useEffect(() => {
+    try { window.localStorage.setItem("luan-admin-construtoras-view", viewMode); } catch { /* preferência opcional */ }
+  }, [viewMode]);
+
   // Modais e Expansão
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBuilder, setSelectedBuilder] = useState<any | null>(null);
