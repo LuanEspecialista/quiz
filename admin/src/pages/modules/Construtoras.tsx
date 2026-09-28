@@ -25,6 +25,18 @@ const formatCompactCurrency = (value: number) => {
   if (value >= 1000) return `R$ ${(value / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil`;
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value);
 };
+const formatArea = (value: unknown) => Number.isFinite(Number(value)) ? Number(value).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "—";
+const formatDelivery = (value: unknown) => {
+  if (!value) return "—";
+  const raw = String(value);
+  const date = new Date(`${raw.slice(0, 10)}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? raw : date.toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).replace(" de ", "/");
+};
+const formatTypologies = (values: unknown) => {
+  const list = Array.isArray(values) ? values.filter(Boolean).map(String) : [];
+  if (!list.length) return "—";
+  return list.length > 3 ? `${list.slice(0, 3).join(" · ")} +${list.length - 3}` : list.join(" · ");
+};
 
 export const ConstrutorasModule: FC = () => {
   const [construtoras, setConstrutoras] = useState<any[]>([]);
@@ -319,8 +331,8 @@ export const ConstrutorasModule: FC = () => {
         .builder-product-select-indicator { position: absolute; z-index: 2; top: 10px; left: 10px; display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #777; border-radius: 6px; background: rgba(9,9,11,.82); color: #111; }
         .builder-product-modal-card.is-selected .builder-product-select-indicator { border-color: #e7c778; background: #e7c778; }
         .builder-product-select-indicator span { display: block; width: 10px; height: 10px; border: 1px solid #71717a; border-radius: 3px; }
-        .builder-global-selection-bar { position: fixed; top: 68px; left: 50%; transform: translateX(-50%); z-index: 1400; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: min(920px, calc(100vw - 24px)); box-sizing: border-box; flex-wrap: wrap; padding: 10px 13px; border: 1px solid #c5a059; border-radius: 8px; background: rgba(35,29,17,.98); color: #d4d4d8; font-size: .76rem; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
-        .builder-global-selection-bar > span { min-width: 0; }
+        .builder-global-selection-bar { position: fixed; top: auto; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 1400; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: min(920px, calc(100vw - 24px)); box-sizing: border-box; flex-wrap: wrap; padding: 10px 13px; border: 1px solid #c5a059; border-radius: 8px; background: rgba(35,29,17,.98); color: #d4d4d8; font-size: .76rem; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+        .builder-global-selection-bar > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .builder-global-selection-bar strong { color: #f5d58b; }
         .builder-global-selection-bar > div { display: flex; gap: 7px; flex-wrap: wrap; }
         .builder-global-selection-bar button { border: 1px solid #3f3f46; border-radius: 6px; padding: 7px 9px; background: #18181b; color: #d4d4d8; cursor: pointer; font-size: .7rem; }
@@ -357,6 +369,8 @@ export const ConstrutorasModule: FC = () => {
         .builder-summary-grid small, .builder-product-summary-grid small { display: block; color: #71717a; font-size: .59rem; text-transform: uppercase; letter-spacing: .04em; }
         .builder-summary-grid strong, .builder-product-summary-grid strong { display: block; margin-top: 3px; color: #e7c778; font-size: .72rem; line-height: 1.25; overflow-wrap: anywhere; }
         .builder-product-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 12px; }
+        .builder-product-summary-grid strong { font-size: .68rem; }
+        .builder-product-summary-grid > div:first-child strong { white-space: nowrap; font-size: .72rem; }
         .builder-products-empty { padding: 35px 20px; color: #a1a1aa; text-align: center; }
         .builder-view-switch { display: inline-flex; flex: 0 0 auto; align-items: stretch; padding: 3px; gap: 2px; border: 1px solid #34343a; border-radius: 7px; background: #121214; }
         .builder-view-switch button { display: inline-flex; align-items: center; gap: .35rem; border: 0; border-radius: 5px; padding: .45rem .6rem; background: transparent; color: #85858f; font-size: .72rem; cursor: pointer; }
@@ -476,11 +490,11 @@ export const ConstrutorasModule: FC = () => {
                     <div className="builder-product-modal-meta">{emp.cidade || "Cidade não informada"}</div>
                     <div className="builder-product-summary-grid">
                       <div><small>Ticket</small><strong>{(() => { const metric = empreendimentoMetrics[emp.id]; const min = metric?.minPrice ?? emp.menor_preco_disponivel ?? emp.faixa_preco; const max = metric?.maxPrice ?? emp.maior_preco_disponivel ?? emp.faixa_preco; if (min == null && max == null) return "—"; if (min === max || max == null) return formatCompactCurrency(Number(min)); return `${formatCompactCurrency(Number(min))}–${formatCompactCurrency(Number(max))}`; })()}</strong></div>
-                      <div><small>Áreas</small><strong>{emp.area_minima != null && emp.area_maxima != null ? `${emp.area_minima}–${emp.area_maxima} m²` : emp.area_minima != null ? `a partir de ${emp.area_minima} m²` : "—"}</strong></div>
+                      <div><small>Áreas</small><strong>{emp.area_minima != null && emp.area_maxima != null ? `${formatArea(emp.area_minima)}–${formatArea(emp.area_maxima)} m²` : emp.area_minima != null ? `a partir de ${formatArea(emp.area_minima)} m²` : "—"}</strong></div>
                       <div><small>Tipologias</small><strong>{(empreendimentoMetrics[emp.id]?.typologies?.length ? empreendimentoMetrics[emp.id].typologies : (emp.tipologias_disponiveis || emp.tipologias_estoque || emp.quartos_disponiveis?.map((value: number) => value === 0 ? "Studio" : `${value}Q`) || [])).join(" · ") || "—"}</strong></div>
                       <div><small>Áreas de lazer</small><strong>{emp.quantidade_areas_lazer != null ? `${emp.quantidade_areas_lazer} áreas` : "—"}</strong></div>
                       <div><small>Unidades</small><strong>{empreendimentoMetrics[emp.id]?.units ?? emp.unidades_cadastradas ?? emp.numero_unidades ?? "—"}</strong></div>
-                      <div><small>Entrega</small><strong>{emp.entrega_date || emp.entrega || emp.previsao_entrega || "—"}</strong></div>
+                      <div><small>Entrega</small><strong>{formatDelivery(emp.entrega_date || emp.entrega || emp.previsao_entrega)}</strong></div>
                     </div>
                     <div className="builder-product-modal-footer"><small>SKU: {emp.sku || "N/A"}</small><div>
                       <button className="builder-action" onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo}>{empreendimentoAtivo ? <ToggleRight size={21} /> : <ToggleLeft size={21} />}</button>
@@ -499,7 +513,7 @@ export const ConstrutorasModule: FC = () => {
       {compareOpen && <div className="builder-compare-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCompareOpen(false); }}>
         <section className="builder-compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
           <div className="builder-products-modal-head"><div><div className="builder-modal-eyebrow">Comparação rápida</div><h2 id="compare-title">Empreendimentos selecionados</h2><p>Compare produtos de construtoras diferentes antes de abrir o estoque.</p></div><button type="button" onClick={() => setCompareOpen(false)} className="builder-modal-close" aria-label="Fechar comparação"><X size={20} /></button></div>
-          <div className="builder-compare-grid">{selectedEnterprises.map((emp) => { const metric = empreendimentoMetrics[emp.id]; const min = metric?.minPrice ?? emp.menor_preco_disponivel ?? emp.faixa_preco; const max = metric?.maxPrice ?? emp.maior_preco_disponivel ?? emp.faixa_preco; return <div className="builder-compare-column" key={emp.id}><div className="builder-compare-builder">{construtoras.find((builder) => builder.id === emp.construtora_id)?.nome || "Construtora"}</div><h3>{emp.nome}</h3><strong>{emp.cidade || "Cidade não informada"}</strong><dl><dt>Ticket</dt><dd>{min == null ? "—" : `${formatCompactCurrency(Number(min))}${max != null && max !== min ? `–${formatCompactCurrency(Number(max))}` : ""}`}</dd><dt>Áreas</dt><dd>{emp.area_minima != null && emp.area_maxima != null ? `${emp.area_minima}–${emp.area_maxima} m²` : "—"}</dd><dt>Tipologias</dt><dd>{metric?.typologies?.join(" · ") || emp.tipologias_disponiveis?.join(" · ") || "—"}</dd><dt>Lazer</dt><dd>{emp.quantidade_areas_lazer != null ? `${emp.quantidade_areas_lazer} áreas` : "—"}</dd><dt>Unidades</dt><dd>{metric?.units ?? emp.numero_unidades ?? "—"}</dd></dl></div>; })}</div>
+          <div className="builder-compare-grid">{selectedEnterprises.map((emp) => { const metric = empreendimentoMetrics[emp.id]; const min = metric?.minPrice ?? emp.menor_preco_disponivel ?? emp.faixa_preco; const max = metric?.maxPrice ?? emp.maior_preco_disponivel ?? emp.faixa_preco; return <div className="builder-compare-column" key={emp.id}><div className="builder-compare-builder">{construtoras.find((builder) => builder.id === emp.construtora_id)?.nome || "Construtora"}</div><h3>{emp.nome}</h3><strong>{emp.cidade || "Cidade não informada"}</strong><dl><dt>Ticket</dt><dd>{min == null ? "—" : `${formatCompactCurrency(Number(min))}${max != null && max !== min ? `–${formatCompactCurrency(Number(max))}` : ""}`}</dd><dt>Áreas</dt><dd>{emp.area_minima != null && emp.area_maxima != null ? `${formatArea(emp.area_minima)}–${formatArea(emp.area_maxima)} m²` : "—"}</dd><dt>Tipologias</dt><dd>{formatTypologies(metric?.typologies?.length ? metric.typologies : emp.tipologias_disponiveis)}</dd><dt>Lazer</dt><dd>{emp.quantidade_areas_lazer != null ? `${emp.quantidade_areas_lazer} áreas` : "—"}</dd><dt>Unidades</dt><dd>{metric?.units ?? emp.numero_unidades ?? "—"}</dd></dl></div>; })}</div>
         </section>
       </div>}
 
