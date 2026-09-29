@@ -6,6 +6,7 @@ import SmartDashboard, { type SmartUnitFilters } from "../components/SmartDashbo
 import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
 
 const ConstrutorasModule = lazy(() => import("./modules/Construtoras").then((module) => ({ default: module.ConstrutorasModule })));
+const EmpreendimentosModule = lazy(() => import("./modules/Empreendimentos"));
 const UnidadesModule = lazy(() => import("./modules/Unidades").then((module) => ({ default: module.UnidadesModule })));
 const FluxosModule = lazy(() => import("./modules/Fluxos"));
 const ImportarIAModule = lazy(() => import("./modules/ImportarIA").then((module) => ({ default: module.ImportarIAModule })));
@@ -27,7 +28,7 @@ interface DashboardProps { userName?: string; role?: "admin" | "equipe" | "afili
 export default function Dashboard({ userName, role = "admin" }: DashboardProps) {
   const initialParams = new URLSearchParams(window.location.search);
   const requestedTab = initialParams.get("tab");
-  const initialTab = requestedTab === "empreendimentos" ? "construtoras" : requestedTab || "dashboard";
+  const initialTab = requestedTab || "dashboard";
   const [activeTab, setActiveTab] = useState(role === "afiliado" ? "afiliados" : initialTab);
   const [smartUnitFilters, setSmartUnitFilters] = useState<SmartUnitFilters>();
   const [flowUnitIds, setFlowUnitIds] = useState<string[]>([]);
@@ -91,6 +92,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         <Suspense fallback={<div style={{ minHeight: 240, display: "grid", placeItems: "center", color: "#c5a059" }}>Carregando módulo…</div>}>
         {role !== "afiliado" && activeTab === "dashboard" && <SmartDashboard metrics={metrics} onSearch={searchUnits} onNavigate={setActiveTab} />}
         {role === "admin" && activeTab === "construtoras" && <ConstrutorasModule />}
+        {role === "admin" && activeTab === "empreendimentos" && <EmpreendimentosModule />}
         {role !== "afiliado" && activeTab === "unidades" && <UnidadesModule empreendimentoId={empreendimentoId} empreendimentoIds={empreendimentoIds} disponibilidadeInicial={disponibilidade} tipologiaInicial={tipologiaInicial} filtrosIniciais={smartUnitFilters} onSimular={openFlow} />}
         {role !== "afiliado" && activeTab === "apresentacoes" && <ApresentacoesModule />}
         {role !== "afiliado" && activeTab === "blog" && <BlogModule />}

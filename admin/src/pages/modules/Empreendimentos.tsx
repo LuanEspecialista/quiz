@@ -477,6 +477,13 @@ export default function Empreendimentos() {
     setModalOpen(true);
   }
 
+  useEffect(() => {
+    const editId = new URLSearchParams(window.location.search).get("editar");
+    if (!editId || modalOpen || !empreendimentos.length) return;
+    const target = empreendimentos.find((item) => item.id === editId);
+    if (target) openEdit(target);
+  }, [empreendimentos, modalOpen]);
+
   function updateField<K extends keyof FormData>(field: K, value: FormData[K]) {
     setForm((current) => ({ ...current, [field]: value }));
   }

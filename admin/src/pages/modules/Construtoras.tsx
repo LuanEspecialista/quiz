@@ -502,6 +502,7 @@ export const ConstrutorasModule: FC = () => {
                     </div>
                     <div className="builder-product-modal-footer"><small>SKU: {emp.sku || "N/A"}</small><div>
                       <button className="builder-action" onClick={(event) => toggleEmpreendimento(emp, event)} title={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-label={empreendimentoAtivo ? "Desativar empreendimento" : "Ativar empreendimento"} aria-pressed={empreendimentoAtivo}>{empreendimentoAtivo ? <ToggleRight size={21} /> : <ToggleLeft size={21} />}</button>
+                      <button className="builder-action" onClick={(event) => { event.stopPropagation(); const url = new URL(window.location.href); url.searchParams.set("tab", "empreendimentos"); url.searchParams.set("editar", emp.id); window.location.assign(url.toString()); }} title="Editar empreendimento" aria-label={`Editar ${emp.nome}`}><Edit3 size={15} /></button>
                       <button className="builder-action" onClick={(event) => { event.stopPropagation(); handleDeleteEmpreendimento(emp.id, emp.nome); }} title="Excluir empreendimento" aria-label={`Excluir ${emp.nome}`}><Trash2 size={15} /></button>
                     </div></div>
                   </div>
