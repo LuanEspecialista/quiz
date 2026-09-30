@@ -489,6 +489,182 @@ gtag('config', 'G-PTGL91DC6D');
       transform:translateX(3px);
     }
 
+    .interest-modal[hidden]{
+      display:none;
+    }
+    .interest-modal{
+      position:fixed;
+      inset:0;
+      z-index:1000;
+      display:flex;
+      justify-content:flex-end;
+      background:rgba(0,0,0,.72);
+      backdrop-filter:blur(5px);
+    }
+    .interest-panel{
+      width:min(430px,100%);
+      min-height:100%;
+      overflow:auto;
+      padding:28px 24px 30px;
+      background:linear-gradient(180deg,#11100e,#050505 72%);
+      border-left:1px solid var(--gold);
+      box-shadow:-20px 0 60px rgba(0,0,0,.45);
+    }
+    .interest-close{
+      float:right;
+      width:34px;
+      height:34px;
+      border:1px solid rgba(217,154,38,.58);
+      border-radius:50%;
+      background:transparent;
+      color:var(--gold2);
+      font-size:22px;
+      cursor:pointer;
+    }
+    .interest-kicker{
+      padding-top:8px;
+      color:var(--gold2);
+      font-size:10px;
+      letter-spacing:3px;
+      font-weight:900;
+      text-transform:uppercase;
+    }
+    .interest-panel h2{
+      margin:12px 0 10px;
+      font-family:"Playfair Display",serif;
+      font-size:30px;
+      line-height:1.1;
+    }
+    .interest-panel p{
+      color:var(--muted);
+      line-height:1.6;
+      font-size:13px;
+    }
+    .interest-code{
+      display:inline-flex;
+      margin:18px 0 14px;
+      padding:7px 10px;
+      border:1px solid rgba(217,154,38,.4);
+      border-radius:999px;
+      color:var(--gold2);
+      font-size:11px;
+      letter-spacing:1.5px;
+      font-weight:900;
+    }
+    .interest-form{
+      display:grid;
+      gap:12px;
+      margin-top:20px;
+    }
+    .interest-form label{
+      display:grid;
+      gap:6px;
+      color:#ddd;
+      font-size:12px;
+      font-weight:700;
+    }
+    .interest-form input,
+    .interest-form select{
+      width:100%;
+      padding:12px 13px;
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:8px;
+      outline:0;
+      background:#090909;
+      color:#fff;
+      font:inherit;
+    }
+    .interest-form input:focus,
+    .interest-form select:focus{
+      border-color:var(--gold2);
+    }
+    .interest-consent{
+      display:flex!important;
+      grid-template-columns:none!important;
+      grid-auto-flow:column;
+      grid-auto-columns:max-content;
+      align-items:start;
+      gap:8px!important;
+      color:#aaa!important;
+      font-size:11px!important;
+      font-weight:500!important;
+    }
+    .interest-consent input{
+      width:auto;
+      margin-top:2px;
+      accent-color:var(--gold);
+    }
+    .interest-submit{
+      width:100%;
+      padding:13px 16px;
+      border:1px solid var(--gold2);
+      border-radius:8px;
+      background:var(--gold);
+      color:#111;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+    .interest-submit:disabled{
+      opacity:.58;
+      cursor:wait;
+    }
+    .interest-feedback{
+      min-height:20px;
+      color:var(--gold2)!important;
+      font-size:12px!important;
+    }
+    .public-opportunity .card-body{
+      gap:0;
+    }
+    .public-opportunity .card h3{
+      font-family:"Playfair Display",serif;
+      font-size:19px;
+      color:#fff;
+    }
+    .public-opportunity .public-summary{
+      min-height:48px;
+      margin:-2px 0 13px;
+      color:#bdbdbd;
+      font-size:12px;
+      line-height:1.5;
+    }
+    .public-opportunity .price{
+      display:block;
+      min-height:auto;
+      margin-bottom:12px;
+      font-size:17px;
+    }
+    .public-opportunity .price small{
+      display:block;
+      margin-bottom:4px;
+      color:#aaa;
+      font-size:10px;
+      letter-spacing:1.2px;
+      text-transform:uppercase;
+    }
+    .public-opportunity .details{
+      color:var(--gold2);
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+    .public-opportunity .tag{
+      color:var(--gold2);
+    }
+    body.modal-open{
+      overflow:hidden;
+    }
+    @media(max-width:600px){
+      .interest-panel{
+        width:100%;
+        padding:24px 18px;
+      }
+      .interest-panel h2{
+        font-size:28px;
+      }
+    }
     .cta-box{
       margin-top:26px;
 
@@ -738,6 +914,48 @@ gtag('config', 'G-PTGL91DC6D');
 
 </main>
 
+<div class="interest-modal" id="interestModal" role="dialog" aria-modal="true" aria-labelledby="interestTitle" hidden>
+  <aside class="interest-panel">
+    <button class="interest-close" id="interestClose" type="button" aria-label="Fechar">×</button>
+    <div class="interest-kicker">Tem interesse?</div>
+    <h2 id="interestTitle">Essa oportunidade chamou sua atenção?</h2>
+    <p>Posso verificar as condições atuais e apresentar os detalhes certos para o seu momento. É um cadastro rápido — eu entro em contato pessoalmente.</p>
+    <div class="interest-code" id="interestCode">OPORTUNIDADE</div>
+    <form class="interest-form" id="interestForm">
+      <input type="hidden" name="oportunidade_id">
+      <label>Seu nome
+        <input name="nome" type="text" autocomplete="name" required minlength="2" maxlength="120" placeholder="Como posso chamar você?">
+      </label>
+      <label>WhatsApp
+        <input name="telefone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="(47) 99999-9999">
+      </label>
+      <label>E-mail <span style="color:#777;font-weight:400">(opcional)</span>
+        <input name="email" type="email" autocomplete="email" placeholder="seuemail@exemplo.com">
+      </label>
+      <label>Qual é o seu objetivo?
+        <select name="objetivo">
+          <option value="Investimento">Investimento</option>
+          <option value="Moradia">Moradia</option>
+          <option value="Renda com locação">Renda com locação</option>
+          <option value="Quero conhecer as condições">Quero conhecer as condições</option>
+          <option value="Ainda estou pesquisando">Ainda estou pesquisando</option>
+        </select>
+      </label>
+      <label>Qual faixa de entrada você tem?
+        <select name="faixa_entrada">
+          <option value="Até R$ 50 mil">Até R$ 50 mil</option>
+          <option value="R$ 50 mil – R$ 100 mil">R$ 50 mil – R$ 100 mil</option>
+          <option value="R$ 100 mil – R$ 200 mil">R$ 100 mil – R$ 200 mil</option>
+          <option value="Acima de R$ 200 mil">Acima de R$ 200 mil</option>
+          <option value="Prefiro conversar">Prefiro conversar</option>
+        </select>
+      </label>
+      <label class="interest-consent"><input name="consentimento" type="checkbox" required> Autorizo o contato da equipe Luan Especialista para falar sobre esta oportunidade.</label>
+      <button class="interest-submit" type="submit">Solicitar mais informações</button>
+      <p class="interest-feedback" id="interestFeedback" role="status"></p>
+    </form>
+  </aside>
+</div>
 <footer>
 
   <div class="container footer-content">
@@ -966,6 +1184,86 @@ Promise.all(
 });
 
 </script>
-
+<script>
+(function(){
+  const cfg = window.LUAN_SITE_CONFIG || {};
+  const api = String(cfg.supabaseUrl || '').replace(/\/$/, '');
+  const key = String(cfg.supabaseAnonKey || '');
+  const cards = document.getElementById('listaImoveis');
+  const modal = document.getElementById('interestModal');
+  const form = document.getElementById('interestForm');
+  const feedback = document.getElementById('interestFeedback');
+  const close = document.getElementById('interestClose');
+  let opportunities = [];
+  const esc = (value) => { const node = document.createElement('span'); node.textContent = value == null ? '' : String(value); return node.innerHTML; };
+  const money = (value) => value == null ? 'Sob consulta' : Number(value).toLocaleString('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:0});
+  const openInterest = (item) => {
+    form.reset();
+    form.elements.oportunidade_id.value = item.id;
+    document.getElementById('interestCode').textContent = `OPORTUNIDADE ${item.codigo}`;
+    document.getElementById('interestTitle').textContent = 'Essa oportunidade chamou sua atenção?';
+    feedback.textContent = '';
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+    window.setTimeout(() => form.elements.nome.focus(), 50);
+  };
+  const closeInterest = () => { modal.hidden = true; document.body.classList.remove('modal-open'); };
+  close.addEventListener('click', closeInterest);
+  modal.addEventListener('click', (event) => { if (event.target === modal) closeInterest(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeInterest(); });
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const data = new FormData(form);
+    button.disabled = true;
+    feedback.textContent = 'Registrando seu interesse…';
+    try {
+      const response = await fetch(`${api}/rest/v1/rpc/solicitar_interesse_oportunidade`, {
+        method: 'POST',
+        headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          p_oportunidade_id: data.get('oportunidade_id'),
+          p_nome: data.get('nome'),
+          p_telefone: data.get('telefone'),
+          p_email: data.get('email') || null,
+          p_objetivo: data.get('objetivo'),
+          p_faixa_entrada: data.get('faixa_entrada'),
+          p_consentimento: data.get('consentimento') === 'on'
+        })
+      });
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.message || 'Não foi possível registrar agora.');
+      feedback.textContent = 'Pronto. Recebi seu interesse e vou falar com você em breve.';
+      form.querySelectorAll('input,select,button').forEach((field) => { field.disabled = true; });
+      window.setTimeout(closeInterest, 1800);
+    } catch (error) {
+      feedback.textContent = error.message || 'Não foi possível registrar agora. Tente novamente.';
+      button.disabled = false;
+    }
+  });
+  const renderPublic = (list) => {
+    opportunities = Array.isArray(list) ? list : [];
+    if (!opportunities.length) return;
+    cards.innerHTML = '';
+    opportunities.forEach((item) => {
+      const article = document.createElement('article');
+      article.className = 'card public-opportunity';
+      const image = item.imagem || '../imagens/logo.png';
+      article.innerHTML = `<div class="card-img"><img class="card-photo" src="${esc(image)}" alt="Imagem de uma oportunidade imobiliária" loading="lazy"><div class="tag">OPORTUNIDADE ${esc(item.codigo)}</div></div><div class="card-body"><h3>Oportunidade imobiliária</h3><div class="meta"><span>${esc(item.tipo || 'Residencial')}</span><span>${esc(item.cidade || 'Litoral de SC')}</span></div><p class="public-summary">${esc(item.resumo || 'Uma oportunidade para morar, investir ou estudar uma estratégia patrimonial.')}</p><div class="price"><small>Entrada a partir de</small>${esc(money(item.entrada))}</div><div class="details"><span>Quero saber mais</span><span>→</span></div></div>`;
+      article.addEventListener('click', () => openInterest(item));
+      cards.appendChild(article);
+    });
+  };
+  const loadPublic = async () => {
+    if (!api || !key) return;
+    try {
+      const response = await fetch(`${api}/rest/v1/rpc/listar_oportunidades_publicas`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+      if (!response.ok) return;
+      renderPublic(await response.json());
+    } catch (error) { console.warn('Catálogo público indisponível; mantendo a vitrine local.', error); }
+  };
+  document.querySelectorAll('.filter-btn').forEach((button) => button.addEventListener('click', () => { if (opportunities.length) window.setTimeout(() => renderPublic(opportunities), 0); }));
+  loadPublic();
+})();
+</script>
 </body>
 </html>
