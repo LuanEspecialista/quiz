@@ -102,7 +102,7 @@ type ClientProposal = {
   created_at: string;
 };
 type BlogLead = { user_id:string; nome?:string|null; email:string; interesses?:string[]|null; status:string; criado_em:string; blog_posts?:{ titulo?:string|null }|null };
-type SiteOpportunityLead = { id:string; nome:string; telefone?:string|null; email?:string|null; objetivo?:string|null; codigo_oportunidade?:string|null; oportunidade_publica_id?:string|null; criado_em:string; etapa?:string|null; notas?:string|null };
+type SiteOpportunityLead = { id:string; nome:string; telefone?:string|null; email?:string|null; objetivo?:string|null; codigo_oportunidade?:string|null; empreendimento_nome_interno?:string|null; oportunidade_publica_id?:string|null; criado_em:string; etapa?:string|null; notas?:string|null };
 type Form = {
   nome: string;
   telefone: string;
@@ -290,7 +290,7 @@ export default function Clientes({
         .order("created_at", { ascending: false }),
       supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem"),
       supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,blog_posts(titulo)").order("criado_em", { ascending:false }),
-      supabase.from("playbook_leads").select("id,nome,telefone,email,objetivo,codigo_oportunidade,oportunidade_publica_id,criado_em,etapa,notas").eq("origem", "site_oportunidade").order("criado_em", { ascending:false }).limit(40),
+      supabase.from("playbook_leads").select("id,nome,telefone,email,objetivo,codigo_oportunidade,empreendimento_nome_interno,oportunidade_publica_id,criado_em,etapa,notas").eq("origem", "site_oportunidade").order("criado_em", { ascending:false }).limit(40),
     ]);
     if (c.error)
       setMessage(
@@ -565,7 +565,7 @@ export default function Clientes({
           {message}
         </div>
       )}
-      {siteOpportunityLeads.length > 0 && <details style={{...panel,borderColor:"#8a6a2e"}} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Interesses recebidos dos imóveis ({siteOpportunityLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{siteOpportunityLeads.map((lead)=><article key={lead.id} style={{border:"1px solid #4a3a20",borderRadius:8,padding:11,background:"#15120d"}}><div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>{lead.nome}</strong><strong style={{color:"#edcf91",fontSize:12}}>{lead.codigo_oportunidade || "Código não informado"}</strong></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.telefone || "Sem telefone"}{lead.email ? ` · ${lead.email}` : ""} · {new Date(lead.criado_em).toLocaleString("pt-BR")}</small>{lead.objetivo && <p style={{fontSize:12,color:"#d4d4d8",margin:"8px 0 0"}}>Objetivo: {lead.objetivo}</p>}<small style={{display:"block",color:"#888",marginTop:7}}>O vínculo interno do código já está salvo no empreendimento correspondente.</small></article>)}</div></details>}
+      {siteOpportunityLeads.length > 0 && <details style={{...panel,borderColor:"#8a6a2e"}} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Solicitações de conversa ({siteOpportunityLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{siteOpportunityLeads.map((lead)=><article key={lead.id} style={{border:"1px solid #4a3a20",borderRadius:8,padding:11,background:"#15120d"}}><div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>Solicitação de {lead.nome}</strong><span style={{color:"#edcf91",fontSize:12}}>{lead.empreendimento_nome_interno || "Oportunidade selecionada"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.telefone || "Sem telefone"}{lead.email ? ` · ${lead.email}` : ""} · {new Date(lead.criado_em).toLocaleString("pt-BR")}</small>{lead.objetivo && <p style={{fontSize:12,color:"#d4d4d8",margin:"8px 0 0"}}>Objetivo: {lead.objetivo}</p>}<small style={{display:"block",color:"#888",marginTop:7}}>A oportunidade clicada foi vinculada internamente ao cadastro.</small></article>)}</div></details>}
       {blogLeads.length > 0 && <details style={panel} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Leads identificados pelo Blog ({blogLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{blogLeads.map((lead)=><article key={lead.user_id} style={{border:"1px solid #303036",borderRadius:8,padding:11}}><strong>{lead.nome || "Leitor identificado"}</strong><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.email}{lead.blog_posts?.titulo ? ` · Origem: ${lead.blog_posts.titulo}` : ""}</small>{lead.interesses?.length ? <p style={{fontSize:12,color:"#d4d4d8",marginBottom:0}}>Interesses: {lead.interesses.join(" · ")}</p> : <small style={{color:"#71717a"}}>Ainda não informou interesses.</small>}</article>)}</div></details>}
       {proposals.length > 0 && (
         <details style={panel} open>

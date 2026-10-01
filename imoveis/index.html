@@ -61,15 +61,18 @@ gtag('config', 'G-PTGL91DC6D');
     }
 
     .container{
-      width:min(1120px,calc(100% - 32px));
+      width:min(1440px,calc(100% - 64px));
       margin:auto;
     }
 
     header{
-      position:sticky;
+      position:fixed;
       top:0;
+      left:0;
+      right:0;
       z-index:50;
-      background:#030303;
+      background:rgba(3,3,3,.94);
+      backdrop-filter:blur(12px);
       border-bottom:1px solid rgba(255,255,255,.08);
     }
 
@@ -162,14 +165,13 @@ gtag('config', 'G-PTGL91DC6D');
     }
 
     .hero .container{
-  width:min(1400px,calc(100% - 80px));
-}
+      width:min(1440px,calc(100% - 64px));
+    }
 
-.hero-content{
-  max-width:700px;
-  padding:58px 0;
-  margin-left:60px;
-}
+    .hero-content{
+      max-width:700px;
+      padding:128px 0 58px;
+      margin-left:4vw;
     }
 
     .eyebrow{
@@ -280,19 +282,70 @@ gtag('config', 'G-PTGL91DC6D');
       border-color:var(--gold);
       color:var(--gold2);
     }
+    .filter-tools{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+      margin-top:16px;
+    }
+    .filter-caption{
+      color:#8f8f8f;
+      font-size:11px;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+    }
+    .filter-select{
+      min-width:190px;
+      padding:11px 13px;
+      border:1px solid rgba(217,154,38,.35);
+      border-radius:9px;
+      background:#0b0b0b;
+      color:#eee;
+      font:600 12px Inter,sans-serif;
+    }
 
     .section{
       padding:22px 0 34px;
     }
+    .section-heading{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:12px;
+    }
+    .section-heading h2{
+      font-family:"Playfair Display",serif;
+      font-size:28px;
+    }
+    .carousel-controls{
+      display:flex;
+      gap:8px;
+    }
+    .carousel-control{
+      width:38px;
+      height:38px;
+      border:1px solid rgba(217,154,38,.5);
+      border-radius:50%;
+      background:#0b0b0b;
+      color:var(--gold2);
+      cursor:pointer;
+      font-size:18px;
+    }
 
     .grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(240px,280px));
+      display:flex;
+      overflow-x:auto;
       gap:18px;
-      justify-content:flex-start;
+      padding:4px 2px 18px;
+      scroll-snap-type:x proximity;
+      scrollbar-color:var(--gold) rgba(255,255,255,.08);
     }
 
     .card{
+      flex:0 0 288px;
+      scroll-snap-align:start;
       background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
 
       border:1px solid rgba(255,255,255,.13);
@@ -797,6 +850,16 @@ gtag('config', 'G-PTGL91DC6D');
         text-align:left;
         letter-spacing:7px;
       }
+      .filter-tools{
+        align-items:stretch;
+        flex-direction:column;
+      }
+      .filter-select{
+        width:100%;
+      }
+      .section-heading h2{
+        font-size:24px;
+      }
 
     }
 
@@ -866,22 +929,15 @@ gtag('config', 'G-PTGL91DC6D');
         ▦ Todos
       </button>
 
-      <button class="filter-btn" data-filter="Casa">
-        ⌂ Casas
-      </button>
+    </div>
 
-      <button class="filter-btn" data-filter="Apartamento">
-        ▥ Apartamentos
-      </button>
-
-      <button class="filter-btn" data-filter="Sobrado">
-        ⌘ Sobrados
-      </button>
-
-      <button class="filter-btn" data-filter="Terreno">
-        ⌖ Terrenos
-      </button>
-
+    <div class="filter-tools">
+      <span class="filter-caption">Selecione o perfil que faz sentido para você</span>
+      <select class="filter-select" id="publicSort" aria-label="Ordenar oportunidades">
+        <option value="entrada">Menor entrada primeiro</option>
+        <option value="entrega">Entrega mais próxima</option>
+        <option value="tipo">Agrupar por tipo</option>
+      </select>
     </div>
 
   </div>
@@ -891,6 +947,17 @@ gtag('config', 'G-PTGL91DC6D');
 <main class="section">
 
   <div class="container">
+
+    <div class="section-heading">
+      <div>
+        <div class="eyebrow">Curadoria Luan Especialista</div>
+        <h2>Oportunidades selecionadas</h2>
+      </div>
+      <div class="carousel-controls" aria-label="Navegar pelas oportunidades">
+        <button class="carousel-control" id="opportunitiesPrev" type="button" aria-label="Oportunidade anterior">←</button>
+        <button class="carousel-control" id="opportunitiesNext" type="button" aria-label="Próxima oportunidade">→</button>
+      </div>
+    </div>
 
     <div class="grid" id="listaImoveis"></div>
 
@@ -920,7 +987,6 @@ gtag('config', 'G-PTGL91DC6D');
     <div class="interest-kicker">Tem interesse?</div>
     <h2 id="interestTitle">Essa oportunidade chamou sua atenção?</h2>
     <p>Posso verificar as condições atuais e apresentar os detalhes certos para o seu momento. É um cadastro rápido — eu entro em contato pessoalmente.</p>
-    <div class="interest-code" id="interestCode">OPORTUNIDADE</div>
     <form class="interest-form" id="interestForm">
       <input type="hidden" name="oportunidade_id">
       <label>Seu nome
@@ -1194,13 +1260,16 @@ Promise.all(
   const form = document.getElementById('interestForm');
   const feedback = document.getElementById('interestFeedback');
   const close = document.getElementById('interestClose');
+  document.getElementById('opportunitiesPrev').addEventListener('click', () => cards.scrollBy({ left: -320, behavior: 'smooth' }));
+  document.getElementById('opportunitiesNext').addEventListener('click', () => cards.scrollBy({ left: 320, behavior: 'smooth' }));
   let opportunities = [];
+  let currentFilter = 'Todos';
+  const sortControl = document.getElementById('publicSort');
   const esc = (value) => { const node = document.createElement('span'); node.textContent = value == null ? '' : String(value); return node.innerHTML; };
   const money = (value) => value == null ? 'Sob consulta' : Number(value).toLocaleString('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:0});
   const openInterest = (item) => {
     form.reset();
     form.elements.oportunidade_id.value = item.id;
-    document.getElementById('interestCode').textContent = `OPORTUNIDADE ${item.codigo}`;
     document.getElementById('interestTitle').textContent = 'Essa oportunidade chamou sua atenção?';
     feedback.textContent = '';
     modal.hidden = false;
@@ -1240,15 +1309,29 @@ Promise.all(
       button.disabled = false;
     }
   });
-  const renderPublic = (list) => {
-    opportunities = Array.isArray(list) ? list : [];
+  const renderPublic = (list, replaceSource = true) => {
+    if (replaceSource) opportunities = Array.isArray(list) ? list : [];
     if (!opportunities.length) return;
+    const types = [...new Set(opportunities.map((item) => item.tipo || 'Residencial'))].sort();
+    const filterBar = document.querySelector('.filters');
+    filterBar.innerHTML = `<button class="filter-btn${currentFilter === 'Todos' ? ' active' : ''}" data-filter="Todos">▦ Todos</button>` + types.map((type) => `<button class="filter-btn${currentFilter === type ? ' active' : ''}" data-filter="${esc(type)}">${esc(type)}</button>`).join('');
+    filterBar.querySelectorAll('.filter-btn').forEach((button) => button.addEventListener('click', () => {
+      currentFilter = button.dataset.filter || 'Todos';
+      filterBar.querySelectorAll('.filter-btn').forEach((item) => item.classList.toggle('active', item === button));
+      renderPublic(opportunities, false);
+    }));
+    const visible = opportunities.filter((item) => currentFilter === 'Todos' || (item.tipo || 'Residencial') === currentFilter).sort((a, b) => {
+      if (sortControl.value === 'entrega') return (a.entrega_ano || 9999) - (b.entrega_ano || 9999);
+      if (sortControl.value === 'tipo') return String(a.tipo || '').localeCompare(String(b.tipo || ''), 'pt-BR');
+      return (Number(a.entrada) || 999999999) - (Number(b.entrada) || 999999999);
+    });
     cards.innerHTML = '';
-    opportunities.forEach((item) => {
+    visible.forEach((item) => {
       const article = document.createElement('article');
       article.className = 'card public-opportunity';
       const image = item.imagem || '../imagens/logo.png';
-      article.innerHTML = `<div class="card-img"><img class="card-photo" src="${esc(image)}" alt="Imagem de uma oportunidade imobiliária" loading="lazy"><div class="tag">OPORTUNIDADE ${esc(item.codigo)}</div></div><div class="card-body"><h3>Oportunidade imobiliária</h3><div class="meta"><span>${esc(item.tipo || 'Residencial')}</span><span>${esc(item.cidade || 'Litoral de SC')}</span></div><p class="public-summary">${esc(item.resumo || 'Uma oportunidade para morar, investir ou estudar uma estratégia patrimonial.')}</p><div class="price"><small>Entrada a partir de</small>${esc(money(item.entrada))}</div><div class="details"><span>Quero saber mais</span><span>→</span></div></div>`;
+      const delivery = item.entrega_ano ? `Entrega prevista: ${esc(item.entrega_ano)}` : 'Condições sob análise';
+      article.innerHTML = `<div class="card-img"><img class="card-photo" src="${esc(image)}" alt="Imagem de uma oportunidade selecionada" loading="lazy"><div class="tag">${esc(item.tipo || 'Residencial')}</div></div><div class="card-body"><h3>${esc(item.titulo || 'Seleção patrimonial no litoral')}</h3><div class="meta"><span>${esc(item.cidade || 'Litoral de SC')}</span><span>${delivery}</span></div><p class="public-summary">${esc(item.resumo || 'Uma oportunidade selecionada para uma conversa estratégica.')}</p><div class="price"><small>Entrada a partir de</small>${esc(money(item.entrada))}</div><div class="details"><span>Quero entender essa oportunidade</span><span>→</span></div></div>`;
       article.addEventListener('click', () => openInterest(item));
       cards.appendChild(article);
     });
@@ -1261,7 +1344,7 @@ Promise.all(
       renderPublic(await response.json());
     } catch (error) { console.warn('Catálogo público indisponível; mantendo a vitrine local.', error); }
   };
-  document.querySelectorAll('.filter-btn').forEach((button) => button.addEventListener('click', () => { if (opportunities.length) window.setTimeout(() => renderPublic(opportunities), 0); }));
+  sortControl.addEventListener('change', () => { if (opportunities.length) renderPublic(opportunities, false); });
   loadPublic();
 })();
 </script>
