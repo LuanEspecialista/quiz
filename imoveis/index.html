@@ -67,13 +67,14 @@ gtag('config', 'G-PTGL91DC6D');
 
     header{
       position:fixed;
-      top:0;
+      top:var(--luan-quote-height,0px);
       left:0;
       right:0;
       z-index:50;
       background:rgba(3,3,3,.94);
       backdrop-filter:blur(12px);
       border-bottom:1px solid rgba(255,255,255,.08);
+      box-shadow:0 6px 18px rgba(0,0,0,.24);
     }
 
     .nav{
