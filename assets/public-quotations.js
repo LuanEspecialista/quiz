@@ -36,6 +36,7 @@
     style.textContent = [
       ":root{--luan-quote-height:42px}",
       "body{padding-top:var(--luan-quote-height)}",
+      "body > header:not(.luan-q-ticker),body > .site-header,body > .main-header,body > .playbook-header{top:var(--luan-quote-height)!important}",
       ".luan-q-ticker{position:fixed;inset:0 0 auto 0;z-index:2147483000;height:var(--luan-quote-height);background:rgba(9,9,10,.97);border-bottom:1px solid rgba(197,160,89,.28);box-shadow:0 5px 20px rgba(0,0,0,.32);display:flex;align-items:center;overflow:hidden;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}",
       ".luan-q-brand{height:100%;display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:0 16px 0 13px;border-right:1px solid #2a2722;background:#0d0d0e;color:#f0d395;text-decoration:none;position:relative;z-index:2}",
       ".luan-q-brand img{width:25px;height:25px;object-fit:contain}.luan-q-brand span{font-size:9px;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}",
