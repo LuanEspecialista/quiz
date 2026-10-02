@@ -128,15 +128,32 @@ export function analyzeInvestment(plan: PaymentPlan, assumptions: {
   vacancyPct: number;
   monthlyHoldingCost: number;
   cdiRate: number;
+  annualInflationRate?: number;
+  annualRentGrowthRate?: number;
+  rentManagementPct?: number;
+  rentTaxPct?: number;
 }) {
   const fullSchedule = buildPaymentSchedule(plan);
   const horizon = Math.max(plan.monthsToKeys, assumptions.horizonMonths);
   const schedule = fullSchedule.filter((event) => event.month <= horizon);
   const acquisitionCost = plan.price * safe(assumptions.acquisitionCostPct) / 100;
   if (acquisitionCost) schedule.push({ month: 0, amount: -acquisitionCost, category: "aquisicao" });
-  const netMonthlyRent = assumptions.monthlyRent * (1 - assumptions.vacancyPct / 100) - assumptions.monthlyHoldingCost;
+  const annualInflationRate = Math.max(0, safe(assumptions.annualInflationRate));
+  const annualRentGrowthRate = safe(assumptions.annualRentGrowthRate);
+  const rentManagementPct = Math.max(0, safe(assumptions.rentManagementPct));
+  const rentTaxPct = Math.max(0, safe(assumptions.rentTaxPct));
+  const rentalRows: Array<{ month: number; gross: number; vacancy: number; management: number; holding: number; tax: number; net: number }> = [];
   for (let month = plan.monthsToKeys + 1; month <= horizon; month += 1) {
-    if (netMonthlyRent) schedule.push({ month, amount: netMonthlyRent, category: "aluguel_liquido" });
+    const yearsSinceDelivery = Math.max(0, (month - plan.monthsToKeys) / 12);
+    const gross = Math.max(0, assumptions.monthlyRent) * Math.pow(1 + annualRentGrowthRate / 100, yearsSinceDelivery);
+    const vacancy = gross * Math.max(0, assumptions.vacancyPct) / 100;
+    const management = gross * rentManagementPct / 100;
+    const holding = Math.max(0, assumptions.monthlyHoldingCost);
+    const taxableRent = Math.max(0, gross - vacancy - management - holding);
+    const tax = taxableRent * rentTaxPct / 100;
+    const net = taxableRent - tax;
+    rentalRows.push({ month, gross, vacancy, management, holding, tax, net });
+    if (net) schedule.push({ month, amount: net, category: "aluguel_liquido" });
   }
   const saleGross = plan.price * Math.pow(1 + assumptions.annualAppreciation / 100, horizon / 12);
   const saleCost = saleGross * assumptions.saleCostPct / 100;
@@ -160,7 +177,27 @@ export function analyzeInvestment(plan: PaymentPlan, assumptions: {
   const contributions = -schedule.filter((event) => event.amount < 0).reduce((sum, event) => sum + event.amount, 0);
   const inflows = schedule.filter((event) => event.amount > 0).reduce((sum, event) => sum + event.amount, 0);
   const profit = inflows - contributions;
-  const annualRent = Math.max(0, netMonthlyRent * 12);
+  const annualRent = rentalRows.length ? rentalRows.slice(-12).reduce((sum, row) => sum + row.net, 0) : 0;
+  const grossRent = rentalRows.reduce((sum, row) => sum + row.gross, 0);
+  const vacancyLoss = rentalRows.reduce((sum, row) => sum + row.vacancy, 0);
+  const managementCost = rentalRows.reduce((sum, row) => sum + row.management, 0);
+  const holdingCost = rentalRows.reduce((sum, row) => sum + row.holding, 0);
+  const rentTax = rentalRows.reduce((sum, row) => sum + row.tax, 0);
+  const rentNetAccumulated = rentalRows.reduce((sum, row) => sum + row.net, 0);
+  const realSaleNet = annualInflationRate > 0 ? saleNet / Math.pow(1 + annualInflationRate / 100, horizon / 12) : saleNet;
+  const realRentNet = annualInflationRate > 0 ? rentalRows.reduce((sum, row) => sum + row.net / Math.pow(1 + annualInflationRate / 100, row.month / 12), 0) : rentNetAccumulated;
+  const realNetWorth = realSaleNet + realRentNet;
+  const totalRentObligation = rentalRows.length ? rentalRows.reduce((sum, row) => sum + row.net, 0) : 0;
+  const postDeliveryPayments = schedule.filter((event) => event.month > plan.monthsToKeys && event.amount < 0).reduce((sum, event) => sum + -event.amount, 0);
+  const rentCoverage = postDeliveryPayments > 0 ? totalRentObligation / postDeliveryPayments * 100 : null;
+  const breakEvenMonth = schedule
+    .filter((event) => event.month <= horizon)
+    .sort((a, b) => a.month - b.month)
+    .reduce<{ month: number | null; cumulative: number }>((state, event) => {
+      if (state.month !== null) return state;
+      const cumulative = state.cumulative + event.amount;
+      return cumulative >= 0 && event.month >= plan.monthsToKeys ? { month: event.month, cumulative } : { month: null, cumulative };
+    }, { month: null, cumulative: 0 }).month;
   const benchmark = benchmarkSameContributions(schedule.filter((event) => !["aquisicao"].includes(event.category)), horizon, assumptions.cdiRate);
   let cumulative = 0, peakCapital = 0;
   [...schedule].sort((a,b)=>a.month-b.month).forEach((event) => { cumulative += event.amount; peakCapital = Math.max(peakCapital, -cumulative); });
@@ -174,6 +211,8 @@ export function analyzeInvestment(plan: PaymentPlan, assumptions: {
     cashOnCash: contributions ? annualRent / contributions * 100 : null,
     yieldOnCost: plan.price + acquisitionCost ? annualRent / (plan.price + acquisitionCost) * 100 : null,
     peakCapital, saleGross, saleNet, saleCost, gainTax, remainingDebt, benchmark,
+    rental: { grossRent, vacancyLoss, managementCost, holdingCost, rentTax, rentNetAccumulated, annualRent, rentCoverage, rows: rentalRows },
+    realSaleNet, realRentNet, realNetWorth, breakEvenMonth,
     complete: plan.price > 0 && plan.monthsToKeys > 0 && assumptions.horizonMonths >= plan.monthsToKeys,
     comparisonComplete: assumptions.cdiRate > 0 && assumptions.annualAppreciation !== 0,
     rentalComplete: assumptions.monthlyRent > 0 && assumptions.monthlyHoldingCost >= 0,
