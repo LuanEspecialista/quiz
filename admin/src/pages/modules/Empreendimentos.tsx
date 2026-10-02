@@ -77,6 +77,16 @@ type EmpreendimentoImagem = {
   created_at?: string;
   conteudo_hash?: string | null;
 };
+type OportunidadePublica = {
+  id: string;
+  empreendimento_id: string;
+  codigo_publico: string;
+  ativo_publico: boolean;
+  imagem_capa_url?: string | null;
+  entrada_publica?: number | null;
+  valores_revisados_em?: string | null;
+  proxima_revisao_em?: string | null;
+};
 
 type LandingBlock = { tipo: "hero" | "texto" | "destaque" | "galeria" | "plantas" | "cidade"; titulo: string; texto: string; imagem_storage_path: string };
 
@@ -278,6 +288,8 @@ export default function Empreendimentos() {
   const [galeriasMap, setGaleriasMap] = useState<Record<string, string[]>>({});
   const [midiasMap, setMidiasMap] = useState<Record<string, EmpreendimentoImagem[]>>({});
   const [activeImageIndexes, setActiveImageIndexes] = useState<Record<string, number>>({});
+  const [publicByEmpreendimento, setPublicByEmpreendimento] = useState<Record<string, OportunidadePublica>>({});
+  const [publishingId, setPublishingId] = useState<string | null>(null);
 
   async function ensureBucketExists() {
     try {
@@ -298,7 +310,7 @@ export default function Empreendimentos() {
     try {
       await ensureBucketExists();
 
-      const [empRes, constRes, imgRes, unitsRes] = await Promise.all([
+      const [empRes, constRes, imgRes, unitsRes, publicRes] = await Promise.all([
         supabase
           .from("empreendimentos")
           .select("*")
@@ -312,7 +324,10 @@ export default function Empreendimentos() {
           .select("*"),
         supabase
           .from("unidades")
-          .select("empreendimento_id, tipologia, tipologia_dados, valor_tabela, status")
+          .select("empreendimento_id, tipologia, tipologia_dados, valor_tabela, status"),
+        supabase
+          .from("oportunidades_publicas")
+          .select("id,empreendimento_id,codigo_publico,ativo_publico,imagem_capa_url,entrada_publica,valores_revisados_em,proxima_revisao_em")
       ]);
 
       if (empRes.error) throw empRes.error;
@@ -372,6 +387,9 @@ export default function Empreendimentos() {
       setMidiasMap(mediaByEnterprise);
       setEmpreendimentos(listaEmps);
       setConstrutoras((constRes.data || []) as any[]);
+      const publicMap: Record<string, OportunidadePublica> = {};
+      ((publicRes.data || []) as OportunidadePublica[]).forEach((item) => { publicMap[item.empreendimento_id] = item; });
+      setPublicByEmpreendimento(publicMap);
     } catch (err: any) {
       console.error(err);
       setError(err?.message || "Não foi possível carregar os empreendimentos.");
@@ -383,6 +401,70 @@ export default function Empreendimentos() {
   useEffect(() => {
     loadData();
   }, []);
+
+  async function validarCapaPublica(url?: string | null) {
+    const candidate = String(url || "").trim();
+    if (!/^https?:\/\//i.test(candidate)) return false;
+    return new Promise<boolean>((resolve) => {
+      const image = new Image();
+      const timer = window.setTimeout(() => { image.src = ""; resolve(false); }, 8000);
+      image.onload = () => { window.clearTimeout(timer); resolve(true); };
+      image.onerror = () => { window.clearTimeout(timer); resolve(false); };
+      image.src = candidate;
+    });
+  }
+
+  async function alternarPublicacao(item: Empreendimento) {
+    const current = publicByEmpreendimento[item.id];
+    if (current?.ativo_publico) {
+      setPublishingId(item.id);
+      const { error: updateError } = await supabase.from("oportunidades_publicas").update({ ativo_publico: false, updated_at: new Date().toISOString() }).eq("id", current.id);
+      setPublishingId(null);
+      if (updateError) setError(updateError.message);
+      else setPublicByEmpreendimento((previous) => ({ ...previous, [item.id]: { ...current, ativo_publico: false } }));
+      return;
+    }
+
+    const cover = item.imagem_url || galeriasMap[item.id]?.[0];
+    if (!cover || !/^https?:\/\//i.test(cover)) {
+      setError("Alimente a capa com uma URL pública (Cloudflare/CDN ou outro endereço HTTPS) antes de liberar este empreendimento.");
+      return;
+    }
+    setPublishingId(item.id);
+    const validImage = await validarCapaPublica(cover);
+    if (!validImage) {
+      setPublishingId(null);
+      setError("A capa não carregou. Corrija a imagem antes de liberar este empreendimento.");
+      return;
+    }
+    const entrada = item.menor_preco_disponivel ?? item.faixa_preco;
+    if (!entrada || Number(entrada) <= 0) {
+      setPublishingId(null);
+      setError("Cadastre uma entrada válida nas unidades antes de liberar este empreendimento.");
+      return;
+    }
+    const payload = {
+      empreendimento_id: item.id,
+      codigo_publico: current?.codigo_publico || `INT-${item.id.replace(/[^a-z0-9]/gi, "").slice(0, 8).toUpperCase()}`,
+      titulo_publico: "Seleção patrimonial",
+      rotulo_publico: normalize(item.tipo).includes("studio") ? "Studio com potencial patrimonial" : item.entrega_date || item.entrega ? "Entrada estratégica com entrega planejada" : "Seleção patrimonial no litoral",
+      resumo_publico: "Uma oportunidade selecionada para uma conversa estratégica.",
+      tipo_publico: item.tipo || "Residencial",
+      cidade_publica: item.cidade || null,
+      entrega_ano: Number(String(item.entrega_date || item.entrega || "").slice(0, 4)) || null,
+      entrada_publica: Number(entrada),
+      imagem_capa_url: cover,
+      ativo_publico: true,
+      valores_revisados_em: new Date().toISOString().slice(0, 10),
+      proxima_revisao_em: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+    };
+    const response = current
+      ? await supabase.from("oportunidades_publicas").update(payload).eq("id", current.id).select("id,empreendimento_id,codigo_publico,ativo_publico,imagem_capa_url,entrada_publica,valores_revisados_em,proxima_revisao_em").single()
+      : await supabase.from("oportunidades_publicas").insert(payload).select("id,empreendimento_id,codigo_publico,ativo_publico,imagem_capa_url,entrada_publica,valores_revisados_em,proxima_revisao_em").single();
+    setPublishingId(null);
+    if (response.error) setError(response.error.message);
+    else setPublicByEmpreendimento((previous) => ({ ...previous, [item.id]: response.data as OportunidadePublica }));
+  }
 
   const tiposDisponiveis = useMemo(() => {
     const tiposSet = new Set<string>();
@@ -1130,6 +1212,8 @@ export default function Empreendimentos() {
               const title = item.nome || item.titulo || "Empreendimento sem nome";
               const location = [item.bairro, item.cidade].filter(Boolean).join(" · ");
               const isAtivo = item.ativo ?? true;
+              const publicOpportunity = publicByEmpreendimento[item.id];
+              const isPublic = publicOpportunity?.ativo_publico === true;
               
               const imagensList = galeriasMap[item.id] || (item.imagem_url ? [item.imagem_url] : []);
               const currentIndex = activeImageIndexes[item.id] || 0;
@@ -1200,6 +1284,15 @@ export default function Empreendimentos() {
                         {location}
                       </div>
                     )}
+                    <div style={{ display: "grid", gap: 6, margin: "12px 0 4px", padding: "9px 10px", border: `1px solid ${isPublic ? "#356044" : "#3a3426"}`, borderRadius: 7, background: isPublic ? "#101a13" : "#15130f" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ color: isPublic ? "#86efac" : "#edcf91", fontSize: 11, fontWeight: 800 }}>{isPublic ? "Liberado para imóveis" : "Não publicado"}</span>
+                        <button type="button" className="emp-secondary" disabled={publishingId === item.id} onClick={(event) => { event.stopPropagation(); void alternarPublicacao(item); }} style={{ minHeight: 28, padding: "0 9px", fontSize: 10, color: isPublic ? "#fca5a5" : "#f3d28d", borderColor: isPublic ? "#7f1d1d" : "#8a6a2e" }}>
+                          {publishingId === item.id ? "Validando…" : isPublic ? "Bloquear" : "Liberar para imóveis"}
+                        </button>
+                      </div>
+                      {!isPublic && <span style={{ color: "#8f8a7c", fontSize: 10 }}>{item.imagem_url && /^https?:\/\//i.test(item.imagem_url) ? "A capa será testada antes da liberação." : "Alimente uma capa pública válida para liberar."}</span>}
+                    </div>
 
                     <div className="emp-info-grid">
                       <div className="emp-info">
