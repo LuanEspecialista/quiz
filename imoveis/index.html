@@ -707,6 +707,19 @@ gtag('config', 'G-PTGL91DC6D');
     .public-opportunity .tag{
       color:var(--gold2);
     }
+    .public-empty{
+      width:100%;
+      min-height:150px;
+      display:grid;
+      place-items:center;
+      padding:32px;
+      border:1px dashed rgba(217,154,38,.35);
+      border-radius:14px;
+      color:#a9a39a;
+      text-align:center;
+      font-size:13px;
+      line-height:1.6;
+    }
     body.modal-open{
       overflow:hidden;
     }
@@ -1094,6 +1107,8 @@ function carregarArquivoImovel(nome){
 
 function renderImoveis(filtro = "Todos"){
 
+  if (window.__publicCatalogOwnsCards) return;
+
   lista.innerHTML = "";
 
   const filtrados =
@@ -1253,6 +1268,7 @@ Promise.all(
 </script>
 <script>
 (function(){
+  window.__publicCatalogOwnsCards = true;
   const cfg = window.LUAN_SITE_CONFIG || {};
   const api = String(cfg.supabaseUrl || '').replace(/\/$/, '');
   const key = String(cfg.supabaseAnonKey || '');
@@ -1312,9 +1328,13 @@ Promise.all(
   });
   const renderPublic = (list, replaceSource = true) => {
     if (replaceSource) opportunities = Array.isArray(list) ? list : [];
-    if (!opportunities.length) return;
-    const types = [...new Set(opportunities.map((item) => item.tipo || 'Residencial'))].sort();
     const filterBar = document.querySelector('.filters');
+    if (!opportunities.length) {
+      filterBar.innerHTML = '<span class="filter-caption">Nenhuma oportunidade liberada no momento</span>';
+      cards.innerHTML = '<div class="public-empty">As oportunidades estão sendo revisadas.<br>Em breve, novas seleções estarão disponíveis para você.</div>';
+      return;
+    }
+    const types = [...new Set(opportunities.map((item) => item.tipo || 'Residencial'))].sort();
     filterBar.innerHTML = `<button class="filter-btn${currentFilter === 'Todos' ? ' active' : ''}" data-filter="Todos">▦ Todos</button>` + types.map((type) => `<button class="filter-btn${currentFilter === type ? ' active' : ''}" data-filter="${esc(type)}">${esc(type)}</button>`).join('');
     filterBar.querySelectorAll('.filter-btn').forEach((button) => button.addEventListener('click', () => {
       currentFilter = button.dataset.filter || 'Todos';
@@ -1338,12 +1358,13 @@ Promise.all(
     });
   };
   const loadPublic = async () => {
-    if (!api || !key) return;
+    cards.innerHTML = '<div class="public-empty">Carregando oportunidades liberadas…</div>';
+    if (!api || !key) { renderPublic([]); return; }
     try {
       const response = await fetch(`${api}/rest/v1/rpc/listar_oportunidades_publicas`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
-      if (!response.ok) return;
+      if (!response.ok) { renderPublic([]); return; }
       renderPublic(await response.json());
-    } catch (error) { console.warn('Catálogo público indisponível; mantendo a vitrine local.', error); }
+    } catch (error) { console.warn('Catálogo público indisponível.', error); renderPublic([]); }
   };
   sortControl.addEventListener('change', () => { if (opportunities.length) renderPublic(opportunities, false); });
   loadPublic();
