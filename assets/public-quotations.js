@@ -36,15 +36,14 @@
     style.textContent = [
       ":root{--luan-quote-height:42px}",
       "body{padding-top:var(--luan-quote-height)}",
-      "body > header:not(.luan-q-ticker),body > .site-header,body > .main-header,body > .playbook-header{top:var(--luan-quote-height)!important}",
+      "header:not(.luan-q-ticker),.site-header,.main-header,.playbook-header{top:var(--luan-quote-height)!important}",
       ".luan-q-ticker{position:fixed;inset:0 0 auto 0;z-index:2147483000;height:var(--luan-quote-height);background:rgba(9,9,10,.97);border-bottom:1px solid rgba(197,160,89,.28);box-shadow:0 5px 20px rgba(0,0,0,.32);display:flex;align-items:center;overflow:hidden;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}",
-      ".luan-q-brand{height:100%;display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:0 16px 0 13px;border-right:1px solid #2a2722;background:#0d0d0e;color:#f0d395;text-decoration:none;position:relative;z-index:2}",
-      ".luan-q-brand img{width:25px;height:25px;object-fit:contain}.luan-q-brand span{font-size:9px;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}",
+      ".luan-q-brand{height:100%;display:flex;align-items:center;flex:0 0 auto;padding:0 16px;border-right:1px solid #2a2722;background:#0d0d0e;color:#f0d395;font-size:9px;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap;position:relative;z-index:2}",
       ".luan-q-viewport{height:100%;overflow:hidden;flex:1;position:relative}.luan-q-track{height:100%;display:flex;align-items:center;width:max-content;animation:luan-q-scroll 58s linear infinite}.luan-q-track:hover{animation-play-state:paused}",
       ".luan-q-set{display:flex;align-items:center;flex:none}.luan-q-item{height:26px;display:flex;align-items:center;gap:8px;padding:0 18px;border-right:1px solid #2c2924;white-space:nowrap;color:#e9e4da;font-size:11px}.luan-q-name{font-weight:700;color:#d3c8b7}.luan-q-value{color:#f0d395;font-weight:700}.luan-q-trend{display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;border-radius:4px;font-size:11px;font-weight:900;line-height:1}.luan-q-trend.up{color:#5ee58b;background:rgba(34,197,94,.14)}.luan-q-trend.down{color:#ff7777;background:rgba(239,68,68,.14)}.luan-q-trend.flat{color:#8e877d;background:rgba(148,163,184,.12)}",
       ".luan-q-status{padding:0 18px;color:#8e877d;font-size:11px;white-space:nowrap}",
       "@keyframes luan-q-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}",
-      "@media(max-width:620px){:root{--luan-quote-height:38px}.luan-q-brand{padding:0 10px}.luan-q-brand img{width:23px;height:23px}.luan-q-brand span{display:none}.luan-q-item{gap:6px;padding:0 12px;font-size:10px}.luan-q-brand{z-index:1}.luan-language{top:48px!important;right:10px!important;z-index:2147483646!important}.luan-language .luan-language-menu{top:calc(100% + 6px)!important}}",
+      "@media(max-width:620px){:root{--luan-quote-height:38px}.luan-q-brand{padding:0 10px}.luan-q-item{gap:6px;padding:0 12px;font-size:10px}.luan-q-brand{z-index:1}.luan-language{top:48px!important;right:10px!important;z-index:2147483646!important}.luan-language .luan-language-menu{top:calc(100% + 6px)!important}}",
     ].join("");
     document.head.appendChild(style);
   }
@@ -61,7 +60,7 @@
     var ticker = document.createElement("aside");
     ticker.className = "luan-q-ticker";
     ticker.setAttribute("aria-label", "Cotações e indicadores");
-    ticker.innerHTML = '<a class="luan-q-brand" href="/" aria-label="Luan Especialista - página inicial"><img src="' + logoUrl + '" alt="Luan Especialista"><span>Mercado</span></a><div class="luan-q-viewport"><div class="luan-q-track"><div class="luan-q-set"><span class="luan-q-status">Carregando cotações…</span></div></div></div>';
+    ticker.innerHTML = '<span class="luan-q-brand">Mercado</span><div class="luan-q-viewport"><div class="luan-q-track"><div class="luan-q-set"><span class="luan-q-status">Carregando cotações…</span></div></div></div>';
     document.body.insertBefore(ticker, document.body.firstChild);
     load(ticker.querySelector(".luan-q-track"));
   }

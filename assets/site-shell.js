@@ -53,10 +53,20 @@
   faq.innerHTML = "<p class=\"eyebrow\">Clareza antes da decisão</p><h2>" + faqTitle + "</h2>" + questions.map(function (item) { return "<details><summary>" + item[0] + "</summary><p>" + item[1] + "</p></details>"; }).join("");
   var globalFooter = document.createElement("footer");
   globalFooter.className = "luan-global-footer";
-  globalFooter.innerHTML = "<div class=\"luan-global-footer-grid\"><div><strong>LUAN <span>ESPECIALISTA</span></strong><p>Estratégias patrimoniais para decisões mais conscientes, conectando contexto, oportunidades e próximos passos.</p></div><div><h3>Navegação</h3><a href=\"/\">Início</a><a href=\"/estrategias-patrimoniais/\">Estratégias Patrimoniais</a><a href=\"/imoveis/\">Oportunidades</a><a href=\"/mobilidade-experiencias/\">Mobilidade &amp; Experiências</a></div><div><h3>Segurança e contato</h3><a href=\"mailto:contato@luan-especialista.pro\">contato@luan-especialista.pro</a><a href=\"https://wa.me/5547992120915\" target=\"_blank\" rel=\"noopener\">WhatsApp da equipe</a><a href=\"/privacidade/\">Privacidade</a><a href=\"/termos/\">Termos de uso</a></div></div><div class=\"luan-global-footer-bottom\"><span>© 2026 Luan Especialista. Todos os direitos reservados.</span><span>Informações, valores e condições podem mudar e devem ser confirmados antes de qualquer decisão.</span></div>";
+  globalFooter.innerHTML = "<div class=\"luan-global-footer-grid\"><div><strong>LUAN <span>ESPECIALISTA</span></strong><p>Estratégias patrimoniais para decisões mais conscientes, conectando contexto, oportunidades e próximos passos.</p></div><div><h3>Navegação</h3><a href=\"/\">Início</a><a href=\"/estrategias-patrimoniais/\">Estratégias Patrimoniais</a><a href=\"/imoveis/\">Oportunidades</a><a href=\"/mobilidade-experiencias/\">Mobilidade &amp; Experiências</a></div><div><h3>Segurança e contato</h3><a href=\"mailto:contato@luan-especialista.pro\">contato@luan-especialista.pro</a><a href=\"https://wa.me/5547992120915\" target=\"_blank\" rel=\"noopener\">WhatsApp da equipe</a><a href=\"/privacidade/\">Privacidade</a><a href=\"/termos/\">Termos de uso</a><a href=\"#\" data-luan-install hidden>Instalar como aplicativo</a></div></div><div class=\"luan-global-footer-bottom\"><span>© 2026 Luan Especialista. Todos os direitos reservados.</span><span>Informações, valores e condições podem mudar e devem ser confirmados antes de qualquer decisão.</span></div>";
   if (anchor && anchor.parentNode) {
     anchor.parentNode.insertBefore(conversion, anchor);
     anchor.parentNode.insertBefore(faq, anchor);
     anchor.parentNode.insertBefore(globalFooter, anchor);
   }
+  var installLink = globalFooter.querySelector("[data-luan-install]");
+  var showInstall = function () { if (window.__luanInstallPrompt && installLink) installLink.hidden = false; };
+  window.addEventListener("luan:install-available", showInstall);
+  showInstall();
+  if (installLink) installLink.addEventListener("click", function (event) {
+    event.preventDefault();
+    if (!window.__luanInstallPrompt) return;
+    window.__luanInstallPrompt.prompt();
+    window.__luanInstallPrompt.userChoice.finally(function () { window.__luanInstallPrompt = null; installLink.hidden = true; });
+  });
 }());
