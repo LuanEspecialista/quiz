@@ -190,7 +190,8 @@
     moneyObserver.observe(document.body, { childList: true, subtree: true });
   }
 
-  if (usdBrl && (convertedMoney || document.body.textContent.match(/R\$|US\$/))) {
+  const hideRateNote = location.pathname === "/imoveis/" || location.pathname === "/imoveis";
+  if (!hideRateNote && usdBrl && (convertedMoney || document.body.textContent.match(/R\$|US\$/))) {
     const note = document.createElement("p");
     note.className = "luan-rate-note";
     note.textContent = `${text.rate}${rateDate ? ` · ${rateDate}` : ""}`;
