@@ -190,6 +190,12 @@
     moneyObserver.observe(document.body, { childList: true, subtree: true });
   }
 
+  if (!document.querySelector('script[src*="/assets/site-shell.js"]')) {
+    const shellScript = document.createElement("script");
+    shellScript.src = "/assets/site-shell.js?v=20261002-1";
+    shellScript.defer = true;
+    document.head.appendChild(shellScript);
+  }
   const hideRateNote = location.pathname === "/imoveis/" || location.pathname === "/imoveis";
   if (!hideRateNote && usdBrl && (convertedMoney || document.body.textContent.match(/R\$|US\$/))) {
     const note = document.createElement("p");
