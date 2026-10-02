@@ -114,7 +114,7 @@ export default function PlaybookModule() {
   const [origin, setOrigin] = useState("");
   const [profile, setProfile] = useState("");
   const [clientText, setClientText] = useState("");
-  const [leadId, setLeadId] = useState<string | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
   const [leadName, setLeadName] = useState("");
   const [leadPhone, setLeadPhone] = useState("");
   const [leadEmail, setLeadEmail] = useState("");
@@ -139,14 +139,28 @@ export default function PlaybookModule() {
   const saveLeadAndInteraction = async (action?: string) => {
     setSaveStatus("Salvando...");
     if (!leadName.trim()) { setSaveStatus("Informe ao menos o nome do lead."); return; }
-    const leadPayload = { nome: leadName.trim(), telefone: leadPhone.trim() || null, email: leadEmail.trim() || null, origem: leadSource, campanha: temperature, regiao: origin.trim() || null, perfil: goal || "a_qualificar", etapa: stage, objetivo: goal || null, proxima_acao: action || current.next, proximo_contato: nextContact ? new Date(nextContact).toISOString() : null, notas: [profile, clientText, `Temperatura: ${temperature}`, history.length ? `Caminho: ${history.join(" → ")}` : ""].filter(Boolean).join("\n") };
-    const result = leadId ? await supabase.from("playbook_leads").update(leadPayload).eq("id", leadId).select("id").single() : await supabase.from("playbook_leads").insert(leadPayload).select("id").single();
+    const notes = [profile, clientText, `Origem detalhada: ${leadSource}`, `Temperatura: ${temperature}`, `Etapa comercial: ${stage}`, history.length ? `Caminho: ${history.join(" → ")}` : ""].filter(Boolean).join("\n");
+    const clientPayload = { nome: leadName.trim(), telefone: leadPhone.trim() || null, email: leadEmail.trim() || null, cidade: origin.trim() || null, origem: leadSource, objetivo: goal || null, status: stage, proximo_contato: nextContact ? nextContact.slice(0, 10) : null, observacoes: notes || null, updated_at: new Date().toISOString() };
+    let existingId = clientId;
+    if (!existingId && clientPayload.email) {
+      const existing = await supabase.from("clientes").select("id").eq("email", clientPayload.email).limit(1).maybeSingle();
+      if (existing.error) { setSaveStatus(`Não foi possível localizar o cliente: ${existing.error.message}`); return; }
+      existingId = existing.data?.id || null;
+    }
+    if (!existingId && clientPayload.telefone) {
+      const existing = await supabase.from("clientes").select("id").eq("telefone", clientPayload.telefone).limit(1).maybeSingle();
+      if (existing.error) { setSaveStatus(`Não foi possível localizar o cliente: ${existing.error.message}`); return; }
+      existingId = existing.data?.id || null;
+    }
+    const result = existingId
+      ? await supabase.from("clientes").update(clientPayload).eq("id", existingId).select("id").single()
+      : await supabase.from("clientes").insert(clientPayload).select("id").single();
     if (result.error) { setSaveStatus(`Não foi possível salvar: ${result.error.message}`); return; }
     const savedId = result.data.id as string;
-    setLeadId(savedId);
-    const interaction = await supabase.from("playbook_interacoes").insert({ lead_id: savedId, canal: channel, resumo: clientText || `Avanço registrado: ${action || current.next}`, proxima_acao: action || current.next });
+    setClientId(savedId);
+    const interaction = await supabase.from("playbook_interacoes").insert({ cliente_id: savedId, lead_id: null, canal: channel, resumo: clientText || `Avanço registrado: ${action || current.next}`, proxima_acao: action || current.next });
     if (interaction.error) { setSaveStatus(`Lead salvo; interação pendente: ${interaction.error.message}`); return; }
-    setSaveStatus("Lead e próximo passo salvos no CRM.");
+    setSaveStatus("Cliente e próximo passo salvos na base principal.");
   };
   return <div style={{ color: "#eee", display: "grid", gap: 16, maxWidth: 1280 }}>
     <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}><div><div style={{ color: "#d7ab63", fontSize: 12, fontWeight: 800, letterSpacing: 1.4 }}>NÚCLEO DE CONVERSÃO</div><h1 style={{ margin: "5px 0" }}>Especialista Comercial</h1><p style={{ margin: 0, color: "#aaa", maxWidth: 740 }}>Leia o contexto, escolha o próximo microcompromisso e conduza o cliente da conversa para a videochamada, visita ou proposta — sem resposta mecânica.</p></div><div style={badge}><Sparkles size={15} /> inteligência contextual ativa</div></header>
