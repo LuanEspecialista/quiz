@@ -140,7 +140,7 @@ export default function PlaybookModule() {
     setSaveStatus("Salvando...");
     if (!leadName.trim()) { setSaveStatus("Informe ao menos o nome do lead."); return; }
     const notes = [profile, clientText, `Origem detalhada: ${leadSource}`, `Temperatura: ${temperature}`, `Etapa comercial: ${stage}`, history.length ? `Caminho: ${history.join(" → ")}` : ""].filter(Boolean).join("\n");
-    const clientPayload = { nome: leadName.trim(), telefone: leadPhone.trim() || null, email: leadEmail.trim() || null, cidade: origin.trim() || null, origem: leadSource, objetivo: goal || null, status: stage, proximo_contato: nextContact ? nextContact.slice(0, 10) : null, observacoes: notes || null, updated_at: new Date().toISOString() };
+    const clientPayload = { nome: leadName.trim(), telefone: leadPhone.trim() || null, whatsapp: leadPhone.trim() || null, email: leadEmail.trim() || null, cidade: origin.trim() || null, origem: leadSource, objetivo: goal || null, temperatura: temperature, etapa_funil: stage, status: stage, proximo_contato: nextContact ? new Date(nextContact).toISOString() : null, observacoes: notes || null, cidades_preferencia: origin.trim() ? [origin.trim()] : [], acesso_portal: false, modo_apresentacao: goal === "investimento" ? "investidor" : "moradia", updated_at: new Date().toISOString() };
     let existingId = clientId;
     if (!existingId && clientPayload.email) {
       const existing = await supabase.from("clientes").select("id").eq("email", clientPayload.email).limit(1).maybeSingle();
@@ -149,6 +149,11 @@ export default function PlaybookModule() {
     }
     if (!existingId && clientPayload.telefone) {
       const existing = await supabase.from("clientes").select("id").eq("telefone", clientPayload.telefone).limit(1).maybeSingle();
+      if (existing.error) { setSaveStatus(`Não foi possível localizar o cliente: ${existing.error.message}`); return; }
+      existingId = existing.data?.id || null;
+    }
+    if (!existingId && clientPayload.whatsapp) {
+      const existing = await supabase.from("clientes").select("id").eq("whatsapp", clientPayload.whatsapp).limit(1).maybeSingle();
       if (existing.error) { setSaveStatus(`Não foi possível localizar o cliente: ${existing.error.message}`); return; }
       existingId = existing.data?.id || null;
     }
