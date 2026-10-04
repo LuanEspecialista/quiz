@@ -4,6 +4,7 @@
   window.__luanGlobalShellLoaded = true;
 
   var path = location.pathname.replace(/\/+$/, "") || "/";
+  if (path === "/") return;
   var excluded = ["/apresentacao", "/call", "/projeto", "/acesso", "/katia", "/assinatura-sol"];
   if (excluded.some(function (prefix) { return path === prefix || path.indexOf(prefix + "/") === 0; })) return;
 

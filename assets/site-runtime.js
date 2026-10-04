@@ -212,7 +212,7 @@
 
   if (!document.querySelector('script[src*="/assets/site-shell.js"]')) {
     const shellScript = document.createElement("script");
-    shellScript.src = "/assets/site-shell.js?v=20261002-1";
+    shellScript.src = "/assets/site-shell.js?v=20261004-1";
     shellScript.defer = true;
     document.head.appendChild(shellScript);
   }
