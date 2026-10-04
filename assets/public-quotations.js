@@ -36,7 +36,7 @@
     style.textContent = [
       ":root{--luan-quote-height:42px}",
       "body{padding-top:var(--luan-quote-height)}",
-      "header:not(.luan-q-ticker),.site-header,.main-header,.playbook-header{top:var(--luan-quote-height)!important}",
+      "header:not(.luan-q-ticker):not(.top),.site-header,.main-header,.playbook-header{top:var(--luan-quote-height)!important}",
       "header:not(.luan-q-ticker) > .container > .brand,header:not(.luan-q-ticker) > .container > .logo,header:not(.luan-q-ticker) > .header-wrap > .logo,.site-header > .brand{display:none!important}",
       ".site-header{position:relative;justify-content:center!important}.site-header nav{margin:0 auto}.site-header .contact{position:absolute;right:24px}.container.nav > nav,.header-wrap > nav{margin-inline:auto}",
       ".luan-q-ticker{position:fixed;inset:0 0 auto 0;z-index:2147483000;height:var(--luan-quote-height);background:rgba(9,9,10,.97);border-bottom:1px solid rgba(197,160,89,.28);box-shadow:0 5px 20px rgba(0,0,0,.32);display:flex;align-items:center;overflow:hidden;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}",
