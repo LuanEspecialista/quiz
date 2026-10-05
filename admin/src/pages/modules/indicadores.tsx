@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { applyExchangeRate, getExchangeRate, refreshExchangeRate, type ExchangeRate } from "@/lib/exchangeRate";
+import { applyExchangeRate, getExchangeRate } from "@/lib/exchangeRate";
 import { getCryptoIndicators } from "@/lib/cryptoRates";
 import { getEuroIndicator, isEuroIndicator } from "@/lib/fiatRates";
 import CurrencyInput from "@/components/CurrencyInput";
@@ -14,8 +14,7 @@ import {
   Trash2, 
   X, 
   Calculator, 
-  PlusCircle,
-  RefreshCw
+  PlusCircle
 } from "lucide-react";
 
 // 1. Função de formatação universal por Categoria
@@ -101,11 +100,8 @@ export default function Indicadores() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("TODAS");
-  const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
-  const [refreshingRate, setRefreshingRate] = useState(false);
   const [tickerConfigReady, setTickerConfigReady] = useState(true);
   const [loadWarning, setLoadWarning] = useState("");
-  const [rateFeedback, setRateFeedback] = useState<{type:"success"|"error";message:string}|null>(null);
 
   // Estado do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -167,8 +163,6 @@ export default function Indicadores() {
       const crypto = cryptoResult.status === "fulfilled" && Array.isArray(cryptoResult.value) ? cryptoResult.value : [];
       const euro = euroResult.status === "fulfilled" ? euroResult.value : null;
       const { data: tickerConfig, error: tickerConfigError } = tickerResponse;
-      setExchangeRate(rate);
-
       if (error) {
         console.error("Erro no Supabase ao buscar:", error);
         setLoadWarning(`Não foi possível carregar os indicadores do banco: ${error.message || "erro não identificado"}.`);
@@ -223,24 +217,6 @@ export default function Indicadores() {
       return;
     }
     window.dispatchEvent(new Event("luan:cotacao-atualizada"));
-  };
-
-  const updateDollar = async () => {
-    setRefreshingRate(true);
-    setRateFeedback(null);
-    try {
-      const rate = await refreshExchangeRate();
-      setExchangeRate(rate);
-      setIndicadores((current) => applyExchangeRate(current, rate));
-      const origem = rate?.official === false ? "Cotação atualizada pela fonte de contingência" : "PTAX atualizada";
-      setRateFeedback({type:"success",message:`${origem} para ${rate ? `R$ ${rate.value.toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})}` : "a última cotação válida"} · ${rate?.date || "data não informada"}.${rate?.official === false ? " A tentativa oficial será repetida automaticamente." : ""}`});
-      window.dispatchEvent(new Event("luan:cotacao-atualizada"));
-    } catch (error) {
-      console.error("Erro ao atualizar cotação:", error);
-      setRateFeedback({type:"error",message:"Não foi possível atualizar o dólar agora. A última cotação válida continua em uso; tente novamente em alguns minutos."});
-    } finally {
-      setRefreshingRate(false);
-    }
   };
 
   const generateSku = (str: string) => {
@@ -464,15 +440,6 @@ export default function Indicadores() {
         </button>
       </div>
 
-      <section style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "0.9rem 1rem", marginBottom: "0.9rem", background: "linear-gradient(135deg,#15130e,#101012)", border: "1px solid #3f3524", borderRadius: 8 }}>
-        <div>
-          <small style={{ color: "#8b8b93", textTransform: "uppercase", letterSpacing: ".08em" }}>Dólar PTAX em uso</small>
-          <strong style={{ display: "block", color: "#d7ab63", fontSize: "1.45rem", marginTop: 3 }}>{exchangeRate ? `R$ ${exchangeRate.value.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}` : "Indisponível"}</strong>
-          <small style={{ color: "#71717a" }}>{exchangeRate?.manual ? "Cotação manual" : "Banco Central do Brasil"} · {exchangeRate?.date || "última cotação válida não encontrada"}{exchangeRate?.source === "cache" ? " · cache local" : ""}</small>
-        </div>
-        <button onClick={() => void updateDollar()} disabled={refreshingRate} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "#1c1a15", color: "#d7ab63", border: "1px solid #5b4828", borderRadius: 6, padding: "8px 11px", cursor: refreshingRate ? "wait" : "pointer" }}><RefreshCw size={14} /> {refreshingRate ? "Atualizando..." : "Atualizar agora"}</button>
-      </section>
-      {rateFeedback&&<div role={rateFeedback.type==="error"?"alert":"status"} style={{marginBottom:12,padding:"10px 12px",border:`1px solid ${rateFeedback.type==="error"?"#7f1d1d":"#166534"}`,borderRadius:7,background:rateFeedback.type==="error"?"#250d0d":"#062814",color:rateFeedback.type==="error"?"#fecaca":"#86efac"}}>{rateFeedback.message}</div>}
       {loadWarning && <div role="alert" style={{marginBottom:12,padding:"10px 12px",border:"1px solid #7f1d1d",borderRadius:7,background:"#250d0d",color:"#fecaca"}}>{loadWarning} A tela permanece disponível com a última informação válida.</div>}
 
       {/* FILTROS E BUSCA */}

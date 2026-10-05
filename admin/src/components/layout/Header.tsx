@@ -60,8 +60,8 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
           const previous = (historyByIndicator[item.id] || []).find((entry: any) => Number(entry.valor) !== current);
           return { ...item, tendencia: previous ? Math.sign(current - Number(previous.valor)) : 0 };
         });
-        const next = applyExchangeRate(withTrend.filter((item: any) => !isEuroIndicator(item)), cotacao);
-        if (cotacao?.value && !next.some(isUsdBrlIndicator)) next.unshift({ id: "ptax-usd-brl", sku: "USD-BRL", nome: "Dólar PTAX", categoria: "MOEDA", valor_atual: cotacao.value, data_atualizacao: cotacao.date, tendencia: cotacao.trend ?? 0, variacao_periodo: cotacao.variation ?? null, indexador_base: "Banco Central do Brasil" });
+        const next = applyExchangeRate(withTrend.filter((item: any) => !isEuroIndicator(item)), cotacao)
+          .filter((item: any) => !isUsdBrlIndicator(item));
         const preferencias = new Map((tickerConfig || []).map((item: any) => [item.sku, item.ativo]));
         setIndicadores([...next, ...(euro ? [euro] : []), ...crypto].filter((item: any) => {
           const valor = Number(item.valor_atual ?? item.valor);

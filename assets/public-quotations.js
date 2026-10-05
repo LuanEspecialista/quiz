@@ -90,7 +90,10 @@
         var previousByIndicator = new Map();
         history.forEach(function (entry) { var list = previousByIndicator.get(entry.indicador_id) || []; list.push(Number(entry.valor)); previousByIndicator.set(entry.indicador_id, list); });
         indicators = indicators.map(function (item) { var current = Number(item.valor_atual != null ? item.valor_atual : item.valor); var values = previousByIndicator.get(item.id) || []; var previous = values.find(function (value) { return Number.isFinite(value) && value !== current; }); return Object.assign({}, item, { tendencia: Number.isFinite(previous) && Number.isFinite(current) ? Math.sign(current - previous) : 0 }); });
-        var active = indicators.filter(function (item) { return preferences.get(item.sku) !== false; });
+        var active = indicators.filter(function (item) {
+          var identity = String((item.sku || "") + " " + (item.nome || "")).toUpperCase();
+          return preferences.get(item.sku) !== false && !/(^|[^A-Z])(DOLAR|USD|PTAX)([^A-Z]|$)/.test(identity);
+        });
         if (!active.length) { track.innerHTML = '<div class="luan-q-set"><span class="luan-q-status">Nenhuma cotação publicada no momento.</span></div>'; return; }
         var html = active.map(itemMarkup).join("");
         track.innerHTML = '<div class="luan-q-set">' + html + '</div><div class="luan-q-set" aria-hidden="true">' + html + '</div>';
