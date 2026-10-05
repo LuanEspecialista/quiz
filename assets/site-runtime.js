@@ -71,7 +71,10 @@
   // A apresentação possui controles críticos no cabeçalho e no rodapé.
   // O idioma escolhido anteriormente continua valendo, mas o seletor não é
   // exibido nesta tela para nunca encobrir tela cheia, sair ou ver unidades.
-  if (!location.pathname.startsWith("/apresentacao")) document.body.appendChild(selector);
+  if (!location.pathname.startsWith("/apresentacao")) {
+    document.body.appendChild(selector);
+    window.dispatchEvent(new CustomEvent("luan:language-ready", { detail: selector }));
+  }
 
   // A tradução visual não depende da rede: deve acontecer imediatamente.
   document.querySelectorAll("[data-i18n]").forEach((element) => {
