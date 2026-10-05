@@ -54,6 +54,7 @@ body{background:var(--blog-brand-bg)!important;color:var(--blog-brand-text)!impo
 .team-whatsapp{color:var(--blog-brand-gold-soft)!important;border-color:var(--blog-brand-gold)!important}
 
 footer{color:#9b9284!important;border-top-color:rgba(215,171,99,.18)!important}footer a{color:#c9b184!important}
+.empty{grid-column:1 / -1;display:grid;gap:10px;max-width:700px;padding:42px 0!important;color:var(--blog-brand-muted)!important;line-height:1.6}.empty strong{color:var(--blog-brand-text);font:700 28px/1.15 Georgia,serif}.empty a{display:inline-block;margin:10px 18px 0 0;color:var(--blog-brand-gold-soft);font-weight:700;text-decoration:none}.empty a:hover{text-decoration:underline;text-underline-offset:4px}
 
 
 /* Contraste de leitura: todos os textos editoriais devem permanecer legíveis no fundo escuro. */
