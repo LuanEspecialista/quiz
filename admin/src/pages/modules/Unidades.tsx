@@ -456,7 +456,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
     // aparecer misturada ao resultado que será apresentado ao cliente.
     const flowResult = hasFinancialLimits ? analyzeFlow(u, limits) : null;
     const matchesFinancial = !flowResult || flowResult.status === "compativel";
-    const flowProfile = getCommercialFlowProfile(u)?.label || null;
+    const flowProfile = getCommercialFlowProfile(u, Number(u.valor_tabela))?.label || null;
     const matchesFlowProfile = fluxosSelecionados.length === 0 || (flowProfile !== null && fluxosSelecionados.includes(flowProfile));
 
     const emp = u.empreendimentos || {};
@@ -538,7 +538,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
   };
 
   const visibleUnidades = filteredUnidades.slice(0, visibleCount);
-  const flowProfilesDisponiveis = Array.from(new Set(unidades.map((unit) => getCommercialFlowProfile(unit)?.label).filter(Boolean) as string[]))
+  const flowProfilesDisponiveis = Array.from(new Set(unidades.map((unit) => getCommercialFlowProfile(unit, Number(unit.valor_tabela))?.label).filter(Boolean) as string[]))
     .sort((a, b) => Number(a.split("/")[0]) - Number(b.split("/")[0]));
   return (
     <div style={{ color: "#e4e4e7", fontFamily: "sans-serif", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "1.25rem", position: "relative", paddingBottom: "5rem" }}>

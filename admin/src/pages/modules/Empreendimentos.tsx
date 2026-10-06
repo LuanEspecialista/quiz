@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ToggleLeft,
   ToggleRight,
+  TrendingUp,
 } from "lucide-react";
 
 import { supabase } from "../../lib/supabase";
@@ -77,6 +78,15 @@ type EmpreendimentoImagem = {
   created_at?: string;
   conteudo_hash?: string | null;
 };
+type PriceSnapshot = {
+  snapshot_id: string;
+  mes_referencia: number;
+  ano_referencia: number;
+  atualizado_em: string;
+  unidades: number;
+  valor_medio: number;
+};
+
 type OportunidadePublica = {
   id: string;
   empreendimento_id: string;
@@ -290,6 +300,8 @@ export default function Empreendimentos() {
   const [activeImageIndexes, setActiveImageIndexes] = useState<Record<string, number>>({});
   const [publicByEmpreendimento, setPublicByEmpreendimento] = useState<Record<string, OportunidadePublica>>({});
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [snapshotsMap, setSnapshotsMap] = useState<Record<string, PriceSnapshot[]>>({});
+  const [selectedSnapshotMap, setSelectedSnapshotMap] = useState<Record<string, string>>({});
 
   async function ensureBucketExists() {
     try {
@@ -310,7 +322,7 @@ export default function Empreendimentos() {
     try {
       await ensureBucketExists();
 
-      const [empRes, constRes, imgRes, unitsRes, publicRes] = await Promise.all([
+      const [empRes, constRes, imgRes, unitsRes, publicRes, historyRes] = await Promise.all([
         supabase
           .from("empreendimentos")
           .select("*")
@@ -327,10 +339,41 @@ export default function Empreendimentos() {
           .select("empreendimento_id, tipologia, tipologia_dados, valor_tabela, status"),
         supabase
           .from("oportunidades_publicas")
-          .select("id,empreendimento_id,codigo_publico,ativo_publico,imagem_capa_url,entrada_publica,valores_revisados_em,proxima_revisao_em")
+          .select("id,empreendimento_id,codigo_publico,ativo_publico,imagem_capa_url,entrada_publica,valores_revisados_em,proxima_revisao_em"),
+        supabase
+          .from("historico_tabelas_preco")
+          .select("empreendimento_id,snapshot_id,mes_referencia,ano_referencia,valor_tabela,atualizado_em")
+          .order("atualizado_em", { ascending: true })
       ]);
 
       if (empRes.error) throw empRes.error;
+
+      const snapshotBuckets = new Map<string, { empreendimentoId: string; snapshotId: string; mes: number; ano: number; atualizado: string; valores: number[] }>();
+      ((historyRes.data || []) as any[]).forEach((row) => {
+        const empreendimentoId = String(row.empreendimento_id || "");
+        const snapshotId = String(row.snapshot_id || "");
+        const valor = Number(row.valor_tabela);
+        if (!empreendimentoId || !snapshotId || !Number.isFinite(valor)) return;
+        const key = `${empreendimentoId}:${snapshotId}`;
+        const bucket = snapshotBuckets.get(key) || { empreendimentoId, snapshotId, mes: Number(row.mes_referencia), ano: Number(row.ano_referencia), atualizado: String(row.atualizado_em || ""), valores: [] };
+        bucket.valores.push(valor);
+        if (String(row.atualizado_em || "") < bucket.atualizado) bucket.atualizado = String(row.atualizado_em || "");
+        snapshotBuckets.set(key, bucket);
+      });
+      const nextSnapshots: Record<string, PriceSnapshot[]> = {};
+      snapshotBuckets.forEach((bucket) => {
+        const values = bucket.valores;
+        const list = nextSnapshots[bucket.empreendimentoId] || [];
+        list.push({ snapshot_id: bucket.snapshotId, mes_referencia: bucket.mes, ano_referencia: bucket.ano, atualizado_em: bucket.atualizado, unidades: values.length, valor_medio: values.reduce((sum, value) => sum + value, 0) / values.length });
+        nextSnapshots[bucket.empreendimentoId] = list;
+      });
+      Object.values(nextSnapshots).forEach((list) => list.sort((a, b) => a.atualizado_em.localeCompare(b.atualizado_em)));
+      setSnapshotsMap(nextSnapshots);
+      setSelectedSnapshotMap((current) => {
+        const next = { ...current };
+        Object.entries(nextSnapshots).forEach(([id, list]) => { if (!next[id] && list.length) next[id] = list[list.length - 1].snapshot_id; });
+        return next;
+      });
 
       const unitMetrics = new Map<string, { total: number; minAvailable: number | null; maxAvailable: number | null; typologies: Set<string> }>();
       (unitsRes.data || []).forEach((unit: any) => {
@@ -1218,6 +1261,12 @@ export default function Empreendimentos() {
               const imagensList = galeriasMap[item.id] || (item.imagem_url ? [item.imagem_url] : []);
               const currentIndex = activeImageIndexes[item.id] || 0;
               const currentImageUrl = imagensList[currentIndex] || item.imagem_url;
+              const snapshots = snapshotsMap[item.id] || [];
+              const selectedSnapshot = snapshots.find((snapshot) => snapshot.snapshot_id === selectedSnapshotMap[item.id]) || snapshots[snapshots.length - 1];
+              const firstSnapshot = snapshots[0];
+              const realAppreciation = selectedSnapshot && firstSnapshot && firstSnapshot.valor_medio > 0
+                ? ((selectedSnapshot.valor_medio / firstSnapshot.valor_medio) - 1) * 100
+                : null;
 
               return (
                 <article className={`emp-card ${!isAtivo ? "inactive" : ""}`} key={item.id}>
@@ -1320,6 +1369,15 @@ export default function Empreendimentos() {
                       <div className="emp-info">
                         <span className="emp-info-label">Valorização projetada</span>
                         <span className="emp-info-value">{item.valorizacao_aa != null ? `${Number(item.valorizacao_aa).toLocaleString("pt-BR")}% a.a.` : "—"}</span>
+                      </div>
+                      <div className="emp-info" style={{ gridColumn: "1 / -1", borderTop: "1px solid #29282a", paddingTop: 8, marginTop: 2 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <span className="emp-info-label" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><TrendingUp size={12} /> Valorização real</span>
+                          {snapshots.length > 0 ? <select className="emp-select" value={selectedSnapshot?.snapshot_id || ""} onChange={(event) => setSelectedSnapshotMap((current) => ({ ...current, [item.id]: event.target.value }))} style={{ minHeight: 25, width: 125, padding: "2px 5px", fontSize: 10 }} aria-label={`Tabela de referência de ${title}`}>
+                            {snapshots.map((snapshot) => <option key={snapshot.snapshot_id} value={snapshot.snapshot_id}>{String(snapshot.mes_referencia).padStart(2, "0")}/{snapshot.ano_referencia}</option>)}
+                          </select> : <span style={{ color: "#777", fontSize: 10 }}>Sem histórico</span>}
+                        </div>
+                        <span className="emp-info-value" style={{ color: realAppreciation == null ? "#777" : realAppreciation >= 0 ? "#86efac" : "#fca5a5", display: "block", marginTop: 4 }}>{realAppreciation == null ? "—" : `${realAppreciation >= 0 ? "+" : ""}${realAppreciation.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% desde a primeira tabela`} {selectedSnapshot && <small style={{ color: "#777", fontWeight: 500 }}>média {formatCompactCurrency(selectedSnapshot.valor_medio)} · {selectedSnapshot.unidades} un.</small>}</span>
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Tipologias</span>
