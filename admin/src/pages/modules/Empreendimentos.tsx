@@ -1377,7 +1377,7 @@ export default function Empreendimentos() {
                             {snapshots.map((snapshot) => <option key={snapshot.snapshot_id} value={snapshot.snapshot_id}>{String(snapshot.mes_referencia).padStart(2, "0")}/{snapshot.ano_referencia}</option>)}
                           </select> : <span style={{ color: "#777", fontSize: 10 }}>Sem histórico</span>}
                         </div>
-                        <span className="emp-info-value" style={{ color: realAppreciation == null ? "#777" : realAppreciation >= 0 ? "#86efac" : "#fca5a5", display: "block", marginTop: 4 }}>{realAppreciation == null ? "—" : `${realAppreciation >= 0 ? "+" : ""}${realAppreciation.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% desde a primeira tabela`} {selectedSnapshot && <small style={{ color: "#777", fontWeight: 500 }}>média {formatCompactCurrency(selectedSnapshot.valor_medio)} · {selectedSnapshot.unidades} un.</small>}</span>
+                        <span className="emp-info-value" style={{ color: realAppreciation == null || snapshots.length < 2 ? "#777" : realAppreciation >= 0 ? "#86efac" : "#fca5a5", display: "block", marginTop: 4 }}>{realAppreciation == null ? "—" : snapshots.length < 2 ? "Base inicial · sem comparação" : `${realAppreciation >= 0 ? "+" : ""}${realAppreciation.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% desde a primeira tabela`} {selectedSnapshot && <small style={{ color: "#777", fontWeight: 500 }}>média {formatCompactCurrency(selectedSnapshot.valor_medio)} · {selectedSnapshot.unidades} un.</small>}</span>
                       </div>
                       <div className="emp-info">
                         <span className="emp-info-label">Tipologias</span>
