@@ -38,6 +38,7 @@ main{max-width:none;margin:0;padding:0 0 72px!important}.intro{width:min(1180px,
 .compare-grid article{min-width:0;overflow-wrap:anywhere;word-break:normal}
 .carousel-track{min-width:0}
 .carousel-track figure{flex:0 0 min(82%,760px);min-width:0}
+.video video{display:block;width:100%;max-height:620px;aspect-ratio:16/9;object-fit:cover;border-radius:16px;background:#090909}
 @media(max-width:760px){
   .media-copy{gap:22px}
   .media-copy img{aspect-ratio:16/10}
