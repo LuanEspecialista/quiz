@@ -36,9 +36,9 @@
     style.textContent = [
       ":root{--luan-quote-height:42px}",
       "body{padding-top:var(--luan-quote-height)}",
-      "header:not(.luan-q-ticker):not(.top),.site-header,.main-header,.playbook-header{top:var(--luan-quote-height)!important}",
-      "header:not(.luan-q-ticker) > .container > .brand,header:not(.luan-q-ticker) > .container > .logo,header:not(.luan-q-ticker) > .header-wrap > .logo,.site-header > .brand{display:none!important}",
-      ".site-header{position:relative;justify-content:center!important}.site-header nav{margin:0 auto}.site-header .contact{position:absolute;right:24px}.container.nav > nav,.header-wrap > nav{margin-inline:auto}",
+      "header:not(.luan-q-ticker):not(.top),.site-header,.main-header,.playbook-header{top:0!important}",
+      "header:not(.luan-q-ticker) > .container > .brand,header:not(.luan-q-ticker) > .container > .logo,header:not(.luan-q-ticker) > .header-wrap > .logo,.site-header > .brand{display:flex!important;visibility:visible!important}",
+      ".site-header{position:relative;justify-content:space-between!important}.site-header nav{margin:0}.site-header .contact{position:static;right:auto}.container.nav > nav,.header-wrap > nav{margin-inline:auto}",
       ".luan-q-ticker{position:fixed;inset:0 0 auto 0;z-index:2147483000;height:var(--luan-quote-height);background:rgba(9,9,10,.97);border-bottom:1px solid rgba(197,160,89,.28);box-shadow:0 5px 20px rgba(0,0,0,.32);display:flex;align-items:center;overflow:hidden;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}",
       ".luan-q-brand{height:100%;display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:0 16px 0 13px;border-right:1px solid #2a2722;background:#0d0d0e;color:#f0d395;text-decoration:none;position:relative;z-index:2}.luan-q-brand img{width:25px;height:25px;object-fit:contain}.luan-q-brand span{font-size:9px;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}",
       ".luan-q-viewport{height:100%;overflow:hidden;flex:1;position:relative}.luan-q-track{height:100%;display:flex;align-items:center;width:max-content;animation:luan-q-scroll 58s linear infinite}.luan-q-track:hover{animation-play-state:paused}",
