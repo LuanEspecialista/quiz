@@ -1,5 +1,5 @@
-const CACHE_NAME = "luan-shell-v3";
-const SHELL_ASSETS = ["/", "/assets/site-runtime.js?v=20261002-2", "/assets/public-quotations.js?v=20261004-5", "/assets/site-shell.js?v=20261004-1", "/manifest.webmanifest"];
+const CACHE_NAME = "luan-shell-v4";
+const SHELL_ASSETS = ["/", "/assets/site-runtime.js?v=20261007-3", "/assets/public-quotations.js?v=20261007-1", "/assets/site-shell.js?v=20261007-2", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)).then(() => self.skipWaiting()));

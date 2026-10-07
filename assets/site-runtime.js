@@ -24,7 +24,7 @@
     document.head.appendChild(theme);
   }
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-    navigator.serviceWorker.register("/sw.js?v=20261002-1").catch(() => {});
+    navigator.serviceWorker.register("/sw.js?v=20261007-2").catch(() => {});
   }
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
