@@ -4,6 +4,8 @@
   window.__luanGlobalShellLoaded = true;
 
   var path = location.pathname.replace(/\/+$/, "") || "/";
+  // Regra permanente da home: manter somente os cards, os dados e o rodapé original.
+  if (path === "/" || path === "/index.html") return;
   var excluded = ["/apresentacao", "/call", "/projeto", "/acesso", "/katia", "/assinatura-sol"];
   if (excluded.some(function (prefix) { return path === prefix || path.indexOf(prefix + "/") === 0; })) return;
 

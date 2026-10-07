@@ -216,6 +216,19 @@ export default function BlogModule() {
     setMessage("Artigo salvo.");
     void load();
   };
+  const preview = () => {
+    if (!editing) return;
+    const slug = slugify(editing.slug || editing.titulo);
+    if (!slug) {
+      setMessage("Informe título ou URL para abrir a pré-visualização.");
+      return;
+    }
+    window.localStorage.setItem(
+      "luan_blog_preview",
+      JSON.stringify({ ...editing, id: editing.id || "preview", slug, status: "publicado", publicado_em: new Date().toISOString(), atualizado_em: new Date().toISOString() }),
+    );
+    window.open(`/blog/?post=${encodeURIComponent(slug)}&preview=1`, "_blank", "noopener,noreferrer");
+  };
 
   const removePost = async (post: Pick<Post, "id" | "titulo" | "status">) => {
     const publishedWarning = post.status === "publicado"
@@ -1089,6 +1102,13 @@ export default function BlogModule() {
                   style={{ ...field, width: "auto", cursor: "pointer" }}
                 >
                   Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={preview}
+                  style={{ ...field, width: "auto", cursor: "pointer", color: "#d7ab63", borderColor: "#695124" }}
+                >
+                  Pré-visualizar
                 </button>
                 <button
                   type="button"
