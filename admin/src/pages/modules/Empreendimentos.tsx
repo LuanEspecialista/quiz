@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "../../lib/supabase";
+import { deleteR2Media, isR2Path, r2PublicUrl, uploadR2Media } from "../../lib/r2Media";
 import { mergeEnterpriseStandard, parseStandardTypology, STANDARD_VERSION, TYPOLOGY_OPTIONS, type CommercialFlow } from "../../lib/realEstateStandard";
 import { deliveryDateIso, deliveryLabelPt, normalizeDeliveryMonth } from "../../lib/deliveryDate";
 import CurrencyInput from "../../components/CurrencyInput";
@@ -557,6 +558,16 @@ export default function Empreendimentos() {
     setModalOpen(true);
   }
 
+  function closeEditModal() {
+    setModalOpen(false);
+    setEditing(null);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("editar")) {
+      url.searchParams.delete("editar");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }
+
   function openEdit(item: Empreendimento) {
     const fluxoComercial = item.caracteristicas && typeof item.caracteristicas.fluxo_comercial === "object"
       ? item.caracteristicas.fluxo_comercial as Record<string, unknown>
@@ -608,6 +619,23 @@ export default function Empreendimentos() {
     const target = empreendimentos.find((item) => item.id === editId);
     if (target) openEdit(target);
   }, [empreendimentos, modalOpen]);
+
+  useEffect(() => {
+    const active = modalOpen || imageModalOpen;
+    if (!active) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (imageModalOpen) setImageModalOpen(false);
+      else closeEditModal();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [modalOpen, imageModalOpen]);
 
   function updateField<K extends keyof FormData>(field: K, value: FormData[K]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -744,8 +772,7 @@ export default function Empreendimentos() {
         setEmpreendimentos((current) => [data as Empreendimento, ...current]);
       }
 
-      setModalOpen(false);
-      setEditing(null);
+      closeEditModal();
       setForm(EMPTY_FORM);
       loadData();
     } catch (err: any) {
@@ -788,7 +815,7 @@ export default function Empreendimentos() {
         .order("created_at", { ascending: false });
 
       if (!error && data) {
-        const signed=await Promise.all((data as EmpreendimentoImagem[]).map(async(img)=>{if(!img.storage_path)return img;const{data:url}=await supabase.storage.from("empreendimentos").createSignedUrl(img.storage_path,3600);return url?.signedUrl?{...img,url:url.signedUrl}:img}));
+        const signed=await Promise.all((data as EmpreendimentoImagem[]).map(async(img)=>{if(!img.storage_path)return img;if(isR2Path(img.storage_path))return {...img,url:r2PublicUrl(img.storage_path)};const{data:url}=await supabase.storage.from("empreendimentos").createSignedUrl(img.storage_path,3600);return url?.signedUrl?{...img,url:url.signedUrl}:img}));
         setImagensGaleria(signed);
       } else {
         setImagensGaleria([]);
@@ -807,8 +834,6 @@ export default function Empreendimentos() {
     let enviadas = 0;
     const falhas: string[] = [];
     try {
-      await ensureBucketExists();
-
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if(!file.type.startsWith("image/")){falhas.push(`${file.name}: tipo de arquivo não permitido.`);continue}
@@ -828,42 +853,33 @@ export default function Empreendimentos() {
           falhas.push(`${file.name}: imagem idêntica já está na galeria e não foi enviada novamente.`);
           continue;
         }
-        const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-        const filePath = `${selectedForImages.id}/${Date.now()}-${i}-${cleanName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("empreendimentos")
-          .upload(filePath, file, { upsert: true });
-
-        if (uploadError) {
-          falhas.push(`${file.name}: ${uploadError.message}`);
+        let uploaded: Awaited<ReturnType<typeof uploadR2Media>>;
+        try {
+          uploaded = await uploadR2Media(file, { kind: "gallery", enterpriseId: selectedForImages.id, enterpriseName: selectedForImages.nome || selectedForImages.titulo || "Empreendimento" });
+        } catch (uploadError: any) {
+          falhas.push(`${file.name}: ${uploadError?.message || "falha no upload para o Cloudflare R2"}`);
           continue;
         }
 
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage.from("empreendimentos").createSignedUrl(filePath,3600);
-        const urlFinal = signedUrlData?.signedUrl || "";
-
-        if (urlFinal && !signedUrlError) {
-          const { error: imageError } = await supabase.from("empreendimento_imagens").insert({
+        const { error: imageError } = await supabase.from("empreendimento_imagens").insert({
             empreendimento_id: selectedForImages.id,
-            url: urlFinal,
-            storage_path: filePath,
+            url: uploaded.url,
+            storage_path: uploaded.path,
             titulo: file.name.replace(/\.[^.]+$/, ""),
             categoria: "outro",
             visivel_cliente: false,
             visivel_afiliado: false,
             conteudo_hash: contentHash,
           });
-          if (imageError) {
-            await supabase.storage.from("empreendimentos").remove([filePath]);
-            falhas.push(`${file.name}: não entrou na galeria (${imageError.message}); o arquivo foi removido do armazenamento.`);
-            continue;
-          }
-          enviadas++;
+        if (imageError) {
+          await deleteR2Media(uploaded.path);
+          falhas.push(`${file.name}: não entrou na galeria (${imageError.message}); o arquivo foi removido do armazenamento.`);
+          continue;
+        }
+        enviadas++;
 
-          if (!selectedForImages.imagem_url && i === 0) {
-            await definirComoCapa(urlFinal, false, filePath);
-          }
+        if (!selectedForImages.imagem_url && i === 0) {
+          await definirComoCapa(uploaded.url, false, uploaded.path);
         }
       }
 
@@ -922,7 +938,7 @@ export default function Empreendimentos() {
 
     try {
       const media=imagensGaleria.find((img)=>img.id===imgId);
-      if(media?.storage_path){const{error:storageError}=await supabase.storage.from("empreendimentos").remove([media.storage_path]);if(storageError)throw storageError}
+      if(media?.storage_path){if(isR2Path(media.storage_path))await deleteR2Media(media.storage_path);else{const{error:storageError}=await supabase.storage.from("empreendimentos").remove([media.storage_path]);if(storageError)throw storageError}}
       const{error:dbError}=await supabase.from("empreendimento_imagens").delete().eq("id", imgId);
       if(dbError)throw dbError;
       setImagensGaleria((current) => current.filter((img) => img.id !== imgId));
@@ -942,10 +958,7 @@ export default function Empreendimentos() {
     if (!window.confirm(message)) return;
     try {
       const storagePaths = midias.map((media) => media.storage_path).filter((path): path is string => Boolean(path));
-      if (storagePaths.length) {
-        const { error: storageError } = await supabase.storage.from("empreendimentos").remove(storagePaths);
-        if (storageError) throw storageError;
-      }
+      for (const storagePath of storagePaths) { if (isR2Path(storagePath)) await deleteR2Media(storagePath); else { const { error: storageError } = await supabase.storage.from("empreendimentos").remove([storagePath]); if (storageError) throw storageError; } }
       const ids = midias.map((media) => media.id);
       const { error: dbError } = await supabase.from("empreendimento_imagens").delete().in("id", ids);
       if (dbError) throw dbError;
@@ -1407,14 +1420,14 @@ export default function Empreendimentos() {
       </div>
 
       {modalOpen && (
-        <div className="emp-overlay" onMouseDown={(e) => e.target === e.currentTarget && setModalOpen(false)}>
-          <div className="emp-modal">
+        <div className="emp-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeEditModal()}>
+          <div className="emp-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="emp-modal-header">
               <div>
                 <h2 className="emp-modal-title">{editing ? "Editar empreendimento" : "Novo empreendimento"}</h2>
                 <p className="emp-modal-subtitle">Informações principais do empreendimento.</p>
               </div>
-              <button type="button" className="emp-close" onClick={() => setModalOpen(false)}>
+              <button type="button" className="emp-close" onClick={closeEditModal}>
                 <X size={15} />
               </button>
             </div>
@@ -1680,6 +1693,24 @@ export default function Empreendimentos() {
                     onChange={(e) => updateField("imagem_url", e.target.value)}
                     placeholder="Gerenciada automaticamente pelo painel de mídias"
                   />
+                  {editing && (midiasMap[editing.id] || []).length > 0 && (
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 8, marginTop: 8 }}>
+                      <select
+                        className="emp-select"
+                        value={coverStoragePath(form.imagem_url) || form.imagem_url}
+                        onChange={(e) => {
+                          const media = (midiasMap[editing.id] || []).find((item) => (item.storage_path || item.url) === e.target.value);
+                          if (media) updateField("imagem_url", coverReference(media.storage_path, media.url));
+                        }}
+                        aria-label="Selecionar imagem de capa da galeria"
+                      >
+                        <option value={form.imagem_url}>Selecionar capa da galeria</option>
+                        {(midiasMap[editing.id] || []).map((media) => <option key={media.id} value={media.storage_path || media.url}>{media.titulo || media.nome || media.categoria || "Imagem do empreendimento"}</option>)}
+                      </select>
+                      <button type="button" className="emp-secondary" onClick={() => { closeEditModal(); void openImages(editing); }}>Abrir galeria</button>
+                    </div>
+                  )}
+                  <small style={{ display: "block", marginTop: 6, color: "#71717a" }}>A capa escolhida na galeria é guardada pelo caminho do arquivo no armazenamento, não pelo URL temporário.</small>
                 </div>
                 <div className="emp-field full">
                   <label className="emp-label">Descrição</label>
@@ -1700,7 +1731,7 @@ export default function Empreendimentos() {
             </div>
 
             <div className="emp-modal-footer">
-              <button type="button" className="emp-secondary" onClick={() => setModalOpen(false)}>
+              <button type="button" className="emp-secondary" onClick={closeEditModal}>
                 Cancelar
               </button>
               <button type="button" className="emp-save" disabled={saving} onClick={save}>
@@ -1714,7 +1745,7 @@ export default function Empreendimentos() {
 
       {imageModalOpen && selectedForImages && (
         <div className="emp-overlay" onMouseDown={(e) => e.target === e.currentTarget && setImageModalOpen(false)}>
-          <div className="emp-modal emp-image-modal">
+          <div className="emp-modal emp-image-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="emp-modal-header">
               <div>
                 <h2 className="emp-modal-title">Galeria de Mídias</h2>
