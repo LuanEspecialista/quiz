@@ -10,9 +10,9 @@ type EditablePost = {
   palavras_chave: string[]; conteudo: string | null; imagens: ComposerImage[];
   blocos: StructuredEditorialBlocks;
 };
-type Props = { editing: EditablePost; setEditing: (value: EditablePost) => void; field: React.CSSProperties; setMessage: (value: string) => void };
+type Props = { editing: EditablePost; setEditing: (value: EditablePost) => void; field: React.CSSProperties; setMessage: (value: string) => void; onPreview: () => void };
 
-export default function BlogComposer({ editing, setEditing, field, setMessage }: Props) {
+export default function BlogComposer({ editing, setEditing, field, setMessage, onPreview }: Props) {
   const [packageText, setPackageText] = useState("");
   const [candidate, setCandidate] = useState<ParsedEditorialPackage | null>(null);
   const sections = editing.blocos?.secoes || [];
@@ -40,7 +40,7 @@ export default function BlogComposer({ editing, setEditing, field, setMessage }:
   return <section style={{ gridColumn: "1/-1", display: "grid", gap: 12, padding: 13, border: "1px solid #4c4028", borderRadius: 9, background: "#12110f" }}>
     <div><strong style={{ color: "#d7ab63" }}>Compositor editorial</strong><small style={{ display: "block", color: "#a1a1aa", marginTop: 4 }}>1. Cole e valide o JSON · 2. Confira a prévia · 3. Aplique e escolha as imagens · 4. Salve ou publique.</small></div>
     {!candidate && <><textarea value={packageText} onChange={(event) => { setPackageText(event.target.value); setCandidate(null); }} rows={7} placeholder="Cole aqui o pacote JSON entregue pela IA" style={field} />
-    <button type="button" disabled={!packageText.trim()} onClick={validatePackage} style={{ justifySelf: "start", display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 11px", border: "1px solid #795d2d", borderRadius: 7, background: "#d6a94f", color: "#15100a", fontWeight: 800, cursor: "pointer", opacity: packageText.trim() ? 1 : .45 }}><ClipboardPaste size={15}/>Validar e pré-visualizar</button></>}
+    <button type="button" disabled={!packageText.trim() && !editing.titulo.trim()} onClick={() => packageText.trim() ? validatePackage() : onPreview()} style={{ justifySelf: "start", display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 11px", border: "1px solid #795d2d", borderRadius: 7, background: "#d6a94f", color: "#15100a", fontWeight: 800, cursor: "pointer", opacity: packageText.trim() || editing.titulo.trim() ? 1 : .45 }}><ClipboardPaste size={15}/>{packageText.trim() ? "Validar e pré-visualizar pacote" : "Pré-visualizar artigo atual"}</button></>}
     {candidate && <div style={{ display: "grid", gap: 12 }}>
       <div style={{ display: "flex", gap: 7, alignItems: "center", color: "#72d6a0", fontSize: 12 }}><CheckCircle2 size={16}/>{candidate.repaired ? "JSON reparado e pronto para revisão" : "JSON validado e pronto para revisão"}</div>
       {!!candidate.avisos.length && <div style={{ display: "grid", gap: 5, padding: 11, border: "1px solid #8a6428", borderRadius: 8, background: "#241b0d", color: "#f2d18b", fontSize: 12 }}><strong>Revisão editorial necessária</strong>{candidate.avisos.map((warning) => <span key={warning}>• {warning}</span>)}</div>}

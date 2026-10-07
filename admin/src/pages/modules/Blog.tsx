@@ -761,7 +761,7 @@ export default function BlogModule() {
                   style={field}
                 />
               </label>
-              <BlogComposer editing={editing} setEditing={(value) => setEditing(value as typeof editing)} field={field} setMessage={setMessage} />
+              <BlogComposer editing={editing} setEditing={(value) => setEditing(value as typeof editing)} field={field} setMessage={setMessage} onPreview={preview} />
               <label style={{ gridColumn: "1/-1" }}>
                 Vincular a empreendimento (opcional)
                 <select
