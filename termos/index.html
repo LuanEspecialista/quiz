@@ -42,8 +42,45 @@
     @media(max-width:800px){.legal-layout{grid-template-columns:1fr;gap:30px;padding-top:38px}.legal-index{position:static;padding:16px 0;display:flex;gap:10px;flex-wrap:wrap}.legal-index span{width:100%;margin-bottom:2px}.legal-index a{padding:5px 9px;border:1px solid var(--legal-line);border-radius:999px}.legal-hero{padding:62px 20px 54px}.legal-hero p{font-size:16px}.legal-section p{font-size:15px;line-height:1.75}}
     @media(max-width:520px){.legal-layout{width:calc(100% - 32px)}.legal-hero h1{font-size:42px}.legal-intro{padding:18px;font-size:15px}.legal-section h2{font-size:25px}}
   </style>
+
+<style>
+/* Alinhamento definitivo com a identidade oficial Luan Especialista. */
+body{background:#040506!important;color:#fff!important;font-family:'Inter',Arial,sans-serif!important}
+.legal-header{height:60px!important;min-height:60px!important;width:100%!important;max-width:none!important;margin:0!important;padding:0 clamp(18px,4vw,56px)!important;background:rgba(8,8,9,.96)!important;border:0!important;border-bottom:1px solid rgba(255,255,255,.09)!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;position:relative!important;z-index:10!important}
+.legal-brand{color:#f0cc82!important;text-decoration:none!important;font:600 20px/1 'Cormorant Garamond',Georgia,serif!important;letter-spacing:.02em!important;white-space:nowrap}
+.legal-brand span{color:#fff!important}
+.legal-header nav{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:clamp(12px,2.2vw,28px)!important}
+.legal-header nav a{color:rgba(255,255,255,.7)!important;text-decoration:none!important;font:500 11px/1 'Inter',Arial,sans-serif!important}
+.legal-header nav a:hover{color:#e7be73!important}
+.legal-header .legal-contact-mini{padding:9px 13px!important;border:1px solid rgba(231,190,115,.36)!important;border-radius:999px!important;color:#e7be73!important}
+.legal-main{background:radial-gradient(70% 30% at 50% 0%,rgba(42,29,11,.72),transparent 68%),#040506!important;color:#fff!important;padding-bottom:0!important}
+.legal-hero{background:linear-gradient(135deg,rgba(15,13,10,.96),rgba(7,8,9,.98))!important;padding:78px max(24px,calc((100% - 1180px)/2)) 68px!important;border-bottom:1px solid rgba(215,171,99,.18)!important}
+.legal-hero:after{border-color:rgba(215,171,99,.24)!important;box-shadow:0 0 0 34px rgba(215,171,99,.03),0 0 0 70px rgba(215,171,99,.02)!important}
+.legal-kicker{color:#d7ab63!important;font-family:'Inter',Arial,sans-serif!important}
+.legal-hero h1{color:#fff!important;font-family:'Cormorant Garamond',Georgia,serif!important;font-weight:500!important;letter-spacing:.005em!important}
+.legal-hero p{color:rgba(255,255,255,.68)!important;font-family:'Inter',Arial,sans-serif!important}
+.legal-date{border-color:rgba(231,190,115,.36)!important;color:#e7be73!important;background:rgba(255,255,255,.03)!important}
+.legal-layout{padding-top:58px!important}
+.legal-index{border-color:#d7ab63!important}
+.legal-index span{color:#d7ab63!important}
+.legal-index a{color:rgba(255,255,255,.52)!important}
+.legal-index a:hover{color:#f0cc82!important}
+.legal-index a{border-color:rgba(255,255,255,.12)!important}
+.legal-intro{background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.025))!important;border-left-color:#d7ab63!important;color:rgba(255,255,255,.75)!important}
+.legal-section{border-bottom-color:rgba(255,255,255,.11)!important}
+.legal-section h2{color:#f5f2ec!important;font-family:'Cormorant Garamond',Georgia,serif!important;font-weight:600!important;letter-spacing:.01em!important}
+.legal-section h2:before{color:#d7ab63!important;font-family:'Inter',Arial,sans-serif!important}
+.legal-section p{color:rgba(255,255,255,.7)!important;font-family:'Inter',Arial,sans-serif!important}
+.legal-section a:not(.legal-contact){color:#e7be73!important}
+.legal-contact{border-color:rgba(231,190,115,.36)!important;background:rgba(255,255,255,.03)!important;color:#f0cc82!important}
+.legal-contact:hover{border-color:#d7ab63!important;background:rgba(215,171,99,.1)!important;color:#fff!important}
+@media(max-width:760px){.legal-header{height:56px!important;min-height:56px!important;padding:0 16px!important}.legal-brand{font-size:18px!important}.legal-header nav a:not(.legal-contact-mini){display:none!important}.legal-header .legal-contact-mini{font-size:10px!important;padding:8px 10px!important}.legal-hero{padding:58px 20px 50px!important}.legal-layout{padding-top:36px!important}.legal-index a{border:1px solid rgba(255,255,255,.12)!important;background:rgba(255,255,255,.025)!important}}
+</style>
 </head>
 <body>
+  <header class="site-header legal-header">
+    <nav aria-label="Navegação principal"><a href="/">Início</a><a href="/imoveis/">Oportunidades</a><a href="/estrategias-patrimoniais/">Estratégias</a><a href="/blog/">Insights</a><a class="legal-contact-mini" href="mailto:contato@luan-especialista.pro">Falar com especialista</a></nav>
+  </header>
   <main class="legal-main">
     <header class="legal-hero">
       <p class="legal-kicker">Documento institucional</p>
