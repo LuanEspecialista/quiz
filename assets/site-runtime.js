@@ -223,7 +223,7 @@
   if (!hideRateNote && usdBrl && (convertedMoney || document.body.textContent.match(/R\$|US\$/))) {
     const note = document.createElement("p");
     note.className = "luan-rate-note";
-    note.textContent = `${text.rate}${rateDate ? ` · ${rateDate}` : ""}`;
+    note.textContent = `${text.rate || "Cotação de referência"}${rateDate ? ` · ${rateDate}` : ""}`;
     (document.querySelector("main") || document.body).appendChild(note);
   }
   window.LuanLocale = { locale, currency, usdBrl, rateDate, formatCurrency };
