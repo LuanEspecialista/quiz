@@ -219,7 +219,7 @@
     shellScript.defer = true;
     document.head.appendChild(shellScript);
   }
-  const hideRateNote = location.pathname === "/imoveis/" || location.pathname === "/imoveis";
+  const hideRateNote = ["/imoveis/", "/imoveis", "/quem-somos/", "/quem-somos"].includes(location.pathname);
   if (!hideRateNote && usdBrl && (convertedMoney || document.body.textContent.match(/R\$|US\$/))) {
     const note = document.createElement("p");
     note.className = "luan-rate-note";
