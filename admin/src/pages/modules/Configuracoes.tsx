@@ -204,10 +204,22 @@ export default function Configuracoes() {
         type: "error",
         msg: "A cotação manual deve ser positiva.",
       });
+    const hasTrackingId = [
+      site.gtm_container_id,
+      site.ga4_measurement_id,
+      site.google_ads_id,
+      site.meta_pixel_id,
+    ].some((value) => String(value || "").trim().length > 0);
+    const sitePayload = {
+      ...site,
+      // Se um identificador foi cadastrado, a mensuração precisa ficar ativa;
+      // o consentimento continua controlando o carregamento no navegador.
+      rastreamento_ativo: site.rastreamento_ativo || hasTrackingId,
+    };
     setSaving(true);
     const { error } = await supabase
       .from("site_configuracoes")
-      .upsert({ id: 1, ...site, updated_at: new Date().toISOString() });
+      .upsert({ id: 1, ...sitePayload, updated_at: new Date().toISOString() });
     setSaving(false);
     setFeedback(
       error
@@ -624,7 +636,7 @@ export default function Configuracoes() {
           {tab === "rastreamento" && (
             <section style={cardStyle}>
               <h2>Tags e rastreamento</h2>
-              <p style={{ color: "#a1a1aa", maxWidth: 780, lineHeight: 1.55 }}>Cadastre apenas identificadores públicos. O site só carrega as tags quando o visitante permitir medição; chaves, tokens e scripts livres nunca devem ser inseridos aqui.</p>
+              <p style={{ color: "#a1a1aa", maxWidth: 780, lineHeight: 1.55 }}>Cadastre apenas identificadores públicos. Ao salvar qualquer ID, a mensuração pública será ativada. Quando o consentimento for obrigatório, o Pixel, o Analytics e demais tags só serão carregados depois que o visitante aceitar no aviso de privacidade.</p>
               <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "14px 0" }}><input type="checkbox" checked={site.rastreamento_ativo} onChange={(e) => setSite({ ...site, rastreamento_ativo: e.target.checked })} /> Ativar mensuração no site público</label>
               <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "14px 0" }}><input type="checkbox" checked={site.consentimento_rastreamento_obrigatorio} onChange={(e) => setSite({ ...site, consentimento_rastreamento_obrigatorio: e.target.checked })} /> Exigir consentimento antes de carregar tags não essenciais</label>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
