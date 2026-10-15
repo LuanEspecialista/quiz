@@ -79,6 +79,15 @@ const businessDefaults: BusinessConfig = {
   rentabilidade_aluguel_anual: 0.5,
   casas_decimais_taxas: 2,
 };
+const businessKeys: Array<keyof BusinessConfig> = [
+  "taxa_administracao_padrao",
+  "fundo_reserva_padrao",
+  "taxa_juros_financiamento_anual",
+  "incc_projetado_anual",
+  "valor_m2_referencia",
+  "rentabilidade_aluguel_anual",
+  "casas_decimais_taxas",
+];
 const siteDefaults: SiteConfig = {
   idioma_padrao: "pt-BR",
   idiomas_ativos: ["pt-BR", "en-US", "es"],
@@ -145,7 +154,14 @@ export default function Configuracoes() {
       supabase.from("site_paginas").select("*").order("ordem"),
       supabase.from("cotacao_usd_brl_atual").select("*").maybeSingle(),
     ]);
-    if (b.data) setBusiness({ ...businessDefaults, ...b.data });
+    if (b.data) {
+      const persisted = businessKeys.reduce((result, key) => {
+        const value = Number(b.data[key]);
+        result[key] = Number.isFinite(value) ? value : businessDefaults[key];
+        return result;
+      }, {} as BusinessConfig);
+      setBusiness({ ...businessDefaults, ...persisted });
+    }
     if (s.data) setSite({ ...siteDefaults, ...s.data });
     if (p.data) setPages(p.data as SitePage[]);
     if (q.data) setQuote(q.data as Quote);
@@ -165,27 +181,34 @@ export default function Configuracoes() {
     Number.isFinite(value) && value >= min && value <= max;
   const saveBusiness = async () => {
     if (
-      !Object.entries(business).every(([key, value]) =>
-        key === "valor_m2_referencia"
-          ? validNumber(value, 0, 1000000)
-          : key === "casas_decimais_taxas"
-            ? validNumber(value, 0, 6)
-            : validNumber(value),
-      )
+      !businessKeys.every((key) => {
+        const value = business[key];
+        if (!Number.isFinite(value)) return false;
+        if (key === "valor_m2_referencia") return validNumber(value, 0, 1000000);
+        if (key === "casas_decimais_taxas") return validNumber(value, 0, 6) && Number.isInteger(value);
+        return validNumber(value);
+      })
     )
       return setFeedback({
         type: "error",
         msg: "Revise os valores: taxas devem ficar entre 0 e 100.",
       });
     setSaving(true);
-    const { error } = await supabase
-      .from("configuracoes")
-      .upsert({
+    const { error } = await supabase.from("configuracoes").upsert(
+      {
         id: 1,
-        ...business,
+        taxa_administracao_padrao: business.taxa_administracao_padrao,
+        fundo_reserva_padrao: business.fundo_reserva_padrao,
+        taxa_juros_financiamento_anual: business.taxa_juros_financiamento_anual,
+        incc_projetado_anual: business.incc_projetado_anual,
+        valor_m2_referencia: business.valor_m2_referencia,
+        rentabilidade_aluguel_anual: business.rentabilidade_aluguel_anual,
+        casas_decimais_taxas: business.casas_decimais_taxas,
         moeda_padrao: "BRL",
         updated_at: new Date().toISOString(),
-      });
+      },
+      { onConflict: "id" },
+    );
     setSaving(false);
     setFeedback(
       error
@@ -421,6 +444,9 @@ export default function Configuracoes() {
           {tab === "financeiro" && (
             <section style={cardStyle}>
               <h2>Consórcio e financiamento</h2>
+              <p style={{ color: "#85858d", marginTop: 0, lineHeight: 1.55 }}>
+                Estes são parâmetros padrão usados como referência. Taxas específicas de uma administradora, carta ou contrato devem ser confirmadas no plano comercial da operação.
+              </p>
               <div
                 style={{
                   display: "grid",
