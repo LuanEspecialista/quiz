@@ -485,7 +485,7 @@ function renderPage(post) {
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261020-2"></script>
+  <script defer src="/assets/blog.js?v=20261020-3"></script>
   <script defer src="/assets/site-runtime.js?v=20261007-3"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
@@ -649,7 +649,7 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261020-2"></script>
+  <script defer src="/assets/blog.js?v=20261020-3"></script>
   <script defer src="/assets/site-runtime.js?v=20261007-3"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
