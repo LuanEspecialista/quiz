@@ -3,3 +3,34 @@
 @media(max-width:900px){.ayra-section-head,.ayra-split,.ayra-video-box,.ayra-final .ayra-wrap{grid-template-columns:1fr}.ayra-pillars{grid-template-columns:1fr}.ayra-product-grid,.ayra-metrics{grid-template-columns:1fr 1fr}.ayra-video-wrap{min-height:360px}.ayra-final .ayra-wrap{align-items:start}.ayra-case-stats{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.ayra-wrap{width:min(100% - 28px,1180px)}.ayra-hero{min-height:88vh;padding:100px 0 48px;background-position:62% center}.ayra-hero h1{letter-spacing:-1px}.ayra-hero p{font-size:16px}.ayra-facts{grid-template-columns:1fr 1fr}.ayra-facts>div{padding:20px 14px}.ayra-facts strong{font-size:23px}.ayra-section{padding:66px 0}.ayra-section-head{gap:18px;margin-bottom:28px}.ayra-product-grid,.ayra-metrics,.ayra-apartments,.ayra-case-stats{grid-template-columns:1fr}.ayra-gallery-item{flex-basis:88%;min-height:230px}.ayra-gallery-item img{height:260px}.ayra-feature-list{grid-template-columns:1fr}.ayra-video-wrap{min-height:260px}.ayra-video-copy{padding:26px}.ayra-timeline{grid-template-columns:1fr}.ayra-footer .ayra-wrap{flex-direction:column;align-items:flex-start}.ayra-footer p{text-align:left}.ayra-carousel-status{display:block;margin:8px 0}.ayra-floating-wa{right:14px;bottom:14px}}
 @media(prefers-reduced-motion:reduce){.ayra-carousel-track{scroll-behavior:auto}}
+
+/* AYRA: acabamento preto, navegação centralizada e superfícies de alto contraste. */
+:root{--ayra-navy:#050505;--ayra-teal:#0b0b0b;--ayra-teal2:#151515;--ayra-cream:#0b0b0b;--ayra-ink:#f4f4f1;--ayra-muted:rgba(244,244,241,.70);--ayra-surface:#151515;--ayra-surface-2:#1d1d1d;--ayra-border:rgba(255,255,255,.15)}
+.ayra-landing,.ayra-soft,.ayra-dark,.ayra-fact-strip{background:#050505;color:#f4f4f1}
+.ayra-pillar,.ayra-metrics>div,.ayra-case-stats>div,.ayra-product-grid>div,.ayra-timeline>div{background:#151515}
+.ayra-pillar.is-highlight,.ayra-apartments article{background:#101010;border-color:rgba(255,255,255,.18)}
+.ayra-final{background:#050505;border-top:1px solid rgba(255,255,255,.12);border-bottom:1px solid rgba(255,255,255,.12)}
+.ayra-footer{background:#000;border-top:1px solid rgba(255,255,255,.16);padding:34px 0}
+.ayra-footer .ayra-wrap{display:grid;grid-template-columns:1.3fr 1fr auto;gap:34px;align-items:center}
+.ayra-footer-brand,.ayra-footer-contact{display:flex;flex-direction:column;gap:7px}
+.ayra-footer-brand strong{font-size:18px;letter-spacing:.02em;color:#fff}
+.ayra-footer-brand span,.ayra-footer-contact span{font-size:12px;line-height:1.55;color:rgba(255,255,255,.62)}
+.ayra-footer-contact a{color:var(--ayra-lime);font-size:13px;font-weight:800;text-decoration:none}
+.ayra-footer-cta{display:inline-flex;align-items:center;justify-content:center;padding:13px 17px;border:1px solid var(--ayra-lime);border-radius:7px;color:var(--ayra-lime);font-size:12px;font-weight:900;text-decoration:none;white-space:nowrap}
+.ayra-plants{margin-top:58px;padding-top:54px;border-top:1px solid var(--ayra-border)}
+.ayra-plants-head{max-width:700px;margin-bottom:25px}
+.ayra-plants-head h3{font-size:clamp(28px,3vw,42px);line-height:1.05;letter-spacing:-1px;margin:10px 0;color:#fff}
+.ayra-plants-head p{margin:0;color:rgba(244,244,241,.68);font-size:14px;line-height:1.6}
+.ayra-plants-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.ayra-plants-grid figure{margin:0;min-width:0;background:#111;border:1px solid var(--ayra-border);border-radius:14px;overflow:hidden}
+.ayra-plant-image{height:250px;padding:14px;background:#0b0b0b;display:grid;place-items:center}
+.ayra-plant-image img{display:block;width:100%;height:100%;object-fit:contain;filter:brightness(.96)}
+.ayra-plants-grid figcaption{display:flex;flex-direction:column;gap:5px;padding:15px 16px}
+.ayra-plants-grid figcaption strong{font-size:13px;line-height:1.3;color:#fff}
+.ayra-plants-grid figcaption span{font-size:11px;color:var(--ayra-lime);text-transform:uppercase;letter-spacing:.08em}
+.ayra-page .site-header{display:grid!important;grid-template-columns:1fr auto 1fr!important;align-items:center!important;justify-content:initial!important;gap:24px!important}
+.ayra-page .site-header>.brand{justify-self:start!important}
+.ayra-page .site-header nav{justify-self:center!important}
+.ayra-page .site-header .contact{justify-self:end!important;margin-left:0!important}
+@media(max-width:900px){.ayra-plants-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ayra-footer .ayra-wrap{grid-template-columns:1fr 1fr}.ayra-footer-cta{justify-self:start}}
+@media(max-width:600px){.ayra-plants-grid{grid-template-columns:1fr}.ayra-plant-image{height:300px}.ayra-footer .ayra-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:18px}.ayra-footer-cta{align-self:flex-start}}
