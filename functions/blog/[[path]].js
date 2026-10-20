@@ -36,6 +36,9 @@ const esc = (value = "") =>
   );
 
 const safeLink = (value = "") => {
+  if (String(value).startsWith("r2://")) {
+    return `https://media.luan-especialista.pro/${String(value).slice(5).split("/").map(encodeURIComponent).join("/")}`;
+  }
   try {
     const url = new URL(String(value), SITE_ORIGIN);
     return /^https?:$/.test(url.protocol) ? url.href : "";
@@ -45,6 +48,9 @@ const safeLink = (value = "") => {
 };
 
 const safeImage = (value = "") => {
+  if (String(value).startsWith("r2://")) {
+    return `https://media.luan-especialista.pro/${String(value).slice(5).split("/").map(encodeURIComponent).join("/")}`;
+  }
   try {
     const url = new URL(String(value));
     return url.protocol === "https:" ? url.href : "";
@@ -476,6 +482,7 @@ function renderPage(post) {
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
+  <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-1">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261007-4"></script>
@@ -639,6 +646,7 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
+  <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-1">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261007-4"></script>
