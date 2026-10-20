@@ -63,3 +63,38 @@ footer{color:#9b9284!important;border-top-color:rgba(215,171,99,.18)!important}f
 .article-flow a,.media-copy a,.content-block a{color:var(--blog-brand-gold-soft)!important;text-decoration-color:rgba(240,204,130,.55)!important}
 .content-block h2,.media-copy h2,.fact h2,.prompt h2{color:var(--blog-brand-text)!important}
 .sources,.sources summary{color:#c6beb1!important}.sources a{color:var(--blog-brand-gold-soft)!important}
+
+/* Cabeçalho equilibrado: marca, navegação central e contato sem space-between. */
+.site-header{display:grid!important;grid-template-columns:minmax(150px,1fr) auto minmax(150px,1fr)!important;column-gap:28px!important;justify-content:initial!important;align-items:center!important}
+.site-header .brand{justify-self:start!important}.site-header nav{justify-self:center!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:clamp(14px,2.2vw,30px)!important}.site-header .contact{justify-self:end!important}
+/* Hero editorial: a foto passa a carregar o título, com degradê para leitura segura. */
+.hero-figure.hero-overlay{position:relative;isolation:isolate;min-height:clamp(420px,46vw,620px);margin:18px auto 42px!important;overflow:hidden;border-radius:20px;background:#101010}
+.hero-overlay>img{position:absolute!important;inset:0;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;border-radius:0!important;box-shadow:none!important}
+.hero-overlay:after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(2,8,12,.9) 0%,rgba(2,8,12,.66) 38%,rgba(2,8,12,.16) 78%,rgba(2,8,12,.05) 100%),linear-gradient(0deg,rgba(2,8,12,.72) 0%,rgba(2,8,12,.08) 56%,rgba(2,8,12,.18) 100%);pointer-events:none}
+.hero-overlay-copy{position:absolute;z-index:2;inset:auto 7% 9%;max-width:min(760px,80%);margin:0!important;color:#fff!important}.hero-overlay-copy .eyebrow{color:#f1cf88!important;text-shadow:0 1px 12px rgba(0,0,0,.5)}.hero-overlay-copy h1{margin:12px 0 16px!important;color:#fff!important;font:700 clamp(38px,5.2vw,72px)/1.02 Georgia,serif!important;letter-spacing:-.04em!important;text-shadow:0 3px 24px rgba(0,0,0,.48)}.hero-overlay-copy .deck{margin:0!important;max-width:700px;color:rgba(255,255,255,.9)!important;font:17px/1.55 Inter,Arial,sans-serif!important;text-shadow:0 2px 14px rgba(0,0,0,.6)}
+@media(max-width:760px){.site-header{grid-template-columns:1fr auto!important;column-gap:12px!important}.site-header .brand{justify-self:start!important}.site-header nav{display:none!important}.site-header .contact{justify-self:end!important}.hero-figure.hero-overlay{min-height:520px;margin-top:12px!important;border-radius:14px}.hero-overlay-copy{inset:auto 20px 24px;max-width:none}.hero-overlay-copy h1{font-size:clamp(34px,10vw,52px)!important;line-height:1.02!important}.hero-overlay-copy .deck{font-size:15px!important;line-height:1.48!important}}
+
+/* Grade editorial final: um eixo comum para leitura, mídia e conversão. */
+.article{width:min(1200px,calc(100% - 64px))!important;margin:0 auto!important}
+.article>.back{width:min(1040px,100%)!important;margin:10px auto 0!important}
+.article-head{width:min(1040px,100%)!important;margin:0 auto!important;padding:28px 0 30px!important}
+.article-head h1{max-width:900px!important}
+.article-flow{width:min(1040px,100%)!important;margin:0 auto!important;padding:0!important}
+.article-flow .content-block{width:100%;max-width:1000px!important;margin:48px auto!important}
+.article-flow .block-text,.article-flow .block-heading{max-width:760px!important}
+.article-flow .block-text p{max-width:760px!important}
+.article-flow .fact,.article-flow .prompt,.article-flow .block-list,.article-flow .block-compare{max-width:1000px!important}
+.article-flow .media-copy{max-width:1040px!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:48px!important;align-items:center!important}
+.article-flow .media-copy>div{max-width:520px!important}
+.article-flow .compare-grid{width:100%;max-width:1000px!important}
+.article-flow .carousel{max-width:1040px!important}
+.article-flow .carousel-track{width:100%}
+.stay22-context{width:min(1000px,100%)!important;margin:54px auto 0!important}
+.article-cta{width:min(1000px,100%)!important;max-width:1000px!important;margin:58px auto 0!important;padding:30px 34px!important}
+.engagement{width:min(1000px,100%)!important;max-width:1000px!important;margin:48px auto!important}
+.sources{width:min(1000px,100%)!important;max-width:1000px!important;margin:52px auto 0!important}
+/* Ritmo: mais compacto entre blocos relacionados e mais respiro entre capítulos. */
+.article-flow .content-block+.content-block{margin-top:48px!important}
+.article-flow .content-block h2{max-width:760px!important}
+@media(max-width:900px){.article{width:calc(100% - 40px)!important}.article-flow .media-copy{grid-template-columns:1fr!important;gap:28px!important}.article-flow .media-copy.align-direita figure{order:0}.article-flow .fact,.article-flow .prompt,.article-flow .block-list,.article-flow .block-compare,.article-cta,.engagement,.sources,.stay22-context{max-width:100%!important}}
+@media(max-width:760px){.article{width:calc(100% - 32px)!important}.article>.back{width:auto!important}.article-head{padding:22px 0 24px!important}.article-flow .content-block{margin:38px auto!important}.article-flow .block-text p{font-size:16px!important;line-height:1.72!important}.article-flow .media-copy{gap:22px!important}.article-cta{margin-top:40px!important;padding:22px!important}.engagement{margin:36px auto!important;padding:22px!important}.stay22-context{margin-top:38px!important}}

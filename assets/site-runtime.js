@@ -121,20 +121,75 @@
 
   const valid = (value, expression) => expression.test(String(value || "").trim());
   const loadScript = (src) => { if (!document.querySelector(`script[src="${src}"]`)) { const script = document.createElement("script"); script.async = true; script.src = src; document.head.appendChild(script); } };
+  const trackingIds = () => ({
+    gtm: String(siteSettings?.gtm_container_id || "").trim(),
+    ga4: String(siteSettings?.ga4_measurement_id || "").trim(),
+    ads: String(siteSettings?.google_ads_id || "").trim(),
+    meta: String(siteSettings?.meta_pixel_id || "").trim(),
+  });
+  const hasTrackingIds = () => { const ids = trackingIds(); return valid(ids.gtm, /^GTM-[A-Z0-9]+$/i) || valid(ids.ga4, /^G-[A-Z0-9]+$/i) || valid(ids.ads, /^AW-[A-Z0-9]+$/i) || valid(ids.meta, /^\d{5,20}$/); };
   const enableTracking = () => {
     if (!siteSettings?.rastreamento_ativo || window.__luanTrackingLoaded) return;
+    const { gtm, ga4, ads, meta } = trackingIds();
     window.__luanTrackingLoaded = true;
-    const gtm = String(siteSettings.gtm_container_id || "").trim();
-    const ga4 = String(siteSettings.ga4_measurement_id || "").trim();
-    const ads = String(siteSettings.google_ads_id || "").trim();
-    const meta = String(siteSettings.meta_pixel_id || "").trim();
-    if (valid(gtm, /^GTM-[A-Z0-9]+$/i)) loadScript(`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtm)}`);
-    if (valid(ga4, /^G-[A-Z0-9]+$/i) || valid(ads, /^AW-[0-9]+$/i)) { const id = valid(ga4, /^G-/i) ? ga4 : ads; loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`); window.dataLayer = window.dataLayer || []; window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); }; window.gtag("js", new Date()); if (valid(ga4, /^G-/i)) window.gtag("config", ga4, { anonymize_ip: true }); if (valid(ads, /^AW-/i)) window.gtag("config", ads); }
-    if (valid(meta, /^\d{5,20}$/)) { window.fbq = window.fbq || function(){ (window.fbq.q = window.fbq.q || []).push(arguments); }; window.fbq("init", meta); window.fbq("track", "PageView"); loadScript("https://connect.facebook.net/en_US/fbevents.js"); }
+    window.__luanTrackingState = { gtm, ga4, ads, meta, loadedAt: new Date().toISOString() };
+    if (valid(gtm, /^GTM-[A-Z0-9]+$/i)) {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+      loadScript(`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtm)}`);
+    }
+    if (valid(ga4, /^G-[A-Z0-9]+$/i) || valid(ads, /^AW-[A-Z0-9]+$/i)) {
+      const id = valid(ga4, /^G-/i) ? ga4 : ads;
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
+      window.gtag("js", new Date());
+      if (valid(ga4, /^G-[A-Z0-9]+$/i)) window.gtag("config", ga4, { anonymize_ip: true });
+      if (valid(ads, /^AW-[A-Z0-9]+$/i)) window.gtag("config", ads);
+      loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`);
+    }
+    if (valid(meta, /^\d{5,20}$/)) {
+      // Bootstrap oficial do Meta Pixel: mantém a fila antes do carregamento
+      // assíncrono e é reconhecido pelo Meta Pixel Helper.
+      if (!window.fbq || !window.fbq.__luanMetaBootstrap) {
+        (function (f, b, e, v, n, t, s) {
+          if (f.fbq) return;
+          n = f.fbq = function () {
+            n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+          };
+          if (!f._fbq) f._fbq = n;
+          n.push = n;
+          n.loaded = true;
+          n.version = "2.0";
+          n.queue = [];
+          t = b.createElement(e);
+          t.async = true;
+          t.src = v;
+          s = b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t, s);
+        })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+        window.fbq.__luanMetaBootstrap = true;
+      }
+      if (window.fbq.__luanMetaPixelId !== meta) {
+        window.fbq("init", meta);
+        window.fbq("track", "PageView");
+        window.fbq.__luanMetaPixelId = meta;
+      }
+      if (!document.getElementById("luan-meta-pixel-fallback")) {
+        const fallback = document.createElement("img");
+        fallback.id = "luan-meta-pixel-fallback";
+        fallback.height = 1;
+        fallback.width = 1;
+        fallback.alt = "";
+        fallback.style.cssText = "display:none!important;width:1px;height:1px";
+        fallback.src = `https://www.facebook.com/tr?id=${encodeURIComponent(meta)}&ev=PageView&noscript=1`;
+        document.body.appendChild(fallback);
+      }
+    }
   };
   const consent = localStorage.getItem("luan.tracking-consent");
-  if (siteSettings?.rastreamento_ativo && (!siteSettings.consentimento_rastreamento_obrigatorio || consent === "accepted")) enableTracking();
-  if (siteSettings?.rastreamento_ativo && siteSettings.consentimento_rastreamento_obrigatorio && !consent) {
+  const trackingConfigured = Boolean(siteSettings?.rastreamento_ativo && hasTrackingIds());
+  if (trackingConfigured && (!siteSettings.consentimento_rastreamento_obrigatorio || consent === "accepted")) enableTracking();
+  if (trackingConfigured && siteSettings.consentimento_rastreamento_obrigatorio && !consent) {
     const banner = document.createElement("aside"); banner.setAttribute("role", "dialog"); banner.setAttribute("aria-label", "Preferências de privacidade"); banner.style.cssText = "position:fixed;z-index:2147483645;left:16px;bottom:16px;max-width:430px;padding:16px;background:#15120e;color:#eee;border:1px solid #795e2f;border-radius:10px;font:12px/1.45 Inter,Arial,sans-serif;box-shadow:0 12px 35px #0008";
     banner.innerHTML = 'Usamos métricas para entender o uso do site e melhorar o atendimento. Você pode recusar sem perder acesso. <a href="/privacidade/" style="color:#e1ba6b">Saiba mais</a><div style="display:flex;gap:8px;margin-top:12px"><button data-choice="denied">Recusar</button><button data-choice="accepted" style="background:#c5a059;color:#111;font-weight:700">Aceitar</button></div>';
     banner.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => { const choice = button.dataset.choice; localStorage.setItem("luan.tracking-consent", choice); if (choice === "accepted") enableTracking(); banner.remove(); })); document.body.appendChild(banner);
@@ -215,15 +270,15 @@
 
   if (!document.querySelector('script[src*="/assets/site-shell.js"]')) {
     const shellScript = document.createElement("script");
-    shellScript.src = "/assets/site-shell.js?v=20261007-2";
+    shellScript.src = "/assets/site-shell.js?v=20261014-2";
     shellScript.defer = true;
     document.head.appendChild(shellScript);
   }
-  const hideRateNote = location.pathname === "/imoveis/" || location.pathname === "/imoveis";
+  const hideRateNote = ["/imoveis/", "/imoveis", "/quem-somos/", "/quem-somos"].includes(location.pathname);
   if (!hideRateNote && usdBrl && (convertedMoney || document.body.textContent.match(/R\$|US\$/))) {
     const note = document.createElement("p");
     note.className = "luan-rate-note";
-    note.textContent = `${text.rate}${rateDate ? ` · ${rateDate}` : ""}`;
+    note.textContent = `${text.rate || "Cotação de referência"}${rateDate ? ` · ${rateDate}` : ""}`;
     (document.querySelector("main") || document.body).appendChild(note);
   }
   window.LuanLocale = { locale, currency, usdBrl, rateDate, formatCurrency };
