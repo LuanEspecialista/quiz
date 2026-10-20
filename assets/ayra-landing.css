@@ -34,3 +34,14 @@
 .ayra-page .site-header .contact{justify-self:end!important;margin-left:0!important}
 @media(max-width:900px){.ayra-plants-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ayra-footer .ayra-wrap{grid-template-columns:1fr 1fr}.ayra-footer-cta{justify-self:start}}
 @media(max-width:600px){.ayra-plants-grid{grid-template-columns:1fr}.ayra-plant-image{height:300px}.ayra-footer .ayra-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:18px}.ayra-footer-cta{align-self:flex-start}}
+
+/* Stay22 — leitura de oportunidade e mapa contextual */
+.ayra-stay22{background:#000!important}
+.ayra-stay22-card{background:linear-gradient(145deg,#111,#050505);border:1px solid rgba(216,167,79,.32);border-radius:18px;padding:clamp(22px,4vw,42px);box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.ayra-stay22-copy{max-width:860px;margin:0 auto 22px;text-align:center}
+.ayra-stay22-copy h2{margin:8px auto 14px;max-width:760px;color:#f5f2ec;font-size:clamp(28px,4vw,48px);line-height:1.04;letter-spacing:-.035em}
+.ayra-stay22-copy p{max-width:760px;margin:0 auto;color:#b7b1a8;font-size:clamp(15px,1.7vw,18px);line-height:1.65}
+.ayra-stay22-frame{overflow:hidden;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:#f5f5f3}
+.ayra-stay22-frame iframe{display:block;width:100%;height:428px;border:0}
+.ayra-stay22-note{max-width:760px;margin:14px auto 0;color:#807a72;font-size:11px;line-height:1.55;text-align:center}
+@media(max-width:760px){.ayra-stay22-card{padding:20px 14px}.ayra-stay22-copy h2{font-size:30px}.ayra-stay22-copy p{font-size:15px;line-height:1.55}.ayra-stay22-frame iframe{height:520px}}
