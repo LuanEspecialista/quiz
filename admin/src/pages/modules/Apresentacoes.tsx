@@ -15,6 +15,7 @@ type Apresentacao = {
   imagem_capa?: string | null;
   updated_at?: string | null;
 };
+type ViewerState = { url: string; title: string };
 
 const BUCKET = "pdfs";
 const ENTERPRISE_IMAGES_BUCKET = "empreendimentos";
@@ -61,6 +62,7 @@ export default function Apresentacoes() {
   const [saving, setSaving] = useState(false);
   const [supportsLinks, setSupportsLinks] = useState(true);
   const [message, setMessage] = useState<{ error?: string; success?: string } | null>(null);
+  const [viewer, setViewer] = useState<ViewerState | null>(null);
 
   async function load() {
     setLoading(true);
@@ -248,7 +250,7 @@ export default function Apresentacoes() {
     if (isLocalPanel) {
       viewerUrl.searchParams.set("painel", window.location.origin);
     }
-    window.open(viewerUrl.toString(), "_blank", "noopener,noreferrer");
+    setViewer({ url: viewerUrl.toString(), title: item.nome || "Apresentação" });
   }
 
   return <section style={{ maxWidth: 1240, margin: "0 auto", color: "#e4e4e7" }}>
@@ -293,16 +295,23 @@ export default function Apresentacoes() {
       </div>
     </>}
 
+    {viewer && <div role="dialog" aria-modal="true" aria-labelledby="presentation-viewer-title" style={viewerOverlayStyle} onMouseDown={(event) => { if (event.target === event.currentTarget) setViewer(null); }}>
+      <div style={viewerModalStyle}>
+        <div style={viewerHeaderStyle}><div><p style={{ margin: 0, color: "#c5a059", fontSize: 10, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase" }}>Apresentação interna</p><h2 id="presentation-viewer-title" style={{ margin: "4px 0 0", color: "#fff", fontSize: 18 }}>{viewer.title}</h2></div><button onClick={() => setViewer(null)} aria-label="Fechar apresentação" style={closeStyle}><X size={18} /></button></div>
+        <iframe title={viewer.title} src={viewer.url} style={viewerFrameStyle} allow="fullscreen; clipboard-read; clipboard-write" />
+      </div>
+    </div>}
+
     {editing && <div role="dialog" aria-modal="true" aria-labelledby="presentation-modal-title" style={overlayStyle} onMouseDown={(event) => { if (event.target === event.currentTarget) setEditing(null); }}>
       <div style={modalStyle}>
         <button onClick={() => setEditing(null)} aria-label="Fechar" style={closeStyle}><X size={18} /></button>
         <h2 id="presentation-modal-title" style={{ margin: "0 36px 4px 0", color: "#fff", fontSize: 18 }}>Editar apresentação</h2>
         <p style={{ color: "#c5a059", fontWeight: 700, margin: "0 0 18px" }}>{editing.nome || "Empreendimento sem nome"}</p>
         <div style={{ padding: 12, border: "1px solid #27272a", borderRadius: 8, background: "#18181b", marginBottom: 16 }}><span style={{ display: "block", color: "#a1a1aa", fontSize: 11 }}>Fontes disponíveis</span><strong style={{ color: apresentacoes[editing.id]?.pdf_url || apresentacoes[editing.id]?.link_url ? "#4ade80" : "#fbbf24", fontSize: 13 }}>{apresentacoes[editing.id]?.pdf_url ? "PDF" : "Sem PDF"} · {supportsLinks ? (apresentacoes[editing.id]?.link_url ? "Link" : "Sem link") : "Link aguardando atualização do banco"}</strong></div>
-        <label style={labelStyle}>Link externo (Canva ou outra apresentação)<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="https://www.canva.com/design/..." style={inputStyle} /></div></label>
+        <label style={labelStyle}>Fonte de apresentação incorporada<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>
         {!supportsLinks&&<p style={{color:"#a1a1aa",fontSize:11,margin:"7px 0 0"}}>Compatibilidade ativa: o link será salvo com segurança no cadastro do empreendimento e migrado depois para a coluna definitiva.</p>}
         <>
-        <label style={{ ...labelStyle, marginTop: 14 }}>Abrir por padrão<select value={preferredType} onChange={(event) => setPreferredType(event.target.value as "pdf" | "link")} style={selectStyle}><option value="pdf">PDF privado</option><option value="link">Link externo</option></select></label>
+        <label style={{ ...labelStyle, marginTop: 14 }}>Abrir por padrão<select value={preferredType} onChange={(event) => setPreferredType(event.target.value as "pdf" | "link")} style={selectStyle}><option value="pdf">PDF privado</option><option value="link">Fonte incorporada</option></select></label>
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}><button disabled={saving} onClick={() => void saveSettings()} style={{ ...secondaryButtonStyle, opacity: saving ? .5 : 1 }}>{preferredType === "link" ? <ExternalLink size={15} /> : <Save size={15} />} Salvar link e preferência</button></div></>
         <hr style={{ border: 0, borderTop: "1px solid #27272a", margin: "18px 0" }} />
         <label style={labelStyle}>Novo PDF (até 250 MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "10px 0" }} /></label>
@@ -324,4 +333,8 @@ const switchStyle = { width: 42, height: 23, borderRadius: 20, border: 0, paddin
 const knobStyle = { display: "block", width: 19, height: 19, borderRadius: "50%", background: "#fff", transition: "transform .2s" } as const;
 const overlayStyle = { position: "fixed", inset: 0, zIndex: 5000, display: "grid", placeItems: "center", padding: 20, background: "rgba(0,0,0,.78)" } as const;
 const modalStyle = { width: "min(520px, 100%)", position: "relative", background: "#121212", border: "1px solid #3f3f46", borderRadius: 12, padding: 22, boxShadow: "0 24px 80px rgba(0,0,0,.55)" } as const;
+const viewerOverlayStyle = { position: "fixed", inset: 0, zIndex: 5100, padding: 18, background: "rgba(0,0,0,.88)" } as const;
+const viewerModalStyle = { width: "100%", height: "100%", display: "flex", flexDirection: "column", background: "#0d0d0f", border: "1px solid #3f3f46", borderRadius: 14, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,.65)" } as const;
+const viewerHeaderStyle = { minHeight: 62, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "10px 18px", borderBottom: "1px solid #29292e", background: "#121212" } as const;
+const viewerFrameStyle = { flex: 1, width: "100%", border: 0, background: "#080808" } as const;
 const closeStyle = { position: "absolute", top: 14, right: 14, border: 0, background: "transparent", color: "#a1a1aa", cursor: "pointer", padding: 4 } as const;
