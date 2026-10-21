@@ -544,7 +544,7 @@ function renderPage(post) {
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261021-1"></script>
-  <script defer src="/assets/site-runtime.js?v=20261007-3"></script>
+  <script defer src="/assets/site-runtime.js?v=20261021-2"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
 <body>
@@ -713,7 +713,7 @@ function renderBlogIndex(posts) {
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261021-1"></script>
-  <script defer src="/assets/site-runtime.js?v=20261007-3"></script>
+  <script defer src="/assets/site-runtime.js?v=20261021-2"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
 <body>
