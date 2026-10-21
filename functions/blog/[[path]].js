@@ -540,7 +540,7 @@ function renderPage(post) {
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
-  <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-1">
+  <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261021-1"></script>
@@ -709,7 +709,7 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
-  <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-1">
+  <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261021-1"></script>

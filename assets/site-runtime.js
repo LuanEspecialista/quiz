@@ -270,7 +270,7 @@
 
   if (!document.querySelector('script[src*="/assets/site-shell.js"]')) {
     const shellScript = document.createElement("script");
-    shellScript.src = "/assets/site-shell.js?v=20261014-2";
+    shellScript.src = "/assets/site-shell.js?v=20261021-1";
     shellScript.defer = true;
     document.head.appendChild(shellScript);
   }
