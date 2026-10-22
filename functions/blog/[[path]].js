@@ -35,6 +35,30 @@ const esc = (value = "") =>
     })[character],
   );
 
+const BLOG_FOOTER_HTML = `<footer class="blog-site-footer" aria-label="Rodapé do site">
+  <div class="blog-site-footer-grid">
+    <section class="blog-footer-brand">
+      <a class="blog-footer-wordmark" href="/"><span>LUAN</span> ESPECIALISTA</a>
+      <p>Estratégias patrimoniais, investimentos e oportunidades imobiliárias no litoral norte de Santa Catarina.</p>
+      <span class="blog-footer-accent" aria-hidden="true"></span>
+    </section>
+    <nav aria-label="Navegação do rodapé">
+      <h2>NAVEGAÇÃO</h2>
+      <a href="/">Início</a>
+      <a href="/estrategias-patrimoniais/">Estratégias Patrimoniais</a>
+      <a href="/imoveis/">Oportunidades</a>
+      <a href="/mobilidade-experiencias/">Mobilidade &amp; Experiências</a>
+    </nav>
+    <section class="blog-footer-contact">
+      <h2>ATENDIMENTO &amp; INFORMAÇÕES</h2>
+      <a class="blog-footer-contact-line" href="https://wa.me/5547992120915" target="_blank" rel="noopener noreferrer"><span class="blog-footer-icon" aria-hidden="true">◉</span><span>Falar com especialista</span></a>
+      <a class="blog-footer-contact-line" href="mailto:contato@luan-especialista.pro"><span class="blog-footer-icon" aria-hidden="true">✉</span><span>contato@luan-especialista.pro</span></a>
+      <p class="blog-footer-contact-line"><span class="blog-footer-icon" aria-hidden="true">⌖</span><span>Penha · SC</span></p>
+    </section>
+  </div>
+  <div class="blog-site-footer-bottom"><span>© ${new Date().getFullYear()} Luan Especialista. Todos os direitos reservados.</span><span>Informações, valores e condições podem mudar a qualquer momento, sem aviso prévio.</span></div>
+</footer>`;
+
 const safeLink = (value = "") => {
   if (String(value).startsWith("r2://")) {
     return `https://media.luan-especialista.pro/${String(value).slice(5).split("/").map(encodeURIComponent).join("/")}`;
@@ -452,7 +476,7 @@ function renderArticle(post) {
     useOverlayHero ? "" : `<h1>${esc(post.titulo)}</h1><p class="deck">${esc(post.resumo || "")}</p>`
   }</header>`;
 
-  return `<a class="back" href="/blog/" aria-label="Voltar aos Insights">←&nbsp; Voltar aos Insights</a>${articleHeader}${heroMarkup}<main class="article-flow">${renderReadingMap(
+  return `${articleHeader}${heroMarkup}<main class="article-flow">${renderReadingMap(
     sections,
   )}${body}${gallery}</main>${renderSources(blocks)}${renderDestinationMap(post)}${finalCta}<section class="engagement" aria-labelledby="engagement-title"><div class="engagement-header"><div class="engagement-question"><p class="eyebrow">OPINIÃO DOS LEITORES</p><h2 id="engagement-title">Este conteúdo foi útil?</h2><p>Uma nota rápida ajuda outras pessoas a decidir por onde começar.</p></div><div class="rating-summary" aria-live="polite"><strong class="rating-average">—</strong><span class="rating-summary-stars" aria-hidden="true">☆☆☆☆☆</span><small class="rating-count">Carregando avaliações…</small></div></div><div class="stars" role="group" aria-label="Avalie este conteúdo de uma a cinco estrelas">${[
     1, 2, 3, 4, 5,
@@ -543,9 +567,10 @@ function renderPage(post) {
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
+  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-1">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261022-pinna-8"></script>
+  <script defer src="/assets/blog.js?v=20261022-blog-footer-1"></script>
   <script defer src="/assets/site-runtime.js?v=20261022-3"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
@@ -558,17 +583,18 @@ function renderPage(post) {
   <main>
     <section class="intro" id="intro" hidden><p class="eyebrow">CONHECIMENTO PARA DECIDIR MELHOR</p><h1>Insights</h1></section>
     <div id="filters" hidden></div>
+    <div class="blog-post-back-wrap"><a class="blog-post-back" href="/blog/" aria-label="Voltar aos posts"><span class="blog-post-back-arrow" aria-hidden="true">←</span><span>Voltar aos posts</span></a></div>
     <section id="posts" class="article article-${esc(
       post.layout || "artigo",
     )} intent-${esc(post.blocos?.intencao || "descoberta")}${
       post.blocos?.template !== "ayra-landing" && post.imagem_capa_url && post.blocos?.exibir_hero !== false ? " has-overlay-hero" : ""
     }" aria-live="polite">${articleHtml}</section>
-    <section class="newsletter" aria-labelledby="newsletter-title">
-      <div><p class="eyebrow">RECEBA APENAS O QUE IMPORTA</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens e com descadastro simples.</p></div>
-      <form id="newsletter-form" novalidate><label for="newsletter-name">Nome <span>opcional</span></label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Como podemos chamar você?"><label for="newsletter-email">Seu melhor e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="voce@exemplo.com"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
+    <section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
+      <div><p class="eyebrow">NEWSLETTER</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens.</p></div>
+      <form id="newsletter-form" novalidate><label for="newsletter-name">Seu nome</label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Digite seu nome"><label for="newsletter-email">Seu e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="Digite seu e-mail"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
     </section>
   </main>
-  <footer><div><strong>Luan Especialista</strong><span>Estratégia patrimonial, imóveis e decisões com contexto.</span></div><div><a href="/quem-somos/">Quem somos</a><a href="/faq/">Perguntas frequentes</a><a href="/privacidade/">Privacidade</a><a href="/termos/">Termos de uso</a></div><div><a href="https://api.whatsapp.com/send?phone=5547992120915">WhatsApp: +55 47 99212-0915</a><a href="mailto:contato@luan-especialista.pro">contato@luan-especialista.pro</a><span>© 2026 Luan Especialista</span></div></footer>
+  ${BLOG_FOOTER_HTML}
 </body>
 </html>`;
 }
@@ -714,9 +740,10 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
+  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-1">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261022-pinna-8"></script>
+  <script defer src="/assets/blog.js?v=20261022-blog-footer-1"></script>
   <script defer src="/assets/site-runtime.js?v=20261022-3"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
@@ -729,12 +756,12 @@ function renderBlogIndex(posts) {
   <main>
     <section class="intro" id="intro"><p class="eyebrow">CONHECIMENTO PARA DECIDIR MELHOR</p><h1>Insights que transformam<br><em>informação em direção.</em></h1><p class="lead">Leituras objetivas sobre imóveis, patrimônio, mercado e o litoral de Santa Catarina.</p><div class="filters" id="filters" aria-label="Filtrar artigos">${categoryButtons}</div></section>
     <section class="posts" id="posts" aria-live="polite">${cards}</section>
-    <section class="newsletter" aria-labelledby="newsletter-title">
-      <div><p class="eyebrow">RECEBA APENAS O QUE IMPORTA</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens e com descadastro simples.</p></div>
-      <form id="newsletter-form" novalidate><label for="newsletter-name">Nome <span>opcional</span></label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Como podemos chamar você?"><label for="newsletter-email">Seu melhor e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="voce@exemplo.com"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
+    <section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
+      <div><p class="eyebrow">NEWSLETTER</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens.</p></div>
+      <form id="newsletter-form" novalidate><label for="newsletter-name">Seu nome</label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Digite seu nome"><label for="newsletter-email">Seu e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="Digite seu e-mail"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
     </section>
   </main>
-  <footer><div><strong>Luan Especialista</strong><span>Estratégia patrimonial, imóveis e decisões com contexto.</span></div><div><a href="/quem-somos/">Quem somos</a><a href="/faq/">Perguntas frequentes</a><a href="/privacidade/">Privacidade</a><a href="/termos/">Termos de uso</a></div><div><a href="https://api.whatsapp.com/send?phone=5547992120915">WhatsApp: +55 47 99212-0915</a><a href="mailto:contato@luan-especialista.pro">contato@luan-especialista.pro</a><span>© 2026 Luan Especialista</span></div></footer>
+  ${BLOG_FOOTER_HTML}
 </body>
 </html>`;
 }
