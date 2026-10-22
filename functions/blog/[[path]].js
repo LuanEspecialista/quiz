@@ -545,7 +545,7 @@ function renderPage(post) {
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261022-pinna-5"></script>
+  <script defer src="/assets/blog.js?v=20261022-park-1"></script>
   <script defer src="/assets/site-runtime.js?v=20261021-2"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
@@ -716,7 +716,7 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261022-pinna-5"></script>
+  <script defer src="/assets/blog.js?v=20261022-park-1"></script>
   <script defer src="/assets/site-runtime.js?v=20261021-2"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>

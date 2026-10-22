@@ -93,7 +93,7 @@ export async function onRequest(context) {
   if (request.method === "GET" && new URL(request.url).searchParams.get("list") === "1") {
     const enterprise = normalize(new URL(request.url).searchParams.get("enterprise"));
     if (!["pinna", "pinna-studios", "park", "park-beach", "park-beach-studios", "beach-park-studios"].includes(enterprise)) return json({ error: "Listagem não disponível para este empreendimento." }, 403);
-    const wanted = enterprise.startsWith("park") || enterprise.startsWith("beach") ? /park|beach/i : /pinna/i;
+    const wanted = enterprise.startsWith("park") || enterprise.startsWith("beach") ? /(?:park-beach-studios|beach-park-studios|empreendimentos-park(?:-|$))/i : /pinna/i;
     const prefixes = enterprise.startsWith("park") || enterprise.startsWith("beach")
       ? [`${BUCKET_PREFIX}Park Beach Studios/`, `${BUCKET_PREFIX}park-beach-studios/`, `${BUCKET_PREFIX}Park/`, `${BUCKET_PREFIX}park/`, BUCKET_PREFIX]
       : [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`, `${BUCKET_PREFIX}Pinna Studios/`, `${BUCKET_PREFIX}pinna-studios/`, `${BUCKET_PREFIX}PINNA/`, BUCKET_PREFIX];
