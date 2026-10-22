@@ -536,7 +536,7 @@ function renderPage(post) {
   ${preload}
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/blog.css">
-  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-1">
+  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-2">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
@@ -706,7 +706,7 @@ function renderBlogIndex(posts) {
   <link rel="preconnect" href="https://santerempreendimentos.com.br" crossorigin>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/blog.css">
-  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-1">
+  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-2">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
@@ -741,7 +741,7 @@ function errorPage(status, heading, message) {
   const body = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${esc(
     heading,
   )} | Luan Especialista</title><link rel="stylesheet" href="/assets/blog.css">
-  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-1"><link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13"><link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1"></head><body><main><section class="empty"><strong>${esc(
+  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-2"><link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13"><link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1"></head><body><main><section class="empty"><strong>${esc(
     heading,
   )}</strong><span>${esc(message)}</span><a href="/blog/">Voltar aos Insights →</a></section></main></body></html>`;
   return new Response(body, {
