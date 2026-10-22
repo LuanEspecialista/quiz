@@ -43,3 +43,8 @@
   .pinna-floorplan-carousel .ayra-carousel-prev,.pinna-floorplan-carousel .ayra-carousel-next{top:calc(50% - 35px);width:42px;height:42px}
   .pinna-unit-card{min-height:148px}
 }
+
+
+/* Mapa da região: exibir a imagem R2 inteira, sem recorte de fotografia. */
+.pinna-feature[data-feature="localizacao"] .ayra-media-card{display:grid;place-items:center;min-height:0;background:#f4eee7}
+.pinna-feature[data-feature="localizacao"] .ayra-media-card img{width:100%;height:auto;min-height:0;max-height:560px;aspect-ratio:auto;object-fit:contain;background:#f4eee7}

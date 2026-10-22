@@ -48,11 +48,14 @@
 
   var oldFooter = document.querySelector("footer");
   var newsletter = document.querySelector(".newsletter");
+  // Posts have a shared template footer with copyright. Do not append the
+  // generic conversion/FAQ/footer shell on article routes (including future posts).
+  var isBlogPost = path.indexOf("/blog/") === 0;
   var isAyraLanding =
     path.indexOf("/blog/ayra-slim-residence-penha-santer") === 0 ||
     /ayra-slim-residence-penha-santer/.test(location.search) ||
-    !!document.querySelector(".ayra-landing, .ayra-article");
-  if (isAyraLanding) return;
+    !!document.querySelector(".ayra-landing, .ayra-article, .pinna-landing, .park-landing");
+  if (isBlogPost || isAyraLanding) return;
   if (oldFooter) oldFooter.classList.add("luan-global-legacy-footer");
   var anchor = oldFooter || document.body.lastElementChild;
   var conversion = document.createElement("section");
