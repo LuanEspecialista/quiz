@@ -82,7 +82,7 @@ export async function onRequest(context) {
     if (!key.startsWith(BUCKET_PREFIX) || !normalize(key).includes("pinna") || !/\.(?:jpe?g|png|webp|avif|gif)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
     const object = await env.MEDIA.get(key);
     if (!object) return json({ error: "Arquivo não encontrado." }, 404);
-    return new Response(object.body, { headers: { "content-type": object.httpMetadata?.contentType || "application/octet-stream", "cache-control": "public, max-age=86400" } });
+    return new Response(object.body, { headers: { "content-type": object.httpMetadata?.contentType || "application/octet-stream", "cache-control": "no-store, max-age=0, must-revalidate" } });
   }
 
   // A landing pública do Pinna precisa descobrir as imagens editoriais já
