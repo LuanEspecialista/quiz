@@ -79,7 +79,9 @@ export async function onRequest(context) {
   const requestUrl = new URL(request.url);
   if (request.method === "GET" && requestUrl.searchParams.get("key")) {
     const key = requestUrl.searchParams.get("key") || "";
-    if (!key.startsWith(BUCKET_PREFIX) || !normalize(key).includes("pinna") || !/\.(?:jpe?g|png|webp|avif|gif)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
+    const normalizedKey = normalize(key);
+    const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park");
+    if (!key.startsWith(BUCKET_PREFIX) || !allowedAsset || !/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
     const object = await env.MEDIA.get(key);
     if (!object) return json({ error: "Arquivo não encontrado." }, 404);
     return new Response(object.body, { headers: { "content-type": object.httpMetadata?.contentType || "application/octet-stream", "cache-control": "no-store, max-age=0, must-revalidate" } });
@@ -90,15 +92,18 @@ export async function onRequest(context) {
   // empreendimento e retorna somente imagens públicas, sem metadados internos.
   if (request.method === "GET" && new URL(request.url).searchParams.get("list") === "1") {
     const enterprise = normalize(new URL(request.url).searchParams.get("enterprise"));
-    if (enterprise !== "pinna" && enterprise !== "pinna-studios") return json({ error: "Listagem não disponível para este empreendimento." }, 403);
-    const prefixes = [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`, `${BUCKET_PREFIX}Pinna Studios/`, `${BUCKET_PREFIX}pinna-studios/`, `${BUCKET_PREFIX}PINNA/`, BUCKET_PREFIX];
+    if (!["pinna", "pinna-studios", "park", "park-beach", "park-beach-studios", "beach-park-studios"].includes(enterprise)) return json({ error: "Listagem não disponível para este empreendimento." }, 403);
+    const wanted = enterprise.startsWith("park") || enterprise.startsWith("beach") ? /park|beach/i : /pinna/i;
+    const prefixes = enterprise.startsWith("park") || enterprise.startsWith("beach")
+      ? [`${BUCKET_PREFIX}Park Beach Studios/`, `${BUCKET_PREFIX}park-beach-studios/`, `${BUCKET_PREFIX}Park/`, `${BUCKET_PREFIX}park/`, BUCKET_PREFIX]
+      : [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`, `${BUCKET_PREFIX}Pinna Studios/`, `${BUCKET_PREFIX}pinna-studios/`, `${BUCKET_PREFIX}PINNA/`, BUCKET_PREFIX];
     const objects = [];
     for (const prefix of prefixes) {
       const listing = await env.MEDIA.list({ prefix, limit: 1000 });
       for (const object of listing?.objects || []) {
         const normalizedKey = normalize(object.key);
         const looksLikePinnaPlant = /(?:unidade|planta|tipologia)[^/]*?(?:0?[1-9])(?:\D|$)/i.test(normalizedKey);
-        if (/\.(?:jpe?g|png|webp|avif|gif)$/i.test(object.key) && (normalizedKey.includes("pinna") || looksLikePinnaPlant)) {
+        if (/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov)$/i.test(object.key) && (wanted.test(normalizedKey) || looksLikePinnaPlant && enterprise.startsWith("pinna"))) {
           objects.push({ key: object.key, url: `${requestUrl.origin}/api/media?key=${encodeURIComponent(object.key)}`, size: object.size || 0 });
         }
       }
