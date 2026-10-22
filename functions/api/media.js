@@ -75,6 +75,27 @@ function categoryFolder(kind) {
 export async function onRequest(context) {
   const { request, env } = context;
   if (!env.MEDIA) return json({ error: "O binding MEDIA do Cloudflare R2 ainda não está configurado no Pages." }, 503);
+
+  // A landing pública do Pinna precisa descobrir as imagens editoriais já
+  // armazenadas no R2. A listagem é deliberadamente limitada ao prefixo do
+  // empreendimento e retorna somente imagens públicas, sem metadados internos.
+  if (request.method === "GET" && new URL(request.url).searchParams.get("list") === "1") {
+    const enterprise = normalize(new URL(request.url).searchParams.get("enterprise"));
+    if (enterprise !== "pinna" && enterprise !== "pinna-studios") return json({ error: "Listagem não disponível para este empreendimento." }, 403);
+    const prefixes = [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`];
+    const objects = [];
+    for (const prefix of prefixes) {
+      const listing = await env.MEDIA.list({ prefix, limit: 1000 });
+      for (const object of listing?.objects || []) {
+        if (/\.(?:jpe?g|png|webp|avif|gif)$/i.test(object.key)) {
+          objects.push({ key: object.key, url: publicUrl(object.key), size: object.size || 0 });
+        }
+      }
+    }
+    const unique = [...new Map(objects.map((object) => [object.key, object])).values()];
+    return json({ ok: true, enterprise: "Pinna Studios", objects: unique });
+  }
+
   const user = await authorize(request, env);
   if (!user) return json({ error: "Apenas administradores autenticados podem enviar mídias." }, 403);
 
