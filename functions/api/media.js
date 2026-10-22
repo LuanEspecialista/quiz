@@ -96,7 +96,9 @@ export async function onRequest(context) {
     for (const prefix of prefixes) {
       const listing = await env.MEDIA.list({ prefix, limit: 1000 });
       for (const object of listing?.objects || []) {
-        if (/\.(?:jpe?g|png|webp|avif|gif)$/i.test(object.key) && normalize(object.key).includes("pinna")) {
+        const normalizedKey = normalize(object.key);
+        const looksLikePinnaPlant = /(?:unidade|planta|tipologia)[^/]*?(?:0?[1-9])(?:\D|$)/i.test(normalizedKey);
+        if (/\.(?:jpe?g|png|webp|avif|gif)$/i.test(object.key) && (normalizedKey.includes("pinna") || looksLikePinnaPlant)) {
           objects.push({ key: object.key, url: `${requestUrl.origin}/api/media?key=${encodeURIComponent(object.key)}`, size: object.size || 0 });
         }
       }
