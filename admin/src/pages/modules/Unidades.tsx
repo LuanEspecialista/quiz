@@ -1055,6 +1055,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
                               {fluxo.baloes_obra_qtd > 0 && <span>• {fluxo.baloes_obra_qtd}x Balões Obra: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.baloes_obra_val)}</strong></span>}
                               {fluxo.chaves > 0 && <span>• Chaves / Financiamento: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.chaves)}</strong></span>}
                               {fluxo.mensais_pos_qtd > 0 && <span>• {fluxo.mensais_pos_qtd}x Mensais Pós: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.mensais_pos_val)}</strong></span>}
+                              {fluxo.baloes_pos_qtd > 0 && <span>• {fluxo.baloes_pos_qtd}x Reforços anuais Pós-chaves: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.baloes_pos_val)}</strong></span>}
                             </div>
                           </div>
                         )}
