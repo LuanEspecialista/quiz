@@ -82,12 +82,12 @@ export async function onRequest(context) {
   if (request.method === "GET" && new URL(request.url).searchParams.get("list") === "1") {
     const enterprise = normalize(new URL(request.url).searchParams.get("enterprise"));
     if (enterprise !== "pinna" && enterprise !== "pinna-studios") return json({ error: "Listagem não disponível para este empreendimento." }, 403);
-    const prefixes = [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`];
+    const prefixes = [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`, `${BUCKET_PREFIX}Pinna Studios/`, `${BUCKET_PREFIX}pinna-studios/`, `${BUCKET_PREFIX}PINNA/`, BUCKET_PREFIX];
     const objects = [];
     for (const prefix of prefixes) {
       const listing = await env.MEDIA.list({ prefix, limit: 1000 });
       for (const object of listing?.objects || []) {
-        if (/\.(?:jpe?g|png|webp|avif|gif)$/i.test(object.key)) {
+        if (/\.(?:jpe?g|png|webp|avif|gif)$/i.test(object.key) && normalize(object.key).includes("pinna")) {
           objects.push({ key: object.key, url: publicUrl(object.key), size: object.size || 0 });
         }
       }
