@@ -561,7 +561,7 @@ function renderPage(post) {
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/blog.css">
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
-  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-2">
+  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
@@ -570,7 +570,7 @@ function renderPage(post) {
   <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261022-park-beach-media-1"></script>
+  <script defer src="/assets/blog.js?v=20261022-park-beach-media-2"></script>
   <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
@@ -734,7 +734,7 @@ function renderBlogIndex(posts) {
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/blog.css">
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
-  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-2">
+  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
@@ -743,7 +743,7 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261022-park-beach-media-1"></script>
+  <script defer src="/assets/blog.js?v=20261022-park-beach-media-2"></script>
   <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
@@ -771,7 +771,7 @@ function errorPage(status, heading, message) {
     heading,
   )} | Luan Especialista</title><link rel="stylesheet" href="/assets/blog.css">
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
-  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-2"><link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13"><link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1"></head><body><main><section class="empty"><strong>${esc(
+  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3"><link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13"><link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1"></head><body><main><section class="empty"><strong>${esc(
     heading,
   )}</strong><span>${esc(message)}</span><a href="/blog/">Voltar aos Insights →</a></section></main></body></html>`;
   return new Response(body, {
