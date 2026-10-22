@@ -233,7 +233,57 @@ const ayraText=(v='')=>esc(String(v||'')).replace(/\n/g,'<br>');
 		const timeline=sectionBy('timeline');
 		return `<div class="ayra-landing"><section class="ayra-hero" style="background-image:url('${esc(ayraMedia(h.imagem_url||p.imagem_capa_url))}')"><div class="ayra-hero-overlay"></div><div class="ayra-wrap ayra-hero-inner"><span class="ayra-kicker">${esc(h.kicker||'Pré-lançamento em Penha')}</span>${h.logo_url?`<img class="ayra-hero-logo" src="${esc(ayraMedia(h.logo_url))}" alt="AYRA Slim Residence">`:''}<h1>${ayraText(h.titulo||p.titulo)}</h1><p>${ayraText(h.texto||p.resumo)}</p><div class="ayra-actions">${ayraButton('Quero conhecer as condições',wa)}${ayraButton('▶ Assistir ao decorado','#video',true)}</div></div></section><section class="ayra-fact-strip"><div class="ayra-wrap ayra-facts">${facts.map(i=>`<div><strong>${esc(i[0])}</strong><span>${esc(i[1])}</span></div>`).join('')}</div></section>${renderPilares()}${renderProjection(sectionBy('projecao'))}${renderProjection(sectionBy('shortstay'),'shortstay')}${renderSeazone(sectionBy('seazone'))}${renderCase(sectionBy('case'))}${renderProduct(sectionBy('produto'))}${renderGallery()}${renderVideo()}${renderStay22()}${timeline.titulo?`<section class="ayra-section ayra-soft"><div class="ayra-wrap"><div class="ayra-section-head"><div><span class="ayra-ey">${esc(timeline.ey)}</span><h2>${ayraText(timeline.titulo)}</h2></div><p>${ayraText(timeline.texto)}</p></div><div class="ayra-timeline">${(timeline.itens||[]).map(i=>`<div><small>${esc(i[0])}</small><strong>${esc(i[1])}</strong><span>${esc(i[2])}</span></div>`).join('')}</div></div></section>`:''}<section class="ayra-final"><div class="ayra-wrap"><div><h2>${ayraText(sectionBy('cta').titulo||'O melhor momento para entender o AYRA é antes de escolher a unidade.')}</h2><p>${ayraText(sectionBy('cta').texto||'Fale com a Luan Especialista para consultar disponibilidade, valores e condições.')}</p></div>${ayraButton(sectionBy('cta').acao_rotulo||'Falar no WhatsApp',sectionBy('cta').acao_url||wa)}</div></section><div class="ayra-legal ayra-wrap">${ayraText(b.legal||'Imagens meramente ilustrativas. Consulte as condições e documentos do empreendimento.')}</div><footer class="ayra-footer"><div class="ayra-wrap"><div class="ayra-footer-brand"><strong>Luan Especialista</strong><span>Estratégia patrimonial e oportunidades no litoral norte de Santa Catarina.</span></div><div class="ayra-footer-contact"><span>Atendimento em Penha e região</span><a href="https://luan-especialista.pro" target="_blank" rel="noopener">luan-especialista.pro</a></div><a class="ayra-footer-cta" href="${esc(wa)}" target="_blank" rel="noopener">Falar com especialista</a></div></footer></div>`;
 	}
-		function bindAyraLanding(){document.querySelectorAll('.ayra-carousel').forEach((carousel)=>{const track=carousel.querySelector('.ayra-carousel-track'),items=[...carousel.querySelectorAll('.ayra-gallery-item')],next=carousel.querySelector('.ayra-carousel-next'),prev=carousel.querySelector('.ayra-carousel-prev'),toggle=carousel.querySelector('.ayra-carousel-toggle'),status=carousel.querySelector('.ayra-carousel-status');let timer=null,paused=false,index=0;const distance=()=>{const first=items[0];return first?first.getBoundingClientRect().width+14:track.clientWidth};const go=(direction)=>{if(!items.length)return;index=(index+direction+items.length)%items.length;track.scrollTo({left:index*distance(),behavior:'smooth'})};const stop=()=>{if(timer){clearInterval(timer);timer=null}};const start=()=>{stop();if(!paused&&items.length>1)timer=setInterval(()=>go(1),Number(carousel.dataset.interval)||5000)};const setPaused=(value)=>{paused=value;toggle.textContent=paused?'Retomar':'Pausar';toggle.setAttribute('aria-pressed',String(paused));toggle.setAttribute('aria-label',paused?'Retomar carrossel':'Pausar carrossel');status.textContent=paused?'Carrossel pausado · use os botões para trocar as imagens':'Autoplay ativo · use Pausar para interromper';if(paused)stop();else start()};next?.addEventListener('click',()=>{go(1);setPaused(true)});prev?.addEventListener('click',()=>{go(-1);setPaused(true)});toggle?.addEventListener('click',()=>setPaused(!paused));carousel.addEventListener('focusin',()=>setPaused(true));carousel.addEventListener('focusout',(e)=>{if(!carousel.contains(e.relatedTarget))setPaused(false)});carousel.addEventListener('touchstart',()=>setPaused(true),{passive:true});start()})}
+		function bindAyraLanding(){
+  document.querySelectorAll('.ayra-carousel').forEach((carousel)=>{
+    if(carousel.dataset.carouselBound==='true') return;
+    carousel.dataset.carouselBound='true';
+    const track=carousel.querySelector('.ayra-carousel-track');
+    const next=carousel.querySelector('.ayra-carousel-next');
+    const prev=carousel.querySelector('.ayra-carousel-prev');
+    const toggle=carousel.querySelector('.ayra-carousel-toggle');
+    const status=carousel.querySelector('.ayra-carousel-status');
+    const autoPlay=carousel.dataset.autoplay!=='false';
+    let timer=null,paused=!autoPlay;
+    const items=()=>track?[...track.querySelectorAll('.ayra-gallery-item,.pinna-floorplan-card')]:[];
+    const distance=()=>{
+      const first=items()[0];
+      const style=track?getComputedStyle(track):null;
+      const gap=style?parseFloat(style.columnGap||style.gap)||14:14;
+      return first?first.getBoundingClientRect().width+gap:(track?.clientWidth||0);
+    };
+    const go=(direction)=>{
+      const current=items();
+      if(!current.length||!track) return;
+      const step=distance();
+      const index=Math.round(track.scrollLeft/step);
+      const nextIndex=(index+direction+current.length)%current.length;
+      track.scrollTo({left:nextIndex*step,behavior:'smooth'});
+    };
+    const stop=()=>{if(timer){clearInterval(timer);timer=null}};
+    const start=()=>{stop();if(autoPlay&&!paused&&items().length>1)timer=setInterval(()=>go(1),Number(carousel.dataset.interval)||5000)};
+    const setPaused=(value)=>{
+      paused=value;
+      if(toggle){
+        toggle.textContent=paused?'Retomar':'Pausar';
+        toggle.setAttribute('aria-pressed',String(paused));
+        toggle.setAttribute('aria-label',paused?'Retomar carrossel':'Pausar carrossel');
+      }
+      if(status) status.textContent=autoPlay?(paused?'Carrossel pausado · use os botões para trocar as imagens':'Autoplay ativo · use Pausar para interromper'):'Use as setas para comparar as plantas.';
+      if(paused) stop(); else start();
+    };
+    next?.addEventListener('click',()=>{go(1);setPaused(true)});
+    prev?.addEventListener('click',()=>{go(-1);setPaused(true)});
+    toggle?.addEventListener('click',()=>setPaused(!paused));
+    carousel.addEventListener('focusin',()=>setPaused(true));
+    carousel.addEventListener('focusout',(e)=>{if(!carousel.contains(e.relatedTarget))setPaused(autoPlay?false:true)});
+    carousel.addEventListener('touchstart',()=>setPaused(true),{passive:true});
+    if(autoPlay) start();
+    else {
+      toggle?.remove();
+      if(status) status.textContent='Use as setas para comparar as plantas.';
+    }
+  });
+}
 		function pinnaLanding(p){const b=p.blocos||{},h=b.hero||{},facts=b.facts||[],sections=b.secoes||[],imgs=Array.isArray(p.imagens)?p.imagens:[],plants=imgs.filter(i=>/unidade|planta/i.test(String(i.url||i.nome||''))),plantLabel=(i,n)=>{const m=String(i.url||i.nome||'').match(/(?:unidade|planta)[^0-9]*([0-9]+)/i);return m?m[1].padStart(2,'0'):String(n+1).padStart(2,'0')},wa='https://wa.me/5547992120915?text='+encodeURIComponent('Olá, quero conhecer o Pinna Studios em Penha.'),items=imgs.map(i=>`<figure class="ayra-gallery-item"><img loading="lazy" src="${esc(ayraMedia(i.url))}" alt="${esc(i.alt||p.titulo)}"><figcaption>${esc(i.legenda||'Pinna Studios')}</figcaption></figure>`).join(''),section=(type)=>sections.find(s=>s.tipo===type)||{},feature=(x)=>x.titulo?`<section class="ayra-section pinna-feature ${x.reverse?'pinna-reverse':''}"><div class="ayra-wrap ayra-split"><div class="ayra-media-card">${x.imagem_url?`<img src="${esc(ayraMedia(x.imagem_url))}" alt="${esc(x.titulo)}" loading="lazy">`:''}</div><div class="ayra-copy"><span class="ayra-ey">${esc(x.ey||'Pinna Studios')}</span><h2>${ayraText(x.titulo)}</h2><p>${ayraText(x.texto||'')}</p>${(x.itens||[]).length?`<div class="ayra-feature-list">${x.itens.map(i=>`<div><b>✓</b> ${ayraText(i)}</div>`).join('')}</div>`:''}</div></div></section>`:'';const t=section('tipologias');return `<div class="ayra-landing pinna-landing"><section class="ayra-hero" style="background-image:url('${esc(ayraMedia(h.imagem_url||p.imagem_capa_url))}')"><div class="ayra-hero-overlay"></div><div class="ayra-wrap ayra-hero-inner"><span class="ayra-kicker">${esc(h.kicker||'UM NOVO JEITO DE VIVER PENHA')}</span><h1>${ayraText(h.titulo||p.titulo)}</h1><p>${ayraText(h.texto||p.resumo)}</p><div class="ayra-actions"><a class="ayra-btn" href="${esc(wa)}" target="_blank" rel="noopener">Quero conhecer o Pinna</a><a class="ayra-btn ayra-btn-ghost" href="#empreendimento">Ver o empreendimento</a></div></div></section><section class="ayra-fact-strip"><div class="ayra-wrap ayra-facts">${facts.map(i=>`<div><strong>${esc(i[0])}</strong><span>${esc(i[1])}</span></div>`).join('')}</div></section>${feature(section('conceito'))}<section id="empreendimento" class="ayra-section pinna-typologies"><div class="ayra-wrap"><div class="ayra-section-head"><div><span class="ayra-ey">Studios Pinna</span><h2>${ayraText(t.titulo||'Tipologias para diferentes momentos.')}</h2></div><p>${ayraText(t.texto||'Conheça as unidades e escolha o studio que combina com o seu momento.')}</p></div><div class="pinna-unit-carousel"><div class="ayra-carousel-track">${(t.itens||[]).map(i=>`<article class="pinna-unit-card"><strong>${esc(i[0])}</strong><h3>${ayraText(i[1])}</h3><p>${ayraText(i[2]||'Consulte a planta e a disponibilidade.')}</p></article>`).join('')}</div></div><div class="pinna-floorplan-carousel ayra-carousel" tabindex="0"><div class="ayra-carousel-track">${plants.map((i,n)=>`<figure class="pinna-floorplan-card"><img loading="lazy" src="${esc(ayraMedia(i.url))}" alt="Planta da unidade ${esc(plantLabel(i,n))} do Pinna Studios"><figcaption>Planta da unidade ${esc(plantLabel(i,n))}</figcaption></figure>`).join()}</div><button class="ayra-carousel-prev" type="button" aria-label="Planta anterior">‹</button><button class="ayra-carousel-next" type="button" aria-label="Próxima planta">›</button><button class="ayra-carousel-toggle" type="button">Pausar</button><div class="ayra-carousel-status">Plantas em rotação automática</div></div></div></section>${feature(section('lazer'))}${feature(section('rooftop'))}<section class="pinna-pause"><div><span class="ayra-ey">O detalhe que muda a experiência</span><h2>${ayraText(section('pausa').titulo||'Compacto por fora. Completo na forma de viver.')}</h2><p>${ayraText(section('pausa').texto||'No Pinna, cada escolha foi pensada para deixar a rotina mais simples, conectada e desejável.')}</p></div></section><section id="galeria" class="ayra-section ayra-soft pinna-r2-gallery"><div class="ayra-wrap"><div class="ayra-section-head"><div><span class="ayra-ey">Galeria</span><h2>Veja o Pinna por dentro.</h2></div><p>Ambientes, lazer e detalhes que ajudam você a imaginar a experiência.</p></div><div class="ayra-carousel" tabindex="0"><div class="ayra-carousel-track">${items}</div><button class="ayra-carousel-prev" type="button" aria-label="Imagem anterior">‹</button><button class="ayra-carousel-next" type="button" aria-label="Próxima imagem">›</button><button class="ayra-carousel-toggle" type="button">Pausar</button><div class="ayra-carousel-status">Autoplay ativo</div></div></div></section>${feature(section('localizacao'))}<section class="ayra-section ayra-stay22"><div class="ayra-wrap"><div class="ayra-stay22-card"><div class="ayra-stay22-copy"><span class="ayra-ey">Localização e hospedagem</span><h2>Penha no seu ritmo.</h2><p>Entre a praia, o Beto Carrero e uma cidade que recebe pessoas o ano inteiro, o Pinna coloca você perto do que faz Penha ser especial.</p></div><div class="ayra-stay22-frame"><iframe title="Opções de hospedagem próximas ao Pinna Studios" width="100%" height="428" src="https://www.stay22.com/embed/6acfe25a89efbbe3a8e2fbae" frameborder="0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div><p class="ayra-stay22-note">Valores e disponibilidade são definidos pelos fornecedores. Consulte as condições vigentes.</p></div></div></section><section class="ayra-final"><div class="ayra-wrap"><div><h2>Seu próximo studio pode começar aqui.</h2><p>Fale com a Luan Especialista e receba o material completo do Pinna Studios.</p></div><a class="ayra-btn" href="${esc(wa)}" target="_blank" rel="noopener">Falar com especialista</a></div></section><div class="ayra-legal ayra-wrap">Imagens meramente ilustrativas. Consulte o material técnico, o memorial descritivo e as condições vigentes.</div><footer class="ayra-footer"><div class="ayra-wrap"><div class="ayra-footer-brand"><strong>Luan Especialista</strong><span>Estratégias patrimoniais e oportunidades em Penha.</span></div><div class="ayra-footer-contact"><span>Pinna Studios · Penha/SC</span><a href="https://luan-especialista.pro" target="_blank" rel="noopener">luan-especialista.pro</a></div><a class="ayra-footer-cta" href="${esc(wa)}" target="_blank" rel="noopener">Falar com especialista</a></div></footer></div>`}
 		async function loadPinnaR2Media(){try{const response=await fetch('/api/media?list=1&enterprise=pinna&v=live',{headers:{accept:'application/json'}});if(!response.ok)return;const data=await response.json();const objects=Array.isArray(data.objects)?data.objects:[];if(!objects.length)return;const landing=document.querySelector('.pinna-landing');const pinnaObjects=objects.filter(o=>/pinna/i.test(o.key));const floorplans=pinnaObjects.filter(o=>/(?:unidade|planta|tipologia)/i.test(o.key));const galleryObjects=pinnaObjects.filter(o=>!/(?:unidade|planta|tipologia)/i.test(o.key));const hero=landing?.querySelector('.ayra-hero');const first=pinnaObjects.find(o=>/fachada|capa|cover/i.test(o.key))||pinnaObjects[0];if(hero&&first)hero.style.backgroundImage=`url('${first.url}&v=live')`;const gallery=landing?.querySelector('.pinna-r2-gallery');const track=gallery?.querySelector('.ayra-carousel-track');if(track){track.innerHTML=galleryObjects.map((o,i)=>`<figure class="ayra-gallery-item"><img loading="lazy" src="${esc(o.url)}&v=live" alt="Pinna Studios — imagem ${i+1}"><figcaption>Pinna Studios</figcaption></figure>`).join('');gallery.hidden=false}const floorTrack=landing?.querySelector('.pinna-floorplan-carousel .ayra-carousel-track');if(floorTrack){floorTrack.innerHTML=floorplans.map((o,i)=>{const m=o.key.match(/(?:unidade|planta|tipologia)[^0-9]*([0-9]+)/i);const label=m?m[1].padStart(2,'0'):String(i+1).padStart(2,'0');return `<figure class="pinna-floorplan-card"><img loading="lazy" src="${esc(o.url)}&v=live" alt="Planta da unidade ${label} do Pinna Studios"><figcaption>Planta da unidade ${label}</figcaption></figure>`}).join('')}bindAyraLanding()}catch(_){/* a página continua funcional mesmo se o inventário estiver indisponível */}}
 
@@ -247,7 +297,29 @@ const ayraText=(v='')=>esc(String(v||'')).replace(/\n/g,'<br>');
 	    document.body.classList.add('ayra-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel ayra-article';applySeo(p);root.innerHTML=ayraLanding(p);bindAyraLanding();return;
 	  }
 	  if(b.template==='pinna-landing'){
-	    document.body.classList.add('pinna-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel pinna-article';applySeo(p);root.innerHTML=pinnaLanding(p);bindAyraLanding();loadPinnaR2Media();return;
+	    document.body.classList.add('pinna-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel pinna-article';applySeo(p);root.innerHTML=pinnaLanding(p);
+            const pinna=root.querySelector('.pinna-landing');
+            const floorplans=pinna?.querySelector('.pinna-floorplan-carousel');
+            const facts=pinna?.querySelector('.ayra-fact-strip');
+            if(floorplans&&facts&&!pinna.querySelector('#plantas')){
+              const plantSection=document.createElement('section');
+              plantSection.id='plantas';
+              plantSection.className='ayra-section pinna-plants-section';
+              const wrap=document.createElement('div');
+              wrap.className='ayra-wrap';
+              const heading=document.createElement('div');
+              heading.className='ayra-section-head';
+              heading.innerHTML='<div><span class="ayra-ey">PLANTAS DO PINNA</span><h2>Veja cada planta em detalhe.</h2></div><p>Navegue pelas plantas em tamanho ampliado. Use as setas para comparar a configuração de cada unidade.</p>';
+              floorplans.dataset.autoplay='false';
+              floorplans.setAttribute('aria-label','Carrossel de plantas do Pinna Studios');
+              wrap.append(heading,floorplans);
+              plantSection.append(wrap);
+              facts.insertAdjacentElement('afterend',plantSection);
+              pinna.querySelector('.ayra-hero .ayra-btn-ghost')?.setAttribute('href','#plantas');
+            }
+            bindAyraLanding();
+            loadPinnaR2Media();
+            return;
 	  }
 	  if(b.template==='park-beach-landing'){
 	    document.body.classList.add('park-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel park-article';applySeo(p);root.innerHTML=parkLanding(p);loadParkR2Media();return;
