@@ -56,7 +56,7 @@ const BLOG_FOOTER_HTML = `<footer class="blog-site-footer" aria-label="Rodapé d
       <p class="blog-footer-contact-line"><span class="blog-footer-icon" aria-hidden="true">⌖</span><span>Penha · SC</span></p>
     </section>
   </div>
-  <div class="blog-site-footer-bottom"><span>© ${new Date().getFullYear()} Luan Especialista. Todos os direitos reservados.</span><span>Informações, valores e condições podem mudar a qualquer momento, sem aviso prévio.</span></div>
+  <div class="blog-site-footer-bottom"><span>© 2026 Luan Especialista. Todos os direitos reservados.</span><span>Informações, valores e condições podem mudar a qualquer momento, sem aviso prévio.</span></div>
 </footer>`;
 
 const safeLink = (value = "") => {
@@ -567,11 +567,11 @@ function renderPage(post) {
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
-  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-1">
+  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261022-blog-footer-1"></script>
-  <script defer src="/assets/site-runtime.js?v=20261022-3"></script>
+  <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
 <body>
@@ -740,11 +740,11 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
-  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-1">
+  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261022-blog-footer-1"></script>
-  <script defer src="/assets/site-runtime.js?v=20261022-3"></script>
+  <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
 <body>
