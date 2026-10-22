@@ -76,6 +76,15 @@ export async function onRequest(context) {
   const { request, env } = context;
   if (!env.MEDIA) return json({ error: "O binding MEDIA do Cloudflare R2 ainda não está configurado no Pages." }, 503);
 
+  const requestUrl = new URL(request.url);
+  if (request.method === "GET" && requestUrl.searchParams.get("key")) {
+    const key = requestUrl.searchParams.get("key") || "";
+    if (!key.startsWith(BUCKET_PREFIX) || !normalize(key).includes("pinna") || !/\.(?:jpe?g|png|webp|avif|gif)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
+    const object = await env.MEDIA.get(key);
+    if (!object) return json({ error: "Arquivo não encontrado." }, 404);
+    return new Response(object.body, { headers: { "content-type": object.httpMetadata?.contentType || "application/octet-stream", "cache-control": "public, max-age=86400" } });
+  }
+
   // A landing pública do Pinna precisa descobrir as imagens editoriais já
   // armazenadas no R2. A listagem é deliberadamente limitada ao prefixo do
   // empreendimento e retorna somente imagens públicas, sem metadados internos.
@@ -88,7 +97,7 @@ export async function onRequest(context) {
       const listing = await env.MEDIA.list({ prefix, limit: 1000 });
       for (const object of listing?.objects || []) {
         if (/\.(?:jpe?g|png|webp|avif|gif)$/i.test(object.key) && normalize(object.key).includes("pinna")) {
-          objects.push({ key: object.key, url: publicUrl(object.key), size: object.size || 0 });
+          objects.push({ key: object.key, url: `${requestUrl.origin}/api/media?key=${encodeURIComponent(object.key)}`, size: object.size || 0 });
         }
       }
     }
