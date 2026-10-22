@@ -819,7 +819,8 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
               const balaoValor = Number(fluxo.reforco_obra_valor || fluxo.baloes_obra_val || 0);
               const financiamentoValor = Number(fluxo.financiamento_valor || fluxo.saldo_financiamento || fluxo.valor_financiamento || fluxo.chaves || 0);
               const indicePre = fluxo.indice_pre_chaves || regrasCorrecao.indice_pre_chaves;
-              const indicePos = fluxo.indice_pos_chaves || regrasCorrecao.indice_pos_chaves;
+              const indicePos = fluxo.tem_pos_chaves === false ? null : (fluxo.indice_pos_chaves || regrasCorrecao.indice_pos_chaves);
+              const saldoLabel = fluxo.modalidade === "financiamento" || fluxo.destino_saldo === "financiamento bancário" ? "Financiamento / saldo" : "Pós-chaves / saldo";
               const hasFlowDetails = atoFluxo > 0 || parcelaValor > 0 || balaoValor > 0 || financiamentoValor > 0;
               const dataEntrega = getDataEntregaExibicao(u);
 
@@ -1047,9 +1048,9 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
                         {atoFluxo > 0 && <span>• Ato / entrada: <strong style={{ color: "#fff" }}>{formatCurrency(atoFluxo)}</strong></span>}
                         {parcelaValor > 0 && <span>• Mensais: <strong style={{ color: "#fff" }}>{parcelasQtd > 0 ? `${parcelasQtd}x ` : ""}{formatCurrency(parcelaValor)}</strong></span>}
                         {balaoValor > 0 && <span>• Balões: <strong style={{ color: "#fff" }}>{baloesQtd > 0 ? `${baloesQtd}x ` : ""}{formatCurrency(balaoValor)}</strong></span>}
-                        {financiamentoValor > 0 && <span>• Pós-chaves / saldo: <strong style={{ color: "#fff" }}>{formatCurrency(financiamentoValor)}</strong></span>}
+                        {financiamentoValor > 0 && <span>• {saldoLabel}: <strong style={{ color: "#fff" }}>{formatCurrency(financiamentoValor)}</strong></span>}
                       </div>
-                      {(fluxo.percentual_ate_chaves || fluxo.percentual_pos_chaves) && <div style={{ color: "#a1a1aa", marginTop: 4 }}>Composição: {fluxo.percentual_ate_chaves || "—"}% até as chaves · {fluxo.percentual_pos_chaves || "—"}% pós-chaves</div>}
+                      {(fluxo.percentual_ate_chaves || fluxo.percentual_financiamento || fluxo.percentual_pos_chaves) && <div style={{ color: "#a1a1aa", marginTop: 4 }}>Composição: {fluxo.percentual_ate_chaves || "—"}% até as chaves · {fluxo.percentual_financiamento || fluxo.percentual_pos_chaves || "—"}% financiamento</div>}
                     </div>}
 
                     {capacidadeInformada && analiseFluxo.status === "compativel" && <div style={{ marginTop: 10, padding: 9, borderRadius: 6, border: "1px solid #14532d", background: "#052e162b", fontSize: 11, lineHeight: 1.55 }}><strong style={{ color: "#34d399", display: "block", marginBottom: 3 }}>Fluxo compatível · {analiseFluxo.preKeysPercent.toLocaleString("pt-BR")}% até as chaves</strong><span style={{ color: "#d4d4d8" }}>{formatCurrency(analiseFluxo.suggestedEntry)} de entrada · {analiseFluxo.months}x {formatCurrency(analiseFluxo.suggestedInstallment)}{analiseFluxo.balloonCount > 0 ? ` · ${analiseFluxo.balloonCount} balões de ${formatCurrency(analiseFluxo.suggestedBalloon)}` : ""}</span><span style={{ color: "#8b8b95", display: "block" }}>Total até as chaves: {formatCurrency(analiseFluxo.preKeysTarget)} · saldo nas chaves: {formatCurrency(analiseFluxo.balanceAtKeys)}</span></div>}
@@ -1073,7 +1074,7 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.2rem", color: "#a1a1aa" }}>
                               {fluxo.mensais_obra_qtd > 0 && <span>• {fluxo.mensais_obra_qtd}x Mensais Obra: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.mensais_obra_val)}</strong></span>}
                               {fluxo.baloes_obra_qtd > 0 && <span>• {fluxo.baloes_obra_qtd}x Balões Obra: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.baloes_obra_val)}</strong></span>}
-                              {fluxo.chaves > 0 && <span>• Chaves / Financiamento: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.chaves)}</strong></span>}
+                              {financiamentoValor > 0 && <span>• Financiamento / saldo: <strong style={{ color: "#fff" }}>{formatCurrency(financiamentoValor)}</strong></span>}
                               {fluxo.mensais_pos_qtd > 0 && <span>• {fluxo.mensais_pos_qtd}x Mensais Pós: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.mensais_pos_val)}</strong></span>}
                               {fluxo.baloes_pos_qtd > 0 && <span>• {fluxo.baloes_pos_qtd}x Reforços anuais Pós-chaves: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.baloes_pos_val)}</strong></span>}
                             </div>
