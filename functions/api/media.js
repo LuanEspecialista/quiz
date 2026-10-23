@@ -80,7 +80,7 @@ export async function onRequest(context) {
   if (request.method === "GET" && requestUrl.searchParams.get("key")) {
     const key = requestUrl.searchParams.get("key") || "";
     const normalizedKey = normalize(key);
-    const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park") || /\/apresenta(?:cao|coes)\//i.test(key);
+    const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park") || /\.pdf$/i.test(key) || /\/apresenta(?:cao|coes)\//i.test(key);
     if (!key.startsWith(BUCKET_PREFIX) || !allowedAsset || !/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov|pdf)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
     const object = await env.MEDIA.get(key);
     if (!object) return json({ error: "Arquivo não encontrado." }, 404);
