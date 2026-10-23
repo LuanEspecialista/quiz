@@ -4,6 +4,8 @@ import {
   BedDouble,
   Building2,
   Check,
+  Copy,
+  KeyRound,
   MessageCircle,
   Pencil,
   Plus,
@@ -239,6 +241,8 @@ export default function Clientes({
     [open, setOpen] = useState(false),
     [saving, setSaving] = useState(false),
     [message, setMessage] = useState("");
+  const [accessBusy, setAccessBusy] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<{ nome: string; email: string; usuario: string; senha: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null),
     [curating, setCurating] = useState<Client | null>(null),
     [comparing, setComparing] = useState<Client | null>(null);
@@ -385,6 +389,41 @@ export default function Clientes({
     setMessage(error?.message || "Cliente excluído.");
     if (!error) void load();
   };
+  async function generateClientAccess(item: Client) {
+    if (!item.email) return setMessage("Cadastre um e-mail para gerar o acesso.");
+    setAccessBusy(String(item.id));
+    setCredentials(null);
+    setMessage("");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) throw new Error("Sessão expirada. Entre novamente no painel.");
+      const { data, error } = await supabase.functions.invoke("gerenciar-acesso", {
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+        body: {
+          nome: item.nome,
+          email: item.email,
+          tipo: "cliente",
+          usuario: "",
+          aniversario_dia: item.aniversario_dia || 1,
+          aniversario_mes: item.aniversario_mes || 1,
+        },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Não foi possível gerar o acesso.");
+      setCredentials({ nome: item.nome, email: data.email || item.email, usuario: data.usuario || "", senha: data.temporary_password || "" });
+      setMessage(item.user_id ? "Nova senha temporária gerada. Copie e envie agora; ela não ficará armazenada no painel." : "Acesso criado e vinculado à cliente. Copie e envie as credenciais agora.");
+      void load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível gerar o acesso.");
+    } finally {
+      setAccessBusy(null);
+    }
+  }
+  async function copyCredentials() {
+    if (!credentials) return;
+    await navigator.clipboard.writeText(`Acesso à plataforma Luan Especialista\nE-mail: ${credentials.email}\nUsuário: ${credentials.usuario}\nSenha temporária: ${credentials.senha}\nAcesse: ${window.location.origin}/painel/`);
+    setMessage("Credenciais copiadas. Envie-as à cliente e recomende a troca da senha após o primeiro acesso.");
+  }
+
   const setAccess = async (item: Client, active: boolean) => {
     const client = await supabase
       .from("clientes")
@@ -565,6 +604,19 @@ export default function Clientes({
         <div style={{ ...panel, borderColor: "#854d0e", color: "#fbbf24" }}>
           {message}
         </div>
+      )}
+      {credentials && (
+        <section style={{ ...panel, borderColor: "#166534", background: "#0d1b12" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div><strong style={{ color: "#bbf7d0" }}>Credenciais de {credentials.nome}</strong><small style={{ display: "block", color: "#86efac", marginTop: 4 }}>A senha é exibida somente agora. Copie antes de fechar ou atualizar a tela.</small></div>
+            <button style={{ ...button, background: "#86efac", color: "#052e16" }} onClick={() => void copyCredentials()}><Copy size={15} /> Copiar mensagem completa</button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 8, marginTop: 12 }}>
+            <input readOnly value={credentials.email} style={input} aria-label="E-mail de acesso" />
+            <input readOnly value={credentials.usuario} style={input} aria-label="Usuário de acesso" />
+            <input readOnly value={credentials.senha} style={{ ...input, fontFamily: "monospace" }} aria-label="Senha temporária" />
+          </div>
+        </section>
       )}
       {siteOpportunityLeads.length > 0 && <details style={{...panel,borderColor:"#8a6a2e"}} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Solicitações de conversa ({siteOpportunityLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{siteOpportunityLeads.map((lead)=><article key={lead.id} style={{border:"1px solid #4a3a20",borderRadius:8,padding:11,background:"#15120d"}}><div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>Solicitação de {lead.nome}</strong><span style={{color:"#edcf91",fontSize:12}}>{lead.empreendimento_nome_interno || "Oportunidade selecionada"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.telefone || "Sem telefone"}{lead.email ? ` · ${lead.email}` : ""} · {new Date(lead.criado_em).toLocaleString("pt-BR")}</small>{lead.objetivo && <p style={{fontSize:12,color:"#d4d4d8",margin:"8px 0 0"}}>Objetivo: {lead.objetivo}</p>}<small style={{display:"block",color:"#888",marginTop:7}}>A oportunidade clicada foi vinculada internamente ao cadastro.</small></article>)}</div></details>}
       {blogLeads.length > 0 && <details style={panel} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Leads identificados pelo Blog ({blogLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{blogLeads.map((lead)=><article key={lead.user_id} style={{border:"1px solid #303036",borderRadius:8,padding:11}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}><strong>{lead.nome || "Leitor identificado"}</strong><span style={{color:lead.consentiu_contato?"#9bd4ac":"#a1a1aa",fontSize:11}}>{lead.consentiu_contato?"Autorizou contato":"Sem autorização para contato"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.email}{lead.blog_posts?.titulo ? ` · Origem: ${lead.blog_posts.titulo}` : ""}</small>{lead.interesses?.length ? <p style={{fontSize:12,color:"#d4d4d8",marginBottom:0}}>Interesses: {lead.interesses.join(" · ")}</p> : <small style={{color:"#71717a"}}>Ainda não informou interesses.</small>}</article>)}</div></details>}
@@ -771,6 +823,14 @@ export default function Clientes({
                   flexWrap: "wrap",
                 }}
               >
+                <button
+                  onClick={() => void generateClientAccess(item)}
+                  disabled={accessBusy === String(item.id) || !item.email}
+                  style={{ ...button, background: "#c5a059", color: "#09090b", fontSize: 11, opacity: accessBusy === String(item.id) || !item.email ? 0.55 : 1 }}
+                  title={!item.email ? "Cadastre um e-mail primeiro" : "Gerar credenciais de acesso"}
+                >
+                  <KeyRound size={14} /> {accessBusy === String(item.id) ? "Gerando..." : item.user_id ? "Nova senha" : "Gerar acesso"}
+                </button>
                 {item.user_id && (
                   <button
                     onClick={() => void setAccess(item, !item.acesso_portal)}
