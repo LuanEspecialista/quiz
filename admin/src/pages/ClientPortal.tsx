@@ -105,7 +105,7 @@ function PresentationSlides({ url, title, onClose }: { url: string; title: strin
   useEffect(() => {
     let disposed = false;
     setLoading(true); setMessage(""); setPage(1);
-    pdfjsLib.getDocument({ url, withCredentials: false }).promise.then((document) => {
+    pdfjsLib.getDocument({ url, withCredentials: false, disableAutoFetch: false, disableStream: false, rangeChunkSize: 1024 * 1024 }).promise.then((document) => {
       if (disposed) return;
       setPdf(document);
     }).catch(() => { if (!disposed) setMessage("Não foi possível carregar esta apresentação."); setLoading(false); });
@@ -708,85 +708,26 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           </section>
         )}
         {!activeOpportunity && opportunities.length > 0 && (
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(270px,1fr))",
-              gap: 16,
-            }}
-          >
+          <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(290px,1fr))",gap:16}}>
             {opportunities.map((item) => {
               const cover = item.imagens?.[0]?.url;
               return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveOpportunity(item);
-                    if (item.apresentacao?.url) openPresentation(item);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  style={{
-                    padding: 0,
-                    textAlign: "left",
-                    border: "1px solid #332d22",
-                    background: "#101012",
-                    color: "#fff",
-                    borderRadius: 13,
-                    overflow: "hidden",
-                    cursor: "pointer",
-                  }}
-                >
-                  {cover ? (
-                    <img
-                      src={cover}
-                      alt={item.nome || "Empreendimento"}
-                      style={{
-                        width: "100%",
-                        height: 190,
-                        objectFit: "cover",
-                        display: "block",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        height: 110,
-                        display: "grid",
-                        placeItems: "center",
-                        background: "linear-gradient(135deg,#18140e,#111113)",
-                        color: "#806a43",
-                      }}
-                    >
-                      <Building2 size={34} />
+                <article key={item.id} style={{border:"1px solid #332d22",background:"#101012",color:"#fff",borderRadius:13,overflow:"hidden"}}>
+                  <button type="button" onClick={() => openPresentation(item)} style={{display:"block",width:"100%",padding:0,textAlign:"left",border:0,background:"transparent",color:"inherit",cursor:item.apresentacao?.url?"pointer":"default"}}>
+                    {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{width:"100%",height:190,objectFit:"cover",display:"block"}} /> : <div style={{height:110,display:"grid",placeItems:"center",background:"linear-gradient(135deg,#18140e,#111113)",color:"#806a43"}}><Building2 size={34} /></div>}
+                    <div style={{padding:"17px 17px 12px",display:"grid",gap:8}}>
+                      <small style={{color:"#d7ab63",fontWeight:800}}>{[item.bairro,item.cidade].filter(Boolean).join(" · ") || item.status}</small>
+                      <span style={{fontSize:22,fontWeight:800}}>{item.nome}</span>
+                      <span style={{color:"#a1a1aa",fontSize:13}}>{item.preco != null ? `A partir de ${money(item.preco)}` : "Consulte os detalhes liberados"}</span>
+                      {item.apresentacao?.url && <span style={{display:"flex",alignItems:"center",gap:6,color:"#edcf91",fontWeight:800,marginTop:5}}>Abrir apresentação <ChevronRight size={18} /></span>}
                     </div>
-                  )}
-                  <div style={{ padding: 17, display: "grid", gap: 8 }}>
-                    <small style={{ color: "#d7ab63", fontWeight: 800 }}>
-                      {[item.bairro, item.cidade].filter(Boolean).join(" · ") ||
-                        item.status}
-                    </small>
-                    <span style={{ fontSize: 22, fontWeight: 800 }}>
-                      {item.nome}
-                    </span>
-                    <span style={{ color: "#a1a1aa", fontSize: 13 }}>
-                      {item.preco != null
-                        ? `A partir de ${money(item.preco)}`
-                        : "Consulte os detalhes liberados"}
-                    </span>
-                    <span
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        color: "#edcf91",
-                        fontWeight: 800,
-                        marginTop: 5,
-                      }}
-                    >
-                      Ver apresentação <ChevronRight size={18} />
-                    </span>
+                  </button>
+                  <div style={{padding:"0 17px 17px",display:"grid",gap:9}}>
+                    {!!item.unidades?.length && <button type="button" onClick={() => openProposal(item)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:8,padding:12,fontWeight:800,cursor:"pointer"}}><Landmark size={15} /> Fluxo e proposta ({item.unidades.length} unidades liberadas)</button>}
+                    {(item.permitir_proposta || item.exibir_fluxo) && !item.unidades?.length && <button type="button" onClick={() => openProposal(item)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:8,padding:12,fontWeight:800,cursor:"pointer"}}><Landmark size={15} /> Abrir editor de fluxo e proposta</button>}
+                    {!item.unidades?.length && !(item.permitir_proposta || item.exibir_fluxo) && <small style={{color:"#71717a"}}>Apresentação disponível. Consulte o especialista para condições e unidades.</small>}
                   </div>
-                </button>
+                </article>
               );
             })}
           </section>
@@ -899,6 +840,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   <X size={16} />
                 </button>
               </header>
+              {proposal.unidades?.length ? <div style={{marginTop:22,padding:12,border:"1px solid #514124",borderRadius:9,background:"#17140e"}}><strong style={{display:"block",color:"#edcf91",fontSize:12,marginBottom:8}}>Escolha a unidade para simular</strong><div style={{display:"grid",gap:7}}>{proposal.unidades.map((unit)=>{const active=proposalUnit?.id===unit.id;return <button type="button" key={unit.id} onClick={()=>{setProposalUnit(unit);setEntry(Math.round(Number(unit.valor||proposal.preco||0)*0.1));}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,textAlign:"left",border:`1px solid ${active?"#d7ab63":"#3f3f46"}`,background:active?"#2a2112":"#111113",color:"#f5e0b2",borderRadius:7,padding:"9px 10px",cursor:"pointer"}}><span><b>{unit.codigo||unit.numero||"Unidade"}</b>{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</span><span>{money(unit.valor)}</span></button>})}</div></div> : null}
               <div
                 style={{
                   display: "grid",

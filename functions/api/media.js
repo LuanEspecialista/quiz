@@ -82,9 +82,35 @@ export async function onRequest(context) {
     const normalizedKey = normalize(key);
     const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park") || /\.pdf$/i.test(key) || /\/apresenta(?:cao|coes)\//i.test(key);
     if (!key.startsWith(BUCKET_PREFIX) || !allowedAsset || !/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov|pdf)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
-    const object = await env.MEDIA.get(key);
+    const head = await env.MEDIA.head(key);
+    if (!head) return json({ error: "Arquivo não encontrado." }, 404);
+    const rangeHeader = request.headers.get("range");
+    let object;
+    let status = 200;
+    const headers = {
+      "content-type": head.httpMetadata?.contentType || "application/pdf",
+      "cache-control": "public, max-age=3600",
+      "accept-ranges": "bytes",
+      "content-disposition": "inline",
+      "content-length": String(head.size || 0),
+    };
+    if (rangeHeader) {
+      const match = rangeHeader.match(/^bytes=(\d+)-(\d*)$/);
+      if (match) {
+        const start = Number(match[1]);
+        const requestedEnd = match[2] ? Number(match[2]) : (head.size || 1) - 1;
+        const end = Math.min(requestedEnd, (head.size || 1) - 1);
+        if (start <= end) {
+          object = await env.MEDIA.get(key, { range: { offset: start, length: end - start + 1 } });
+          status = 206;
+          headers["content-length"] = String(end - start + 1);
+          headers["content-range"] = `bytes ${start}-${end}/${head.size}`;
+        }
+      }
+    }
+    if (!object) object = await env.MEDIA.get(key);
     if (!object) return json({ error: "Arquivo não encontrado." }, 404);
-    return new Response(object.body, { headers: { "content-type": object.httpMetadata?.contentType || "application/octet-stream", "cache-control": "no-store, max-age=0, must-revalidate" } });
+    return new Response(object.body, { status, headers });
   }
 
   // A landing pública do Pinna precisa descobrir as imagens editoriais já
