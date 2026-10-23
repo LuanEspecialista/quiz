@@ -24,9 +24,13 @@
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13" />
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1" />
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3" />
+  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4" />
+  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-1" />
+  <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2" />
+  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2" />
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261020-3"></script>
-<script defer src="/assets/site-runtime.js?v=20261007-3"></script><script defer src="/assets/public-quotations.js?v=20261020-2"></script></head>
+  <script defer src="/assets/blog.js?v=20261022-blog-footer-1"></script>
+<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261020-2"></script></head>
 <body>
   <header class="site-header">
     <a class="brand" href="/" aria-label="Página inicial Luan Especialista"><img src="/imagens/logo.png" alt="Luan Especialista" /></a>
@@ -41,17 +45,39 @@
       <div class="filters" id="filters" aria-label="Filtrar artigos"></div>
     </section>
     <section class="posts" id="posts" aria-live="polite"><p class="loading">Carregando conteúdos selecionados…</p></section>
-    <section class="newsletter" aria-labelledby="newsletter-title">
-      <div><p class="eyebrow">RECEBA APENAS O QUE IMPORTA</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens e com descadastro simples.</p></div>
+    <section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
+      <div><p class="eyebrow">NEWSLETTER</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens.</p></div>
       <form id="newsletter-form" novalidate>
-        <label for="newsletter-name">Nome <span>opcional</span></label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Como podemos chamar você?" />
-        <label for="newsletter-email">Seu melhor e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="voce@exemplo.com" />
+        <label for="newsletter-name">Seu nome</label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Digite seu nome" />
+        <label for="newsletter-email">Seu e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="Digite seu e-mail" />
         <input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <label class="consent"><input id="newsletter-consent" type="checkbox" required /> <span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label>
         <button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p>
       </form>
     </section>
   </main>
-  <footer><div><strong>Luan Especialista</strong><span>Estratégia patrimonial, imóveis e decisões com contexto.</span></div><div><a href="/quem-somos/">Quem somos</a><a href="/faq/">Perguntas frequentes</a><a href="/privacidade/">Privacidade</a><a href="/termos/">Termos de uso</a></div><div><a href="https://api.whatsapp.com/send?phone=5547992120915">WhatsApp: +55 47 99212-0915</a><a href="mailto:contato@luan-especialista.pro">contato@luan-especialista.pro</a><span>© 2026 Luan Especialista</span></div></footer>
+  <footer class="blog-site-footer" aria-label="Rodapé do site">
+  <div class="blog-site-footer-grid">
+    <section class="blog-footer-brand">
+      <a class="blog-footer-wordmark" href="/"><span>LUAN</span> ESPECIALISTA</a>
+      <p>Estratégias patrimoniais, investimentos e oportunidades imobiliárias no litoral norte de Santa Catarina.</p>
+      <span class="blog-footer-accent" aria-hidden="true"></span>
+    </section>
+    <nav aria-label="Navegação do rodapé">
+      <h2>NAVEGAÇÃO</h2>
+      <a href="/">Início</a>
+      <a href="/estrategias-patrimoniais/">Estratégias Patrimoniais</a>
+      <a href="/imoveis/">Oportunidades</a>
+      <a href="/mobilidade-experiencias/">Mobilidade &amp; Experiências</a>
+    </nav>
+    <section class="blog-footer-contact">
+      <h2>ATENDIMENTO &amp; INFORMAÇÕES</h2>
+      <a class="blog-footer-contact-line" href="https://wa.me/5547992120915" target="_blank" rel="noopener noreferrer"><span class="blog-footer-icon" aria-hidden="true">◉</span><span>Falar com especialista</span></a>
+      <a class="blog-footer-contact-line" href="mailto:contato@luan-especialista.pro"><span class="blog-footer-icon" aria-hidden="true">✉</span><span>contato@luan-especialista.pro</span></a>
+      <p class="blog-footer-contact-line"><span class="blog-footer-icon" aria-hidden="true">⌖</span><span>Penha · SC</span></p>
+    </section>
+  </div>
+  <div class="blog-site-footer-bottom"><span>© 2026 Luan Especialista. Todos os direitos reservados.</span><span>Informações, valores e condições podem mudar a qualquer momento, sem aviso prévio.</span></div>
+</footer>
 </body>
 </html>

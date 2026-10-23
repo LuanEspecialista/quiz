@@ -27,8 +27,130 @@ if(t==='pergunta'||t==='cta')return `<aside class="content-block prompt ${t==='c
 return `<section class="content-block block-text">${title}${para(s.texto)}</section>`}
 function bindCarousel(){document.querySelectorAll('.carousel').forEach(x=>{const t=x.querySelector('.carousel-track');x.querySelector('.next')?.addEventListener('click',()=>t.scrollBy({left:t.clientWidth,behavior:'smooth'}));x.querySelector('.prev')?.addEventListener('click',()=>t.scrollBy({left:-t.clientWidth,behavior:'smooth'}))})}
 const interests=['Morar no litoral','Comprar um imóvel','Construir patrimônio','Aumentar ou proteger patrimônio','Gerar renda com imóveis','Comprar carro ou moto','Planejar uma viagem','Realizar um projeto pessoal','Trabalhar conosco','Quero orientação'];
-function engagement(p){const sid=localStorage.blog_session||(localStorage.blog_session=crypto.randomUUID());return `<section class="engagement"><h2>Este conteúdo foi útil?</h2><div class="stars">${[1,2,3,4,5].map(n=>`<button data-rate="${n}" aria-label="${n} estrelas">★</button>`).join('')}</div><p class="feedback"></p><div class="lead-box"><div class="lead-intro"><h3>Receba conteúdos de acordo com seus objetivos</h3><p>Identifique-se rapidamente. Isso não libera automaticamente a área privada nem cria qualquer compromisso.</p><button type="button" class="google-login" hidden>Continuar com Google</button><form class="magic-login"><input required type="email" name="email" placeholder="Seu melhor e-mail"><button>Continuar por e-mail</button></form></div><div class="lead-profile" hidden><h3>Bem-vindo, <span></span></h3><p>O que você gostaria de realizar?</p><div class="interest-grid">${interests.map(x=>`<label><input type="checkbox" value="${esc(x)}"> ${esc(x)}</label>`).join('')}</div><div class="lead-actions"><button type="button" class="save-interests">Salvar interesses</button><a class="team-whatsapp" target="_blank" rel="noopener">Falar com a equipe</a></div></div></div><form class="comment"><label>Deixe uma pergunta ou comentário<textarea required minlength="10" maxlength="1200" name="comentario"></textarea></label><label>Seu nome (opcional)<input maxlength="80" name="nome"></label><button>Enviar para moderação</button></form></section><i class="engagement-data" hidden data-id="${p.id}" data-title="${esc(p.titulo)}" data-session="${sid}"></i>`}
-async function bindEngagement(){const d=document.querySelector('.engagement-data');if(!d)return;const fb=document.querySelector('.feedback'),send=(path,body)=>api(`rpc/${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const hash=new URLSearchParams(location.hash.slice(1));if(hash.get('access_token')){accessToken=hash.get('access_token');localStorage.blog_access_token=accessToken;history.replaceState(null,'',location.pathname+location.search)}let user=null;if(accessToken){const r=await authApi('user');if(r.ok)user=await r.json();else{accessToken='';localStorage.removeItem('blog_access_token')}}const profile=document.querySelector('.lead-profile'),intro=document.querySelector('.lead-intro'),whatsapp=document.querySelector('.team-whatsapp');if(user){intro.hidden=true;profile.hidden=false;profile.querySelector('span').textContent=user.user_metadata?.full_name||user.email?.split('@')[0]||'visitante';document.querySelector('.comment input[name="nome"]').value=user.user_metadata?.full_name||'';const displayName=user.user_metadata?.full_name||user.email?.split('@')[0]||'Leitor';const existing=await api(`blog_leads?user_id=eq.${user.id}&select=interesses`);const lead=existing.ok?(await existing.json())[0]:null;if(lead?.interesses)document.querySelectorAll('.interest-grid input').forEach(x=>x.checked=lead.interesses.includes(x.value));else await api('blog_leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:user.id,email:user.email,nome:displayName,origem_post_id:d.dataset.id})})}else{const settings=await authApi('settings');if(settings.ok&&(await settings.json()).external?.google)document.querySelector('.google-login').hidden=false}document.querySelector('.google-login').onclick=()=>{location.href=`${cfg.supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(location.href.split('#')[0])}`};document.querySelector('.magic-login').onsubmit=async e=>{e.preventDefault();const email=new FormData(e.currentTarget).get('email'),r=await authApi(`otp?redirect_to=${encodeURIComponent(location.href.split('#')[0])}`,{method:'POST',body:JSON.stringify({email,create_user:true,options:{emailRedirectTo:location.href.split('#')[0]}})});fb.textContent=r.ok?'Enviamos um acesso rápido para seu e-mail.':'Não foi possível enviar o acesso agora.'};whatsapp.href=`https://wa.me/5547992120915?text=${encodeURIComponent('Olá, equipe Luan Especialista. Li o artigo “'+d.dataset.title+'” e gostaria de receber orientação.')}`;document.querySelector('.save-interests').onclick=async()=>{const selected=[...document.querySelectorAll('.interest-grid input:checked')].map(x=>x.value),name=user.user_metadata?.full_name||user.email.split('@')[0],r=await api('blog_leads?on_conflict=user_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({user_id:user.id,email:user.email,nome:name,origem_post_id:d.dataset.id,interesses:selected,atualizado_em:new Date().toISOString()})});fb.textContent=r.ok?'Preferências salvas. A equipe poderá orientar você com mais contexto.':'Não foi possível salvar agora.';whatsapp.href=`https://wa.me/5547992120915?text=${encodeURIComponent('Olá, equipe Luan Especialista. Li o artigo “'+d.dataset.title+'” e tenho interesse em: '+(selected.join(', ')||'receber orientação')+'.')}`};document.querySelectorAll('[data-rate]').forEach(b=>b.onclick=async()=>{const r=await send('registrar_avaliacao_blog',{p_post_id:d.dataset.id,p_sessao_id:d.dataset.session,p_nota:+b.dataset.rate});fb.textContent=r.ok?'Obrigado pela sua avaliação.':'Não foi possível avaliar agora.'});document.querySelector('.comment').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),r=await send('enviar_comentario_blog',{p_post_id:d.dataset.id,p_sessao_id:d.dataset.session,p_nome:f.get('nome')||null,p_comentario:f.get('comentario')});fb.textContent=r.ok?'Comentário enviado para moderação. Obrigado!':'Não foi possível enviar agora.';if(r.ok)e.currentTarget.reset()}}
+function engagement(p){
+  const sid=localStorage.blog_session||(localStorage.blog_session=crypto.randomUUID());
+  return `<section class="engagement" aria-labelledby="engagement-title">
+    <div class="engagement-header">
+      <div class="engagement-question"><p class="eyebrow">OPINIÃO DOS LEITORES</p><h2 id="engagement-title">Este conteúdo foi útil?</h2><p>Uma nota rápida ajuda outras pessoas a decidir por onde começar.</p></div>
+      <div class="rating-summary" aria-live="polite"><strong class="rating-average">—</strong><span class="rating-summary-stars" aria-hidden="true">☆☆☆☆☆</span><small class="rating-count">Carregando avaliações…</small></div>
+    </div>
+    <div class="stars" role="group" aria-label="Avalie este conteúdo de uma a cinco estrelas">${[1,2,3,4,5].map(n=>`<button data-rate="${n}" aria-label="${n} estrelas">★</button>`).join('')}</div>
+    <div class="review-identity" hidden>
+      <label class="review-name-field">Nome que aparecerá na avaliação<input class="review-display-name" type="text" maxlength="80" autocomplete="name" placeholder="Seu nome"></label>
+      <label class="review-public-consent"><input type="checkbox" class="review-public-checkbox"><span>Autorizo exibir publicamente meu nome e minha foto de perfil, se disponível, junto à avaliação.</span></label>
+    </div>
+    <section class="reader-reviews" hidden aria-label="Avaliações identificadas publicamente"><h3>Quem compartilhou a avaliação</h3><div class="reader-review-list"></div></section>
+    <p class="feedback" role="status" aria-live="polite"></p>
+    <div class="lead-box">
+      <div class="lead-intro">
+        <h3>Receba orientação alinhada aos seus objetivos</h3>
+        <p>Se você optar por receber orientação, seu cadastro será incluído na base de atendimento. Isso não libera automaticamente uma área privada nem cria compromisso.</p>
+        <label class="lead-field">Seu nome<input class="lead-contact-name" type="text" maxlength="120" autocomplete="name" placeholder="Como podemos chamar você?" required></label>
+        <label class="lead-contact-consent"><input type="checkbox" class="lead-contact-checkbox"><span>Autorizo a equipe a usar meus dados para responder e manter contato sobre os interesses selecionados, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label>
+        <button type="button" class="google-login" hidden>Continuar com Google</button>
+        <form class="magic-login"><label class="lead-field">Seu melhor e-mail<input required type="email" name="email" autocomplete="email" maxlength="254" placeholder="voce@exemplo.com"></label><button>Continuar por e-mail</button></form>
+      </div>
+      <div class="lead-profile" hidden>
+        <h3>Olá, <span class="lead-greeting"></span></h3>
+        <p>Escolha os interesses que ajudam a equipe a orientar você.</p>
+        <label class="lead-field">Seu nome<input class="lead-profile-name" type="text" maxlength="120" autocomplete="name" placeholder="Seu nome" required></label>
+        <div class="interest-grid">${interests.map(x=>`<label><input type="checkbox" value="${esc(x)}"> ${esc(x)}</label>`).join('')}</div>
+        <label class="lead-contact-consent"><input type="checkbox" class="lead-contact-checkbox"><span>Autorizo a equipe a usar meus dados para responder e manter contato sobre os interesses selecionados, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label>
+        <div class="lead-actions"><button type="button" class="save-interests">Salvar interesses</button><a class="team-whatsapp" target="_blank" rel="noopener noreferrer">Falar com a equipe</a></div>
+      </div>
+    </div>
+    <form class="comment"><label>Deixe uma pergunta ou comentário<textarea required minlength="10" maxlength="1200" name="comentario"></textarea></label><label>Seu nome (opcional)<input maxlength="80" name="nome"></label><button>Enviar para moderação</button></form>
+  </section><i class="engagement-data" hidden data-id="${p.id}" data-title="${esc(p.titulo)}" data-session="${sid}"></i>`
+}
+async function bindEngagement(){
+  const d=document.querySelector('.engagement-data');if(!d)return;
+  const feedback=document.querySelector('.feedback');
+  const send=(name,body)=>api(`rpc/${name}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const readPending=()=>{try{const item=JSON.parse(localStorage.getItem('blog_contact_pending')||'null');if(item&&item.postId===d.dataset.id&&item.consent===true&&item.expiresAt>Date.now())return item;if(item&&item.expiresAt<=Date.now())localStorage.removeItem('blog_contact_pending')}catch{}return null};
+  const rememberPending=(name)=>localStorage.setItem('blog_contact_pending',JSON.stringify({postId:d.dataset.id,nome:name,consent:true,expiresAt:Date.now()+86400000}));
+  const initials=(name)=>String(name||'L').trim().split(/\s+/).slice(0,2).map(part=>part[0]||'').join('').toLocaleUpperCase('pt-BR')||'L';
+  const refreshRatings=async()=>{
+    try{
+      const response=await send('listar_avaliacoes_blog',{p_post_id:d.dataset.id});if(!response.ok)return;
+      const payload=await response.json(),summary=Array.isArray(payload)?payload[0]:payload||{},total=Number(summary.total)||0,average=Number(summary.media)||0;
+      const averageNode=document.querySelector('.rating-average'),starsNode=document.querySelector('.rating-summary-stars'),countNode=document.querySelector('.rating-count');
+      if(averageNode)averageNode.textContent=total?average.toFixed(1).replace('.',','):'—';
+      if(starsNode){const full=total?Math.round(average):0;starsNode.textContent='★'.repeat(full)+'☆'.repeat(5-full);starsNode.setAttribute('aria-label',total?`Média de ${average.toFixed(1).replace('.',',')} em cinco estrelas`:'Ainda sem avaliações');}
+      if(countNode)countNode.textContent=total===0?'Seja a primeira pessoa a avaliar':`${total} ${total===1?'avaliação':'avaliações'}`;
+      const section=document.querySelector('.reader-reviews'),list=document.querySelector('.reader-review-list'),reviews=Array.isArray(summary.recentes)?summary.recentes:[];
+      if(!section||!list)return;
+      if(!reviews.length){section.hidden=true;list.innerHTML='';return;}
+      section.hidden=false;
+      list.innerHTML=reviews.map(item=>{const name=String(item.nome||'Leitor'),avatar=safe(item.avatar_url||'');return `<article class="reader-review"><span class="reader-avatar"><span>${esc(initials(name))}</span>${avatar.startsWith('https://')?`<img src="${esc(avatar)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:''}</span><span class="reader-review-copy"><strong>${esc(name)}</strong><span class="reader-review-stars" aria-label="${Number(item.nota)||0} estrelas">${'★'.repeat(Math.max(0,Math.min(5,Number(item.nota)||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,Number(item.nota)||0)))}</span></span></article>`}).join('');
+      list.querySelectorAll('.reader-avatar img').forEach(image=>image.addEventListener('error',()=>{image.style.display='none'},{once:true}));
+    }catch{}
+  };
+  const hash=new URLSearchParams(location.hash.slice(1));
+  if(hash.get('access_token')){accessToken=hash.get('access_token');localStorage.blog_access_token=accessToken;history.replaceState(null,'',location.pathname+location.search)}
+  await refreshRatings();
+  let user=null;
+  if(accessToken){const response=await authApi('user');if(response.ok)user=await response.json();else{accessToken='';localStorage.removeItem('blog_access_token')}}
+  const profile=document.querySelector('.lead-profile'),intro=document.querySelector('.lead-intro'),whatsapp=document.querySelector('.team-whatsapp'),reviewIdentity=document.querySelector('.review-identity'),reviewName=document.querySelector('.review-display-name'),reviewConsent=document.querySelector('.review-public-checkbox');
+  const fullName=(u)=>String(u?.user_metadata?.full_name||u?.user_metadata?.name||u?.user_metadata?.preferred_name||'').trim();
+  let lead=null;
+  if(user){
+    const pending=readPending(),name=pending?.nome||fullName(user);
+    intro.hidden=true;profile.hidden=false;reviewIdentity.hidden=false;
+    profile.querySelector('.lead-greeting').textContent=name||'leitor';
+    profile.querySelector('.lead-profile-name').value=name;
+    if(reviewName)reviewName.value=fullName(user);
+    const commentName=document.querySelector('.comment input[name="nome"]');if(commentName)commentName.value=fullName(user);
+    const saved=await api(`blog_leads?user_id=eq.${encodeURIComponent(user.id)}&select=interesses,consentiu_contato`);
+    if(saved.ok){const rows=await saved.json();lead=rows[0]||null;}
+    if(lead?.interesses)document.querySelectorAll('.interest-grid input').forEach(input=>input.checked=lead.interesses.includes(input.value));
+    profile.querySelectorAll('.lead-contact-checkbox').forEach(input=>input.checked=Boolean(lead?.consentiu_contato));
+    if(pending){
+      const response=await send('registrar_lead_blog',{p_post_id:d.dataset.id,p_nome:name,p_interesses:lead?.interesses||[],p_consentiu_contato:true});
+      if(response.ok){localStorage.removeItem('blog_contact_pending');lead={...(lead||{}),interesses:lead?.interesses||[],consentiu_contato:true};profile.querySelectorAll('.lead-contact-checkbox').forEach(input=>input.checked=true);if(feedback)feedback.textContent='Cadastro confirmado na base de atendimento.';}
+      else if(response.status<500)localStorage.removeItem('blog_contact_pending');
+    }
+  }else{
+    intro.hidden=false;profile.hidden=true;reviewIdentity.hidden=true;
+    const settings=await authApi('settings');if(settings.ok&&(await settings.json()).external?.google)document.querySelector('.google-login').hidden=false;
+  }
+  whatsapp.href=`https://wa.me/5547992120915?text=${encodeURIComponent('Olá, equipe Luan Especialista. Li o artigo “'+d.dataset.title+'” e gostaria de receber orientação.')}`;
+  const savePendingAndRedirect=(name)=>{
+    const consent=intro.querySelector('.lead-contact-checkbox');
+    if(!name){feedback.textContent='Informe seu nome para continuar.';intro.querySelector('.lead-contact-name').focus();return false;}
+    if(!consent.checked){feedback.textContent='Marque a autorização de contato para criar seu cadastro.';consent.focus();return false;}
+    rememberPending(name);return true;
+  };
+  document.querySelector('.google-login').onclick=()=>{
+    const name=intro.querySelector('.lead-contact-name').value.trim();if(!savePendingAndRedirect(name))return;
+    location.href=`${cfg.supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(location.href.split('#')[0])}`;
+  };
+  document.querySelector('.magic-login').onsubmit=async event=>{
+    event.preventDefault();const form=event.currentTarget,name=intro.querySelector('.lead-contact-name').value.trim(),data=new FormData(form),email=String(data.get('email')||'').trim();
+    if(!savePendingAndRedirect(name))return;
+    const redirect=location.href.split('#')[0],response=await authApi(`otp?redirect_to=${encodeURIComponent(redirect)}`,{method:'POST',body:JSON.stringify({email,create_user:true,options:{emailRedirectTo:redirect}})});
+    if(response.ok)feedback.textContent='Enviamos um acesso rápido para seu e-mail. Após confirmar, seu cadastro será incluído na base de atendimento.';
+    else{localStorage.removeItem('blog_contact_pending');feedback.textContent='Não foi possível enviar o acesso agora. Confira o e-mail e tente novamente.';}
+  };
+  document.querySelector('.save-interests').onclick=async()=>{
+    const selected=[...document.querySelectorAll('.interest-grid input:checked')].map(input=>input.value),name=profile.querySelector('.lead-profile-name').value.trim(),consent=profile.querySelector('.lead-contact-checkbox').checked;
+    if(!name){feedback.textContent='Informe seu nome para salvar as preferências.';profile.querySelector('.lead-profile-name').focus();return;}
+    if(!consent&&!lead?.consentiu_contato){feedback.textContent='Marque a autorização de contato para salvar seus interesses na base de atendimento.';profile.querySelector('.lead-contact-checkbox').focus();return;}
+    const response=await send('registrar_lead_blog',{p_post_id:d.dataset.id,p_nome:name,p_interesses:selected,p_consentiu_contato:consent});
+    if(response.ok){lead={...(lead||{}),interesses:selected,consentiu_contato:consent};feedback.textContent=consent?'Preferências salvas e cadastro atualizado na base de atendimento.':'Autorização de contato removida. O registro permanece no histórico, mas não deve ser usado para novos contatos.';whatsapp.href=`https://wa.me/5547992120915?text=${encodeURIComponent('Olá, equipe Luan Especialista. Li o artigo “'+d.dataset.title+'” e tenho interesse em: '+(selected.join(', ')||'receber orientação')+'.')}`;}
+    else feedback.textContent='Não foi possível salvar agora. Tente novamente em instantes.';
+  };
+  document.querySelectorAll('[data-rate]').forEach(button=>button.onclick=async()=>{
+    const publish=Boolean(user&&reviewConsent?.checked),name=publish?reviewName.value.trim():null;
+    if(publish&&!name){feedback.textContent='Informe o nome que deseja exibir junto à avaliação.';reviewName.focus();return;}
+    const response=await send('registrar_avaliacao_blog',{p_post_id:d.dataset.id,p_sessao_id:d.dataset.session,p_nota:Number(button.dataset.rate),p_publicar_perfil:publish,p_nome_publico:name});
+    if(response.ok){feedback.textContent=publish?'Obrigado. Sua avaliação foi publicada com o nome e a imagem de perfil autorizados, se disponível.':'Obrigado. Sua avaliação foi registrada sem exibir publicamente seu nome ou foto.';await refreshRatings();}
+    else feedback.textContent='Não foi possível registrar a avaliação agora. Tente novamente em instantes.';
+  });
+  document.querySelector('.comment').onsubmit=async event=>{
+    event.preventDefault();const form=event.currentTarget,data=new FormData(form),response=await send('enviar_comentario_blog',{p_post_id:d.dataset.id,p_sessao_id:d.dataset.session,p_nome:data.get('nome')||null,p_comentario:data.get('comentario')});
+    feedback.textContent=response.ok?'Comentário enviado para moderação. Obrigado!':'Não foi possível enviar agora.';if(response.ok)form.reset();
+  };
+}
 function bindRatingControls(){
   const group=document.querySelector('.stars');if(!group)return;
   const buttons=[...group.querySelectorAll('[data-rate]')];
@@ -51,7 +173,37 @@ const wiseInvite='https://wise.com/invite/ahpc/luans658';
 const wiseCard=()=>`<aside class="partner-card partner-wise"><div class="partner-mark">W</div><div class="partner-copy"><span class="partner-kicker">FERRAMENTA PARA UMA VIDA INTERNACIONAL</span><strong>Conheça a Wise</strong><p>Para converter, enviar, receber ou usar dinheiro em diferentes moedas. Consulte condições, tarifas e disponibilidade para o seu caso.</p></div><a class="partner-button" href="${wiseInvite}" target="_blank" rel="sponsored noopener">Conhecer a Wise <span>↗</span></a></aside>`;
 const readingMap=(sections)=>{const items=sections.filter(s=>s.titulo&&s.tipo!=='cta').slice(0,4);return items.length?`<aside class="reading-map"><div><span class="map-kicker">NESTA LEITURA</span><strong>Uma visão organizada para você decidir melhor.</strong></div><ol>${items.map((s,i)=>`<li><span>${String(i+1).padStart(2,'0')}</span>${esc(s.titulo)}</li>`).join('')}</ol></aside>`:''};
 
-	const ayraText=(v='')=>esc(String(v||'')).replace(/\n/g,'<br>');
+	function stay22Source(settings){
+  const direct=safe(settings.url||'');
+  if(direct){
+    try{
+      const parsed=new URL(direct);
+      if(parsed.origin==='https://www.stay22.com'&&/^\/embed\/[A-Za-z0-9_-]+$/.test(parsed.pathname))return parsed.href;
+      if(parsed.origin==='https://www.stay22.com'&&parsed.pathname==='/embed/gm'&&parsed.searchParams.get('aid')&&(parsed.searchParams.has('address')||(parsed.searchParams.has('lat')&&parsed.searchParams.has('lng')))){
+        if(!parsed.searchParams.has('campaign'))parsed.searchParams.set('campaign','blog_praias_de_penha');
+        return parsed.href;
+      }
+    }catch{}
+  }
+  const aid=String(settings.aid||'').trim();if(!/^[A-Za-z0-9_-]{3,80}$/.test(aid))return '';
+  const url=new URL('https://www.stay22.com/embed/gm');url.searchParams.set('aid',aid);
+  const lat=Number(settings.lat),lng=Number(settings.lng);
+  if(Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180){url.searchParams.set('lat',String(lat));url.searchParams.set('lng',String(lng));}
+  else url.searchParams.set('address',String(settings.address||'Penha, Santa Catarina, Brazil'));
+  url.searchParams.set('venue',String(settings.venue||'Praias de Penha'));
+  url.searchParams.set('campaign',String(settings.campaign||'blog_praias_de_penha'));
+  return url.href;
+}
+function stay22Context(post){
+  const settings=post?.blocos?.stay22||{};if(!settings.ativo||post?.blocos?.template==='ayra-landing')return '';
+  const src=stay22Source(settings);if(!src)return '';
+  const title=settings.titulo||'Imagine aproveitar as praias e tudo o que Penha tem a oferecer.';
+  const text=settings.texto||'Explore opções de hospedagem próximas às praias e aos pontos de interesse da cidade. Consulte as datas, os valores e a disponibilidade diretamente no mapa.';
+  const eyebrow=settings.rotulo||settings.ey||'DESCUBRA PENHA';
+  const venue=settings.venue||'Praias de Penha';
+  return `<section class="destination-map" aria-labelledby="destination-map-title"><div class="destination-map-card"><div class="destination-map-copy"><span class="destination-map-eyebrow">${esc(eyebrow)}</span><h2 id="destination-map-title">${esc(title)}</h2><p>${esc(text)}</p><a href="${esc(src)}" target="_blank" rel="sponsored noopener noreferrer">Ver opções de hospedagem <span aria-hidden="true">↗</span></a></div><div class="destination-map-frame"><iframe title="Opções de hospedagem próximas a ${esc(venue)}" width="100%" height="450" src="${esc(src)}" frameborder="0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><p class="destination-map-note">Ao reservar por opções deste mapa, podemos receber uma comissão, sem custo adicional para você. Valores e disponibilidade são definidos pelos fornecedores.</p></div></section>`;
+}
+const ayraText=(v='')=>esc(String(v||'')).replace(/\n/g,'<br>');
 	const ayraButton=(label,url,ghost=false)=>`<a class="ayra-btn ${ghost?'ayra-btn-ghost':''}" href="${esc(safe(url)||'#')}" target="_blank" rel="noopener">${esc(label)}</a>`;
 	const ayraMedia=(v='')=>media(v);
 	function ayraLanding(p){
@@ -79,11 +231,231 @@ const readingMap=(sections)=>{const items=sections.filter(s=>s.titulo&&s.tipo!==
 			if(!/^https:\/\/www\.stay22\.com\/embed\/[A-Za-z0-9_-]+$/.test(src)) return '';
 			return `<section id="stay22" class="ayra-section ayra-stay22"><div class="ayra-wrap"><div class="ayra-stay22-card"><div class="ayra-stay22-copy"><span class="ayra-ey">${esc(stay22.ey||'Uma leitura prática da região')}</span><h2>${ayraText(stay22.titulo||'Veja a procura por hospedagem em tempo real.')}</h2><p>${ayraText(stay22.texto||'Observe as opções e os valores praticados ao redor do AYRA. Essa demanda ajuda a visualizar o movimento da região — e a imaginar como uma unidade sua poderia participar desse mercado, sempre dependendo de ocupação, custos e operação.')}</p></div><div class="ayra-stay22-frame"><iframe id="stay22-widget" title="Opções de hospedagem próximas ao AYRA" width="100%" height="428" src="${esc(src)}" frameborder="0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div><p class="ayra-stay22-note">O mapa apresenta opções de hospedagem disponíveis na região. Valores e disponibilidade podem variar. A visualização não representa promessa de ocupação, renda ou rentabilidade.</p></div></div></section>`;};
 		const timeline=sectionBy('timeline');
-		return `<div class="ayra-landing"><section class="ayra-hero" style="background-image:url('${esc(ayraMedia(h.imagem_url||p.imagem_capa_url))}')"><div class="ayra-hero-overlay"></div><div class="ayra-wrap ayra-hero-inner"><span class="ayra-kicker">${esc(h.kicker||'Pré-lançamento em Penha')}</span>${h.logo_url?`<img class="ayra-hero-logo" src="${esc(ayraMedia(h.logo_url))}" alt="AYRA Slim Residence">`:''}<h1>${ayraText(h.titulo||p.titulo)}</h1><p>${ayraText(h.texto||p.resumo)}</p><div class="ayra-actions">${ayraButton('Quero conhecer as condições',wa)}${ayraButton('▶ Assistir ao decorado','#video',true)}</div></div></section><section class="ayra-fact-strip"><div class="ayra-wrap ayra-facts">${facts.map(i=>`<div><strong>${esc(i[0])}</strong><span>${esc(i[1])}</span></div>`).join('')}</div></section>${renderPilares()}${renderProjection(sectionBy('projecao'))}${renderProjection(sectionBy('shortstay'),'shortstay')}${renderSeazone(sectionBy('seazone'))}${renderCase(sectionBy('case'))}${renderProduct(sectionBy('produto'))}${renderGallery()}${renderVideo()}${renderStay22()}${timeline.titulo?`<section class="ayra-section ayra-soft"><div class="ayra-wrap"><div class="ayra-section-head"><div><span class="ayra-ey">${esc(timeline.ey)}</span><h2>${ayraText(timeline.titulo)}</h2></div><p>${ayraText(timeline.texto)}</p></div><div class="ayra-timeline">${(timeline.itens||[]).map(i=>`<div><small>${esc(i[0])}</small><strong>${esc(i[1])}</strong><span>${esc(i[2])}</span></div>`).join('')}</div></div></section>`:''}<section class="ayra-final"><div class="ayra-wrap"><div><h2>${ayraText(sectionBy('cta').titulo||'O melhor momento para entender o AYRA é antes de escolher a unidade.')}</h2><p>${ayraText(sectionBy('cta').texto||'Fale com a Luan Especialista para consultar disponibilidade, valores e condições.')}</p></div>${ayraButton(sectionBy('cta').acao_rotulo||'Falar no WhatsApp',sectionBy('cta').acao_url||wa)}</div></section><div class="ayra-legal ayra-wrap">${ayraText(b.legal||'Imagens meramente ilustrativas. Consulte as condições e documentos do empreendimento.')}</div><footer class="ayra-footer"><div class="ayra-wrap"><div class="ayra-footer-brand"><strong>Luan Especialista</strong><span>Estratégia patrimonial e oportunidades no litoral norte de Santa Catarina.</span></div><div class="ayra-footer-contact"><span>Atendimento em Penha e região</span><a href="https://luan-especialista.pro" target="_blank" rel="noopener">luan-especialista.pro</a></div><a class="ayra-footer-cta" href="${esc(wa)}" target="_blank" rel="noopener">Falar com especialista</a></div></footer></div>`;
+		return `<div class="ayra-landing"><section class="ayra-hero" style="background-image:url('${esc(ayraMedia(h.imagem_url||p.imagem_capa_url))}')"><div class="ayra-hero-overlay"></div><div class="ayra-wrap ayra-hero-inner"><span class="ayra-kicker">${esc(h.kicker||'Pré-lançamento em Penha')}</span>${h.logo_url?`<img class="ayra-hero-logo" src="${esc(ayraMedia(h.logo_url))}" alt="AYRA Slim Residence">`:''}<h1>${ayraText(h.titulo||p.titulo)}</h1><p>${ayraText(h.texto||p.resumo)}</p><div class="ayra-actions">${ayraButton('Quero conhecer as condições',wa)}${ayraButton('▶ Assistir ao decorado','#video',true)}</div></div></section><section class="ayra-fact-strip"><div class="ayra-wrap ayra-facts">${facts.map(i=>`<div><strong>${esc(i[0])}</strong><span>${esc(i[1])}</span></div>`).join('')}</div></section>${renderPilares()}${renderProjection(sectionBy('projecao'))}${renderProjection(sectionBy('shortstay'),'shortstay')}${renderSeazone(sectionBy('seazone'))}${renderCase(sectionBy('case'))}${renderProduct(sectionBy('produto'))}${renderGallery()}${renderVideo()}${renderStay22()}${timeline.titulo?`<section class="ayra-section ayra-soft"><div class="ayra-wrap"><div class="ayra-section-head"><div><span class="ayra-ey">${esc(timeline.ey)}</span><h2>${ayraText(timeline.titulo)}</h2></div><p>${ayraText(timeline.texto)}</p></div><div class="ayra-timeline">${(timeline.itens||[]).map(i=>`<div><small>${esc(i[0])}</small><strong>${esc(i[1])}</strong><span>${esc(i[2])}</span></div>`).join('')}</div></div></section>`:''}<section class="ayra-final"><div class="ayra-wrap"><div><h2>${ayraText(sectionBy('cta').titulo||'O melhor momento para entender o AYRA é antes de escolher a unidade.')}</h2><p>${ayraText(sectionBy('cta').texto||'Fale com a Luan Especialista para consultar disponibilidade, valores e condições.')}</p></div>${ayraButton(sectionBy('cta').acao_rotulo||'Falar no WhatsApp',sectionBy('cta').acao_url||wa)}</div></section><div class="ayra-legal ayra-wrap">${ayraText(b.legal||'Imagens meramente ilustrativas. Consulte as condições e documentos do empreendimento.')}</div></div>`;
 	}
-		function bindAyraLanding(){document.querySelectorAll('.ayra-carousel').forEach((carousel)=>{const track=carousel.querySelector('.ayra-carousel-track'),items=[...carousel.querySelectorAll('.ayra-gallery-item')],next=carousel.querySelector('.ayra-carousel-next'),prev=carousel.querySelector('.ayra-carousel-prev'),toggle=carousel.querySelector('.ayra-carousel-toggle'),status=carousel.querySelector('.ayra-carousel-status');let timer=null,paused=false,index=0;const distance=()=>{const first=items[0];return first?first.getBoundingClientRect().width+14:track.clientWidth};const go=(direction)=>{if(!items.length)return;index=(index+direction+items.length)%items.length;track.scrollTo({left:index*distance(),behavior:'smooth'})};const stop=()=>{if(timer){clearInterval(timer);timer=null}};const start=()=>{stop();if(!paused&&items.length>1)timer=setInterval(()=>go(1),Number(carousel.dataset.interval)||5000)};const setPaused=(value)=>{paused=value;toggle.textContent=paused?'Retomar':'Pausar';toggle.setAttribute('aria-pressed',String(paused));toggle.setAttribute('aria-label',paused?'Retomar carrossel':'Pausar carrossel');status.textContent=paused?'Carrossel pausado · use os botões para trocar as imagens':'Autoplay ativo · use Pausar para interromper';if(paused)stop();else start()};next?.addEventListener('click',()=>{go(1);setPaused(true)});prev?.addEventListener('click',()=>{go(-1);setPaused(true)});toggle?.addEventListener('click',()=>setPaused(!paused));carousel.addEventListener('focusin',()=>setPaused(true));carousel.addEventListener('focusout',(e)=>{if(!carousel.contains(e.relatedTarget))setPaused(false)});carousel.addEventListener('touchstart',()=>setPaused(true),{passive:true});start()})}
-	function article(p){const b=p.blocos||{};if(b.template==='ayra-landing'){document.body.classList.add('ayra-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel ayra-article';applySeo(p);root.innerHTML=ayraLanding(p);bindAyraLanding();return}const imgs=Array.isArray(p.imagens)?p.imagens:[],card=media(b.imagem_card_url||p.imagem_capa_url||imgs[0]?.url),hero=media(p.imagem_capa_url),used=new Set(),show=b.exibir_hero!==false&&!!hero;if(show)used.add(key(hero));const sections=b.secoes||[],body=sections.map(s=>section(s,p,used)).join('')||para(p.conteudo||p.resumo),gallery=galleryFromImages(imgs,used,p),mins=b.leitura_minutos||Math.max(2,Math.ceil((p.conteudo||'').length/1000)),hasInlineCta=sections.some(s=>s.tipo==='cta'),finalCta=!hasInlineCta&&b.cta?`<section class="article-cta"><div><p class="eyebrow">PRÓXIMO PASSO</p><h2>${esc(b.cta)}</h2></div><a href="https://wa.me/5547992120915?text=${encodeURIComponent('Olá, equipe Luan Especialista. Li o artigo “'+p.titulo+'” e gostaria de receber orientação.')}" target="_blank" rel="noopener">Falar com a equipe →</a></section>`:'',wise=isWise(p);document.getElementById('intro').hidden=true;filters.hidden=true;const layout=['artigo','guia','mercado','comparativo','case','imovel'].includes(p.layout)?p.layout:'artigo',heroImage=imgs.find(i=>key(i?.url)===key(hero));root.className=`article article-${layout} intent-${esc(b.intencao||'descoberta')} ${wise?'has-partner':''}`;applySeo(p);root.innerHTML=`<a class="back" href="/blog/" aria-label="Voltar aos Insights">←&nbsp; Voltar aos Insights</a><header class="article-head"><p class="eyebrow">${esc(p.categoria||'Insights')} <span class="meta-dot">·</span> ${date(p.publicado_em)} <span class="meta-dot">·</span> ${mins} min de leitura</p><h1>${esc(p.titulo)}</h1><p class="deck">${esc(p.resumo||'')}</p>${wise?wiseCard():''}</header>${show?`<figure class="hero-figure"><img src="${esc(hero)}" fetchpriority="high" alt="${esc(heroImage?.alt||p.titulo)}"></figure>`:''}<main class="article-flow">${readingMap(sections)}${body}${gallery}</main>${sources(b)}${finalCta}${engagement(p)}`;bindRatingControls();bindCarousel();bindEngagement()}
-function render(){const cats=['Todos',...new Set(posts.map(p=>p.categoria).filter(Boolean))];filters.innerHTML=cats.map(x=>`<button class="filter ${x===category?'active':''}" data-category="${esc(x)}">${esc(x)}</button>`).join('');const list=category==='Todos'?posts:posts.filter(p=>p.categoria===category);root.className='posts';root.innerHTML=list.map((p,index)=>{const cover=media(p.blocos?.imagem_card_url||p.imagem_capa_url),mins=p.blocos?.leitura_minutos||Math.max(2,Math.ceil((p.conteudo||'').length/1000)),intent=p.blocos?.intencao||'descoberta';return `<article class="post ${index===0?'post-featured':''}">${cover?`<img class="post-image" src="${esc(cover)}" loading="lazy" alt="${esc(p.titulo)}">`:''}<div class="post-copy"><div class="post-meta"><span>${esc(p.categoria||'Insights')}</span><span>${mins} min</span></div><div class="post-intent">${intent==='decisao'?'PARA DECIDIR':intent==='guia'?'GUIA PRÁTICO':'PARA DESCOBRIR'}</div><h2>${esc(p.titulo)}</h2><p>${esc(p.resumo||'')}</p><a class="post-read" href="/blog/${encodeURIComponent(p.slug)}/">Ler a análise <span>→</span></a></div></article>`}).join('')||'<div class="empty"><strong>Estamos preparando as próximas leituras.</strong><span>Enquanto isso, conheça as oportunidades selecionadas ou fale com a equipe para organizar sua próxima decisão.</span><div><a href="/imoveis/">Ver oportunidades →</a><a href="https://wa.me/5547992120915?text=Olá%2C%20quero%20receber%20as%20próximas%20leituras%20da%20Luan%20Especialista." target="_blank" rel="noopener">Falar com a equipe →</a></div></div>';filters.querySelectorAll('button').forEach(b=>b.onclick=()=>{category=b.dataset.category;render()})}
+		function bindAyraLanding(){
+  document.querySelectorAll('.ayra-carousel').forEach((carousel)=>{
+    if(carousel.dataset.carouselBound==='true') return;
+    carousel.dataset.carouselBound='true';
+    const track=carousel.querySelector('.ayra-carousel-track');
+    const next=carousel.querySelector('.ayra-carousel-next');
+    const prev=carousel.querySelector('.ayra-carousel-prev');
+    const toggle=carousel.querySelector('.ayra-carousel-toggle');
+    const status=carousel.querySelector('.ayra-carousel-status');
+    const autoPlay=carousel.dataset.autoplay!=='false';
+    let timer=null,paused=!autoPlay;
+    const items=()=>track?[...track.querySelectorAll('.ayra-gallery-item,.pinna-floorplan-card')]:[];
+    const distance=()=>{
+      const first=items()[0];
+      const style=track?getComputedStyle(track):null;
+      const gap=style?parseFloat(style.columnGap||style.gap)||14:14;
+      return first?first.getBoundingClientRect().width+gap:(track?.clientWidth||0);
+    };
+    const go=(direction)=>{
+      const current=items();
+      if(!current.length||!track) return;
+      const step=distance();
+      const index=Math.round(track.scrollLeft/step);
+      const nextIndex=(index+direction+current.length)%current.length;
+      track.scrollTo({left:nextIndex*step,behavior:'smooth'});
+    };
+    const stop=()=>{if(timer){clearInterval(timer);timer=null}};
+    const start=()=>{stop();if(autoPlay&&!paused&&items().length>1)timer=setInterval(()=>go(1),Number(carousel.dataset.interval)||5000)};
+    const setPaused=(value)=>{
+      paused=value;
+      if(toggle){
+        toggle.textContent=paused?'Retomar':'Pausar';
+        toggle.setAttribute('aria-pressed',String(paused));
+        toggle.setAttribute('aria-label',paused?'Retomar carrossel':'Pausar carrossel');
+      }
+      if(status) status.textContent=autoPlay?(paused?'Carrossel pausado · use os botões para trocar as imagens':'Autoplay ativo · use Pausar para interromper'):'Use as setas para comparar as plantas.';
+      if(paused) stop(); else start();
+    };
+    next?.addEventListener('click',()=>{go(1);setPaused(true)});
+    prev?.addEventListener('click',()=>{go(-1);setPaused(true)});
+    toggle?.addEventListener('click',()=>setPaused(!paused));
+    carousel.addEventListener('focusin',()=>setPaused(true));
+    carousel.addEventListener('focusout',(e)=>{if(!carousel.contains(e.relatedTarget))setPaused(autoPlay?false:true)});
+    carousel.addEventListener('touchstart',()=>setPaused(true),{passive:true});
+    if(autoPlay) start();
+    else {
+      toggle?.remove();
+      if(status) status.textContent='Use as setas para comparar as plantas.';
+    }
+  });
+}
+		function pinnaLanding(p){const b=p.blocos||{},h=b.hero||{},facts=b.facts||[],sections=b.secoes||[],imgs=Array.isArray(p.imagens)?p.imagens:[],plants=imgs.filter(i=>/unidade|planta/i.test(String(i.url||i.nome||''))),plantLabel=(i,n)=>{const m=String(i.url||i.nome||'').match(/(?:unidade|planta)[^0-9]*([0-9]+)/i);return m?m[1].padStart(2,'0'):String(n+1).padStart(2,'0')},pinnaMediaKey=(value)=>{const src=ayraMedia(value);try{const url=new URL(src,location.href);const key=url.searchParams.get('key');return (key||decodeURIComponent(url.pathname.replace(/^\/+/,''))).toLowerCase()}catch(_){return String(value||'').split(/[?#]/)[0].toLowerCase()}},initialFeaturedKeys=new Set([h.imagem_url,p.imagem_capa_url,...sections.map(s=>s.imagem_url)].filter(Boolean).map(pinnaMediaKey)),wa='https://wa.me/5547992120915?text='+encodeURIComponent('Olá, quero conhecer o Pinna Studios em Penha.'),items=imgs.filter(i=>{const ref=String(i.url||i.nome||'');if(/(?:unidade|planta|tipologia|fachada|capa|cover)/i.test(ref))return false;return !initialFeaturedKeys.has(pinnaMediaKey(i.url||i.nome||''))}).map(i=>`<figure class="ayra-gallery-item"><img loading="lazy" src="${esc(ayraMedia(i.url))}" alt="${esc(i.alt||p.titulo)}"><figcaption>${esc(i.legenda||'Pinna Studios')}</figcaption></figure>`).join(''),section=(type)=>sections.find(s=>s.tipo===type)||{},pinnaMedia=(url)=>{const src=ayraMedia(url);return src.includes('/api/media?')?src+(src.includes('?')?'&':'?')+'v=live':src},feature=(x)=>x.titulo?`<section class="ayra-section pinna-feature ${x.reverse?'pinna-reverse':''}" data-feature="${esc(x.tipo||'')}"><div class="ayra-wrap ayra-split"><div class="ayra-media-card">${x.imagem_url?`<img src="${esc(pinnaMedia(x.imagem_url))}" alt="${esc(x.titulo)}" loading="lazy">`:''}</div><div class="ayra-copy"><span class="ayra-ey">${esc(x.ey||'Pinna Studios')}</span><h2>${ayraText(x.titulo)}</h2><p>${ayraText(x.texto||'')}</p>${(x.itens||[]).length?`<div class="ayra-feature-list">${x.itens.map(i=>`<div><b>✓</b> ${ayraText(i)}</div>`).join('')}</div>`:''}</div></div></section>`:'';const t=section('tipologias');return `<div class="ayra-landing pinna-landing"><section class="ayra-hero" style="background-image:url('${esc(ayraMedia(h.imagem_url||p.imagem_capa_url))}')"><div class="ayra-hero-overlay"></div><div class="ayra-wrap ayra-hero-inner"><span class="ayra-kicker">${esc(h.kicker||'UM NOVO JEITO DE VIVER PENHA')}</span><h1>${ayraText(h.titulo||p.titulo)}</h1><p>${ayraText(h.texto||p.resumo)}</p><div class="ayra-actions"><a class="ayra-btn" href="${esc(wa)}" target="_blank" rel="noopener">Quero conhecer o Pinna</a><a class="ayra-btn ayra-btn-ghost" href="#empreendimento">Ver o empreendimento</a></div></div></section><section class="ayra-fact-strip"><div class="ayra-wrap ayra-facts">${facts.map(i=>`<div><strong>${esc(i[0])}</strong><span>${esc(i[1])}</span></div>`).join('')}</div></section>${feature(section('conceito'))}<section id="empreendimento" class="ayra-section pinna-typologies"><div class="ayra-wrap"><div class="ayra-section-head"><div><span class="ayra-ey">Studios Pinna</span><h2>${ayraText(t.titulo||'Tipologias para diferentes momentos.')}</h2></div><p>${ayraText(t.texto||'Conheça as unidades e escolha o studio que combina com o seu momento.')}</p></div><div class="pinna-unit-carousel"><div class="ayra-carousel-track">${(t.itens||[]).map(i=>`<article class="pinna-unit-card"><strong>${esc(i[0])}</strong><h3>${ayraText(i[1])}</h3><p>${ayraText(i[2]||'Consulte a planta e a disponibilidade.')}</p></article>`).join('')}</div></div><div class="pinna-floorplan-carousel ayra-carousel" tabindex="0"><div class="ayra-carousel-track">${plants.map((i,n)=>`<figure class="pinna-floorplan-card"><img loading="lazy" src="${esc(ayraMedia(i.url))}" alt="Planta da unidade ${esc(plantLabel(i,n))} do Pinna Studios"><figcaption>Planta da unidade ${esc(plantLabel(i,n))}</figcaption></figure>`).join()}</div><button class="ayra-carousel-prev" type="button" aria-label="Planta anterior">‹</button><button class="ayra-carousel-next" type="button" aria-label="Próxima planta">›</button><button class="ayra-carousel-toggle" type="button">Pausar</button><div class="ayra-carousel-status">Plantas em rotação automática</div></div></div></section>${feature(section('lazer'))}${feature(section('rooftop'))}<section class="pinna-pause"><div><span class="ayra-ey">O detalhe que muda a experiência</span><h2>${ayraText(section('pausa').titulo||'Compacto por fora. Completo na forma de viver.')}</h2><p>${ayraText(section('pausa').texto||'No Pinna, cada escolha foi pensada para deixar a rotina mais simples, conectada e desejável.')}</p></div></section><section id="galeria" class="ayra-section ayra-soft pinna-r2-gallery"><div class="ayra-wrap"><div class="ayra-section-head"><div><span class="ayra-ey">Galeria</span><h2>Veja o Pinna por dentro.</h2></div><p>Ambientes, lazer e detalhes que ajudam você a imaginar a experiência.</p></div><div class="ayra-carousel" tabindex="0"><div class="ayra-carousel-track">${items}</div><button class="ayra-carousel-prev" type="button" aria-label="Imagem anterior">‹</button><button class="ayra-carousel-next" type="button" aria-label="Próxima imagem">›</button><button class="ayra-carousel-toggle" type="button">Pausar</button><div class="ayra-carousel-status">Autoplay ativo</div></div></div></section>${feature(section('localizacao'))}<section class="ayra-section ayra-stay22"><div class="ayra-wrap"><div class="ayra-stay22-card"><div class="ayra-stay22-copy"><span class="ayra-ey">Localização e hospedagem</span><h2>Penha no seu ritmo.</h2><p>Entre a praia, o Beto Carrero e uma cidade que recebe pessoas o ano inteiro, o Pinna coloca você perto do que faz Penha ser especial.</p></div><div class="ayra-stay22-frame"><iframe title="Opções de hospedagem próximas ao Pinna Studios" width="100%" height="428" src="https://www.stay22.com/embed/6acfe25a89efbbe3a8e2fbae" frameborder="0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div><p class="ayra-stay22-note">Valores e disponibilidade são definidos pelos fornecedores. Consulte as condições vigentes.</p></div></div></section><section class="ayra-final"><div class="ayra-wrap"><div><h2>Seu próximo studio pode começar aqui.</h2><p>Fale com a Luan Especialista e receba o material completo do Pinna Studios.</p></div><a class="ayra-btn" href="${esc(wa)}" target="_blank" rel="noopener">Falar com especialista</a></div></section><div class="ayra-legal ayra-wrap">Imagens meramente ilustrativas. Consulte o material técnico, o memorial descritivo e as condições vigentes.</div></div>`}
+		async function loadPinnaR2Media(){try{const response=await fetch('/api/media?list=1&enterprise=pinna&v=live',{headers:{accept:'application/json'}});if(!response.ok)return;const data=await response.json();const objects=Array.isArray(data.objects)?data.objects:[];if(!objects.length)return;const landing=document.querySelector('.pinna-landing');const pinnaObjects=objects.filter(o=>/pinna/i.test(o.key));const floorplans=pinnaObjects.filter(o=>/(?:unidade|planta|tipologia)/i.test(o.key));const hero=landing?.querySelector('.ayra-hero');const first=pinnaObjects.find(o=>/fachada|capa|cover/i.test(o.key))||pinnaObjects[0];const keyFromMediaUrl=(src)=>{try{const url=new URL(src,location.href);const key=url.searchParams.get('key');return key||(url.hostname==='media.luan-especialista.pro'?decodeURIComponent(url.pathname.replace(/^\/+/,'')):'')}catch(_){return ''}};const featuredKeys=new Set(first?[first.key.toLowerCase()]:[]);for(const image of Array.from(landing?.querySelectorAll('.pinna-feature .ayra-media-card img')||[])){const key=keyFromMediaUrl(image.getAttribute('src')||'');if(key)featuredKeys.add(key.toLowerCase())}const galleryObjects=pinnaObjects.filter(o=>!/(?:unidade|planta|tipologia)/i.test(o.key)&&!featuredKeys.has(o.key.toLowerCase()));if(hero&&first)hero.style.backgroundImage=`url('${first.url}&v=live')`;const gallery=landing?.querySelector('.pinna-r2-gallery');const track=gallery?.querySelector('.ayra-carousel-track');if(track){track.innerHTML=galleryObjects.map((o,i)=>`<figure class="ayra-gallery-item"><img loading="lazy" src="${esc(o.url)}&v=live" alt="Pinna Studios — imagem ${i+1}"><figcaption>Pinna Studios</figcaption></figure>`).join('');gallery.hidden=false}const floorTrack=landing?.querySelector('.pinna-floorplan-carousel .ayra-carousel-track');if(floorTrack){floorTrack.innerHTML=floorplans.map((o,i)=>{const m=o.key.match(/(?:unidade|planta|tipologia)[^0-9]*([0-9]+)/i);const label=m?m[1].padStart(2,'0'):String(i+1).padStart(2,'0');return `<figure class="pinna-floorplan-card"><img loading="lazy" src="${esc(o.url)}&v=live" alt="Planta da unidade ${label} do Pinna Studios"><figcaption>Planta da unidade ${label}</figcaption></figure>`}).join('')}bindAyraLanding()}catch(_){/* a página continua funcional mesmo se o inventário estiver indisponível */}}
+
+		function parkLanding(p) {
+  const b = p.blocos || {};
+  const h = b.hero || {};
+  const facts = Array.isArray(b.facts) ? b.facts : [];
+  const sections = Array.isArray(b.secoes) ? b.secoes : [];
+  const images = Array.isArray(p.imagens) ? p.imagens : [];
+  const plants = images.filter((item) => /^planta\b/i.test(String(item.legenda || '')));
+  const gallery = images.filter((item) => /^galeria\b/i.test(String(item.legenda || '')));
+  const wa = 'https://wa.me/5547992120915?text=' + encodeURIComponent('Olá, quero conhecer o Park Beach Studios em Penha.');
+  const section = (type) => sections.find((item) => item.tipo === type) || {};
+  const mediaSrc = (value) => {
+    const src = ayraMedia(value || '');
+    if (!src) return '';
+    return src.includes('/api/media?') || src.includes('media.luan-especialista.pro/empreendimentos/')
+      ? `${src}${src.includes('?') ? '&' : '?'}v=20261022-park-beach`
+      : src;
+  };
+  const feature = (item) => item.titulo ? `<section class="park-section ${item.reverse ? 'park-reverse' : ''}"><div class="park-wrap park-split"><div class="park-media">${item.imagem_url ? `<img loading="lazy" decoding="async" src="${esc(mediaSrc(item.imagem_url))}" alt="${esc(item.alt_imagem || item.titulo)}">` : ''}</div><div class="park-copy"><span class="park-ey">${esc(item.ey || 'PARK BEACH STUDIOS')}</span><h2>${ayraText(item.titulo)}</h2><p>${ayraText(item.texto || '')}</p>${(item.itens || []).length ? `<ul>${item.itens.map((text) => `<li>${ayraText(text)}</li>`).join('')}</ul>` : ''}</div></div></section>` : '';
+  const plantMarkup = plants.map((item, index) => `<figure><img loading="lazy" decoding="async" src="${esc(mediaSrc(item.url))}" alt="${esc(item.alt || `Planta ${String(index + 1).padStart(2, '0')} do Park Beach Studios`)}"><figcaption>${esc(item.legenda || `Planta ${String(index + 1).padStart(2, '0')}`)}</figcaption></figure>`).join('');
+  const galleryMarkup = gallery.map((item, index) => `<figure><img loading="lazy" decoding="async" src="${esc(mediaSrc(item.url))}" alt="${esc(item.alt || `Park Beach Studios — imagem ${index + 1}`)}"><figcaption>${esc(item.legenda || 'Park Beach Studios')}</figcaption></figure>`).join('');
+  const location = section('localizacao');
+  const locationItems = Array.isArray(location.itens) && location.itens.length
+    ? location.itens
+    : ['Av. Eugênio Krause, Armação', 'Praias, comércio e serviços por perto', 'Acesso ao Beto Carrero e ao eixo BR-101'];
+  const locationImage = location.imagem_url || 'https://media.luan-especialista.pro/empreendimentos/beach-park-studios/localiza%C3%A7%C3%A3o.png';
+  const video = b.video || {};
+  return `<div class="park-landing"><section class="park-hero" style="background-image:url('${esc(mediaSrc(h.imagem_url || p.imagem_capa_url || ''))}')"><div class="park-hero-shade"></div><div class="park-wrap park-hero-content"><span class="park-kicker">${esc(h.kicker || 'PENHA · ARMAÇÃO')}</span><h1>${ayraText(h.titulo || p.titulo)}</h1><p>${ayraText(h.texto || p.resumo)}</p><div class="park-actions"><a class="park-btn" href="${esc(wa)}" target="_blank" rel="noopener">Quero conhecer o Park Beach</a><a class="park-btn park-btn-ghost" href="#experiencia">Explorar o projeto</a></div></div></section><section class="park-facts"><div class="park-wrap">${facts.map((item) => `<div><strong>${esc(item[0])}</strong><span>${esc(item[1])}</span></div>`).join('')}</div></section><section id="experiencia" class="park-intro"><div class="park-wrap park-intro-grid"><div><span class="park-ey">UM NOVO JEITO DE FICAR EM PENHA</span><h2>Compacto na medida. Completo na experiência.</h2></div><p>O Park Beach Studios combina a praticidade de um studio com a energia de Armação. Um endereço para morar, passar temporadas e aproveitar o litoral com uma rotina mais leve.</p></div></section>${feature(section('conceito'))}${feature(section('lazer'))}${feature(section('rooftop'))}<section class="park-section park-plants"><div class="park-wrap"><div class="park-heading"><span class="park-ey">TIPOLOGIAS</span><h2>Seu espaço, do seu jeito.</h2><p>Plantas de 26 m² a 46 m², com integração, iluminação natural e soluções inteligentes para morar ou receber.</p></div><div class="park-plant-carousel" data-interval="6200"><div class="park-plant-track">${plantMarkup}</div><button class="park-arrow park-prev" type="button" aria-label="Planta anterior">‹</button><button class="park-arrow park-next" type="button" aria-label="Próxima planta">›</button><button class="park-pause" type="button">Pausar</button></div></div></section><section class="park-section park-video"><div class="park-wrap park-video-grid"><div class="park-video-box"><div class="park-video-track">${video.video_url ? `<video controls playsinline preload="metadata" poster="${esc(mediaSrc(video.poster_url || ''))}"><source src="${esc(mediaSrc(video.video_url))}"></video>` : ''}</div></div><div class="park-copy"><span class="park-ey">ASSISTA AO PROJETO</span><h2>${ayraText(video.titulo || 'Veja como o Park Beach foi pensado.')}</h2><p>${ayraText(video.texto || 'Conheça os ambientes, a atmosfera e a proposta de um studio desenhado para a vida real e para as temporadas no litoral.')}</p></div></div></section><section class="park-section park-gallery"><div class="park-wrap"><div class="park-heading"><span class="park-ey">POR DENTRO DO PARK BEACH</span><h2>Ambientes que fazem a rotina acontecer.</h2><p>Do coworking ao sky lounge, cada espaço foi pensado para facilitar, receber e aproveitar.</p></div><div class="park-gallery-carousel" data-interval="5600"><div class="park-gallery-track">${galleryMarkup}</div><button class="park-arrow park-gallery-prev" type="button" aria-label="Imagem anterior">‹</button><button class="park-arrow park-gallery-next" type="button" aria-label="Próxima imagem">›</button><button class="park-pause" type="button">Pausar</button></div></div></section><section class="park-location"><div class="park-wrap park-location-grid"><div><span class="park-ey">${esc(location.ey || 'LOCALIZAÇÃO ESTRATÉGICA')}</span><h2>${ayraText(location.titulo || 'Perto da praia, do parque e da vida real.')}</h2><p>${ayraText(location.texto || 'Na Avenida Eugênio Krause, em Armação, o Park Beach fica conectado às praias, restaurantes, serviços e ao eixo turístico de Penha.')}</p><div class="park-location-points">${locationItems.map((text) => `<span>${ayraText(text)}</span>`).join('')}</div></div><div class="park-location-media" role="img" aria-label="Mapa de localização do Park Beach Studios em Armação, Penha, Santa Catarina" style="background-image:url('${esc(mediaSrc(locationImage))}')"></div></div></section><section class="park-final"><div class="park-wrap"><div><span class="park-ey">PRÉ-LANÇAMENTO</span><h2>O próximo endereço da sua experiência em Penha.</h2><p>Fale com a Luan Especialista para receber plantas, disponibilidade e condições atualizadas.</p></div><a class="park-btn" href="${esc(wa)}" target="_blank" rel="noopener">Falar com especialista</a></div></section><div class="park-legal park-wrap">Material informativo e imagens meramente ilustrativas. Consulte o registro da incorporação, memorial descritivo e condições vigentes antes de qualquer decisão.</div></div>`;
+}
+
+async function loadParkR2Media(post = {}) {
+  const root = document.querySelector('.park-landing');
+  if (!root) return;
+  try {
+    const response = await fetch('/api/media?list=1&enterprise=park-beach-studios&v=20261022-park-beach', { headers: { accept: 'application/json' } });
+    if (!response.ok) return;
+    const data = await response.json();
+    const objects = Array.isArray(data.objects) ? data.objects : [];
+    const images = objects.filter((item) => /\.(?:jpe?g|png|webp|avif|gif)$/i.test(item.key));
+    const videos = objects.filter((item) => /\.(?:mp4|webm|mov)$/i.test(item.key)).sort((a, b) => (a.size || 0) - (b.size || 0));
+    const sections = Array.isArray(post.blocos?.secoes) ? post.blocos.secoes : [];
+    const featuredValues = [post.imagem_capa_url, post.blocos?.hero?.imagem_url, ...sections.map((item) => item.imagem_url)].filter(Boolean);
+    const mediaKey = (value) => {
+      try {
+        const url = new URL(media(value), location.href);
+        return (url.searchParams.get('key') || decodeURIComponent(url.pathname.replace(/^\/+/, ''))).toLowerCase();
+      } catch (_) {
+        return String(value || '').split(/[?#]/)[0].toLowerCase();
+      }
+    };
+    const featuredKeys = new Set(featuredValues.map(mediaKey).filter((key) => key.includes('empreendimentos/')));
+    const sourceImages = Array.isArray(post.imagens) ? post.imagens : [];
+    const curatedPlants = sourceImages.filter((item) => /^planta\b/i.test(String(item.legenda || '')));
+    const curatedGallery = sourceImages.filter((item) => /^galeria\b/i.test(String(item.legenda || '')));
+    const plantImages = images.filter((item) => /(?:planta|tipologia|unidade)/i.test(item.key));
+    const plantTrack = root.querySelector('.park-plant-track');
+    if (plantTrack && curatedPlants.length) {
+      plantTrack.innerHTML = curatedPlants.map((item, index) => `<figure><img loading="lazy" decoding="async" src="${esc(media(item.url))}" alt="${esc(item.alt || `Planta ${String(index + 1).padStart(2, '0')} do Park Beach Studios`)}"><figcaption>${esc(item.legenda || `Planta ${String(index + 1).padStart(2, '0')}`)}</figcaption></figure>`).join('');
+    } else if (plantTrack) {
+      plantTrack.innerHTML = plantImages.map((item, index) => `<figure><img loading="lazy" decoding="async" src="${esc(item.url)}&v=20261022-park-beach" alt="Planta Park Beach ${index + 1}"><figcaption>${esc(item.key.split('/').pop().replace(/\.[^.]+$/, '').replace(/[_]+/g, ' '))}</figcaption></figure>`).join('');
+    }
+    const galleryTrack = root.querySelector('.park-gallery-track');
+    const r2Gallery = images.filter((item) => !/(?:planta|tipologia|unidade)/i.test(item.key)
+      && !/(?:fachada|capa|cover|hero|localiza|mapa)/i.test(item.key)
+      && !featuredKeys.has(item.key.toLowerCase()));
+    if (galleryTrack) {
+      const curatedHtml = curatedGallery.map((item, index) => `<figure><img loading="lazy" decoding="async" src="${esc(media(item.url))}" alt="${esc(item.alt || `Park Beach Studios — imagem ${index + 1}`)}"><figcaption>${esc(item.legenda || 'Park Beach Studios')}</figcaption></figure>`);
+      const r2Html = r2Gallery.map((item, index) => {
+        const label = item.key.split('/').pop().replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim();
+        return `<figure><img loading="lazy" decoding="async" src="${esc(item.url)}&v=20261022-park-beach" alt="${esc(label)} — Park Beach Studios"><figcaption>${esc(label)}</figcaption></figure>`;
+      });
+      galleryTrack.innerHTML = [...curatedHtml, ...r2Html].join('');
+    }
+    if (videos.length) {
+      const videoBox = root.querySelector('.park-video-track');
+      if (videoBox && !videoBox.querySelector('video')) {
+        videoBox.innerHTML = `<video controls playsinline preload="metadata"><source src="${esc(videos[0].url)}&v=20261022-park-beach"></video>`;
+      }
+    }
+    bindParkCarousels();
+  } catch (_) {
+    bindParkCarousels();
+  }
+}
+
+function bindParkCarousels() {
+  document.querySelectorAll('.park-plant-carousel, .park-gallery-carousel').forEach((carousel) => {
+    if (carousel.dataset.parkCarouselBound === 'true') return;
+    const track = carousel.querySelector('[class$="-track"]');
+    if (!track) return;
+    carousel.dataset.parkCarouselBound = 'true';
+    const next = carousel.querySelector('.park-next, .park-gallery-next');
+    const prev = carousel.querySelector('.park-prev, .park-gallery-prev');
+    const pause = carousel.querySelector('.park-pause');
+    let timer = null;
+    const start = () => {
+      if (timer || track.children.length < 2) return;
+      timer = window.setInterval(() => track.scrollBy({ left: track.clientWidth * 0.82, behavior: 'smooth' }), Number(carousel.dataset.interval) || 5200);
+      if (pause) pause.textContent = 'Pausar';
+    };
+    const stop = () => {
+      if (timer) window.clearInterval(timer);
+      timer = null;
+      if (pause) pause.textContent = 'Retomar';
+    };
+    next?.addEventListener('click', () => track.scrollBy({ left: track.clientWidth * 0.82, behavior: 'smooth' }));
+    prev?.addEventListener('click', () => track.scrollBy({ left: -track.clientWidth * 0.82, behavior: 'smooth' }));
+    pause?.addEventListener('click', () => timer ? stop() : start());
+    start();
+  });
+}
+		function article(p){
+  const b=p.blocos||{};
+	  if(b.template==='ayra-landing'){
+	    document.body.classList.add('ayra-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel ayra-article';applySeo(p);root.innerHTML=ayraLanding(p);bindAyraLanding();return;
+	  }
+	  if(b.template==='pinna-landing'){
+	    document.body.classList.add('pinna-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel pinna-article';applySeo(p);root.innerHTML=pinnaLanding(p);
+            const pinna=root.querySelector('.pinna-landing');
+            const floorplans=pinna?.querySelector('.pinna-floorplan-carousel');
+            const facts=pinna?.querySelector('.ayra-fact-strip');
+            const locationFeature=pinna?.querySelector('.pinna-feature[data-feature="localizacao"]');
+            if(floorplans&&facts&&!pinna.querySelector('#plantas')){
+              const plantSection=document.createElement('section');
+              plantSection.id='plantas';
+              plantSection.className='ayra-section pinna-plants-section';
+              const wrap=document.createElement('div');
+              wrap.className='ayra-wrap';
+              const heading=document.createElement('div');
+              heading.className='ayra-section-head';
+              heading.innerHTML='<div><span class="ayra-ey">PLANTAS DO PINNA</span><h2>Veja cada planta em detalhe.</h2></div><p>Navegue pelas plantas em tamanho ampliado. Use as setas para comparar a configuração de cada unidade.</p>';
+              floorplans.dataset.autoplay='false';
+              floorplans.setAttribute('aria-label','Carrossel de plantas do Pinna Studios');
+              wrap.append(heading,floorplans);
+              plantSection.append(wrap);
+              const fallback=pinna?.querySelector('.ayra-stay22,.ayra-final');
+              if(locationFeature) locationFeature.insertAdjacentElement('beforebegin',plantSection);
+              else if(fallback) fallback.insertAdjacentElement('beforebegin',plantSection);
+              else facts.insertAdjacentElement('afterend',plantSection);
+              pinna.querySelector('.ayra-hero .ayra-btn-ghost')?.setAttribute('href','#empreendimento');
+            }
+            bindAyraLanding();
+            loadPinnaR2Media();
+            return;
+	  }
+	  if(b.template==='park-beach-landing'){
+	    document.body.classList.add('park-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel park-article';applySeo(p);root.innerHTML=parkLanding(p);bindParkCarousels();loadParkR2Media(p);return;
+	  }
+  const imgs=Array.isArray(p.imagens)?p.imagens:[],hero=media(p.imagem_capa_url),used=new Set(),show=b.exibir_hero!==false&&!!hero;
+  if(show)used.add(key(hero));
+  const sections=b.secoes||[],body=sections.map(item=>section(item,p,used)).join('')||para(p.conteudo||p.resumo),gallery=galleryFromImages(imgs,used,p),mins=b.leitura_minutos||Math.max(2,Math.ceil((p.conteudo||'').length/1000)),hasInlineCta=sections.some(section=>section.tipo==='cta'),finalCta=!hasInlineCta&&b.cta?`<section class="article-cta"><div><p class="eyebrow">PRÓXIMO PASSO</p><h2>${esc(b.cta)}</h2></div><a href="https://wa.me/5547992120915?text=${encodeURIComponent('Olá, equipe Luan Especialista. Li o artigo “'+p.titulo+'” e gostaria de receber orientação.') }" target="_blank" rel="noopener noreferrer">Falar com a equipe →</a></section>`:'',wise=isWise(p),layout=['artigo','guia','mercado','comparativo','case','imovel'].includes(p.layout)?p.layout:'artigo',heroImage=imgs.find(image=>key(image?.url)===key(p.imagem_capa_url));
+  document.getElementById('intro').hidden=true;filters.hidden=true;
+  root.className=`article article-${layout} intent-${esc(b.intencao||'descoberta')} ${wise?'has-partner':''} ${show?'has-overlay-hero':''}`;applySeo(p);
+  const meta=`<p class="eyebrow">${esc(p.categoria||'Insights')} <span class="meta-dot">·</span> ${date(p.publicado_em)} <span class="meta-dot">·</span> ${mins} min de leitura</p>`;
+  const header=`<header class="article-head">${meta}${show?'':`<h1>${esc(p.titulo)}</h1><p class="deck">${esc(p.resumo||'')}</p>`}${wise?wiseCard():''}</header>`;
+  const heroMarkup=show?`<figure class="hero-figure hero-overlay"><img src="${esc(hero)}" fetchpriority="high" decoding="async" alt="${esc(heroImage?.alt||p.titulo)}"><figcaption class="hero-overlay-copy"><h1>${esc(p.titulo)}</h1><p class="deck">${esc(p.resumo||'')}</p></figcaption></figure>`:'';
+  root.innerHTML=`${header}${heroMarkup}<main class="article-flow">${readingMap(sections)}${body}${gallery}</main>${sources(b)}${stay22Context(p)}${finalCta}${engagement(p)}`;
+  bindRatingControls();bindCarousel();bindEngagement();
+}
+function render(){
+  const cats=['Todos',...new Set(posts.map(post=>post.categoria).filter(Boolean))];
+  filters.innerHTML=cats.map(name=>`<button class="filter ${name===category?'active':''}" data-category="${esc(name)}">${esc(name)}</button>`).join('');
+  const list=category==='Todos'?posts:posts.filter(post=>post.categoria===category);
+  root.className='posts';
+  root.innerHTML=list.map((post,index)=>{
+    const cover=media(post.blocos?.imagem_card_url||post.imagem_capa_url),mins=post.blocos?.leitura_minutos||Math.max(2,Math.ceil((post.conteudo||'').length/1000)),intent=post.blocos?.intencao||'descoberta',isAyra=post.blocos?.template==='ayra-landing'||post.slug==='ayra-slim-residence-penha-santer',overlay=cover&&!isAyra?'post-overlay':'';
+    return `<article class="post ${index===0?'post-featured':''} ${overlay}">${cover?`<img class="post-image" src="${esc(cover)}" loading="lazy" alt="${esc(post.titulo)}">`:''}<div class="post-copy"><div class="post-meta"><span>${esc(post.categoria||'Insights')}</span><span>${mins} min</span></div><div class="post-intent">${intent==='decisao'?'PARA DECIDIR':intent==='guia'?'GUIA PRÁTICO':'PARA DESCOBRIR'}</div><h2>${esc(post.titulo)}</h2><p>${esc(post.resumo||'')}</p><a class="post-read" href="/blog/${encodeURIComponent(post.slug)}/">Ler a análise <span>→</span></a></div></article>`;
+  }).join('')||'<div class="empty"><strong>Estamos preparando as próximas leituras.</strong><span>Enquanto isso, conheça as oportunidades selecionadas ou fale com a equipe para organizar sua próxima decisão.</span><div><a href="/imoveis/">Ver oportunidades →</a><a href="https://wa.me/5547992120915?text=Olá%2C%20quero%20receber%20as%20próximas%20leituras%20da%20Luan%20Especialista." target="_blank" rel="noopener">Falar com a equipe →</a></div></div>';
+  filters.querySelectorAll('button').forEach(button=>button.onclick=()=>{category=button.dataset.category;render()});
+}
 function bindNewsletter(){const form=document.getElementById('newsletter-form'),status=document.getElementById('newsletter-status');if(!form||!status)return;form.addEventListener('submit',async e=>{e.preventDefault();const data=new FormData(form);if(data.get('company'))return;const button=form.querySelector('button');button.disabled=true;status.textContent='Salvando sua inscrição…';const r=await api('rpc/assinar_newsletter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_email:data.get('email'),p_nome:data.get('name')||null,p_idioma:document.documentElement.lang||'pt-BR',p_origem:'blog'})});button.disabled=false;if(r.ok){form.reset();status.textContent='Inscrição confirmada. Você receberá apenas conteúdos e oportunidades relevantes.'}else status.textContent='Não foi possível concluir agora. Tente novamente em instantes.'})}
 	async function load(){bindNewsletter();try{const isPreview=new URLSearchParams(location.search).get('preview')==='1';let localPreview=null;if(isPreview){try{const raw=localStorage.getItem('luan_blog_preview');const candidate=raw?JSON.parse(raw):null;if(candidate&&candidate.slug===wanted)localPreview=candidate}catch{}if(!localPreview&&wanted==='ayra-slim-residence-penha-santer'){try{const response=await fetch('/ayra-landing-draft.json',{cache:'no-store'});if(response.ok){const candidate=await response.json();if(candidate.slug===wanted)localPreview=candidate}}catch{}}}if(localPreview){posts=[localPreview];article(localPreview);return}const r=await api('blog_posts?select=id,titulo,slug,resumo,conteudo,categoria,layout,imagem_capa_url,imagens,blocos,publicado_em,atualizado_em,seo_titulo,seo_descricao,palavras_chave&status=eq.publicado&order=publicado_em.desc');if(!r.ok)throw Error();posts=await r.json();const p=posts.find(x=>x.slug===wanted);if(p)article(p);else if(!root.querySelector('.article-head h1'))render()}catch{if(!root.querySelector('.article-head h1,.post'))root.innerHTML='<div class="empty"><strong>Os conteúdos estão temporariamente indisponíveis.</strong><span>Tente novamente em instantes ou fale com a equipe para receber orientação.</span><a href="https://wa.me/5547992120915?text=Olá%2C%20não%20consegui%20acessar%20os%20Insights." target="_blank" rel="noopener">Falar com a equipe →</a></div>'}}load();
 })();

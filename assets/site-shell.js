@@ -47,6 +47,15 @@
   style.textContent += "html{overflow-x:clip;overflow-y:visible!important}body{min-height:100vh!important;position:relative!important;overflow-x:clip!important;overflow-y:visible!important}body>header,body>.site-header,body>main,body>section,body>.page,body>.hero,body>.container{position:relative;z-index:1}.luan-global-footer{position:relative!important;clear:both!important;z-index:20!important;isolation:isolate!important;display:block!important;visibility:visible!important;opacity:1!important}.luan-global-footer::before{content:\"\";display:block;clear:both}.luan-global-footer-bottom{position:relative;z-index:1}.luan-global-legacy-footer{display:none!important;position:static!important}";
 
   var oldFooter = document.querySelector("footer");
+  var newsletter = document.querySelector(".newsletter");
+  // Posts have a shared template footer with copyright. Do not append the
+  // generic conversion/FAQ/footer shell on article routes (including future posts).
+  var isBlogPost = path === "/blog" || path.indexOf("/blog/") === 0;
+  var isAyraLanding =
+    path.indexOf("/blog/ayra-slim-residence-penha-santer") === 0 ||
+    /ayra-slim-residence-penha-santer/.test(location.search) ||
+    !!document.querySelector(".ayra-landing, .ayra-article, .pinna-landing, .park-landing");
+  if (isBlogPost || isAyraLanding) return;
   if (oldFooter) oldFooter.classList.add("luan-global-legacy-footer");
   var anchor = oldFooter || document.body.lastElementChild;
   var conversion = document.createElement("section");
@@ -59,8 +68,13 @@
   globalFooter.className = "luan-global-footer";
   globalFooter.innerHTML = "<div class=\"luan-global-footer-grid\"><div><strong>LUAN <span>ESPECIALISTA</span></strong><p>Estratégias patrimoniais para decisões mais conscientes, conectando contexto, oportunidades e próximos passos.</p></div><div><h3>Navegação</h3><a href=\"/\">Início</a><a href=\"/estrategias-patrimoniais/\">Estratégias Patrimoniais</a><a href=\"/imoveis/\">Oportunidades</a><a href=\"/mobilidade-experiencias/\">Mobilidade &amp; Experiências</a></div><div><h3>Atendimento</h3><a href=\"https://wa.me/5547992120915\" target=\"_blank\" rel=\"noopener\">Falar pelo WhatsApp</a><a href=\"mailto:contato@luan-especialista.pro\">Enviar e-mail</a><a href=\"/faq/\">Perguntas frequentes</a></div><div><h3>Informações</h3><a href=\"/quem-somos/\">Quem somos</a><a href=\"/privacidade/\">Privacidade</a><a href=\"/termos/\">Termos de uso</a><a href=\"#\" data-luan-install hidden>Instalar como aplicativo</a></div></div><div class=\"luan-global-footer-bottom\"><span>© 2026 Luan Especialista. Todos os direitos reservados.</span><span>Informações, valores e condições podem mudar e devem ser confirmados antes de qualquer decisão.</span></div>";
   if (anchor && anchor.parentNode) {
-    anchor.parentNode.insertBefore(conversion, anchor);
-    anchor.parentNode.insertBefore(faq, anchor);
+    if (newsletter && newsletter.parentNode) {
+      newsletter.parentNode.insertBefore(conversion, newsletter);
+      newsletter.parentNode.insertBefore(faq, newsletter);
+    } else {
+      anchor.parentNode.insertBefore(conversion, anchor);
+      anchor.parentNode.insertBefore(faq, anchor);
+    }
     anchor.parentNode.insertBefore(globalFooter, anchor);
   }
   var floatActions = document.createElement("div");

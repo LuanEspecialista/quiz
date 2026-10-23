@@ -812,6 +812,16 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
               const emp = u.empreendimentos || {};
               const regrasCorrecao = emp.regras_correcao || u.regras_correcao || {};
               const fluxo = u.fluxo_dados || {};
+              const atoFluxo = Number(fluxo.ato || fluxo.entrada_valor || entradaVal || 0);
+              const parcelasQtd = Number(fluxo.quantidade_parcelas_obra || fluxo.mensais_obra_qtd || 0);
+              const parcelaValor = Number(fluxo.parcela_obra_valor || fluxo.mensais_obra_val || 0);
+              const baloesQtd = Number(fluxo.quantidade_reforcos_obra || fluxo.quantidade_baloes || fluxo.baloes_obra_qtd || 0);
+              const balaoValor = Number(fluxo.reforco_obra_valor || fluxo.baloes_obra_val || 0);
+              const financiamentoValor = Number(fluxo.financiamento_valor || fluxo.saldo_financiamento || fluxo.valor_financiamento || fluxo.chaves || 0);
+              const indicePre = fluxo.indice_pre_chaves || regrasCorrecao.indice_pre_chaves;
+              const indicePos = fluxo.tem_pos_chaves === false ? null : (fluxo.indice_pos_chaves || regrasCorrecao.indice_pos_chaves);
+              const saldoLabel = fluxo.modalidade === "financiamento" || fluxo.destino_saldo === "financiamento bancário" ? "Financiamento / saldo" : "Pós-chaves / saldo";
+              const hasFlowDetails = atoFluxo > 0 || parcelaValor > 0 || balaoValor > 0 || financiamentoValor > 0;
               const dataEntrega = getDataEntregaExibicao(u);
 
               return (
@@ -1009,14 +1019,14 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
                     )}
 
                     {/* BADGES DE CORREÇÃO MONETÁRIA */}
-                    {(regrasCorrecao.indice_pre_chaves || regrasCorrecao.indice_pos_chaves) && !isEditing && (
+                    {(indicePre || indicePos) && !isEditing && (
                       <div style={{ backgroundColor: "rgba(39, 39, 42, 0.6)", border: "1px solid #27272a", borderRadius: "4px", padding: "0.4rem", fontSize: "0.68rem", color: "#d4d4d8", marginBottom: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center" }}>
                         <ShieldAlert style={{ width: "12px", height: "12px", color: "#c5a059" }} />
-                        {regrasCorrecao.indice_pre_chaves && (
-                          <span>Pré: <strong style={{ color: "#fff" }}>{regrasCorrecao.indice_pre_chaves}</strong></span>
+                        {indicePre && (
+                          <span>Pré: <strong style={{ color: "#fff" }}>{indicePre}</strong></span>
                         )}
-                        {regrasCorrecao.indice_pos_chaves && (
-                          <span>• Pós: <strong style={{ color: "#fff" }}>{regrasCorrecao.indice_pos_chaves}</strong> {regrasCorrecao.juros_pos_chaves_am ? `+ ${regrasCorrecao.juros_pos_chaves_am}% a.m.` : ""}</span>
+                        {indicePos && (
+                          <span>• Pós: <strong style={{ color: "#fff" }}>{indicePos}</strong> {regrasCorrecao.juros_pos_chaves_am ? `+ ${regrasCorrecao.juros_pos_chaves_am}% a.m.` : ""}</span>
                         )}
                       </div>
                     )}
@@ -1031,6 +1041,17 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
                         <strong style={{ color: "#fff", fontSize: "0.85rem" }}>{formatCurrency(tabelaVal)}</strong>
                       </div>
                     </div>
+
+                    {hasFlowDetails && !isEditing && <div style={{ marginTop: 9, padding: 9, borderRadius: 6, border: "1px solid #3f3420", background: "#1b1812", fontSize: 11, lineHeight: 1.55 }}>
+                      <strong style={{ color: "#e7c778", display: "block", marginBottom: 5 }}>Fluxo oficial da tabela</strong>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 9px", color: "#d4d4d8" }}>
+                        {atoFluxo > 0 && <span>• Ato / entrada: <strong style={{ color: "#fff" }}>{formatCurrency(atoFluxo)}</strong></span>}
+                        {parcelaValor > 0 && <span>• Mensais: <strong style={{ color: "#fff" }}>{parcelasQtd > 0 ? `${parcelasQtd}x ` : ""}{formatCurrency(parcelaValor)}</strong></span>}
+                        {balaoValor > 0 && <span>• Balões: <strong style={{ color: "#fff" }}>{baloesQtd > 0 ? `${baloesQtd}x ` : ""}{formatCurrency(balaoValor)}</strong></span>}
+                        {financiamentoValor > 0 && <span>• {saldoLabel}: <strong style={{ color: "#fff" }}>{formatCurrency(financiamentoValor)}</strong></span>}
+                      </div>
+                      {(fluxo.percentual_ate_chaves || fluxo.percentual_financiamento || fluxo.percentual_pos_chaves) && <div style={{ color: "#a1a1aa", marginTop: 4 }}>Composição: {fluxo.percentual_ate_chaves || "—"}% até as chaves · {fluxo.percentual_financiamento || fluxo.percentual_pos_chaves || "—"}% financiamento</div>}
+                    </div>}
 
                     {capacidadeInformada && analiseFluxo.status === "compativel" && <div style={{ marginTop: 10, padding: 9, borderRadius: 6, border: "1px solid #14532d", background: "#052e162b", fontSize: 11, lineHeight: 1.55 }}><strong style={{ color: "#34d399", display: "block", marginBottom: 3 }}>Fluxo compatível · {analiseFluxo.preKeysPercent.toLocaleString("pt-BR")}% até as chaves</strong><span style={{ color: "#d4d4d8" }}>{formatCurrency(analiseFluxo.suggestedEntry)} de entrada · {analiseFluxo.months}x {formatCurrency(analiseFluxo.suggestedInstallment)}{analiseFluxo.balloonCount > 0 ? ` · ${analiseFluxo.balloonCount} balões de ${formatCurrency(analiseFluxo.suggestedBalloon)}` : ""}</span><span style={{ color: "#8b8b95", display: "block" }}>Total até as chaves: {formatCurrency(analiseFluxo.preKeysTarget)} · saldo nas chaves: {formatCurrency(analiseFluxo.balanceAtKeys)}</span></div>}
                     {capacidadeInformada && analiseFluxo.status === "proposta" && <div style={{marginTop:10,padding:9,borderRadius:6,border:"1px solid #854d0e",background:"#2a16082b",fontSize:11,lineHeight:1.5}}><strong style={{color:"#fbbf24",display:"block"}}>Proposta a validar · {(analiseFluxo.coverage*100).toLocaleString("pt-BR",{maximumFractionDigits:0})}% do mínimo até as chaves</strong><span style={{color:"#d4d4d8"}}>{analiseFluxo.reason} A unidade não fecha pela regra atual; ela aparece apenas como possibilidade de proposta, sujeita à aprovação da construtora.</span></div>}
@@ -1053,8 +1074,9 @@ export function UnidadesModule({ onSimular, empreendimentoId, empreendimentoIds 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.2rem", color: "#a1a1aa" }}>
                               {fluxo.mensais_obra_qtd > 0 && <span>• {fluxo.mensais_obra_qtd}x Mensais Obra: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.mensais_obra_val)}</strong></span>}
                               {fluxo.baloes_obra_qtd > 0 && <span>• {fluxo.baloes_obra_qtd}x Balões Obra: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.baloes_obra_val)}</strong></span>}
-                              {fluxo.chaves > 0 && <span>• Chaves / Financiamento: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.chaves)}</strong></span>}
+                              {financiamentoValor > 0 && <span>• Financiamento / saldo: <strong style={{ color: "#fff" }}>{formatCurrency(financiamentoValor)}</strong></span>}
                               {fluxo.mensais_pos_qtd > 0 && <span>• {fluxo.mensais_pos_qtd}x Mensais Pós: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.mensais_pos_val)}</strong></span>}
+                              {fluxo.baloes_pos_qtd > 0 && <span>• {fluxo.baloes_pos_qtd}x Reforços anuais Pós-chaves: <strong style={{ color: "#fff" }}>{formatCurrency(fluxo.baloes_pos_val)}</strong></span>}
                             </div>
                           </div>
                         )}

@@ -1,0 +1,50 @@
+.pinna-page{--pinna-orange:#ef6b35;--pinna-orange-deep:#b94221;--pinna-ink:#171414;--pinna-surface:#241d1b;--pinna-sand:#f2e6d4;background:#171414;color:#f8f1e7}.pinna-landing{background:var(--pinna-ink);color:#f8f1e7}.pinna-landing .ayra-hero{min-height:760px;background-color:#251a16;background-position:center;background-size:cover}.pinna-landing .ayra-hero-overlay{background:linear-gradient(90deg,rgba(20,14,13,.96) 0%,rgba(20,14,13,.72) 43%,rgba(20,14,13,.18) 100%),linear-gradient(0deg,rgba(20,14,13,.45),transparent 45%)}.pinna-landing .ayra-kicker,.pinna-landing .ayra-ey{color:#ff9a67;letter-spacing:2px}.pinna-landing .ayra-hero h1{font-family:Georgia,serif;font-size:clamp(52px,8vw,112px);letter-spacing:-.06em;max-width:760px;color:#fff8ee}.pinna-landing .ayra-hero p{max-width:570px;color:#f7e9dc;font-size:19px}.pinna-landing .ayra-btn{background:var(--pinna-orange);border-color:var(--pinna-orange);color:#1b1110;border-radius:5px;font-weight:850}.pinna-landing .ayra-btn:hover{background:#ff8a50}.pinna-landing .ayra-btn-ghost{background:transparent;color:#fff0e4;border-color:#f0a17d}.pinna-landing .ayra-fact-strip{background:#271c19;border-color:#5c3228}.pinna-landing .ayra-facts>div{border-color:#6b392b}.pinna-landing .ayra-facts strong{color:#ff8b56}.pinna-landing .ayra-section{background:#171414}.pinna-landing .ayra-soft{background:#211a18}.pinna-landing .ayra-dark{background:#100e0e}.pinna-landing h2,.pinna-landing h3{color:#fff5e9}.pinna-landing .ayra-section-head p,.pinna-landing .ayra-copy p{color:#d8c9bd}.pinna-landing .ayra-media-card{background:#2b211e;border:1px solid #70402f;border-radius:4px}.pinna-landing .ayra-media-card img{aspect-ratio:4/3;object-fit:cover}.pinna-landing .ayra-feature-list>div{border-color:#6c3d2e;background:#251c19}.pinna-landing .ayra-feature-list b{color:#ff8b56}.pinna-landing .ayra-product-grid>div{background:#241b19;border:1px solid #71402f;border-radius:4px}.pinna-landing .ayra-product-grid strong{color:#ff8b56}.pinna-landing .ayra-stay22-card{background:#2b211e;border-color:#75412f}.pinna-landing .ayra-final{background:linear-gradient(120deg,#8e341e,#291614 65%)}.pinna-landing .ayra-legal{color:#cdbeb1}.pinna-landing .ayra-footer{background:#0d0c0c;border-top-color:#4f2a21}.pinna-landing .ayra-footer-brand strong{color:#ff9768}.pinna-landing .ayra-footer-contact a,.pinna-landing .ayra-footer-cta{color:#ff9768}.pinna-gallery-empty{display:none}.pinna-landing .ayra-gallery-item{background:#2a1e1a;border:1px solid #6b392b;border-radius:4px}.pinna-landing .ayra-gallery-item img{object-fit:cover}.pinna-landing .ayra-carousel-prev,.pinna-landing .ayra-carousel-next{background:rgba(28,16,12,.9);color:#ff9a67}.pinna-landing .ayra-carousel-toggle{border-color:#ff8b56;color:#ff9a67}.pinna-landing .ayra-carousel-status{color:#d6b9a8}
+@media(max-width:700px){.pinna-landing .ayra-hero{min-height:680px}.pinna-landing .ayra-hero h1{font-size:52px}.pinna-landing .ayra-hero p{font-size:16px}.pinna-landing .ayra-facts{grid-template-columns:1fr 1fr}}
+
+.pinna-page .site-header .brand{display:none!important}.pinna-page .site-header nav{margin-left:auto;margin-right:auto}.pinna-landing .ayra-hero{background-color:#221613;background-repeat:no-repeat;background-blend-mode:normal}.pinna-landing .ayra-hero-overlay{z-index:0}.pinna-landing .ayra-hero-inner{position:relative;z-index:1}.pinna-landing .pinna-reverse .ayra-split{direction:rtl}.pinna-landing .pinna-reverse .ayra-split>*{direction:ltr}.pinna-landing .pinna-typologies{background:#1d1715;border-top:1px solid #5f3428;border-bottom:1px solid #5f3428}.pinna-unit-carousel{overflow:hidden;margin-top:34px}.pinna-unit-carousel .ayra-carousel-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:12px}.pinna-unit-card{flex:0 0 min(270px,78vw);min-height:210px;scroll-snap-align:start;background:linear-gradient(145deg,#3a211a,#211715);border:1px solid #9a4a2d;border-radius:5px;padding:28px 24px;display:flex;flex-direction:column;justify-content:flex-end}.pinna-unit-card strong{font-size:34px;color:#ff9a67;font-family:Georgia,serif}.pinna-unit-card h3{font-size:18px;margin:12px 0 8px}.pinna-unit-card p{color:#d6c2b6;line-height:1.55;margin:0}.pinna-pause{padding:110px 24px;background:#f1e4d2;color:#2a1814;text-align:center}.pinna-pause>div{max-width:720px;margin:auto}.pinna-pause .ayra-ey{color:#b94221}.pinna-pause h2{color:#2a1814;font-size:clamp(34px,5vw,64px);margin:16px 0}.pinna-pause p{color:#63463b;font-size:18px;line-height:1.7}.pinna-landing .ayra-media-card{min-height:320px;overflow:hidden}.pinna-landing .ayra-media-card img{width:100%;height:100%;min-height:320px;display:block;object-fit:cover}.pinna-landing .pinna-r2-gallery{display:block!important}
+
+/* Entrada editorial aberta: o Pinna ocupa a viewport como uma landing, não como um card. */
+.pinna-article{max-width:none!important;width:100%!important;padding-left:0!important;padding-right:0!important}
+.pinna-article .pinna-landing{width:100vw;margin-left:calc(50% - 50vw);overflow:hidden}
+.pinna-landing .ayra-hero{border-radius:0!important;max-width:none!important;width:100%;min-height:820px}
+.pinna-landing .ayra-hero-inner{max-width:1180px;padding-top:150px;padding-bottom:150px}
+
+.pinna-floorplan-carousel{position:relative;margin-top:38px;overflow:hidden}.pinna-floorplan-carousel .ayra-carousel-track{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 32px)/3);gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:14px}.pinna-floorplan-card{scroll-snap-align:start;margin:0;background:#2a1e1a;border:1px solid #9a4a2d;border-radius:5px;overflow:hidden}.pinna-floorplan-card img{display:block;width:100%;height:290px;object-fit:cover;background:#f4eee7}.pinna-floorplan-card figcaption{padding:14px 16px;color:#ff9a67;font-weight:750}.pinna-floorplan-carousel .ayra-carousel-prev,.pinna-floorplan-carousel .ayra-carousel-next{position:absolute;top:43%;z-index:2}.pinna-floorplan-carousel .ayra-carousel-prev{left:10px}.pinna-floorplan-carousel .ayra-carousel-next{right:10px}.pinna-floorplan-carousel .ayra-carousel-toggle{margin-top:12px}@media(max-width:780px){.pinna-floorplan-carousel .ayra-carousel-track{grid-auto-columns:82%}.pinna-floorplan-card img{height:250px}}
+
+/* Plantas em primeiro plano: uma lâmina ampla, sem cortes e sem rotação automática. */
+.pinna-plants-section{padding-block:clamp(44px,6vw,84px);background:#211a18}
+.pinna-plants-section .ayra-wrap{width:calc(100% - 48px);max-width:1440px;margin-inline:auto}
+.pinna-plants-section .ayra-section-head{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr);align-items:end;gap:32px;margin-bottom:24px}
+.pinna-plants-section .ayra-section-head h2{max-width:820px;font-size:clamp(38px,4.8vw,64px);line-height:1.04;margin:10px 0 0;letter-spacing:-.035em}
+.pinna-plants-section .ayra-section-head p{max-width:430px;margin:0 0 4px;color:#d8c9bd;font-size:16px;line-height:1.55}
+.pinna-floorplan-carousel{margin-top:0}
+.pinna-floorplan-carousel .ayra-carousel-track{grid-auto-columns:min(100%,1360px);gap:14px;padding:0 0 12px}
+.pinna-floorplan-card{display:grid;grid-template-rows:minmax(0,1fr) auto;min-width:0;border:1px solid #6b5146;border-radius:8px;background:#f4eee7}
+.pinna-floorplan-card img{width:100%;height:clamp(420px,66vh,740px);min-height:420px;padding:22px;object-fit:contain;background:#f4eee7}
+.pinna-floorplan-card figcaption{padding:13px 18px;background:#2a1e1a;color:#ffb08a;text-align:center;font-size:15px;font-weight:750;letter-spacing:.02em}
+.pinna-floorplan-carousel .ayra-carousel-prev,.pinna-floorplan-carousel .ayra-carousel-next{top:calc(50% - 24px);width:48px;height:48px}
+.pinna-typologies{padding-block:clamp(36px,5vw,60px);background:#171414}
+.pinna-typologies .ayra-section-head h2{max-width:700px;font-size:clamp(30px,3.2vw,44px);line-height:1.08}
+.pinna-typologies .ayra-section-head p{max-width:430px;font-size:14px;line-height:1.5}
+.pinna-unit-carousel{margin-top:22px}
+.pinna-unit-card{flex-basis:min(230px,78vw);min-height:158px;padding:20px 18px}
+.pinna-unit-card strong{font-size:28px}
+.pinna-unit-card h3{font-size:16px;margin:8px 0 6px}
+.pinna-unit-card p{font-size:13px;line-height:1.45}
+@media(max-width:780px){
+  .pinna-plants-section{padding-block:38px}
+  .pinna-plants-section .ayra-wrap{width:calc(100% - 32px)}
+  .pinna-plants-section .ayra-section-head{grid-template-columns:1fr;gap:12px;margin-bottom:18px}
+  .pinna-plants-section .ayra-section-head h2{font-size:clamp(34px,9vw,48px)}
+  .pinna-plants-section .ayra-section-head p{font-size:14px}
+  .pinna-floorplan-carousel .ayra-carousel-track{grid-auto-columns:100%}
+  .pinna-floorplan-card img{height:min(58vh,540px);min-height:320px;padding:12px}
+  .pinna-floorplan-card figcaption{font-size:14px;padding:11px 12px}
+  .pinna-floorplan-carousel .ayra-carousel-prev,.pinna-floorplan-carousel .ayra-carousel-next{top:calc(50% - 35px);width:42px;height:42px}
+  .pinna-unit-card{min-height:148px}
+}
+
+
+/* Mapa da região: exibir a imagem R2 inteira, sem recorte de fotografia. */
+.pinna-feature[data-feature="localizacao"] .ayra-media-card{display:grid;place-items:center;min-height:0;background:#f4eee7}
+.pinna-feature[data-feature="localizacao"] .ayra-media-card img{width:100%;height:auto;min-height:0;max-height:560px;aspect-ratio:auto;object-fit:contain;background:#f4eee7}

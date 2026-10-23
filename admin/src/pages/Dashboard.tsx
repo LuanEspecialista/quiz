@@ -34,7 +34,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
   const [flowUnitIds, setFlowUnitIds] = useState<string[]>([]);
   const [flowUnits, setFlowUnits] = useState<any[]>([]);
   const [flowClientId, setFlowClientId] = useState<string>();
-  const [metrics, setMetrics] = useState({ empreendimentos: 0, unidades: 0, clientes: 0, propostasEmAndamento: 0 });
+  const [metrics, setMetrics] = useState({ empreendimentos: 0, unidades: 0, clientes: 0, propostasEmAndamento: 0, cadastrosBlog: 0, solicitacoesContato: 0 });
   const empreendimentoId = initialParams.get("empreendimento") || undefined;
   const empreendimentoIds = (initialParams.get("empreendimentos") || "").split(",").map((value) => value.trim()).filter(Boolean);
   const disponibilidade = initialParams.get("disponibilidade") || undefined;
@@ -47,7 +47,9 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
       supabase.from("unidades").select("*", { count: "exact", head: true }),
       supabase.from("clientes").select("*", { count: "exact", head: true }),
       supabase.from("propostas").select("*", { count: "exact", head: true }),
-    ]).then(([empreendimentos, unidades, clientes, propostas]) => setMetrics({ empreendimentos: empreendimentos.count ?? 0, unidades: unidades.count ?? 0, clientes: clientes.count ?? 0, propostasEmAndamento: propostas.count ?? 0 })).catch((error) => console.error("Erro ao carregar métricas:", error));
+      supabase.from("blog_leads").select("user_id", { count: "exact", head: true }),
+      supabase.from("playbook_leads").select("id", { count: "exact", head: true }).eq("origem", "site_oportunidade"),
+    ]).then(([empreendimentos, unidades, clientes, propostas, blogLeads, contactLeads]) => setMetrics({ empreendimentos: empreendimentos.count ?? 0, unidades: unidades.count ?? 0, clientes: clientes.count ?? 0, propostasEmAndamento: propostas.count ?? 0, cadastrosBlog: blogLeads.count ?? 0, solicitacoesContato: contactLeads.count ?? 0 })).catch((error) => console.error("Erro ao carregar métricas:", error));
   }, [activeTab]);
 
   useEffect(() => {

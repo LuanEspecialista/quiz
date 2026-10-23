@@ -75,6 +75,43 @@ function categoryFolder(kind) {
 export async function onRequest(context) {
   const { request, env } = context;
   if (!env.MEDIA) return json({ error: "O binding MEDIA do Cloudflare R2 ainda não está configurado no Pages." }, 503);
+
+  const requestUrl = new URL(request.url);
+  if (request.method === "GET" && requestUrl.searchParams.get("key")) {
+    const key = requestUrl.searchParams.get("key") || "";
+    const normalizedKey = normalize(key);
+    const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park");
+    if (!key.startsWith(BUCKET_PREFIX) || !allowedAsset || !/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
+    const object = await env.MEDIA.get(key);
+    if (!object) return json({ error: "Arquivo não encontrado." }, 404);
+    return new Response(object.body, { headers: { "content-type": object.httpMetadata?.contentType || "application/octet-stream", "cache-control": "no-store, max-age=0, must-revalidate" } });
+  }
+
+  // A landing pública do Pinna precisa descobrir as imagens editoriais já
+  // armazenadas no R2. A listagem é deliberadamente limitada ao prefixo do
+  // empreendimento e retorna somente imagens públicas, sem metadados internos.
+  if (request.method === "GET" && new URL(request.url).searchParams.get("list") === "1") {
+    const enterprise = normalize(new URL(request.url).searchParams.get("enterprise"));
+    if (!["pinna", "pinna-studios", "park", "park-beach", "park-beach-studios", "beach-park-studios"].includes(enterprise)) return json({ error: "Listagem não disponível para este empreendimento." }, 403);
+    const wanted = enterprise.startsWith("park") || enterprise.startsWith("beach") ? /(?:park-beach-studios|beach-park-studios|empreendimentos-park(?:-|$))/i : /pinna/i;
+    const prefixes = enterprise.startsWith("park") || enterprise.startsWith("beach")
+      ? [`${BUCKET_PREFIX}Park Beach Studios/`, `${BUCKET_PREFIX}park-beach-studios/`, `${BUCKET_PREFIX}Park/`, `${BUCKET_PREFIX}park/`, BUCKET_PREFIX]
+      : [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`, `${BUCKET_PREFIX}Pinna Studios/`, `${BUCKET_PREFIX}pinna-studios/`, `${BUCKET_PREFIX}PINNA/`, BUCKET_PREFIX];
+    const objects = [];
+    for (const prefix of prefixes) {
+      const listing = await env.MEDIA.list({ prefix, limit: 1000 });
+      for (const object of listing?.objects || []) {
+        const normalizedKey = normalize(object.key);
+        const looksLikePinnaPlant = /(?:unidade|planta|tipologia)[^/]*?(?:0?[1-9])(?:\D|$)/i.test(normalizedKey);
+        if (/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov)$/i.test(object.key) && (wanted.test(normalizedKey) || looksLikePinnaPlant && enterprise.startsWith("pinna"))) {
+          objects.push({ key: object.key, url: `${requestUrl.origin}/api/media?key=${encodeURIComponent(object.key)}`, size: object.size || 0 });
+        }
+      }
+    }
+    const unique = [...new Map(objects.map((object) => [object.key, object])).values()];
+    return json({ ok: true, enterprise: "Pinna Studios", objects: unique });
+  }
+
   const user = await authorize(request, env);
   if (!user) return json({ error: "Apenas administradores autenticados podem enviar mídias." }, 403);
 

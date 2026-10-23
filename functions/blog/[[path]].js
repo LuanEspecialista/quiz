@@ -35,6 +35,30 @@ const esc = (value = "") =>
     })[character],
   );
 
+const BLOG_FOOTER_HTML = `<footer class="blog-site-footer" aria-label="Rodapé do site">
+  <div class="blog-site-footer-grid">
+    <section class="blog-footer-brand">
+      <a class="blog-footer-wordmark" href="/"><span>LUAN</span> ESPECIALISTA</a>
+      <p>Estratégias patrimoniais, investimentos e oportunidades imobiliárias no litoral norte de Santa Catarina.</p>
+      <span class="blog-footer-accent" aria-hidden="true"></span>
+    </section>
+    <nav aria-label="Navegação do rodapé">
+      <h2>NAVEGAÇÃO</h2>
+      <a href="/">Início</a>
+      <a href="/estrategias-patrimoniais/">Estratégias Patrimoniais</a>
+      <a href="/imoveis/">Oportunidades</a>
+      <a href="/mobilidade-experiencias/">Mobilidade &amp; Experiências</a>
+    </nav>
+    <section class="blog-footer-contact">
+      <h2>ATENDIMENTO &amp; INFORMAÇÕES</h2>
+      <a class="blog-footer-contact-line" href="https://wa.me/5547992120915" target="_blank" rel="noopener noreferrer"><span class="blog-footer-icon" aria-hidden="true">◉</span><span>Falar com especialista</span></a>
+      <a class="blog-footer-contact-line" href="mailto:contato@luan-especialista.pro"><span class="blog-footer-icon" aria-hidden="true">✉</span><span>contato@luan-especialista.pro</span></a>
+      <p class="blog-footer-contact-line"><span class="blog-footer-icon" aria-hidden="true">⌖</span><span>Penha · SC</span></p>
+    </section>
+  </div>
+  <div class="blog-site-footer-bottom"><span>© 2026 Luan Especialista. Todos os direitos reservados.</span><span>Informações, valores e condições podem mudar a qualquer momento, sem aviso prévio.</span></div>
+</footer>`;
+
 const safeLink = (value = "") => {
   if (String(value).startsWith("r2://")) {
     return `https://media.luan-especialista.pro/${String(value).slice(5).split("/").map(encodeURIComponent).join("/")}`;
@@ -339,13 +363,66 @@ function renderRemainingImages(images, used) {
   }</section>`;
 }
 
+function stay22Source(settings) {
+  const direct = safeLink(settings.url || "");
+  if (direct) {
+    try {
+      const parsed = new URL(direct);
+      if (parsed.origin === "https://www.stay22.com" && /^\/embed\/[A-Za-z0-9_-]+$/.test(parsed.pathname)) return parsed.href;
+      if (
+        parsed.origin === "https://www.stay22.com" &&
+        parsed.pathname === "/embed/gm" &&
+        parsed.searchParams.get("aid") &&
+        (parsed.searchParams.has("address") || (parsed.searchParams.has("lat") && parsed.searchParams.has("lng")))
+      ) {
+        if (!parsed.searchParams.has("campaign")) parsed.searchParams.set("campaign", "blog_praias_de_penha");
+        return parsed.href;
+      }
+    } catch {}
+  }
+
+  const aid = String(settings.aid || "").trim();
+  if (!/^[A-Za-z0-9_-]{3,80}$/.test(aid)) return "";
+  const url = new URL("https://www.stay22.com/embed/gm");
+  url.searchParams.set("aid", aid);
+  const hasCoordinates =
+    settings.lat !== undefined && settings.lat !== null && String(settings.lat).trim() !== "" &&
+    settings.lng !== undefined && settings.lng !== null && String(settings.lng).trim() !== "";
+  const lat = Number(settings.lat);
+  const lng = Number(settings.lng);
+  if (hasCoordinates && Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+    url.searchParams.set("lat", String(lat));
+    url.searchParams.set("lng", String(lng));
+  } else {
+    url.searchParams.set("address", String(settings.address || "Penha, Santa Catarina, Brazil"));
+  }
+  url.searchParams.set("venue", String(settings.venue || "Praias de Penha"));
+  url.searchParams.set("campaign", String(settings.campaign || "blog_praias_de_penha"));
+  return url.href;
+}
+
+function renderDestinationMap(post) {
+  const settings = post.blocos?.stay22 || {};
+  if (!settings.ativo || post.blocos?.template === "ayra-landing") return "";
+  const src = stay22Source(settings);
+  if (!src) return "";
+  const title = settings.titulo || "Imagine aproveitar as praias e tudo o que Penha tem a oferecer.";
+  const text = settings.texto || "Explore opções de hospedagem próximas às praias e aos pontos de interesse da cidade. Consulte datas, valores e disponibilidade diretamente no mapa.";
+  const eyebrow = settings.rotulo || settings.ey || "DESCUBRA PENHA";
+  const venue = settings.venue || "Praias de Penha";
+  return `<section class="destination-map" aria-labelledby="destination-map-title"><div class="destination-map-card"><div class="destination-map-copy"><span class="destination-map-eyebrow">${esc(eyebrow)}</span><h2 id="destination-map-title">${esc(title)}</h2><p>${esc(text)}</p><a href="${esc(src)}" target="_blank" rel="sponsored noopener noreferrer">Ver opções de hospedagem <span aria-hidden="true">↗</span></a></div><div class="destination-map-frame"><iframe title="Opções de hospedagem próximas a ${esc(venue)}" width="100%" height="450" src="${esc(src)}" frameborder="0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><p class="destination-map-note">Ao reservar por opções deste mapa, podemos receber uma comissão, sem custo adicional para você. Valores e disponibilidade são definidos pelos fornecedores.</p></div></section>`;
+}
+
 function renderArticle(post) {
   const blocks = post.blocos || {};
   const sections = Array.isArray(blocks.secoes) ? blocks.secoes : [];
   const images = Array.isArray(post.imagens) ? post.imagens : [];
   const hero = safeImage(post.imagem_capa_url);
+  const showHero = Boolean(hero && blocks.exibir_hero !== false);
+  const isAyra = blocks.template === "ayra-landing";
+  const useOverlayHero = showHero && !isAyra;
   const used = new Set();
-  if (hero && blocks.exibir_hero !== false) used.add(imageKey(hero));
+  if (showHero) used.add(imageKey(hero));
   const body = sections.length
     ? sections.map((section) => renderSection(section, post, used)).join("")
     : paragraphs(post.conteudo || post.resumo);
@@ -378,30 +455,34 @@ function renderArticle(post) {
     1,
     Number(blocks.leitura_minutos) || Math.max(2, Math.ceil((post.conteudo || "").length / 1000)),
   );
-  const heroMarkup =
-    hero && blocks.exibir_hero !== false
+  const heroImage = images.find((image) => imageKey(image.url) === imageKey(hero));
+  const heroMarkup = showHero
+    ? isAyra
       ? `<figure class="hero-figure"><img src="${esc(hero)}" fetchpriority="high" decoding="async" alt="${esc(
-          images.find((image) => imageKey(image.url) === imageKey(hero))?.alt ||
-            post.titulo,
+          heroImage?.alt || post.titulo,
         )}"></figure>`
-      : "";
-
-  return `<a class="back" href="/blog/" aria-label="Voltar aos Insights">←&nbsp; Voltar aos Insights</a><header class="article-head"><p class="eyebrow">${esc(
+      : `<figure class="hero-figure hero-overlay"><img src="${esc(hero)}" fetchpriority="high" decoding="async" alt="${esc(
+          heroImage?.alt || post.titulo,
+        )}"><figcaption class="hero-overlay-copy"><h1>${esc(post.titulo)}</h1><p class="deck">${esc(
+          post.resumo || "",
+        )}</p></figcaption></figure>`
+    : "";
+  const articleMeta = `<p class="eyebrow">${esc(
     post.categoria || "Insights",
   )} <span class="meta-dot">·</span> <time datetime="${esc(
     isoDate(post.publicado_em),
-  )}">${esc(formatDate(post.publicado_em))}</time> <span class="meta-dot">·</span> ${minutes} min de leitura</p><h1>${esc(
-    post.titulo,
-  )}</h1><p class="deck">${esc(post.resumo || "")}</p></header>${heroMarkup}<main class="article-flow">${renderReadingMap(
+  )}">${esc(formatDate(post.publicado_em))}</time> <span class="meta-dot">·</span> ${minutes} min de leitura</p>`;
+  const articleHeader = `<header class="article-head">${articleMeta}${
+    useOverlayHero ? "" : `<h1>${esc(post.titulo)}</h1><p class="deck">${esc(post.resumo || "")}</p>`
+  }</header>`;
+
+  return `${articleHeader}${heroMarkup}<main class="article-flow">${renderReadingMap(
     sections,
-  )}${body}${gallery}</main>${renderSources(blocks)}${finalCta}<section class="engagement"><h2>Este conteúdo foi útil?</h2><div class="stars">${[
+  )}${body}${gallery}</main>${renderSources(blocks)}${renderDestinationMap(post)}${finalCta}<section class="engagement" aria-labelledby="engagement-title"><div class="engagement-header"><div class="engagement-question"><p class="eyebrow">OPINIÃO DOS LEITORES</p><h2 id="engagement-title">Este conteúdo foi útil?</h2><p>Uma nota rápida ajuda outras pessoas a decidir por onde começar.</p></div><div class="rating-summary" aria-live="polite"><strong class="rating-average">—</strong><span class="rating-summary-stars" aria-hidden="true">☆☆☆☆☆</span><small class="rating-count">Carregando avaliações…</small></div></div><div class="stars" role="group" aria-label="Avalie este conteúdo de uma a cinco estrelas">${[
     1, 2, 3, 4, 5,
   ]
-    .map(
-      (rating) =>
-        `<button data-rate="${rating}" aria-label="${rating} estrelas">★</button>`,
-    )
-    .join("")}</div><p class="feedback"></p><div class="lead-box"><div class="lead-intro"><h3>Receba conteúdos de acordo com seus objetivos</h3><p>Identifique-se rapidamente. Isso não libera automaticamente a área privada nem cria qualquer compromisso.</p><button type="button" class="google-login" hidden>Continuar com Google</button><form class="magic-login"><input required type="email" name="email" placeholder="Seu melhor e-mail"><button>Continuar por e-mail</button></form></div><div class="lead-profile" hidden><h3>Bem-vindo, <span></span></h3><p>O que você gostaria de realizar?</p><div class="interest-grid"></div><div class="lead-actions"><button type="button" class="save-interests">Salvar interesses</button><a class="team-whatsapp" target="_blank" rel="noopener noreferrer">Falar com a equipe</a></div></div></div><form class="comment"><label>Deixe uma pergunta ou comentário<textarea required minlength="10" maxlength="1200" name="comentario"></textarea></label><label>Seu nome (opcional)<input maxlength="80" name="nome"></label><button>Enviar para moderação</button></form></section><i class="engagement-data" hidden data-id="${esc(
+    .map((rating) => `<button data-rate="${rating}" aria-label="${rating} estrelas">★</button>`)
+    .join("")}</div><div class="review-identity" hidden><label class="review-name-field">Nome que aparecerá na avaliação<input class="review-display-name" type="text" maxlength="80" autocomplete="name" placeholder="Seu nome"></label><label class="review-public-consent"><input type="checkbox" class="review-public-checkbox"><span>Autorizo exibir publicamente meu nome e minha foto de perfil, se disponível, junto à avaliação.</span></label></div><p class="feedback" role="status" aria-live="polite"></p><section class="reader-reviews" hidden aria-label="Avaliações identificadas publicamente"><h3>Quem compartilhou a avaliação</h3><div class="reader-review-list"></div></section><div class="lead-box"><div class="lead-intro"><h3>Receba orientação alinhada aos seus objetivos</h3><p>Se você optar por receber orientação, seu cadastro será incluído na base de atendimento. Isso não libera automaticamente uma área privada nem cria compromisso.</p><label class="lead-field">Seu nome<input class="lead-contact-name" type="text" maxlength="120" autocomplete="name" placeholder="Como podemos chamar você?" required></label><label class="lead-contact-consent"><input type="checkbox" class="lead-contact-checkbox"><span>Autorizo a equipe a usar meus dados para responder e manter contato sobre os interesses selecionados, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="button" class="google-login" hidden>Continuar com Google</button><form class="magic-login"><label class="lead-field">Seu melhor e-mail<input required type="email" name="email" autocomplete="email" maxlength="254" placeholder="voce@exemplo.com"></label><button>Continuar por e-mail</button></form></div><div class="lead-profile" hidden><h3>Olá, <span class="lead-greeting"></span></h3><p>Escolha os interesses que ajudam a equipe a orientar você.</p><label class="lead-field">Seu nome<input class="lead-profile-name" type="text" maxlength="120" autocomplete="name" placeholder="Seu nome" required></label><div class="interest-grid"></div><label class="lead-contact-consent"><input type="checkbox" class="lead-contact-checkbox"><span>Autorizo a equipe a usar meus dados para responder e manter contato sobre os interesses selecionados, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><div class="lead-actions"><button type="button" class="save-interests">Salvar interesses</button><a class="team-whatsapp" target="_blank" rel="noopener noreferrer">Falar com a equipe</a></div></div></div><form class="comment"><label>Deixe uma pergunta ou comentário<textarea required minlength="10" maxlength="1200" name="comentario"></textarea></label><label>Seu nome (opcional)<input maxlength="80" name="nome"></label><button>Enviar para moderação</button></form></section><i class="engagement-data" hidden data-id="${esc(
     post.id,
   )}" data-title="${esc(post.titulo)}" data-session=""></i>`;
 }
@@ -479,14 +560,18 @@ function renderPage(post) {
   ${preload}
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/blog.css">
+  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
+  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
+  <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
+  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261020-3"></script>
-  <script defer src="/assets/site-runtime.js?v=20261007-3"></script>
+  <script defer src="/assets/blog.js?v=20261022-park-beach-media-2"></script>
+  <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
 <body>
@@ -498,15 +583,18 @@ function renderPage(post) {
   <main>
     <section class="intro" id="intro" hidden><p class="eyebrow">CONHECIMENTO PARA DECIDIR MELHOR</p><h1>Insights</h1></section>
     <div id="filters" hidden></div>
+    <div class="blog-post-back-wrap"><a class="blog-post-back" href="/blog/" aria-label="Voltar aos posts"><span class="blog-post-back-arrow" aria-hidden="true">←</span><span>Voltar aos posts</span></a></div>
     <section id="posts" class="article article-${esc(
       post.layout || "artigo",
-    )} intent-${esc(post.blocos?.intencao || "descoberta")}" aria-live="polite">${articleHtml}</section>
-    <section class="newsletter" aria-labelledby="newsletter-title">
-      <div><p class="eyebrow">RECEBA APENAS O QUE IMPORTA</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens e com descadastro simples.</p></div>
-      <form id="newsletter-form" novalidate><label for="newsletter-name">Nome <span>opcional</span></label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Como podemos chamar você?"><label for="newsletter-email">Seu melhor e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="voce@exemplo.com"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
+    )} intent-${esc(post.blocos?.intencao || "descoberta")}${
+      post.blocos?.template !== "ayra-landing" && post.imagem_capa_url && post.blocos?.exibir_hero !== false ? " has-overlay-hero" : ""
+    }" aria-live="polite">${articleHtml}</section>
+    <section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
+      <div><p class="eyebrow">NEWSLETTER</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens.</p></div>
+      <form id="newsletter-form" novalidate><label for="newsletter-name">Seu nome</label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Digite seu nome"><label for="newsletter-email">Seu e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="Digite seu e-mail"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
     </section>
   </main>
-  <footer><div><strong>Luan Especialista</strong><span>Estratégia patrimonial, imóveis e decisões com contexto.</span></div><div><a href="/quem-somos/">Quem somos</a><a href="/faq/">Perguntas frequentes</a><a href="/privacidade/">Privacidade</a><a href="/termos/">Termos de uso</a></div><div><a href="https://api.whatsapp.com/send?phone=5547992120915">WhatsApp: +55 47 99212-0915</a><a href="mailto:contato@luan-especialista.pro">contato@luan-especialista.pro</a><span>© 2026 Luan Especialista</span></div></footer>
+  ${BLOG_FOOTER_HTML}
 </body>
 </html>`;
 }
@@ -557,8 +645,10 @@ function renderBlogCard(post, index) {
         blocks.imagem_card_alt || post.titulo,
       )}">`
     : "";
+  const isAyra = blocks.template === "ayra-landing" || post.slug === "ayra-slim-residence-penha-santer";
+  const overlayClass = cover && !isAyra ? "post-overlay" : "";
 
-  return `<article class="post ${index === 0 ? "post-featured" : ""}">${coverMarkup}<div class="post-copy"><div class="post-meta"><span>${esc(
+  return `<article class="post ${index === 0 ? "post-featured" : ""} ${overlayClass}">${coverMarkup}<div class="post-copy"><div class="post-meta"><span>${esc(
     post.categoria || "Insights",
   )}</span><span>${minutes} min</span></div><div class="post-intent">${intentLabel}</div><h2>${esc(
     post.titulo,
@@ -643,14 +733,18 @@ function renderBlogIndex(posts) {
   <link rel="preconnect" href="https://santerempreendimentos.com.br" crossorigin>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/blog.css">
+  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
+  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
+  <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
+  <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261020-3"></script>
-  <script defer src="/assets/site-runtime.js?v=20261007-3"></script>
+  <script defer src="/assets/blog.js?v=20261022-park-beach-media-2"></script>
+  <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
 <body>
@@ -662,12 +756,12 @@ function renderBlogIndex(posts) {
   <main>
     <section class="intro" id="intro"><p class="eyebrow">CONHECIMENTO PARA DECIDIR MELHOR</p><h1>Insights que transformam<br><em>informação em direção.</em></h1><p class="lead">Leituras objetivas sobre imóveis, patrimônio, mercado e o litoral de Santa Catarina.</p><div class="filters" id="filters" aria-label="Filtrar artigos">${categoryButtons}</div></section>
     <section class="posts" id="posts" aria-live="polite">${cards}</section>
-    <section class="newsletter" aria-labelledby="newsletter-title">
-      <div><p class="eyebrow">RECEBA APENAS O QUE IMPORTA</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens e com descadastro simples.</p></div>
-      <form id="newsletter-form" novalidate><label for="newsletter-name">Nome <span>opcional</span></label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Como podemos chamar você?"><label for="newsletter-email">Seu melhor e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="voce@exemplo.com"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
+    <section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
+      <div><p class="eyebrow">NEWSLETTER</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens.</p></div>
+      <form id="newsletter-form" novalidate><label for="newsletter-name">Seu nome</label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Digite seu nome"><label for="newsletter-email">Seu e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="Digite seu e-mail"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
     </section>
   </main>
-  <footer><div><strong>Luan Especialista</strong><span>Estratégia patrimonial, imóveis e decisões com contexto.</span></div><div><a href="/quem-somos/">Quem somos</a><a href="/faq/">Perguntas frequentes</a><a href="/privacidade/">Privacidade</a><a href="/termos/">Termos de uso</a></div><div><a href="https://api.whatsapp.com/send?phone=5547992120915">WhatsApp: +55 47 99212-0915</a><a href="mailto:contato@luan-especialista.pro">contato@luan-especialista.pro</a><span>© 2026 Luan Especialista</span></div></footer>
+  ${BLOG_FOOTER_HTML}
 </body>
 </html>`;
 }
@@ -675,7 +769,9 @@ function renderBlogIndex(posts) {
 function errorPage(status, heading, message) {
   const body = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${esc(
     heading,
-  )} | Luan Especialista</title><link rel="stylesheet" href="/assets/blog.css"><link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13"><link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1"></head><body><main><section class="empty"><strong>${esc(
+  )} | Luan Especialista</title><link rel="stylesheet" href="/assets/blog.css">
+  <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
+  <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3"><link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13"><link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1"></head><body><main><section class="empty"><strong>${esc(
     heading,
   )}</strong><span>${esc(message)}</span><a href="/blog/">Voltar aos Insights →</a></section></main></body></html>`;
   return new Response(body, {
