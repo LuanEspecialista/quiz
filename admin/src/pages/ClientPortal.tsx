@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowLeft,
   Building2,
   CalendarDays,
   ChevronRight,
+  FileText,
   Images,
   Landmark,
   LogOut,
@@ -19,16 +21,6 @@ type PortalMedia = {
   categoria?: string;
   storage_path?: string;
   url?: string;
-};
-type PortalUnit = {
-  id: string;
-  numero?: string | null;
-  tipologia?: string | null;
-  tipologia_dados?: Record<string, any> | null;
-  valor_tabela?: number | null;
-  area_privativa?: number | null;
-  status?: string | null;
-  entrada_sugerida?: number | null;
 };
 type LandingBlock = {
   tipo?: "hero" | "texto" | "destaque" | "galeria" | "plantas" | "cidade";
@@ -58,10 +50,25 @@ type Opportunity = {
   caracteristicas?: Record<string, any>;
   imagens?: PortalMedia[];
   plantas?: PortalMedia[];
-  unidades?: PortalUnit[];
   layout?: "editorial" | "imersivo" | "investidor";
   exibir_investimento?: boolean;
   exibir_fluxo?: boolean;
+  desconto_percentual?: number;
+  observacao_comercial?: string | null;
+  apresentacao?: { url?: string | null; tipo?: "pdf" | "link" } | null;
+  unidades?: PortalUnit[];
+};
+type PortalUnit = {
+  id: string;
+  codigo?: string;
+  numero?: string | null;
+  torre?: string | null;
+  andar?: number | null;
+  tipologia?: string | null;
+  area_privativa?: number | null;
+  valor?: number | null;
+  status?: string | null;
+  fluxo_dados?: Record<string, unknown>;
 };
 type Portal = {
   cliente?: { nome?: string; objetivo?: string };
@@ -133,13 +140,9 @@ function MoneyScenario({
 function OpportunityLanding({
   item,
   onProposal,
-  onSelectUnit,
-  selectedUnitId,
 }: {
   item: Opportunity;
-  onProposal: (item: Opportunity) => void;
-  onSelectUnit?: (id: string) => void;
-  selectedUnitId?: string | null;
+  onProposal: (item: Opportunity, unit?: PortalUnit) => void;
 }) {
   const blocks = (item.caracteristicas?.landing_blocos || []) as LandingBlock[];
   const layout = String(item.layout || item.caracteristicas?.landing_layout || "editorial");
@@ -287,10 +290,6 @@ function OpportunityLanding({
           </section>
         );
       })}
-      {item.exibir_fluxo && (item.unidades?.length || 0) > 0 && <section style={{padding:"clamp(20px,4vw,36px)",borderTop:"1px solid #2f291e",background:"#0c0c0f",display:"grid",gap:12}}>
-        <div><h3 style={{margin:"0 0 6px",color:"#f5e0b2"}}>Unidades liberadas para análise</h3><p style={{margin:0,color:"#a1a1aa",fontSize:13}}>Escolha uma unidade para visualizar as condições e montar seu fluxo personalizado.</p></div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:8}}>{item.unidades!.map(unit=><button key={unit.id} onClick={()=>{onSelectUnit?.(unit.id);onProposal(item)}} style={{textAlign:"left",padding:12,border:"1px solid #3f3524",borderRadius:9,background:selectedUnitId===unit.id?"#241c0d":"#18181b",color:"#fff",cursor:"pointer"}}><strong>Unidade {unit.numero || unit.id.slice(0,8)}</strong><small style={{display:"block",color:"#a1a1aa",marginTop:5}}>{unit.tipologia || "Tipologia a confirmar"}{unit.area_privativa ? ` · ${unit.area_privativa} m²` : ""}</small><b style={{display:"block",color:"#edcf91",marginTop:6}}>{money(unit.valor_tabela)}</b><span style={{display:"block",color:"#d7ab63",fontSize:11,marginTop:8}}>Abrir fluxo desta unidade →</span></button>)}</div>
-      </section>}
       <section
         style={{
           padding: "clamp(20px,4vw,36px)",
@@ -364,6 +363,9 @@ function OpportunityLanding({
           {item.exibir_investimento && <div style={{padding:15,borderRadius:10,background:layout==="investidor"?"#172016":"#18181b",border:"1px solid #2f3f2e"}}><strong style={{color:"#b9d89c"}}>Visão de investimento</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>Consulte os argumentos, diferenciais e premissas cadastrados para esta oportunidade. Projeções não representam garantia de rentabilidade.</p></div>}
           {item.exibir_fluxo && <div style={{padding:15,borderRadius:10,background:"#18181b",border:"1px solid #3a3327"}}><strong style={{color:"#edcf91"}}>Condições comerciais</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>O fluxo será estruturado conforme sua entrada, capacidade mensal e reforços, sujeito à tabela vigente e aprovação da construtora.</p></div>}
         </div>}
+        {item.apresentacao?.url && <a href={item.apresentacao.url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:7,border:"1px solid #735d36",color:"#f5dfaa",textDecoration:"none",borderRadius:8,padding:12,fontWeight:800}}><FileText size={15} /> Apresentação da construtora</a>}
+        {!!item.unidades?.length && <div style={{display:"grid",gap:8,padding:14,border:"1px solid #3a3327",borderRadius:10,background:"#14120f"}}><strong style={{color:"#edcf91"}}>Unidades liberadas para análise</strong><small style={{color:"#a1a1aa"}}>Escolha uma unidade para abrir o fluxo. A simulação é individual e não altera a condição oficial.</small>{item.unidades.map((unit) => { const original=Number(unit.valor||0); const discount=Math.max(0,Number(item.desconto_percentual||0)); const final=original*(1-discount/100); return <div key={unit.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",padding:"9px 0",borderTop:"1px solid #29251f"}}><span><b>{unit.codigo || unit.numero || "Unidade"}</b>{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#a1a1aa"}}>{money(original)}{discount ? ` · ${discount}% de condição especial · ${money(final)}` : ""}</small></span><button type="button" onClick={() => onProposal(item, unit)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 11px",fontWeight:800,cursor:"pointer"}}>Ver fluxo</button></div>})}</div>}
+        {item.observacao_comercial && <p style={{margin:0,padding:"10px 12px",borderLeft:"3px solid #d7ab63",color:"#ead5aa",background:"#17140e",fontSize:12,lineHeight:1.55}}>{item.observacao_comercial}</p>}
         <div
           style={{
             display: "grid",
@@ -371,7 +373,7 @@ function OpportunityLanding({
             gap: 9,
           }}
         >
-          {item.permitir_proposta && (
+          {item.permitir_proposta && !item.unidades?.length && (
             <button
               onClick={() => onProposal(item)}
               style={{
@@ -413,9 +415,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [portal, setPortal] = useState<Portal | null>(null);
   const [error, setError] = useState("");
   const [proposal, setProposal] = useState<Opportunity | null>(null);
+  const [proposalUnit, setProposalUnit] = useState<PortalUnit | null>(null);
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [entry, setEntry] = useState(0);
   const [monthly, setMonthly] = useState(2500);
@@ -511,10 +513,10 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const opportunities = portal?.oportunidades || [];
   const firstName =
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
-  const openProposal = (item: Opportunity) => {
+  const openProposal = (item: Opportunity, unit?: PortalUnit) => {
     setProposal(item);
-    setSelectedUnitId((current) => current || item.unidades?.[0]?.id || null);
-    setEntry(Math.round((Number(item.preco) || 0) * 0.1));
+    setProposalUnit(unit || null);
+    setEntry(Math.round((Number(unit?.valor || item.preco) || 0) * 0.1));
     setMonthly(2500);
     setBalloon(0);
     setBalloonCount(0);
@@ -532,7 +534,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       p_balao: balloon,
       p_quantidade_baloes: balloonCount,
       p_objetivo: client?.objetivo || null,
-      p_mensagem: [selectedUnitId ? `Unidade selecionada: ${proposal.unidades?.find(u=>u.id===selectedUnitId)?.numero || selectedUnitId}` : "", note].filter(Boolean).join("\n") || null,
+      p_mensagem: note || null,
+      p_unidade_id: proposalUnit?.id || null,
+      p_desconto_percentual: Number(proposal.desconto_percentual || 0),
     });
     setSending(false);
     setSent(
@@ -657,7 +661,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 <button
                   key={item.id}
                   onClick={() => {
-                    setSelectedUnitId(null);
                     setActiveOpportunity(item);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
@@ -728,15 +731,31 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           </section>
         )}
         {activeOpportunity && (
-          <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.88)",padding:"clamp(10px,3vw,34px)",overflow:"auto"}}>
-            <section style={{width:"min(1100px,100%)",minHeight:"min(760px,92vh)",margin:"0 auto",background:"#09090b",border:"1px solid #3f3524",borderRadius:16,boxShadow:"0 22px 90px #000",overflow:"hidden"}}>
-              <header style={{position:"sticky",top:0,zIndex:2,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,padding:"12px 16px",background:"#111113",borderBottom:"1px solid #2f291e"}}>
-                <strong style={{color:"#edcf91"}}>{activeOpportunity.nome}</strong>
-                <button aria-label="Fechar empreendimento" onClick={()=>setActiveOpportunity(null)} style={{display:"inline-flex",alignItems:"center",gap:6,border:"1px solid #3f3524",background:"#17140e",color:"#edcf91",borderRadius:8,padding:"9px 12px",cursor:"pointer",fontWeight:800}}><X size={16}/> Fechar</button>
-              </header>
-              <div style={{padding:12}}><OpportunityLanding item={activeOpportunity} onProposal={openProposal} onSelectUnit={setSelectedUnitId} selectedUnitId={selectedUnitId}/></div>
-            </section>
-          </div>
+          <section style={{ display: "grid", gap: 12 }}>
+            <button
+              onClick={() => setActiveOpportunity(null)}
+              style={{
+                justifySelf: "start",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                border: "1px solid #3f3524",
+                background: "#17140e",
+                color: "#edcf91",
+                borderRadius: 8,
+                padding: "10px 13px",
+                cursor: "pointer",
+                fontWeight: 800,
+              }}
+            >
+              <ArrowLeft size={16} />
+              Voltar aos empreendimentos
+            </button>
+            <OpportunityLanding
+              item={activeOpportunity}
+              onProposal={openProposal}
+            />
+          </section>
         )}
         {accountOpen && (
           <div
@@ -808,7 +827,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                     CENÁRIO PERSONALIZADO
                   </p>
                   <h2 style={{ margin: "6px 0" }}>
-                    Proposta para {proposal.nome}
+                    Proposta para {proposal.nome}{proposalUnit ? ` · Unidade ${proposalUnit.codigo || proposalUnit.numero || "selecionada"}` : ""}
                   </h2>
                   <p style={{ margin: 0, color: "#a1a1aa", fontSize: 13 }}>
                     Defina o que é confortável para você. O envio inicia uma
@@ -827,6 +846,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   marginTop: 22,
                 }}
               >
+                {proposalUnit && <div style={{gridColumn:"1/-1",padding:12,borderRadius:8,background:"#17140e",color:"#ead5aa",fontSize:12}}>Valor da unidade: <strong>{money(proposalUnit.valor)}</strong>{proposal.desconto_percentual ? ` · condição especial de ${Number(proposal.desconto_percentual).toLocaleString("pt-BR")} % · valor de referência após condição: ${money(Number(proposalUnit.valor||0)*(1-Number(proposal.desconto_percentual)/100))}` : ""}</div>}
                 <MoneyScenario
                   label="Entrada"
                   value={entry}

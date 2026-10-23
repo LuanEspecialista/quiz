@@ -88,6 +88,9 @@ type Selection = {
   permitir_proposta?: boolean;
   mensagem_personalizada?: string | null;
   imagem_ids_selecionadas?: string[];
+  unidade_ids_selecionadas?: string[];
+  desconto_percentual?: number;
+  observacao_comercial?: string | null;
   landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
   unidade_ids?: string[];
 };
@@ -1309,6 +1312,18 @@ export default function Clientes({
                               </button>})}
                             </div>
                           </div>}
+                          <label style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({selection.unidade_ids_selecionadas?.length || 0})
+                            <select multiple value={selection.unidade_ids_selecionadas || []} onChange={(event)=>void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:Array.from(event.target.selectedOptions).map(option=>option.value)})} style={{...input,marginTop:5,minHeight:110}}>
+                              {units.filter(unit=>unit.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(unit.status||"").toLowerCase())).map(unit=><option key={unit.id} value={unit.id}>{unit.numero || unit.id} · {unit.valor_tabela || unit.valor ? money(unit.valor_tabela || unit.valor) : "Sem valor"}</option>)}
+                            </select>
+                            <small style={{display:"block",color:"#71717a",marginTop:4}}>Use Ctrl/Cmd para selecionar mais de uma unidade.</small>
+                          </label>
+                          <label style={{fontSize:11,color:"#d4d4d8"}}>Desconto/condição especial (%)
+                            <input type="number" min="0" max="100" step="0.1" value={selection.desconto_percentual ?? 0} onChange={(event)=>setSelections(current=>current.map(item=>item===selection?{...item,desconto_percentual:Math.max(0,Math.min(100,Number(event.target.value)||0))}:item))} onBlur={(event)=>void updateSelection(curating.id,property.id,{desconto_percentual:Math.max(0,Math.min(100,Number(event.target.value)||0))})} style={{...input,marginTop:5}} />
+                          </label>
+                          <label style={{fontSize:11,color:"#d4d4d8"}}>Observação comercial visível para a cliente
+                            <textarea rows={2} value={selection.observacao_comercial || ""} onChange={(event)=>setSelections(current=>current.map(item=>item===selection?{...item,observacao_comercial:event.target.value}:item))} onBlur={(event)=>void updateSelection(curating.id,property.id,{observacao_comercial:event.target.value})} placeholder="Ex.: condição especial obtida nesta negociação." style={{...input,marginTop:5}} />
+                          </label>
                           <textarea
                             rows={2}
                             value={selection.mensagem_personalizada || ""}
