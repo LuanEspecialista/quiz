@@ -463,6 +463,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [proposal, setProposal] = useState<Opportunity | null>(null);
   const [proposalUnit, setProposalUnit] = useState<PortalUnit | null>(null);
   const [presentation, setPresentation] = useState<{ url: string; title: string } | null>(null);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -723,7 +724,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                     </div>
                   </button>
                   <div style={{padding:"0 17px 17px",display:"grid",gap:9}}>
-                    {!!item.unidades?.length && <button type="button" onClick={() => openProposal(item)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:8,padding:12,fontWeight:800,cursor:"pointer"}}><Landmark size={15} /> Fluxo e proposta ({item.unidades.length} unidades liberadas)</button>}
                     {(item.permitir_proposta || item.exibir_fluxo) && !item.unidades?.length && <button type="button" onClick={() => openProposal(item)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:8,padding:12,fontWeight:800,cursor:"pointer"}}><Landmark size={15} /> Abrir editor de fluxo e proposta</button>}
                     {!item.unidades?.length && !(item.permitir_proposta || item.exibir_fluxo) && <small style={{color:"#71717a"}}>Apresentação disponível. Consulte o especialista para condições e unidades.</small>}
                   </div>
@@ -732,6 +732,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             })}
           </section>
         )}
+        {!activeOpportunity && opportunities.length > 0 && <button type="button" onClick={() => setComparisonOpen(true)} style={{display:"block",width:"min(680px,100%)",margin:"22px auto 0",border:0,background:"#d7ab63",color:"#09090b",borderRadius:9,padding:"14px 18px",fontWeight:900,fontSize:15,cursor:"pointer"}}><Landmark size={17} /> Comparar fluxos e fazer proposta</button>}
         {activeOpportunity && (
           <section style={{ display: "grid", gap: 12 }}>
             <button
@@ -759,6 +760,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             />
           </section>
         )}
+        {comparisonOpen && <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1050,background:"#000d",padding:18,overflow:"auto"}}><section style={{maxWidth:980,margin:"20px auto",background:"#111113",border:"1px solid #514124",borderRadius:14,padding:"clamp(18px,3vw,30px)"}}><header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}><div><small style={{color:"#d7ab63",fontWeight:800,letterSpacing:".1em"}}>COMPARATIVO GERAL</small><h2 style={{margin:"6px 0"}}>Escolha a melhor unidade e ajuste o fluxo</h2><p style={{margin:0,color:"#a1a1aa",fontSize:13}}>Estas são somente as unidades liberadas pelo seu especialista. A simulação não altera a tabela oficial.</p></div><button type="button" onClick={() => setComparisonOpen(false)}><X size={17}/></button></header>{(() => {const rows=opportunities.flatMap((op)=> (op.unidades||[]).map((unit)=>({op,unit})));const max=Math.max(...rows.map(({unit})=>Number(unit.valor||0)),1);return rows.length ? <div style={{display:"grid",gap:10,marginTop:20}}>{rows.map(({op,unit})=>{const value=Number(unit.valor||0);return <div key={`${op.id}-${unit.id}`} style={{display:"grid",gridTemplateColumns:"minmax(180px,1fr) minmax(120px,1fr) auto",alignItems:"center",gap:12,padding:"12px 0",borderTop:"1px solid #29251f"}}><span><b>{op.nome}</b><small style={{display:"block",color:"#d7ab63"}}>{unit.codigo||unit.numero||"Unidade"}{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</small></span><span><div style={{height:10,borderRadius:10,background:"#27272a",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.max(5,value/max*100)}%`,background:"linear-gradient(90deg,#d7ab63,#f5e0b2)"}}/></div><small style={{color:"#a1a1aa"}}>{money(value)}</small></span><button type="button" onClick={() => {setComparisonOpen(false);openProposal(op,unit);}} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 11px",fontWeight:800,cursor:"pointer"}}>Ajustar fluxo</button></div>})}</div> : <p style={{marginTop:20,color:"#fbbf24"}}>Nenhuma unidade foi liberada para esta cliente.</p>})()}<p style={{margin:"20px 0 0",color:"#a1a1aa",fontSize:12}}>Depois de ajustar entrada, parcela e balões, use “Enviar cenário para análise”. A proposta será recebida no seu painel.</p></section></div>}
         {accountOpen && (
           <div
             role="dialog"
