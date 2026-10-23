@@ -6,6 +6,7 @@ import {
   Images,
   Landmark,
   LogOut,
+  SlidersHorizontal,
   Send,
   UserRound,
   X,
@@ -415,6 +416,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [proposal, setProposal] = useState<Opportunity | null>(null);
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
+  const [flowChooserOpen, setFlowChooserOpen] = useState(false);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [entry, setEntry] = useState(0);
@@ -562,25 +564,15 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           }}
         >
           <div>
-            <a
-              href="/"
-              style={{
-                color: "#d7ab63",
-                textDecoration: "none",
-                fontWeight: 800,
-                fontSize: 12,
-                letterSpacing: ".12em",
-              }}
-            >
-              LUAN ESPECIALISTA
+            <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, color: "#edcf91", textDecoration: "none", fontWeight: 800, fontSize: 12, letterSpacing: ".12em" }}>
+              <img src="/imagens/logo.png" alt="Luan Especialista" style={{ width: 42, height: 42, objectFit: "contain" }} />
+              <span>LUAN ESPECIALISTA</span>
             </a>
-            <h1
-              style={{ fontSize: "clamp(28px,5vw,48px)", margin: "10px 0 8px" }}
-            >
+            <h1 style={{ fontSize: "clamp(28px,5vw,48px)", margin: "24px 0 10px", lineHeight: 1.05 }}>
               Bem-vindo{firstName ? `, ${firstName}` : ""}.
             </h1>
-            <p style={{ color: "#a1a1aa", margin: 0 }}>
-              Uma curadoria pessoal de oportunidades selecionadas para você.
+            <p style={{ color: "#a1a1aa", margin: 0, maxWidth: 620, lineHeight: 1.65 }}>
+              Uma curadoria pessoal de oportunidades selecionadas especialmente para você.
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -652,7 +644,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             }}
           >
             {opportunities.map((item) => {
-              const cover = item.imagens?.[0]?.url;
+              const cover = item.imagem_url || item.imagens?.find((media) => media.url)?.url;
               return (
                 <button
                   key={item.id}
@@ -727,6 +719,12 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             })}
           </section>
         )}
+        {opportunities.some((item) => (item.unidades?.length || 0) > 0) && !activeOpportunity && (
+          <section style={{ marginTop: 22, padding: "20px 22px", border: "1px solid #5a4828", borderRadius: 14, background: "linear-gradient(135deg,#17130d,#101012 65%)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div><strong style={{ color: "#f5e0b2", fontSize: 17 }}>Quer visualizar as condições?</strong><p style={{ margin: "6px 0 0", color: "#a1a1aa", fontSize: 13, lineHeight: 1.55 }}>Veja as unidades que foram separadas para você e simule entrada, parcelas e reforços.</p></div>
+            <button onClick={() => setFlowChooserOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, border: 0, borderRadius: 8, padding: "12px 16px", background: "#d7ab63", color: "#09090b", fontWeight: 800, cursor: "pointer" }}><SlidersHorizontal size={16} /> Ver fluxo</button>
+          </section>
+        )}
         {activeOpportunity && (
           <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.88)",padding:"clamp(10px,3vw,34px)",overflow:"auto"}}>
             <section style={{width:"min(1100px,100%)",minHeight:"min(760px,92vh)",margin:"0 auto",background:"#09090b",border:"1px solid #3f3524",borderRadius:16,boxShadow:"0 22px 90px #000",overflow:"hidden"}}>
@@ -735,6 +733,14 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 <button aria-label="Fechar empreendimento" onClick={()=>setActiveOpportunity(null)} style={{display:"inline-flex",alignItems:"center",gap:6,border:"1px solid #3f3524",background:"#17140e",color:"#edcf91",borderRadius:8,padding:"9px 12px",cursor:"pointer",fontWeight:800}}><X size={16}/> Fechar</button>
               </header>
               <div style={{padding:12}}><OpportunityLanding item={activeOpportunity} onProposal={openProposal} onSelectUnit={setSelectedUnitId} selectedUnitId={selectedUnitId}/></div>
+            </section>
+          </div>
+        )}
+        {flowChooserOpen && (
+          <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 1050, background: "#000d", padding: 18, overflow: "auto" }} onMouseDown={(event) => { if (event.target === event.currentTarget) setFlowChooserOpen(false); }}>
+            <section style={{ width: "min(760px,100%)", margin: "40px auto", background: "#111113", border: "1px solid #514124", borderRadius: 14, padding: "clamp(18px,3vw,28px)" }}>
+              <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}><div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".1em" }}>SIMULAÇÃO PERSONALIZADA</small><h2 style={{ margin: "7px 0" }}>Escolha o empreendimento</h2><p style={{ margin: 0, color: "#a1a1aa", fontSize: 13 }}>O fluxo mostrará apenas as unidades liberadas pelo seu especialista.</p></div><button onClick={() => setFlowChooserOpen(false)} aria-label="Fechar"><X size={17} /></button></header>
+              <div style={{ display: "grid", gap: 9, marginTop: 20 }}>{opportunities.filter((item) => (item.unidades?.length || 0) > 0).map((item) => <button key={item.id} onClick={() => { setFlowChooserOpen(false); setSelectedUnitId(item.unidades?.[0]?.id || null); setActiveOpportunity(item); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, textAlign: "left", border: "1px solid #3f3524", background: "#18181b", color: "#fff", borderRadius: 9, padding: 14, cursor: "pointer" }}><span><strong>{item.nome}</strong><small style={{ display: "block", color: "#a1a1aa", marginTop: 5 }}>{item.unidades?.length} unidade(s) liberada(s) para simulação</small></span><ChevronRight size={18} color="#edcf91" /></button>)}</div>
             </section>
           </div>
         )}
