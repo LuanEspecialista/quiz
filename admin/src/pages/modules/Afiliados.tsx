@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, ChevronRight, EyeOff, Plus, Save, Search, ShieldCheck, UserCheck, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { isR2Path, r2PublicUrl } from "@/lib/r2Media";
 
 type Role="admin"|"equipe"|"afiliado";
 type Indicator={id:string;nome:string;email:string;ativo:boolean;etapa:string;termo_aceito_em?:string|null};
@@ -11,7 +12,7 @@ const btn={display:"inline-flex",alignItems:"center",justifyContent:"center",gap
 const blank:Partial<Product>={tipo:"imovel",codigo:"",titulo:"",cidade:"",regiao_aproximada:"",resumo:"",publico_ideal:[],diferenciais:[],perguntas:[],objecoes:[],roteiro:"",cuidados:"",imagem_ids:[],ativo:false};
 const money=(n?:number|null)=>n==null?"Sob consulta":new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0}).format(n);
 const list=(v:string)=>v.split("\n").map(x=>x.trim()).filter(Boolean);
-async function signed(images:any[]){return Promise.all(images.map(async m=>{if(!m.storage_path)return m;const{data}=await supabase.storage.from("empreendimentos").createSignedUrl(m.storage_path,1800);return{...m,signed:data?.signedUrl}}));}
+async function signed(images:any[]){return Promise.all(images.map(async m=>{if(!m.storage_path)return m;if(isR2Path(m.storage_path))return{...m,signed:r2PublicUrl(m.storage_path)};const{data}=await supabase.storage.from("empreendimentos").createSignedUrl(m.storage_path,1800);return{...m,signed:data?.signedUrl}}));}
 
 function Portal(){
  const[data,setData]=useState<any>(),[selected,setSelected]=useState<Product>(),[msg,setMsg]=useState(""),[lead,setLead]=useState({nome:"",telefone:"",email:"",cidade:"",observacoes:"",consentimento_contato:false});

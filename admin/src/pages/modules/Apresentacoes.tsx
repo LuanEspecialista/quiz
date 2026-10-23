@@ -34,6 +34,7 @@ function errorMessage(error: unknown, fallback: string) {
 
 async function resolveEnterpriseCover(item: Empreendimento, fallbackCover?: string | null): Promise<Empreendimento> {
   const reference = item.imagem_url || "";
+  if (reference.startsWith("r2://")) return { ...item, imagem_url: r2PublicUrl(reference) };
   if (!reference.startsWith(STORAGE_REFERENCE_PREFIX)) return { ...item, imagem_url: reference || fallbackCover || null };
   const path = reference.slice(STORAGE_REFERENCE_PREFIX.length);
   const { data, error } = await supabase.storage.from(ENTERPRISE_IMAGES_BUCKET).createSignedUrl(path, 3600);
@@ -42,6 +43,7 @@ async function resolveEnterpriseCover(item: Empreendimento, fallbackCover?: stri
 
 async function resolvePresentationCover(item: Apresentacao): Promise<Apresentacao> {
   const reference = item.imagem_capa || "";
+  if (reference.startsWith("r2://")) return { ...item, imagem_capa: r2PublicUrl(reference) };
   if (!reference.startsWith(STORAGE_REFERENCE_PREFIX)) return item;
   const path = reference.slice(STORAGE_REFERENCE_PREFIX.length);
   const { data, error } = await supabase.storage.from(ENTERPRISE_IMAGES_BUCKET).createSignedUrl(path, 3600);
@@ -84,6 +86,7 @@ export default function Apresentacoes() {
       });
       const signedFallbacks = await Promise.all(Array.from(firstImageByEnterprise.entries()).map(async ([enterpriseId, image]) => {
         if (!image.storage_path) return [enterpriseId, image.url || ""] as const;
+        if (isR2Path(image.storage_path)) return [enterpriseId, r2PublicUrl(image.storage_path)] as const;
         const { data } = await supabase.storage.from(ENTERPRISE_IMAGES_BUCKET).createSignedUrl(image.storage_path, 3600);
         return [enterpriseId, data?.signedUrl || image.url || ""] as const;
       }));

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import MinhaConta from "./modules/MinhaConta";
+import { isR2Path, r2PublicUrl } from "../lib/r2Media";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
@@ -488,6 +489,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           (result.oportunidades || []).map(async (item) => {
             const sign = async (media: PortalMedia) => {
               if (!media.storage_path) return media;
+              if (isR2Path(media.storage_path)) return { ...media, url: r2PublicUrl(media.storage_path) };
               const { data: signed } = await supabase.storage
                 .from("empreendimentos")
                 .createSignedUrl(media.storage_path, 1800);
@@ -498,16 +500,19 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             const images = await Promise.all((item.imagens || []).map(sign));
             const plants = await Promise.all((item.plantas || []).map(sign));
             const storedCoverPath = coverStoragePath(item);
-            let coverUrl =
+            let coverUrl: string | undefined =
               item.imagem_url &&
-              !item.imagem_url.startsWith(COVER_STORAGE_PREFIX)
+              !item.imagem_url.startsWith(COVER_STORAGE_PREFIX) &&
+              !isR2Path(item.imagem_url)
                 ? item.imagem_url
                 : undefined;
+            if (item.imagem_url && isR2Path(item.imagem_url)) coverUrl = r2PublicUrl(item.imagem_url);
             if (storedCoverPath) {
               const existingCover = images.find(
                 (media) => media.storage_path === storedCoverPath,
               );
               if (existingCover?.url) coverUrl = existingCover.url;
+              else if (isR2Path(storedCoverPath)) coverUrl = r2PublicUrl(storedCoverPath);
               else {
                 const { data: signedCover } = await supabase.storage
                   .from("empreendimentos")

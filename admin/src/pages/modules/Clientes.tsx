@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { parseStandardTypology } from "@/lib/realEstateStandard";
 import { formatBRL, parseBRL } from "@/components/CurrencyInput";
+import { r2PublicUrl } from "@/lib/r2Media";
 
 type Client = {
   id: string;
@@ -213,6 +214,7 @@ const monetaryFields = new Set<keyof Form>([
 ]);
 const privateCoverPrefix = "storage://empreendimentos/";
 async function resolvePrivateCover(property: Property): Promise<Property> {
+  if (property.imagem_url?.startsWith("r2://")) return { ...property, imagem_url: r2PublicUrl(property.imagem_url) };
   if (!property.imagem_url?.startsWith(privateCoverPrefix)) return property;
   const { data, error } = await supabase.storage
     .from("empreendimentos")

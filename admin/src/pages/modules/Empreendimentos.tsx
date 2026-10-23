@@ -404,6 +404,7 @@ export default function Empreendimentos() {
       });
       const todasImagens = await Promise.all(((imgRes.data || []) as EmpreendimentoImagem[]).map(async(img)=>{
         if(!img.storage_path)return img;
+        if(isR2Path(img.storage_path))return {...img,url:r2PublicUrl(img.storage_path)};
         const{data}=await supabase.storage.from("empreendimentos").createSignedUrl(img.storage_path,3600);
         return data?.signedUrl?{...img,url:data.signedUrl}:img;
       }));
