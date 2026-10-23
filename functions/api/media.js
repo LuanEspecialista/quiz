@@ -80,8 +80,8 @@ export async function onRequest(context) {
   if (request.method === "GET" && requestUrl.searchParams.get("key")) {
     const key = requestUrl.searchParams.get("key") || "";
     const normalizedKey = normalize(key);
-    const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park");
-    if (!key.startsWith(BUCKET_PREFIX) || !allowedAsset || !/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
+    const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park") || /\/apresenta(?:cao|coes)\//i.test(key);
+    if (!key.startsWith(BUCKET_PREFIX) || !allowedAsset || !/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov|pdf)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
     const object = await env.MEDIA.get(key);
     if (!object) return json({ error: "Arquivo não encontrado." }, 404);
     return new Response(object.body, { headers: { "content-type": object.httpMetadata?.contentType || "application/octet-stream", "cache-control": "no-store, max-age=0, must-revalidate" } });
@@ -103,7 +103,8 @@ export async function onRequest(context) {
       for (const object of listing?.objects || []) {
         const normalizedKey = normalize(object.key);
         const looksLikePinnaPlant = /(?:unidade|planta|tipologia)[^/]*?(?:0?[1-9])(?:\D|$)/i.test(normalizedKey);
-        if (/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov)$/i.test(object.key) && (wanted.test(normalizedKey) || looksLikePinnaPlant && enterprise.startsWith("pinna"))) {
+        const isPresentationPdf = /\.(?:pdf)$/i.test(object.key) && /\/apresenta(?:cao|coes)\//i.test(object.key);
+        if (/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov|pdf)$/i.test(object.key) && (isPresentationPdf || wanted.test(normalizedKey) || looksLikePinnaPlant && enterprise.startsWith("pinna"))) {
           objects.push({ key: object.key, url: `${requestUrl.origin}/api/media?key=${encodeURIComponent(object.key)}`, size: object.size || 0 });
         }
       }
