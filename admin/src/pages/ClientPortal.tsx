@@ -499,6 +499,11 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             };
             const images = await Promise.all((item.imagens || []).map(sign));
             const plants = await Promise.all((item.plantas || []).map(sign));
+            let presentation = item.apresentacao;
+            if (presentation?.storage_path && !isR2Path(presentation.storage_path) && presentation.tipo !== "link") {
+              const { data: signedPdf } = await supabase.storage.from("pdfs").createSignedUrl(presentation.storage_path, 3600);
+              if (signedPdf?.signedUrl) presentation = { ...presentation, url: signedPdf.signedUrl };
+            }
             const storedCoverPath = coverStoragePath(item);
             let coverUrl: string | undefined =
               item.imagem_url &&
@@ -544,6 +549,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               imagem_url: cardCover,
               imagens: displayImages,
               plantas: plants,
+              apresentacao: presentation,
               caracteristicas: {
                 ...item.caracteristicas,
                 landing_blocos: blocks.map((block) => ({

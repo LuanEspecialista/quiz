@@ -65,6 +65,11 @@ type Unit = {
   id: string;
   empreendimento_id: string;
   numero?: string | null;
+  numero_unidade?: string | null;
+  codigo?: string | null;
+  codigo_unidade?: string | null;
+  torre?: string | null;
+  andar?: number | null;
   tipologia?: string | null;
   tipologia_dados?: Record<string, any> | null;
   valor?: number | null;
@@ -247,6 +252,7 @@ export default function Clientes({
     [saving, setSaving] = useState(false),
     [message, setMessage] = useState("");
   const [accessBusy, setAccessBusy] = useState<string | null>(null);
+  const [unitQueries, setUnitQueries] = useState<Record<string, string>>({});
   const [credentials, setCredentials] = useState<{ nome: string; email: string; usuario: string; senha: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null),
     [curating, setCurating] = useState<Client | null>(null),
@@ -321,6 +327,7 @@ export default function Clientes({
     if (!media.error) {
       const signed = await Promise.all(((media.data || []) as CuradoriaMedia[]).map(async item => {
         if (!item.storage_path) return { ...item, preview_url:item.url };
+        if (item.storage_path.startsWith("r2://")) return { ...item, preview_url:r2PublicUrl(item.storage_path) };
         const { data } = await supabase.storage.from("empreendimentos").createSignedUrl(item.storage_path,3600);
         return { ...item, preview_url:data?.signedUrl || undefined };
       }));
@@ -1300,7 +1307,7 @@ export default function Clientes({
                             <strong style={{fontSize:11}}>Unidades liberadas para o Fluxo ({selection.unidade_ids?.length || 0})</strong>
                             <small style={{color:"#71717a"}}>Selecione somente as unidades que {curating.nome} poderá simular no portal.</small>
                             <div style={{display:"grid",gap:5,maxHeight:220,overflow:"auto"}}>
-                              {units.filter(u=>u.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(u.status||"").toLowerCase())).map(u=>{const ids=selection.unidade_ids || []; const checked=ids.includes(u.id); return <label key={u.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"7px 8px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span><input type="checkbox" checked={checked} onChange={()=>{const next=checked?ids.filter(id=>id!==u.id):[...ids,u.id];void updateSelection(curating.id,property.id,{unidade_ids:next});}}/> Unidade {u.numero || u.id.slice(0,8)}{u.tipologia ? ` · ${u.tipologia}` : ""}</span><b>{money(u.valor_tabela || u.valor)}</b></label>})}
+                              {units.filter(u=>u.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(u.status||"").toLowerCase())).map(u=>{const ids=selection.unidade_ids || []; const checked=ids.includes(u.id); return <label key={u.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"7px 8px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span><input type="checkbox" checked={checked} onChange={()=>{const next=checked?ids.filter(id=>id!==u.id):[...ids,u.id];void updateSelection(curating.id,property.id,{unidade_ids:next,unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> Unidade {u.numero || u.id.slice(0,8)}{u.tipologia ? ` · ${u.tipologia}` : ""}</span><b>{money(u.valor_tabela || u.valor)}</b></label>})}
                             </div>
                           </div>}
                           {selection.exibir_imagens && <div style={{display:"grid",gap:7}}>
@@ -1314,12 +1321,20 @@ export default function Clientes({
                               </button>})}
                             </div>
                           </div>}
-                          <label style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({selection.unidade_ids_selecionadas?.length || 0})
-                            <select multiple value={selection.unidade_ids_selecionadas || []} onChange={(event)=>void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:Array.from(event.target.selectedOptions).map(option=>option.value),exibir_fluxo:true,permitir_proposta:true})} style={{...input,marginTop:5,minHeight:110}}>
-                              {units.filter(unit=>unit.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(unit.status||"").toLowerCase())).map(unit=><option key={unit.id} value={unit.id}>{unit.numero || unit.id} · {unit.valor_tabela || unit.valor ? money(unit.valor_tabela || unit.valor) : "Sem valor"}</option>)}
-                            </select>
-                            <small style={{display:"block",color:"#71717a",marginTop:4}}>Use Ctrl/Cmd para selecionar mais de uma unidade.</small>
-                          </label>
+                          <div style={{display:"grid",gap:7}}>
+                            <strong style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({selection.unidade_ids_selecionadas?.length || 0})</strong>
+                            <small style={{color:"#71717a"}}>Pesquise por torre, código, número ou tipologia. A cliente verá somente as unidades marcadas.</small>
+                            <input value={unitQueries[property.id] || ""} onChange={(event)=>setUnitQueries(current=>({...current,[property.id]:event.target.value}))} placeholder="Pesquisar: Torre A, 304, 807, Studio..." style={{...input,marginTop:2}} />
+                            <div style={{display:"grid",gap:5,maxHeight:260,overflow:"auto"}}>
+                              {units.filter(unit=>{
+                                if(unit.empreendimento_id!==property.id || ["vendida","bloqueada","fora de tabela"].includes(String(unit.status||"").toLowerCase())) return false;
+                                const term=(unitQueries[property.id]||"").trim().toLocaleLowerCase("pt-BR");
+                                if(!term) return true;
+                                return [unit.torre,unit.codigo,unit.codigo_unidade,unit.numero,unit.numero_unidade,unit.tipologia,unit.andar].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR").includes(term);
+                              }).sort((a,b)=>String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true})).map(unit=>{const selected=selection.unidade_ids_selecionadas || [];const checked=selected.includes(unit.id);const tower=unit.torre || "Torre não informada";const code=unit.codigo || unit.codigo_unidade || unit.numero || unit.numero_unidade || unit.id.slice(0,8);return <label key={unit.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span><input type="checkbox" checked={checked} onChange={()=>{const next=checked?selected.filter(id=>id!==unit.id):[...selected,unit.id];void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> <b>{tower}</b> · Unidade {code}{unit.andar ? ` · ${unit.andar}º andar` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}</span><b>{money(unit.valor_tabela || unit.valor)}</b></label>})}
+                              {units.filter(unit=>unit.empreendimento_id===property.id).length===0 && <small style={{color:"#fbbf24"}}>Nenhuma unidade cadastrada para este empreendimento.</small>}
+                            </div>
+                          </div>
                           <label style={{fontSize:11,color:"#d4d4d8"}}>Desconto/condição especial (%)
                             <input type="number" min="0" max="100" step="0.1" value={selection.desconto_percentual ?? 0} onChange={(event)=>setSelections(current=>current.map(item=>item===selection?{...item,desconto_percentual:Math.max(0,Math.min(100,Number(event.target.value)||0))}:item))} onBlur={(event)=>void updateSelection(curating.id,property.id,{desconto_percentual:Math.max(0,Math.min(100,Number(event.target.value)||0))})} style={{...input,marginTop:5}} />
                           </label>
