@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Edit3, ExternalLink, FileText, Link2, Loader2, Play, RefreshCw, Save, Search, Upload, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cityKey, sameCity } from "@/lib/cities";
+import { isR2Path, r2PublicUrl, uploadR2Media } from "@/lib/r2Media";
 
 type Empreendimento = { id: string; nome?: string | null; cidade?: string | null; imagem_url?: string | null; caracteristicas?: Record<string, unknown> | null };
 type EmpreendimentoImagem = { empreendimento_id: string; url?: string | null; storage_path?: string | null; ordem?: number | null };
@@ -23,7 +24,6 @@ const STORAGE_REFERENCE_PREFIX = "storage://empreendimentos/";
 const MAX_PDF_MB = 250;
 const MAX_PDF_BYTES = MAX_PDF_MB * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 10 * 60_000;
-const presentationPath = (id: string) => `apresentacoes/${id}/apresentacao.pdf`;
 
 function errorMessage(error: unknown, fallback: string) {
   if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
@@ -91,7 +91,7 @@ export default function Apresentacoes() {
       setGalleryCovers(covers);
       const loadedEnterprises = await Promise.all(((empResult.data || []) as Empreendimento[]).map((item) => resolveEnterpriseCover(item, covers[item.id])));
       setEmpreendimentos(loadedEnterprises);
-      const signed=await Promise.all(((presentationResult.data || []) as Apresentacao[]).map(async(item)=>{const resolved=await resolvePresentationCover(item);if(!resolved.storage_path)return {...resolved,pdf_url:null};const{data,error}=await supabase.storage.from(BUCKET).createSignedUrl(resolved.storage_path,3600);return {...resolved,pdf_url:error?null:(data?.signedUrl||null)}}));
+      const signed=await Promise.all(((presentationResult.data || []) as Apresentacao[]).map(async(item)=>{const resolved=await resolvePresentationCover(item);if(!resolved.storage_path)return resolved;if(isR2Path(resolved.storage_path))return {...resolved,pdf_url:r2PublicUrl(resolved.storage_path)};const{data,error}=await supabase.storage.from(BUCKET).createSignedUrl(resolved.storage_path,3600);return {...resolved,pdf_url:error?null:(data?.signedUrl||null)}}));
       const byEnterprise=Object.fromEntries(signed.map((item) => [item.empreendimento_id, item])) as Record<string,Apresentacao>;
       loadedEnterprises.forEach((enterprise)=>{const fallback=enterprise.caracteristicas?.apresentacao as {link_url?:string;tipo_preferido?:"pdf"|"link"}|undefined;if(fallback?.link_url)byEnterprise[enterprise.id]={...byEnterprise[enterprise.id],empreendimento_id:enterprise.id,ativo:byEnterprise[enterprise.id]?.ativo??true,link_url:fallback.link_url,tipo_preferido:fallback.tipo_preferido||"link"}});
       setApresentacoes(byEnterprise);
@@ -166,19 +166,13 @@ export default function Apresentacoes() {
     }
     setSaving(true);
     setMessage(null);
-    const path = presentationPath(editing.id);
-    try {
+      try {
       const upload = await Promise.race([
-        supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: "application/pdf", cacheControl: "0" }),
-        new Promise<never>((_, reject) => {
-          window.setTimeout(() => reject(new Error("O upload excedeu o tempo limite de 10 minutos. Tente novamente.")), UPLOAD_TIMEOUT_MS);
-        }),
+        uploadR2Media(file, { kind: "presentation", enterpriseId: editing.id, enterpriseName: editing.nome || "Empreendimento" }),
+        new Promise<never>((_, reject) => { window.setTimeout(() => reject(new Error("O upload excedeu o tempo limite de 10 minutos. Tente novamente.")), UPLOAD_TIMEOUT_MS); }),
       ]);
-      if (upload.error) throw upload.error;
-      const { data: urlData, error: urlError } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
-      if(urlError)throw urlError;
       const current = apresentacoes[editing.id];
-      const payload = { empreendimento_id: editing.id, ativo: current?.ativo ?? true, pdf_url: urlData.signedUrl, storage_path: path, ...(supportsLinks ? { link_url: current?.link_url || linkUrl.trim() || null, tipo_preferido: current?.tipo_preferido || preferredType } : {}), updated_at: new Date().toISOString() };
+      const payload = { empreendimento_id: editing.id, ativo: current?.ativo ?? true, pdf_url: upload.url, storage_path: upload.path, ...(supportsLinks ? { link_url: current?.link_url || linkUrl.trim() || null, tipo_preferido: current?.tipo_preferido || preferredType } : {}), updated_at: new Date().toISOString() };
       const { data, error } = await supabase.from("apresentacoes").upsert(payload, { onConflict: "empreendimento_id" })
         .select(supportsLinks ? "empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at" : "empreendimento_id, ativo, pdf_url, storage_path, updated_at").single();
       if (error) throw error;

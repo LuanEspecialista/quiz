@@ -1313,7 +1313,7 @@ export default function Clientes({
                             </div>
                           </div>}
                           <label style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({selection.unidade_ids_selecionadas?.length || 0})
-                            <select multiple value={selection.unidade_ids_selecionadas || []} onChange={(event)=>void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:Array.from(event.target.selectedOptions).map(option=>option.value)})} style={{...input,marginTop:5,minHeight:110}}>
+                            <select multiple value={selection.unidade_ids_selecionadas || []} onChange={(event)=>void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:Array.from(event.target.selectedOptions).map(option=>option.value),exibir_fluxo:true,permitir_proposta:true})} style={{...input,marginTop:5,minHeight:110}}>
                               {units.filter(unit=>unit.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(unit.status||"").toLowerCase())).map(unit=><option key={unit.id} value={unit.id}>{unit.numero || unit.id} · {unit.valor_tabela || unit.valor ? money(unit.valor_tabela || unit.valor) : "Sem valor"}</option>)}
                             </select>
                             <small style={{display:"block",color:"#71717a",marginTop:4}}>Use Ctrl/Cmd para selecionar mais de uma unidade.</small>

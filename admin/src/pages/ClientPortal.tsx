@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Building2,
   CalendarDays,
   ChevronRight,
-  FileText,
   Images,
   Landmark,
   LogOut,
@@ -14,6 +13,10 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import MinhaConta from "./modules/MinhaConta";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 type PortalMedia = {
   id: string;
@@ -55,7 +58,7 @@ type Opportunity = {
   exibir_fluxo?: boolean;
   desconto_percentual?: number;
   observacao_comercial?: string | null;
-  apresentacao?: { url?: string | null; tipo?: "pdf" | "link" } | null;
+  apresentacao?: { url?: string | null; tipo?: "pdf" | "link"; storage_path?: string | null } | null;
   unidades?: PortalUnit[];
 };
 type PortalUnit = {
@@ -91,6 +94,49 @@ const input = {
   padding: "10px 11px",
   fontSize: 14,
 };
+
+function PresentationSlides({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  useEffect(() => {
+    let disposed = false;
+    setLoading(true); setMessage(""); setPage(1);
+    pdfjsLib.getDocument({ url, withCredentials: false }).promise.then((document) => {
+      if (disposed) return;
+      setPdf(document);
+    }).catch(() => { if (!disposed) setMessage("Não foi possível carregar esta apresentação."); setLoading(false); });
+    return () => { disposed = true; };
+  }, [url]);
+  useEffect(() => {
+    let disposed = false;
+    if (!pdf || !canvasRef.current) return;
+    setLoading(true);
+    pdf.getPage(page).then((pdfPage) => {
+      if (disposed || !canvasRef.current) return;
+      const base = pdfPage.getViewport({ scale: 1 });
+      const maxWidth = Math.min(window.innerWidth - 48, 1100);
+      const scale = Math.max(0.65, Math.min(2.2, maxWidth / base.width));
+      const viewport = pdfPage.getViewport({ scale });
+      const canvas = canvasRef.current;
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(viewport.width * ratio); canvas.height = Math.floor(viewport.height * ratio);
+      canvas.style.width = `${viewport.width}px`; canvas.style.height = `${viewport.height}px`;
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      void pdfPage.render({ canvas, canvasContext: context, viewport }).promise.finally(() => { if (!disposed) setLoading(false); });
+    }).catch(() => { if (!disposed) { setMessage("Não foi possível renderizar esta página."); setLoading(false); } });
+    return () => { disposed = true; };
+  }, [pdf, page]);
+  return <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1200,background:"#09090bf7",display:"grid",gridTemplateRows:"auto 1fr auto",padding:12}}>
+    <header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,maxWidth:1180,width:"100%",margin:"0 auto",color:"#fff"}}><strong>{title}</strong><button type="button" onClick={onClose} style={{border:"1px solid #5a4828",background:"#18140e",color:"#edcf91",borderRadius:8,padding:"9px 12px",cursor:"pointer"}}>Fechar</button></header>
+    <main style={{display:"grid",placeItems:"center",overflow:"auto",padding:12}}>{message ? <p style={{color:"#fca5a5"}}>{message}</p> : <div style={{position:"relative",minHeight:160,display:"grid",placeItems:"center"}}><canvas ref={canvasRef} style={{maxWidth:"100%",height:"auto",background:"#fff",boxShadow:"0 16px 60px #000"}} />{loading && <span style={{position:"absolute",color:"#edcf91",background:"#111113dd",padding:"10px 14px",borderRadius:8}}>Carregando slide…</span>}</div>}</main>
+    <footer style={{display:"flex",justifyContent:"center",alignItems:"center",gap:12,padding:"10px 0",color:"#d4d4d8"}}><button type="button" disabled={!pdf || page<=1} onClick={()=>setPage((value)=>Math.max(1,value-1))} style={{border:"1px solid #54452c",background:"#17140e",color:"#ead5aa",borderRadius:7,padding:"9px 14px",cursor:"pointer"}}>‹ Anterior</button><span>{pdf ? `Slide ${page} de ${pdf.numPages}` : ""}</span><button type="button" disabled={!pdf || page >= (pdf?.numPages || 1)} onClick={()=>setPage((value)=>Math.min(pdf?.numPages || value,value+1))} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 14px",fontWeight:800,cursor:"pointer"}}>Próximo ›</button></footer>
+  </div>;
+}
 
 const COVER_STORAGE_PREFIX = "storage://empreendimentos/";
 
@@ -363,7 +409,6 @@ function OpportunityLanding({
           {item.exibir_investimento && <div style={{padding:15,borderRadius:10,background:layout==="investidor"?"#172016":"#18181b",border:"1px solid #2f3f2e"}}><strong style={{color:"#b9d89c"}}>Visão de investimento</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>Consulte os argumentos, diferenciais e premissas cadastrados para esta oportunidade. Projeções não representam garantia de rentabilidade.</p></div>}
           {item.exibir_fluxo && <div style={{padding:15,borderRadius:10,background:"#18181b",border:"1px solid #3a3327"}}><strong style={{color:"#edcf91"}}>Condições comerciais</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>O fluxo será estruturado conforme sua entrada, capacidade mensal e reforços, sujeito à tabela vigente e aprovação da construtora.</p></div>}
         </div>}
-        {item.apresentacao?.url && <a href={item.apresentacao.url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:7,border:"1px solid #735d36",color:"#f5dfaa",textDecoration:"none",borderRadius:8,padding:12,fontWeight:800}}><FileText size={15} /> Apresentação da construtora</a>}
         {!!item.unidades?.length && <div style={{display:"grid",gap:8,padding:14,border:"1px solid #3a3327",borderRadius:10,background:"#14120f"}}><strong style={{color:"#edcf91"}}>Unidades liberadas para análise</strong><small style={{color:"#a1a1aa"}}>Escolha uma unidade para abrir o fluxo. A simulação é individual e não altera a condição oficial.</small>{item.unidades.map((unit) => { const original=Number(unit.valor||0); const discount=Math.max(0,Number(item.desconto_percentual||0)); const final=original*(1-discount/100); return <div key={unit.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",padding:"9px 0",borderTop:"1px solid #29251f"}}><span><b>{unit.codigo || unit.numero || "Unidade"}</b>{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#a1a1aa"}}>{money(original)}{discount ? ` · ${discount}% de condição especial · ${money(final)}` : ""}</small></span><button type="button" onClick={() => onProposal(item, unit)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 11px",fontWeight:800,cursor:"pointer"}}>Ver fluxo</button></div>})}</div>}
         {item.observacao_comercial && <p style={{margin:0,padding:"10px 12px",borderLeft:"3px solid #d7ab63",color:"#ead5aa",background:"#17140e",fontSize:12,lineHeight:1.55}}>{item.observacao_comercial}</p>}
         <div
@@ -373,7 +418,7 @@ function OpportunityLanding({
             gap: 9,
           }}
         >
-          {item.permitir_proposta && !item.unidades?.length && (
+          {(item.permitir_proposta || item.exibir_fluxo) && !item.unidades?.length && (
             <button
               onClick={() => onProposal(item)}
               style={{
@@ -386,7 +431,7 @@ function OpportunityLanding({
                 cursor: "pointer",
               }}
             >
-              <Landmark size={15} /> Montar e enviar proposta
+              <Landmark size={15} /> Abrir editor de fluxo e proposta
             </button>
           )}
           <a
@@ -416,6 +461,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [error, setError] = useState("");
   const [proposal, setProposal] = useState<Opportunity | null>(null);
   const [proposalUnit, setProposalUnit] = useState<PortalUnit | null>(null);
+  const [presentation, setPresentation] = useState<{ url: string; title: string } | null>(null);
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -522,6 +568,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     setBalloonCount(0);
     setNote("");
     setSent("");
+  };
+  const openPresentation = (item: Opportunity) => {
+    if (item.apresentacao?.url) setPresentation({ url: item.apresentacao.url, title: item.nome || "Apresentação" });
   };
   const sendProposal = async () => {
     if (!proposal) return;
@@ -662,6 +711,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   key={item.id}
                   onClick={() => {
                     setActiveOpportunity(item);
+                    if (item.apresentacao?.url) openPresentation(item);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   style={{
@@ -949,6 +999,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             </section>
           </div>
         )}
+        {presentation && <PresentationSlides url={presentation.url} title={presentation.title} onClose={() => setPresentation(null)} />}
       </div>
     </main>
   );
