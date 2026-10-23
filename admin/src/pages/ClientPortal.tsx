@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft,
   Building2,
   CalendarDays,
   ChevronRight,
@@ -20,6 +19,16 @@ type PortalMedia = {
   categoria?: string;
   storage_path?: string;
   url?: string;
+};
+type PortalUnit = {
+  id: string;
+  numero?: string | null;
+  tipologia?: string | null;
+  tipologia_dados?: Record<string, any> | null;
+  valor_tabela?: number | null;
+  area_privativa?: number | null;
+  status?: string | null;
+  entrada_sugerida?: number | null;
 };
 type LandingBlock = {
   tipo?: "hero" | "texto" | "destaque" | "galeria" | "plantas" | "cidade";
@@ -49,6 +58,7 @@ type Opportunity = {
   caracteristicas?: Record<string, any>;
   imagens?: PortalMedia[];
   plantas?: PortalMedia[];
+  unidades?: PortalUnit[];
   layout?: "editorial" | "imersivo" | "investidor";
   exibir_investimento?: boolean;
   exibir_fluxo?: boolean;
@@ -123,9 +133,13 @@ function MoneyScenario({
 function OpportunityLanding({
   item,
   onProposal,
+  onSelectUnit,
+  selectedUnitId,
 }: {
   item: Opportunity;
   onProposal: (item: Opportunity) => void;
+  onSelectUnit?: (id: string) => void;
+  selectedUnitId?: string | null;
 }) {
   const blocks = (item.caracteristicas?.landing_blocos || []) as LandingBlock[];
   const layout = String(item.layout || item.caracteristicas?.landing_layout || "editorial");
@@ -273,6 +287,10 @@ function OpportunityLanding({
           </section>
         );
       })}
+      {item.exibir_fluxo && (item.unidades?.length || 0) > 0 && <section style={{padding:"clamp(20px,4vw,36px)",borderTop:"1px solid #2f291e",background:"#0c0c0f",display:"grid",gap:12}}>
+        <div><h3 style={{margin:"0 0 6px",color:"#f5e0b2"}}>Unidades liberadas para análise</h3><p style={{margin:0,color:"#a1a1aa",fontSize:13}}>Escolha uma unidade para visualizar as condições e montar seu fluxo personalizado.</p></div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:8}}>{item.unidades!.map(unit=><button key={unit.id} onClick={()=>{onSelectUnit?.(unit.id);onProposal(item)}} style={{textAlign:"left",padding:12,border:"1px solid #3f3524",borderRadius:9,background:selectedUnitId===unit.id?"#241c0d":"#18181b",color:"#fff",cursor:"pointer"}}><strong>Unidade {unit.numero || unit.id.slice(0,8)}</strong><small style={{display:"block",color:"#a1a1aa",marginTop:5}}>{unit.tipologia || "Tipologia a confirmar"}{unit.area_privativa ? ` · ${unit.area_privativa} m²` : ""}</small><b style={{display:"block",color:"#edcf91",marginTop:6}}>{money(unit.valor_tabela)}</b><span style={{display:"block",color:"#d7ab63",fontSize:11,marginTop:8}}>Abrir fluxo desta unidade →</span></button>)}</div>
+      </section>}
       <section
         style={{
           padding: "clamp(20px,4vw,36px)",
@@ -397,6 +415,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [proposal, setProposal] = useState<Opportunity | null>(null);
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [entry, setEntry] = useState(0);
   const [monthly, setMonthly] = useState(2500);
@@ -494,6 +513,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
   const openProposal = (item: Opportunity) => {
     setProposal(item);
+    setSelectedUnitId((current) => current || item.unidades?.[0]?.id || null);
     setEntry(Math.round((Number(item.preco) || 0) * 0.1));
     setMonthly(2500);
     setBalloon(0);
@@ -512,7 +532,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       p_balao: balloon,
       p_quantidade_baloes: balloonCount,
       p_objetivo: client?.objetivo || null,
-      p_mensagem: note || null,
+      p_mensagem: [selectedUnitId ? `Unidade selecionada: ${proposal.unidades?.find(u=>u.id===selectedUnitId)?.numero || selectedUnitId}` : "", note].filter(Boolean).join("\n") || null,
     });
     setSending(false);
     setSent(
@@ -637,6 +657,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 <button
                   key={item.id}
                   onClick={() => {
+                    setSelectedUnitId(null);
                     setActiveOpportunity(item);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
@@ -707,31 +728,15 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           </section>
         )}
         {activeOpportunity && (
-          <section style={{ display: "grid", gap: 12 }}>
-            <button
-              onClick={() => setActiveOpportunity(null)}
-              style={{
-                justifySelf: "start",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                border: "1px solid #3f3524",
-                background: "#17140e",
-                color: "#edcf91",
-                borderRadius: 8,
-                padding: "10px 13px",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-            >
-              <ArrowLeft size={16} />
-              Voltar aos empreendimentos
-            </button>
-            <OpportunityLanding
-              item={activeOpportunity}
-              onProposal={openProposal}
-            />
-          </section>
+          <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.88)",padding:"clamp(10px,3vw,34px)",overflow:"auto"}}>
+            <section style={{width:"min(1100px,100%)",minHeight:"min(760px,92vh)",margin:"0 auto",background:"#09090b",border:"1px solid #3f3524",borderRadius:16,boxShadow:"0 22px 90px #000",overflow:"hidden"}}>
+              <header style={{position:"sticky",top:0,zIndex:2,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,padding:"12px 16px",background:"#111113",borderBottom:"1px solid #2f291e"}}>
+                <strong style={{color:"#edcf91"}}>{activeOpportunity.nome}</strong>
+                <button aria-label="Fechar empreendimento" onClick={()=>setActiveOpportunity(null)} style={{display:"inline-flex",alignItems:"center",gap:6,border:"1px solid #3f3524",background:"#17140e",color:"#edcf91",borderRadius:8,padding:"9px 12px",cursor:"pointer",fontWeight:800}}><X size={16}/> Fechar</button>
+              </header>
+              <div style={{padding:12}}><OpportunityLanding item={activeOpportunity} onProposal={openProposal} onSelectUnit={setSelectedUnitId} selectedUnitId={selectedUnitId}/></div>
+            </section>
+          </div>
         )}
         {accountOpen && (
           <div

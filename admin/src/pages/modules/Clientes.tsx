@@ -87,6 +87,7 @@ type Selection = {
   mensagem_personalizada?: string | null;
   imagem_ids_selecionadas?: string[];
   landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
+  unidade_ids?: string[];
 };
 type CuradoriaMedia = { id:string; empreendimento_id:string; titulo?:string|null; categoria?:string|null; storage_path?:string|null; url?:string|null; preview_url?:string|null };
 type ClientProposal = {
@@ -1230,6 +1231,13 @@ export default function Clientes({
                               <option value="investidor">Investidor — conteúdo e números</option>
                             </select>
                           </label>
+                          {selection.exibir_fluxo && <div style={{display:"grid",gap:7,padding:"9px 0",borderTop:"1px solid #27272a"}}>
+                            <strong style={{fontSize:11}}>Unidades liberadas para o Fluxo ({selection.unidade_ids?.length || 0})</strong>
+                            <small style={{color:"#71717a"}}>Selecione somente as unidades que {curating.nome} poderá simular no portal.</small>
+                            <div style={{display:"grid",gap:5,maxHeight:220,overflow:"auto"}}>
+                              {units.filter(u=>u.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(u.status||"").toLowerCase())).map(u=>{const ids=selection.unidade_ids || []; const checked=ids.includes(u.id); return <label key={u.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"7px 8px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span><input type="checkbox" checked={checked} onChange={()=>{const next=checked?ids.filter(id=>id!==u.id):[...ids,u.id];void updateSelection(curating.id,property.id,{unidade_ids:next});}}/> Unidade {u.numero || u.id.slice(0,8)}{u.tipologia ? ` · ${u.tipologia}` : ""}</span><b>{money(u.valor_tabela || u.valor)}</b></label>})}
+                            </div>
+                          </div>}
                           {selection.exibir_imagens && <div style={{display:"grid",gap:7}}>
                             <strong style={{fontSize:11}}>Imagens desta landing ({selection.imagem_ids_selecionadas?.length || 0}/10)</strong>
                             <small style={{color:"#71717a"}}>Toque na ordem desejada. Somente estas imagens serão entregues a este cliente.</small>
