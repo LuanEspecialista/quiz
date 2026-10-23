@@ -92,8 +92,8 @@ export async function onRequest(context) {
   // empreendimento e retorna somente imagens públicas, sem metadados internos.
   if (request.method === "GET" && new URL(request.url).searchParams.get("list") === "1") {
     const enterprise = normalize(new URL(request.url).searchParams.get("enterprise"));
-    if (!["pinna", "pinna-studios", "park", "park-beach", "park-beach-studios", "beach-park-studios"].includes(enterprise)) return json({ error: "Listagem não disponível para este empreendimento." }, 403);
-    const wanted = enterprise.startsWith("park") || enterprise.startsWith("beach") ? /(?:park-beach-studios|beach-park-studios|empreendimentos-park(?:-|$))/i : /pinna/i;
+    if (!enterprise) return json({ error: "Informe o empreendimento para listar os arquivos." }, 400);
+    const wanted = enterprise.startsWith("park") || enterprise.startsWith("beach") ? /(?:park-beach-studios|beach-park-studios|empreendimentos-park(?:-|$))/i : new RegExp(enterprise.replace(/[^a-z0-9]+/g, ".*"), "i");
     const prefixes = enterprise.startsWith("park") || enterprise.startsWith("beach")
       ? [`${BUCKET_PREFIX}Park Beach Studios/`, `${BUCKET_PREFIX}park-beach-studios/`, `${BUCKET_PREFIX}Park/`, `${BUCKET_PREFIX}park/`, BUCKET_PREFIX]
       : [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`, `${BUCKET_PREFIX}Pinna Studios/`, `${BUCKET_PREFIX}pinna-studios/`, `${BUCKET_PREFIX}PINNA/`, BUCKET_PREFIX];
@@ -103,7 +103,7 @@ export async function onRequest(context) {
       for (const object of listing?.objects || []) {
         const normalizedKey = normalize(object.key);
         const looksLikePinnaPlant = /(?:unidade|planta|tipologia)[^/]*?(?:0?[1-9])(?:\D|$)/i.test(normalizedKey);
-        const isPresentationPdf = /\.(?:pdf)$/i.test(object.key) && /\/apresenta(?:cao|coes)\//i.test(object.key);
+        const isPresentationPdf = /\.pdf$/i.test(object.key) && (/\/apresenta(?:cao|coes)\//i.test(object.key) || normalizedKey.includes(enterprise));
         if (/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov|pdf)$/i.test(object.key) && (isPresentationPdf || wanted.test(normalizedKey) || looksLikePinnaPlant && enterprise.startsWith("pinna"))) {
           objects.push({ key: object.key, url: `${requestUrl.origin}/api/media?key=${encodeURIComponent(object.key)}`, size: object.size || 0 });
         }
