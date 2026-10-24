@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -6,6 +6,8 @@ import {
   ChevronRight,
   Images,
   Landmark,
+  Lock,
+  LockOpen,
   LogOut,
   Send,
   UserRound,
@@ -48,6 +50,7 @@ type Opportunity = {
   regras_correcao?: Record<string, any> | null;
   observacoes?: string | null;
   cronograma?: Record<string, any> | null;
+  valorizacao_aa?: number | null;
   descricao?: string;
   preco?: number | null;
   area_minima?: number | null;
@@ -81,10 +84,12 @@ type PortalUnit = {
   fluxo_dados?: Record<string, unknown>;
 };
 type Portal = {
-  cliente?: { nome?: string; objetivo?: string };
+  cliente?: { nome?: string; objetivo?: string; email?: string | null; cpf?: string | null };
   oportunidades?: Opportunity[];
 };
 type CubQuote = { value: number; competencia?: string | null; mes_referencia?: string | null; source?: string; updated_at?: string };
+type FlowField = "entrada" | "parcela" | "balao" | "chaves" | "posChaves";
+type ClientFlowValues = Record<FlowField, number>;
 const money = (value?: number | null) =>
   value == null
     ? "Sob consulta"
@@ -138,6 +143,21 @@ function flowSummary(item: Opportunity, unit?: PortalUnit | null, cub?: CubQuote
   const postIndex = String(flow.indice_pos_chaves || rules.indice_pos_chaves || "IPCA");
   const postInterest = numberValue(flow.juros_pos_chaves_am, rules.juros_pos_chaves_am);
   return { flow, rules, delivery, preCount, elapsed, remaining, postCount, postIndex, postInterest, nominalInstallment, correctedInstallment, baseCub };
+}
+
+function buildClientFlow(item: Opportunity, unit?: PortalUnit | null, cub?: CubQuote | null) {
+  const summary = flowSummary(item, unit, cub);
+  const raw = summary.flow;
+  const discount = Math.max(0, Number(item.desconto_percentual || 0));
+  const price = Math.max(0, Number(unit?.valor || item.preco || 0) * (1 - discount / 100));
+  const months = Math.max(1, Math.round(numberValue(raw.quantidade_parcelas_obra, raw.quantidade_parcelas_ate_chaves, raw.parcelas_antes_chaves) || 1));
+  const balloonCount = Math.max(0, Math.round(numberValue(raw.quantidade_reforcos_obra, raw.quantidade_baloes, raw.numero_baloes)));
+  const preTarget = Math.min(price, price * (numberValue(raw.percentual_ate_chaves, Number(raw.percentual_parcelas_obra || 0) + Number(raw.percentual_reforcos_obra || 0) + Number(raw.percentual_chaves || 0)) || 100) / 100);
+  const entry = Math.min(preTarget, numberValue(raw.ato, raw.entrada, price * .1));
+  const monthly = Math.min(Math.max(0, preTarget - entry) / months, numberValue(raw.parcela_obra_valor, raw.parcela_mensal) || Math.max(0, preTarget - entry) / months);
+  const balloon = balloonCount ? numberValue(raw.reforco_obra_valor, raw.valor_balao) : 0;
+  const keys = Math.min(Math.max(0, preTarget - entry - monthly * months - balloon * balloonCount), numberValue(raw.chaves_valor, raw.chaves));
+  return { ...summary, price, months, balloonCount, preTarget, defaults: { entrada: entry, parcela: monthly, balao: balloon, chaves: keys, posChaves: Math.max(0, price - entry - monthly * months - balloon * balloonCount - keys) } as ClientFlowValues, officialPostMonths: Math.max(1, Math.round(numberValue(raw.quantidade_parcelas_pos_chaves))), officialPostBalloonCount: Math.max(0, Math.round(numberValue(raw.quantidade_reforcos_pos_chaves))), officialPostBalloonValue: numberValue(raw.reforco_pos_chaves_valor), appreciation: Number(item.valorizacao_aa || 0) };
 }
 
 function FlowSchedule({ item, unit, cub }: { item: Opportunity; unit?: PortalUnit | null; cub?: CubQuote | null }) {
@@ -208,42 +228,6 @@ function coverStoragePath(item: Opportunity) {
   return item.imagem_url?.startsWith(COVER_STORAGE_PREFIX)
     ? item.imagem_url.slice(COVER_STORAGE_PREFIX.length)
     : null;
-}
-
-function MoneyScenario({
-  label,
-  value,
-  setValue,
-  max,
-}: {
-  label: string;
-  value: number;
-  setValue: (value: number) => void;
-  max: number;
-}) {
-  return (
-    <label style={{ fontSize: 12, color: "#d4d4d8" }}>
-      {label}
-      <input
-        type="number"
-        min="0"
-        step="500"
-        value={value || ""}
-        onChange={(e) => setValue(Math.max(0, Number(e.target.value) || 0))}
-        style={{ ...input, marginTop: 6 }}
-      />
-      <input
-        type="range"
-        min="0"
-        max={max}
-        step="500"
-        value={Math.min(value, max)}
-        onChange={(e) => setValue(Number(e.target.value))}
-        style={{ width: "100%", accentColor: "#d7ab63" }}
-      />
-      <b style={{ color: "#f5e0b2", fontSize: 13 }}>{money(value)}</b>
-    </label>
-  );
 }
 
 function OpportunityLanding({
@@ -532,14 +516,20 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [entry, setEntry] = useState(0);
-  const [monthly, setMonthly] = useState(2500);
-  const [balloon, setBalloon] = useState(0);
-  const [balloonCount, setBalloonCount] = useState(0);
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState("");
   const [cub, setCub] = useState<CubQuote | null>(null);
+  const [flowValues, setFlowValues] = useState<ClientFlowValues>({ entrada: 0, parcela: 0, balao: 0, chaves: 0, posChaves: 0 });
+  const [flowLocks, setFlowLocks] = useState<Record<FlowField, boolean>>({ entrada: false, parcela: false, balao: false, chaves: false, posChaves: false });
+  const [autoField, setAutoField] = useState<FlowField>("posChaves");
+  const [postMode, setPostMode] = useState<"parcelas" | "misto" | "baloes">("parcelas");
+  const [postMonths, setPostMonths] = useState(0);
+  const [postBalloonCount, setPostBalloonCount] = useState(0);
+  const [postBalloonValue, setPostBalloonValue] = useState(0);
+  const [appreciation, setAppreciation] = useState(0);
+  const [clientCpf, setClientCpf] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
 
   useEffect(() => {
     void fetch("/api/cub", { headers: { accept: "application/json" } })
@@ -633,6 +623,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             };
           }),
         );
+        setClientEmail(result.cliente?.email || "");
+        setClientCpf(result.cliente?.cpf || "");
         setPortal({ ...result, oportunidades: opportunities });
       });
   }, []);
@@ -642,33 +634,89 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const firstName =
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
   const openProposal = (item: Opportunity, unit?: PortalUnit) => {
-    const summary = flowSummary(item, unit || null, cub);
+    const model = buildClientFlow(item, unit || null, cub);
     setProposal(item);
     setProposalUnit(unit || null);
-    setEntry(Math.round((Number(unit?.valor || item.preco) || 0) * 0.1));
-    setMonthly(Math.round(summary.correctedInstallment || 2500));
-    setBalloon(0);
-    setBalloonCount(0);
+    setFlowValues(model.defaults);
+    setFlowLocks({ entrada: false, parcela: false, balao: false, chaves: false, posChaves: false });
+    setAutoField("posChaves");
+    setPostMode(model.officialPostBalloonCount ? "misto" : "parcelas");
+    setPostMonths(model.officialPostMonths);
+    setPostBalloonCount(model.officialPostBalloonCount);
+    setPostBalloonValue(model.officialPostBalloonValue);
+    setAppreciation(model.appreciation);
     setNote("");
     setSent("");
+  };
+  const activeFlow = useMemo(() => proposal ? buildClientFlow(proposal, proposalUnit, cub) : null, [proposal, proposalUnit, cub]);
+  const flowFactors: Record<FlowField, number> = { entrada: 1, parcela: activeFlow?.months || 1, balao: activeFlow?.balloonCount || 0, chaves: 1, posChaves: 1 };
+  const solvedFlow = useMemo(() => {
+    if (!activeFlow) return flowValues;
+    const fields: FlowField[] = ["entrada", "parcela", "balao", "chaves", "posChaves"];
+    const fixedTotal = fields.filter((field) => field !== autoField).reduce((sum, field) => sum + Math.max(0, flowValues[field]) * flowFactors[field], 0);
+    const remaining = Math.max(0, activeFlow.price - fixedTotal);
+    return fields.reduce((next, field) => { next[field] = field === autoField && !flowLocks[field] ? remaining / Math.max(1, flowFactors[field]) : Math.max(0, flowValues[field]); return next; }, {} as ClientFlowValues);
+  }, [activeFlow, flowValues, flowLocks, autoField, flowFactors]);
+  const flowTotal = activeFlow ? (Object.keys(flowFactors) as FlowField[]).reduce((sum, field) => sum + solvedFlow[field] * flowFactors[field], 0) : 0;
+  const setFlowManual = (field: FlowField, value: number) => {
+    if (!activeFlow || flowLocks[field] || field === autoField) return;
+    const otherTotal = (Object.keys(flowFactors) as FlowField[]).filter((candidate) => candidate !== field && candidate !== autoField).reduce((sum, candidate) => sum + Math.max(0, flowValues[candidate]) * flowFactors[candidate], 0);
+    const safe = Math.max(0, Math.min(Number(value) || 0, Math.max(0, activeFlow.price - otherTotal) / Math.max(1, flowFactors[field])));
+    setFlowValues((current) => ({ ...current, [field]: safe }));
+  };
+  const toggleFlowLock = (field: FlowField) => {
+    if (field === autoField && !flowLocks[field]) {
+      const nextAuto = (Object.keys(flowFactors) as FlowField[]).find((candidate) => candidate !== field && flowFactors[candidate] > 0 && !flowLocks[candidate]);
+      if (!nextAuto) return;
+      setFlowValues((current) => ({ ...current, [field]: solvedFlow[field] }));
+      setFlowLocks((current) => ({ ...current, [field]: true }));
+      setAutoField(nextAuto);
+      return;
+    }
+    setFlowValues((current) => ({ ...current, [field]: solvedFlow[field] }));
+    setFlowLocks((current) => ({ ...current, [field]: !current[field] }));
   };
   const openPresentation = (item: Opportunity) => {
     if (item.apresentacao?.url) setPresentation({ url: item.apresentacao.url, title: item.nome || "Apresentação" });
   };
   const sendProposal = async () => {
     if (!proposal) return;
+    if (!proposalUnit || !activeFlow || Math.abs(flowTotal - activeFlow.price) > 0.02) {
+      setSent("Escolha uma unidade e ajuste o campo destravado até o fluxo fechar no valor do imóvel.");
+      return;
+    }
+    if (clientCpf.replace(/\D/g, "").length !== 11 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail.trim())) {
+      setSent("Informe um CPF válido e um e-mail válido antes de enviar a proposta.");
+      return;
+    }
     setSending(true);
     setSent("");
     const { error: rpcError } = await supabase.rpc("enviar_proposta_cliente", {
       p_empreendimento_id: proposal.id,
-      p_entrada: entry,
-      p_parcela_mensal: monthly,
-      p_balao: balloon,
-      p_quantidade_baloes: balloonCount,
+      p_entrada: solvedFlow.entrada,
+      p_parcela_mensal: solvedFlow.parcela,
+      p_balao: solvedFlow.balao,
+      p_quantidade_baloes: activeFlow.balloonCount,
       p_objetivo: client?.objetivo || null,
       p_mensagem: note || null,
       p_unidade_id: proposalUnit?.id || null,
       p_desconto_percentual: Number(proposal.desconto_percentual || 0),
+      p_cpf: clientCpf,
+      p_email: clientEmail.trim().toLowerCase(),
+      p_fluxo_snapshot: {
+        total: Number(flowTotal.toFixed(2)),
+        valor_unidade: activeFlow.price,
+        valores: solvedFlow,
+        fatores: flowFactors,
+        travas: flowLocks,
+        campo_automatico: autoField,
+        meses_ate_chaves: activeFlow.months,
+        quantidade_baloes: activeFlow.balloonCount,
+        pos_chaves: { modo: postMode, parcelas: postMonths, quantidade_baloes: postBalloonCount, valor_balao: postBalloonValue },
+        valorizacao_anual: appreciation,
+        valor_projetado: activeFlow.price * Math.pow(1 + Math.max(0, appreciation) / 100, Math.max(1, activeFlow.months) / 12),
+        atualizado_em: new Date().toISOString(),
+      },
     });
     setSending(false);
     setSent(
@@ -914,7 +962,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   <X size={16} />
                 </button>
               </header>
-              {proposal.unidades?.length ? <div style={{marginTop:22,padding:12,border:"1px solid #514124",borderRadius:9,background:"#17140e"}}><strong style={{display:"block",color:"#edcf91",fontSize:12,marginBottom:8}}>Escolha a unidade para simular</strong><div style={{display:"grid",gap:7}}>{proposal.unidades.map((unit)=>{const active=proposalUnit?.id===unit.id;return <button type="button" key={unit.id} onClick={()=>{setProposalUnit(unit);setEntry(Math.round(Number(unit.valor||proposal.preco||0)*0.1));setMonthly(Math.round(flowSummary(proposal,unit,cub).correctedInstallment||2500));}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,textAlign:"left",border:`1px solid ${active?"#d7ab63":"#3f3f46"}`,background:active?"#2a2112":"#111113",color:"#f5e0b2",borderRadius:7,padding:"9px 10px",cursor:"pointer"}}><span><b>{unit.codigo||unit.numero||"Unidade"}</b>{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</span><span>{money(unit.valor)}</span></button>})}</div></div> : null}
+              {proposal.unidades?.length ? <div style={{marginTop:22,padding:12,border:"1px solid #514124",borderRadius:9,background:"#17140e"}}><strong style={{display:"block",color:"#edcf91",fontSize:12,marginBottom:8}}>Escolha a unidade para simular</strong><div style={{display:"grid",gap:7}}>{proposal.unidades.map((unit)=>{const active=proposalUnit?.id===unit.id;return <button type="button" key={unit.id} onClick={()=>openProposal(proposal,unit)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,textAlign:"left",border:`1px solid ${active?"#d7ab63":"#3f3f46"}`,background:active?"#2a2112":"#111113",color:"#f5e0b2",borderRadius:7,padding:"9px 10px",cursor:"pointer"}}><span><b>{unit.codigo||unit.numero||"Unidade"}</b>{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</span><span>{money(unit.valor)}</span></button>})}</div></div> : null}
               {proposal && <FlowSchedule item={proposal} unit={proposalUnit} cub={cub} />}
               <div
                 style={{
@@ -925,60 +973,19 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 }}
               >
                 {proposalUnit && <div style={{gridColumn:"1/-1",padding:12,borderRadius:8,background:"#17140e",color:"#ead5aa",fontSize:12}}>Valor da unidade: <strong>{money(proposalUnit.valor)}</strong>{proposal.desconto_percentual ? ` · condição especial de ${Number(proposal.desconto_percentual).toLocaleString("pt-BR")} % · valor de referência após condição: ${money(Number(proposalUnit.valor||0)*(1-Number(proposal.desconto_percentual)/100))}` : ""}</div>}
-                <MoneyScenario
-                  label="Entrada"
-                  value={entry}
-                  setValue={setEntry}
-                  max={proposal.preco || 500000}
-                />
-                <MoneyScenario
-                  label="Parcela mensal"
-                  value={monthly}
-                  setValue={setMonthly}
-                  max={Math.max(20000, (proposal.preco || 500000) * 0.08)}
-                />
-                <MoneyScenario
-                  label="Balão"
-                  value={balloon}
-                  setValue={setBalloon}
-                  max={proposal.preco || 500000}
-                />
+                {([['entrada','Entrada'],['parcela','Parcela mensal'],['balao','Balão'],['chaves','Nas chaves'],['posChaves','Pós-chaves']] as const).map(([field,label]) => {
+                  const disabled = flowLocks[field] || field === autoField;
+                  const max = Math.max(1, activeFlow?.price || 500000);
+                  return <label key={field} style={{ fontSize: 12, color: "#d4d4d8" }}><span style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:6 }}>{label}<button type="button" title={disabled ? "Destravar campo" : "Travar campo"} onClick={() => toggleFlowLock(field)} style={{ border:0, background:"transparent", color:disabled?"#d7ab63":"#71717a", cursor:"pointer", padding:2 }}>{disabled ? <Lock size={14}/> : <LockOpen size={14}/>}</button></span><input type="number" min="0" step="100" disabled={disabled} value={Math.round(solvedFlow[field] || 0)} onChange={(event) => setFlowManual(field, Number(event.target.value))} style={{ ...input, marginTop: 6, opacity: disabled ? .65 : 1 }} /><input type="range" min="0" max={max} step="100" disabled={disabled} value={Math.min(max, solvedFlow[field] || 0)} onChange={(event) => setFlowManual(field, Number(event.target.value))} style={{ width:"100%", accentColor:"#d7ab63", opacity: disabled ? .65 : 1 }} /><b style={{ color: "#f5e0b2", fontSize: 13 }}>{money(solvedFlow[field])}{field === autoField ? " · fecha saldo" : ""}</b></label>;
+                })}
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "180px 1fr",
-                  gap: 13,
-                  marginTop: 13,
-                }}
-              >
-                <label style={{ fontSize: 12, color: "#d4d4d8" }}>
-                  Quantidade de balões
-                  <input
-                    type="number"
-                    min="0"
-                    max="120"
-                    value={balloonCount || ""}
-                    onChange={(e) =>
-                      setBalloonCount(
-                        Math.max(0, Math.min(120, Number(e.target.value) || 0)),
-                      )
-                    }
-                    style={{ ...input, marginTop: 6 }}
-                  />
-                </label>
-                <label style={{ fontSize: 12, color: "#d4d4d8" }}>
-                  Observação
-                  <textarea
-                    value={note}
-                    maxLength={1500}
-                    onChange={(e) => setNote(e.target.value)}
-                    rows={3}
-                    placeholder="Ex.: consigo ajustar a entrada em dois atos."
-                    style={{ ...input, marginTop: 6, resize: "vertical" }}
-                  />
-                </label>
+              <div className="portal-proposal-grid">
+                <label style={{ fontSize: 12, color: "#d4d4d8" }}>Balões até as chaves — quantidade oficial<input type="number" readOnly value={activeFlow?.balloonCount || 0} style={{ ...input, marginTop: 6, opacity: .7 }} /><small style={{ display:"block", color:"#8e8b83", marginTop:5 }}>A quantidade segue a tabela da unidade.</small></label>
+                <label style={{ fontSize: 12, color: "#d4d4d8" }}>Observação<textarea value={note} maxLength={1500} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Ex.: consigo ajustar a entrada em dois atos." style={{ ...input, marginTop: 6, resize: "vertical" }} /></label>
               </div>
+              <section className="portal-postkeys-box"><strong>Pós-chaves</strong><p>Escolha como deseja visualizar o saldo depois das chaves. Essa escolha não aumenta o valor da unidade.</p><div className="portal-postkeys-controls"><label>Forma<select value={postMode} onChange={(event) => setPostMode(event.target.value as typeof postMode)} style={{ ...input, marginTop: 5 }}><option value="parcelas">Parcelas mensais</option><option value="misto">Parcelas + balões</option><option value="baloes">Somente balões</option></select></label><label>Quantidade de parcelas<input type="number" min="1" max="480" value={postMonths || ""} onChange={(event) => setPostMonths(Math.max(1, Math.min(480, Number(event.target.value) || 1)))} style={{ ...input, marginTop: 5 }} /></label>{postMode !== "parcelas" && <><label>Quantidade de balões<input type="number" min="0" max="120" value={postBalloonCount || ""} onChange={(event) => setPostBalloonCount(Math.max(0, Math.min(120, Number(event.target.value) || 0)))} style={{ ...input, marginTop: 5 }} /></label><label>Valor de cada balão<input type="number" min="0" value={postBalloonValue || ""} onChange={(event) => setPostBalloonValue(Math.max(0, Number(event.target.value) || 0))} style={{ ...input, marginTop: 5 }} /></label></>}</div><small>{activeFlow?.postIndex || "IPCA"}{activeFlow?.postInterest ? ` + ${activeFlow.postInterest.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}% a.m.` : ""} · saldo nominal: {money(solvedFlow.posChaves)}</small></section>
+              <section className="portal-appreciation-box"><strong>Valorização estimada do imóvel</strong><p>Esta é uma premissa informativa, não uma garantia de rentabilidade.</p><label>Valorização anual (%)<input type="number" min="0" max="100" step="0.1" value={appreciation || ""} onChange={(event) => setAppreciation(Math.max(0, Math.min(100, Number(event.target.value) || 0)))} style={{ ...input, marginTop: 5 }} /></label>{activeFlow && <div className="portal-appreciation-result">Valor estimado na entrega: <strong>{money(activeFlow.price * Math.pow(1 + Math.max(0, appreciation) / 100, Math.max(1, activeFlow.months) / 12))}</strong> · valorização estimada: <strong>{money(activeFlow.price * (Math.pow(1 + Math.max(0, appreciation) / 100, Math.max(1, activeFlow.months) / 12) - 1))}</strong></div>}</section>
+              <section className="portal-identity-box"><strong>Dados para formalizar a proposta</strong><div className="portal-proposal-grid"><label>CPF<input inputMode="numeric" value={clientCpf} onChange={(event) => setClientCpf(event.target.value)} placeholder="000.000.000-00" style={{ ...input, marginTop: 5 }} /></label><label>E-mail<input type="email" value={clientEmail} onChange={(event) => setClientEmail(event.target.value)} placeholder="voce@email.com" style={{ ...input, marginTop: 5 }} /></label></div><small>Esses dados serão enviados apenas junto com a proposta para análise da construtora.</small></section>
               <div
                 style={{
                   marginTop: 18,
@@ -989,12 +996,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   fontSize: 12,
                 }}
               >
-                O especialista receberá: entrada {money(entry)}, parcela mensal{" "}
-                {money(monthly)}
-                {balloonCount
-                  ? `, ${balloonCount} balão(ões) de ${money(balloon)}`
-                  : ""}
-                . A construtora valida condições e disponibilidade.
+                Fluxo fechado: entrada {money(solvedFlow.entrada)}, parcela mensal {money(solvedFlow.parcela)}, {activeFlow?.balloonCount ? `${activeFlow.balloonCount} balão(ões) de ${money(solvedFlow.balao)}, ` : ""}pós-chaves {money(solvedFlow.posChaves)}. Total do fluxo: <strong>{money(flowTotal)}</strong> de <strong>{money(activeFlow?.price)}</strong>. O especialista receberá este cenário para análise.
               </div>
               {sent && (
                 <p
@@ -1007,7 +1009,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 </p>
               )}
               <button
-                disabled={sending}
+                disabled={sending || !proposalUnit || !activeFlow || Math.abs(flowTotal - activeFlow.price) > 0.02}
                 onClick={() => void sendProposal()}
                 style={{
                   marginTop: 16,
