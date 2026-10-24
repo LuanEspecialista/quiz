@@ -42,6 +42,12 @@ type Opportunity = {
   bairro?: string;
   endereco?: string;
   status?: string;
+  entrega_date?: string | null;
+  previsao_entrega?: string | null;
+  data_entrega_chaves?: string | null;
+  regras_correcao?: Record<string, any> | null;
+  observacoes?: string | null;
+  cronograma?: Record<string, any> | null;
   descricao?: string;
   preco?: number | null;
   area_minima?: number | null;
@@ -78,6 +84,7 @@ type Portal = {
   cliente?: { nome?: string; objetivo?: string };
   oportunidades?: Opportunity[];
 };
+type CubQuote = { value: number; competencia?: string | null; mes_referencia?: string | null; source?: string; updated_at?: string };
 const money = (value?: number | null) =>
   value == null
     ? "Sob consulta"
@@ -95,6 +102,61 @@ const input = {
   padding: "10px 11px",
   fontSize: 14,
 };
+
+const numberValue = (...values: unknown[]) => {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return 0;
+};
+
+function monthDistance(start: string, end = new Date()) {
+  const base = new Date(`${start.slice(0, 7)}-01T12:00:00`);
+  if (Number.isNaN(base.getTime())) return 0;
+  return Math.max(0, (end.getFullYear() - base.getFullYear()) * 12 + end.getMonth() - base.getMonth());
+}
+
+function monthLabel(value?: string | null) {
+  if (!value) return "Não informado";
+  const date = new Date(`${value.slice(0, 7)}-01T12:00:00`);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(date);
+}
+
+function flowSummary(item: Opportunity, unit?: PortalUnit | null, cub?: CubQuote | null) {
+  const flow = unit?.fluxo_dados || {};
+  const rules = item.regras_correcao || {};
+  const delivery = item.data_entrega_chaves || item.entrega_date || item.previsao_entrega || String(flow.entrega || "");
+  const preCount = numberValue(flow.quantidade_parcelas_obra, flow.quantidade_parcelas_ate_chaves, flow.parcelas_antes_chaves);
+  const elapsed = preCount ? Math.min(preCount, monthDistance(String(flow.data_tabela || "2026-10"))) : 0;
+  const remaining = preCount ? Math.max(0, preCount - elapsed) : 0;
+  const baseCub = numberValue(flow.cub_base_valor, rules.cub_base_valor);
+  const cubFactor = baseCub && cub?.value ? cub.value / baseCub : 1;
+  const nominalInstallment = numberValue(flow.parcela_obra_valor);
+  const correctedInstallment = nominalInstallment ? nominalInstallment * cubFactor : 0;
+  const postCount = numberValue(flow.quantidade_parcelas_pos_chaves);
+  const postIndex = String(flow.indice_pos_chaves || rules.indice_pos_chaves || "IPCA");
+  const postInterest = numberValue(flow.juros_pos_chaves_am, rules.juros_pos_chaves_am);
+  return { flow, rules, delivery, preCount, elapsed, remaining, postCount, postIndex, postInterest, nominalInstallment, correctedInstallment, baseCub };
+}
+
+function FlowSchedule({ item, unit, cub }: { item: Opportunity; unit?: PortalUnit | null; cub?: CubQuote | null }) {
+  const summary = flowSummary(item, unit, cub);
+  const preIndex = String(summary.flow.indice_pre_chaves || summary.rules.indice_pre_chaves || "CUB");
+  const formattedInterest = summary.postInterest ? ` + ${summary.postInterest.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}% a.m.` : "";
+  return <section className="portal-flow-summary">
+    <div className="portal-flow-heading"><div><small>CRONOGRAMA E FLUXO NOMINAL</small><strong>{item.nome}</strong></div><span>Atualizado em {new Intl.DateTimeFormat("pt-BR").format(new Date())}</span></div>
+    <div className="portal-flow-grid">
+      <div><small>Início das obras</small><b>{monthLabel(item.cronograma?.inicio_obras || item.caracteristicas?.fluxo_comercial?.inicio_obras)}</b></div>
+      <div><small>Entrega prevista</small><b>{monthLabel(summary.delivery)}</b></div>
+      <div><small>Até as chaves</small><b>{summary.preCount ? `${summary.remaining} restantes` : "Conforme tabela"}</b><em>{summary.preCount ? `${summary.elapsed} já transcorridas de ${summary.preCount}` : ""}</em></div>
+      <div><small>Correção até as chaves</small><b>{preIndex}</b><em>valor nominal ajustado pela competência vigente</em></div>
+      <div><small>Pós-chaves</small><b>{summary.postCount ? `${summary.postCount} parcelas` : "Conforme contrato"}</b><em>{summary.postIndex}{formattedInterest}</em></div>
+    </div>
+    {summary.nominalInstallment > 0 && <p className="portal-flow-note">Parcela nominal da tabela: <strong>{money(summary.nominalInstallment)}</strong>{cub && summary.baseCub ? <> · estimativa com CUB vigente ({money(cub.value)}/m²): <strong>{money(summary.correctedInstallment)}</strong></> : ""}. O sistema recalcula a quantidade restante pelo mês atual e não projeta IPCA futuro.</p>}
+    {cub && <small className="portal-flow-source">CUB/SC residencial médio · competência para uso em {cub.competencia || "vigente"} · fonte oficial do Sinduscon.</small>}
+  </section>;
+}
 
 function PresentationSlides({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -187,9 +249,11 @@ function MoneyScenario({
 function OpportunityLanding({
   item,
   onProposal,
+  cub,
 }: {
   item: Opportunity;
   onProposal: (item: Opportunity, unit?: PortalUnit) => void;
+  cub?: CubQuote | null;
 }) {
   const blocks = (item.caracteristicas?.landing_blocos || []) as LandingBlock[];
   const layout = String(item.layout || item.caracteristicas?.landing_layout || "editorial");
@@ -410,6 +474,7 @@ function OpportunityLanding({
           {item.exibir_investimento && <div style={{padding:15,borderRadius:10,background:layout==="investidor"?"#172016":"#18181b",border:"1px solid #2f3f2e"}}><strong style={{color:"#b9d89c"}}>Visão de investimento</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>Consulte os argumentos, diferenciais e premissas cadastrados para esta oportunidade. Projeções não representam garantia de rentabilidade.</p></div>}
           {item.exibir_fluxo && <div style={{padding:15,borderRadius:10,background:"#18181b",border:"1px solid #3a3327"}}><strong style={{color:"#edcf91"}}>Condições comerciais</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>O fluxo será estruturado conforme sua entrada, capacidade mensal e reforços, sujeito à tabela vigente e aprovação da construtora.</p></div>}
         </div>}
+        {item.exibir_fluxo && <FlowSchedule item={item} cub={cub} />}
         {!!item.unidades?.length && <div style={{display:"grid",gap:8,padding:14,border:"1px solid #3a3327",borderRadius:10,background:"#14120f"}}><strong style={{color:"#edcf91"}}>Unidades liberadas para análise</strong><small style={{color:"#a1a1aa"}}>Escolha uma unidade para abrir o fluxo. A simulação é individual e não altera a condição oficial.</small>{item.unidades.map((unit) => { const original=Number(unit.valor||0); const discount=Math.max(0,Number(item.desconto_percentual||0)); const final=original*(1-discount/100); return <div key={unit.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",padding:"9px 0",borderTop:"1px solid #29251f"}}><span><b>{unit.codigo || unit.numero || "Unidade"}</b>{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#a1a1aa"}}>{money(original)}{discount ? ` · ${discount}% de condição especial · ${money(final)}` : ""}</small></span><button type="button" onClick={() => onProposal(item, unit)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 11px",fontWeight:800,cursor:"pointer"}}>Ver fluxo</button></div>})}</div>}
         {item.observacao_comercial && <p style={{margin:0,padding:"10px 12px",borderLeft:"3px solid #d7ab63",color:"#ead5aa",background:"#17140e",fontSize:12,lineHeight:1.55}}>{item.observacao_comercial}</p>}
         <div
@@ -474,8 +539,13 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState("");
+  const [cub, setCub] = useState<CubQuote | null>(null);
 
   useEffect(() => {
+    void fetch("/api/cub", { headers: { accept: "application/json" } })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (data?.value) setCub(data as CubQuote); })
+      .catch(() => undefined);
     void supabase
       .rpc("portal_cliente")
       .then(async ({ data, error: requestError }) => {
@@ -572,10 +642,11 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const firstName =
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
   const openProposal = (item: Opportunity, unit?: PortalUnit) => {
+    const summary = flowSummary(item, unit || null, cub);
     setProposal(item);
     setProposalUnit(unit || null);
     setEntry(Math.round((Number(unit?.valor || item.preco) || 0) * 0.1));
-    setMonthly(2500);
+    setMonthly(Math.round(summary.correctedInstallment || 2500));
     setBalloon(0);
     setBalloonCount(0);
     setNote("");
@@ -757,6 +828,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             <OpportunityLanding
               item={activeOpportunity}
               onProposal={openProposal}
+              cub={cub}
             />
           </section>
         )}
@@ -842,7 +914,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   <X size={16} />
                 </button>
               </header>
-              {proposal.unidades?.length ? <div style={{marginTop:22,padding:12,border:"1px solid #514124",borderRadius:9,background:"#17140e"}}><strong style={{display:"block",color:"#edcf91",fontSize:12,marginBottom:8}}>Escolha a unidade para simular</strong><div style={{display:"grid",gap:7}}>{proposal.unidades.map((unit)=>{const active=proposalUnit?.id===unit.id;return <button type="button" key={unit.id} onClick={()=>{setProposalUnit(unit);setEntry(Math.round(Number(unit.valor||proposal.preco||0)*0.1));}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,textAlign:"left",border:`1px solid ${active?"#d7ab63":"#3f3f46"}`,background:active?"#2a2112":"#111113",color:"#f5e0b2",borderRadius:7,padding:"9px 10px",cursor:"pointer"}}><span><b>{unit.codigo||unit.numero||"Unidade"}</b>{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</span><span>{money(unit.valor)}</span></button>})}</div></div> : null}
+              {proposal.unidades?.length ? <div style={{marginTop:22,padding:12,border:"1px solid #514124",borderRadius:9,background:"#17140e"}}><strong style={{display:"block",color:"#edcf91",fontSize:12,marginBottom:8}}>Escolha a unidade para simular</strong><div style={{display:"grid",gap:7}}>{proposal.unidades.map((unit)=>{const active=proposalUnit?.id===unit.id;return <button type="button" key={unit.id} onClick={()=>{setProposalUnit(unit);setEntry(Math.round(Number(unit.valor||proposal.preco||0)*0.1));setMonthly(Math.round(flowSummary(proposal,unit,cub).correctedInstallment||2500));}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,textAlign:"left",border:`1px solid ${active?"#d7ab63":"#3f3f46"}`,background:active?"#2a2112":"#111113",color:"#f5e0b2",borderRadius:7,padding:"9px 10px",cursor:"pointer"}}><span><b>{unit.codigo||unit.numero||"Unidade"}</b>{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</span><span>{money(unit.valor)}</span></button>})}</div></div> : null}
+              {proposal && <FlowSchedule item={proposal} unit={proposalUnit} cub={cub} />}
               <div
                 style={{
                   display: "grid",
