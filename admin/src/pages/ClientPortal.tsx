@@ -615,6 +615,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [lockedEntry, setLockedEntry] = useState(true);
   const [lockedMonthly, setLockedMonthly] = useState(true);
   const [lockedBalloon, setLockedBalloon] = useState(true);
+  const [lockedKeysValue, setLockedKeysValue] = useState(true);
   const [lockedPostMonthly, setLockedPostMonthly] = useState(true);
   const [lockedPostBalloon, setLockedPostBalloon] = useState(true);
 
@@ -745,6 +746,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     setLockedEntry(true);
     setLockedMonthly(true);
     setLockedBalloon(true);
+    setLockedKeysValue(true);
     setLockedPostMonthly(true);
     setLockedPostBalloon(true);
     setEntry(initialEntry);
@@ -1140,6 +1142,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   value={keysValue}
                   setValue={setKeysValue}
                   max={proposal.preco || 500000}
+                  locked={lockedKeysValue}
+                  onToggleLock={() => setLockedKeysValue((value) => !value)}
                 />
               </div>
               <div
