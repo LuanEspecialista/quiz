@@ -25,6 +25,7 @@ type Client = {
   id: string;
   user_id?: string | null;
   acesso_portal?: boolean;
+  acesso_expira_em?: string | null;
   nome: string;
   telefone?: string | null;
   email?: string | null;
@@ -113,6 +114,10 @@ type ClientProposal = {
   mensagem?: string | null;
   status: string;
   created_at: string;
+  cpf?: string | null;
+  unidade_id?: string | null;
+  valor_final?: number | null;
+  fluxo_snapshot?: Record<string, any> | null;
 };
 type BlogLead = { user_id:string; nome?:string|null; email:string; interesses?:string[]|null; status:string; criado_em:string; consentiu_contato?:boolean|null; consentimento_em?:string|null; consentimento_revogado_em?:string|null; blog_posts?:{ titulo?:string|null }|null };
 type SiteOpportunityLead = { id:string; nome:string; telefone?:string|null; email?:string|null; objetivo?:string|null; codigo_oportunidade?:string|null; empreendimento_nome_interno?:string|null; oportunidade_publica_id?:string|null; criado_em:string; etapa?:string|null; notas?:string|null };
@@ -243,6 +248,8 @@ export default function Clientes({
     [selections, setSelections] = useState<Selection[]>([]),
     [units, setUnits] = useState<Unit[]>([]);
   const [proposals, setProposals] = useState<ClientProposal[]>([]);
+  const [proposalView, setProposalView] = useState<ClientProposal | null>(null);
+  const [lastProposalCount, setLastProposalCount] = useState(0);
   const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [siteOpportunityLeads, setSiteOpportunityLeads] = useState<SiteOpportunityLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
@@ -322,7 +329,15 @@ export default function Clientes({
       );
     if (!s.error) setSelections((s.data || []) as Selection[]);
     if (!u.error) setUnits((u.data || []) as Unit[]);
-    if (!cp.error) setProposals((cp.data || []) as ClientProposal[]);
+    if (!cp.error) {
+      const nextProposals = (cp.data || []) as ClientProposal[];
+      const nextNewCount = nextProposals.filter((item) => item.status === "nova").length;
+      if (lastProposalCount > 0 && nextNewCount > lastProposalCount && typeof Notification !== "undefined" && Notification.permission === "granted") {
+        new Notification("Nova proposta recebida", { body: "Uma cliente enviou uma nova simulação para análise." });
+      }
+      setLastProposalCount(nextNewCount);
+      setProposals(nextProposals);
+    }
     if (!leads.error) setBlogLeads((leads.data || []) as unknown as BlogLead[]);
     if (!opportunityLeads.error) setSiteOpportunityLeads((opportunityLeads.data || []) as SiteOpportunityLead[]);
     if (!media.error) {
@@ -336,7 +351,10 @@ export default function Clientes({
     }
   }
   useEffect(() => {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") void Notification.requestPermission().catch(() => undefined);
     void load();
+    const timer = window.setInterval(() => void load(), 30000);
+    return () => window.clearInterval(timer);
   }, []);
   const visible = useMemo(
     () =>
@@ -451,6 +469,19 @@ export default function Clientes({
       client.error?.message || `Acesso ${active ? "ativado" : "bloqueado"}.`,
     );
     void load();
+  };
+  async function updateAccessExpiry(item: Client, value: string) {
+    const expiration = value ? new Date(value).toISOString() : null;
+    if (expiration && new Date(expiration) <= new Date()) return setMessage("A expiração precisa estar no futuro.");
+    const { error } = await supabase.from("clientes").update({ acesso_expira_em: expiration }).eq("id", item.id);
+    if (error) setMessage(`Não foi possível salvar a expiração: ${error.message}`);
+    else { setMessage(expiration ? "Expiração salva." : "Expiração removida; o acesso não tem prazo."); void load(); }
+  }
+  const localDateTimeValue = (value?: string | null) => {
+    if (!value) return "";
+    const date = new Date(value);
+    const pad = (part: number) => String(part).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
   async function save() {
     if (!form.nome.trim()) return setMessage("Informe o nome do cliente.");
@@ -631,6 +662,7 @@ export default function Clientes({
           </div>
         </section>
       )}
+      {proposals.some((item) => item.status === "nova") && <section style={{ ...panel, borderColor: "#c5a059", background: "#1c160b", color: "#f5e0b2" }}><strong>Nova proposta recebida</strong><span style={{ display: "block", marginTop: 4, fontSize: 12, color: "#d4d4d8" }}>A cliente enviou uma simulação. Abra a proposta para consultar os valores e imprimir a ficha formal.</span></section>}
       {siteOpportunityLeads.length > 0 && <details style={{...panel,borderColor:"#8a6a2e"}} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Solicitações de conversa ({siteOpportunityLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{siteOpportunityLeads.map((lead)=><article key={lead.id} style={{border:"1px solid #4a3a20",borderRadius:8,padding:11,background:"#15120d"}}><div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>Solicitação de {lead.nome}</strong><span style={{color:"#edcf91",fontSize:12}}>{lead.empreendimento_nome_interno || "Oportunidade selecionada"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.telefone || "Sem telefone"}{lead.email ? ` · ${lead.email}` : ""} · {new Date(lead.criado_em).toLocaleString("pt-BR")}</small>{lead.objetivo && <p style={{fontSize:12,color:"#d4d4d8",margin:"8px 0 0"}}>Objetivo: {lead.objetivo}</p>}<small style={{display:"block",color:"#888",marginTop:7}}>A oportunidade clicada foi vinculada internamente ao cadastro.</small></article>)}</div></details>}
       {blogLeads.length > 0 && <details style={panel} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Leads identificados pelo Blog ({blogLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{blogLeads.map((lead)=><article key={lead.user_id} style={{border:"1px solid #303036",borderRadius:8,padding:11}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}><strong>{lead.nome || "Leitor identificado"}</strong><span style={{color:lead.consentiu_contato?"#9bd4ac":"#a1a1aa",fontSize:11}}>{lead.consentiu_contato?"Autorizou contato":"Sem autorização para contato"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.email}{lead.blog_posts?.titulo ? ` · Origem: ${lead.blog_posts.titulo}` : ""}</small>{lead.interesses?.length ? <p style={{fontSize:12,color:"#d4d4d8",marginBottom:0}}>Interesses: {lead.interesses.join(" · ")}</p> : <small style={{color:"#71717a"}}>Ainda não informou interesses.</small>}</article>)}</div></details>}
       {proposals.length > 0 && (
@@ -653,7 +685,7 @@ export default function Clientes({
                 <article
                   key={proposal.id}
                   style={{
-                    border: "1px solid #303036",
+                    border: `1px solid ${proposal.status === "nova" ? "#c5a059" : "#303036"}`,
                     borderRadius: 8,
                     padding: 11,
                     display: "grid",
@@ -684,6 +716,7 @@ export default function Clientes({
                         {proposal.mensagem}
                       </p>
                     )}
+                    <button type="button" onClick={() => setProposalView(proposal)} style={{ ...button, marginTop: 8, fontSize: 11, background: "#c5a059", color: "#09090b" }}>Ver proposta formal</button>
                   </div>
                   <select
                     value={proposal.status}
@@ -704,6 +737,20 @@ export default function Clientes({
           </div>
         </details>
       )}
+      {proposalView && (() => {
+        const client = items.find((item) => Number(item.id) === proposalView.cliente_id);
+        const property = properties.find((item) => item.id === proposalView.empreendimento_id);
+        return <div style={{ position: "fixed", inset: 0, zIndex: 7000, background: "rgba(0,0,0,.82)", padding: 14, overflow: "auto" }}>
+          <section style={{ ...panel, maxWidth: 820, margin: "20px auto", background: "#fff", color: "#161616", padding: 32 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><div><small style={{ letterSpacing: ".14em", color: "#8a6a2e", fontWeight: 800 }}>LUAN ESPECIALISTA</small><h1 style={{ margin: "8px 0 4px", fontSize: 25 }}>Proposta comercial</h1><p style={{ margin: 0, color: "#555" }}>Simulação enviada pela cliente para análise.</p></div><button type="button" onClick={() => setProposalView(null)} style={{ background: "#eee", border: 0, padding: 8, cursor: "pointer" }}><X size={18} /></button></div>
+            <hr style={{ margin: "22px 0", border: 0, borderTop: "1px solid #ddd" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16, fontSize: 13 }}><div><b>Cliente</b><div>{client?.nome || "Não informado"}</div><div>CPF: {(client as any)?.cpf || proposalView.cpf || "Não informado"}</div><div>{client?.telefone || ""}{client?.email ? ` · ${client.email}` : ""}</div></div><div><b>Empreendimento</b><div>{property?.nome || proposalView.empreendimento_id}</div><div>Data: {new Date(proposalView.created_at).toLocaleString("pt-BR")}</div><div>Status: {proposalView.status}</div></div></div>
+            <h3 style={{ margin: "24px 0 10px" }}>Condições propostas</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, fontSize: 14 }}><div style={{ padding: 12, background: "#f5f5f5" }}>Entrada<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.entrada)}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Parcela mensal<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.parcela_mensal)}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Balão<strong style={{ display: "block", marginTop: 4 }}>{proposalView.quantidade_baloes ? `${proposalView.quantidade_baloes} × ${money(proposalView.balao)}` : "Não informado"}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Valor final<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.valor_final)}</strong></div></div>
+            <p style={{ marginTop: 24, color: "#444", minHeight: 42 }}>{proposalView.mensagem || "Sem observações adicionais."}</p><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 50, marginTop: 48, fontSize: 12, textAlign: "center" }}><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>Luan Especialista<br /><small>Corretor responsável</small></div><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{client?.nome || "Cliente"}<br /><small>CPF: {(client as any)?.cpf || proposalView.cpf || "Não informado"}</small></div></div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 28 }}><button type="button" onClick={() => window.print()} style={{ ...button, background: "#161616", color: "#fff" }}>Imprimir / salvar PDF</button></div>
+          </section>
+        </div>;
+      })()}
       <section style={panel}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Search size={16} color="#71717a" />
@@ -856,6 +903,15 @@ export default function Clientes({
                   >
                     {item.acesso_portal ? "Acesso ativo" : "Acesso bloqueado"}
                   </button>
+                )}
+                {item.user_id && (
+                  <label style={{ display: "grid", gap: 4, minWidth: 220, color: "#a1a1aa", fontSize: 11 }}>
+                    Expiração do acesso (data e hora)
+                    <input type="datetime-local" value={localDateTimeValue(item.acesso_expira_em)} onChange={(event) => void updateAccessExpiry(item, event.target.value)} style={{ ...input, padding: "7px 8px", fontSize: 11 }} title="Deixe vazio para acesso sem prazo" />
+                    <small style={{ color: item.acesso_expira_em && new Date(item.acesso_expira_em) <= new Date() ? "#fca5a5" : "#86efac" }}>
+                      {item.acesso_expira_em ? `Expira em ${new Date(item.acesso_expira_em).toLocaleString("pt-BR")}` : "Sem expiração definida"}
+                    </small>
+                  </label>
                 )}
                 <button
                   onClick={() => setCurating(item)}

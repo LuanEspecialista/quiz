@@ -86,7 +86,7 @@ type PortalUnit = {
   desconto_percentual?: number | null;
 };
 type Portal = {
-  cliente?: { nome?: string; telefone?: string | null; email?: string | null; cpf?: string | null; objetivo?: string };
+  cliente?: { nome?: string; telefone?: string | null; email?: string | null; cpf?: string | null; objetivo?: string; acesso_expira_em?: string | null };
   oportunidades?: Opportunity[];
 };
 type CubQuote = { value: number; competencia?: string | null; mes_referencia?: string | null; source?: string; updated_at?: string };
@@ -586,6 +586,7 @@ function OpportunityLanding({
 export default function ClientPortal({ userName }: { userName?: string }) {
   const [portal, setPortal] = useState<Portal | null>(null);
   const [error, setError] = useState("");
+  const [accessExpired, setAccessExpired] = useState(false);
   const [proposal, setProposal] = useState<Opportunity | null>(null);
   const [proposalUnit, setProposalUnit] = useState<PortalUnit | null>(null);
   const [presentation, setPresentation] = useState<{ url: string; title: string } | null>(null);
@@ -612,6 +613,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientCpf, setClientCpf] = useState("");
+  const [secondsUntilExpiry, setSecondsUntilExpiry] = useState<number | null>(null);
   const [lockedEntry, setLockedEntry] = useState(true);
   const [lockedMonthly, setLockedMonthly] = useState(true);
   const [lockedBalloon, setLockedBalloon] = useState(true);
@@ -620,13 +622,21 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [lockedPostBalloon, setLockedPostBalloon] = useState(true);
 
   useEffect(() => {
+    const protectContent = (event: Event) => event.preventDefault();
+    const blockPrint = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && ["p", "s"].includes(event.key.toLowerCase())) event.preventDefault(); if (event.key === "PrintScreen") event.preventDefault(); };
+    document.addEventListener("contextmenu", protectContent);
+    document.addEventListener("keydown", blockPrint);
     void fetch("/api/cub", { headers: { accept: "application/json" } })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => { if (data?.value) setCub(data as CubQuote); })
       .catch(() => undefined);
-    void supabase
-      .rpc("portal_cliente")
-      .then(async ({ data, error: requestError }) => {
+    void supabase.rpc("portal_access_status").then(async ({ data: status }) => {
+      if (status?.status === "expirado") { setAccessExpired(true); setError("Acesso expirado. Solicite ao especialista uma nova validade para voltar a consultar os empreendimentos."); return null; }
+      if (status?.status !== "ativo") { setError("Seu acesso está bloqueado. Fale com seu especialista."); return null; }
+      return supabase.rpc("portal_cliente");
+    }).then(async (response) => {
+        if (!response) return;
+        const { data, error: requestError } = response;
         if (requestError) {
           setError(
             "Sua curadoria ainda não foi liberada. Fale com seu especialista.",
@@ -717,13 +727,26 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         setClientPhone(result.cliente?.telefone || "");
         setClientEmail(result.cliente?.email || "");
         setClientCpf(result.cliente?.cpf || "");
+        setSecondsUntilExpiry(result.cliente?.acesso_expira_em ? Math.max(0, Math.floor((new Date(result.cliente.acesso_expira_em).getTime() - Date.now()) / 1000)) : null);
       });
+    return () => { document.removeEventListener("contextmenu", protectContent); document.removeEventListener("keydown", blockPrint); };
   }, []);
+
+  useEffect(() => {
+    if (secondsUntilExpiry === null) return;
+    const timer = window.setInterval(() => setSecondsUntilExpiry((value) => {
+      const next = value === null ? null : Math.max(0, value - 1);
+      if (next === 0) { setAccessExpired(true); setPortal(null); setProposal(null); setActiveOpportunity(null); setComparisonOpen(false); }
+      return next;
+    }), 1000);
+    return () => window.clearInterval(timer);
+  }, [secondsUntilExpiry === null]);
 
   const client = portal?.cliente;
   const opportunities = portal?.oportunidades || [];
   const firstName =
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
+  const expiryLabel = secondsUntilExpiry === null ? "Acesso sem prazo definido" : secondsUntilExpiry <= 0 ? "Acesso expirado" : `Seu acesso expira em ${Math.floor(secondsUntilExpiry / 86400)}d ${String(Math.floor(secondsUntilExpiry / 3600) % 24).padStart(2, "0")}h ${String(Math.floor(secondsUntilExpiry / 60) % 60).padStart(2, "0")}min ${String(secondsUntilExpiry % 60).padStart(2, "0")}s`;
   const openProposal = (item: Opportunity, unit?: PortalUnit) => {
     const summary = flowSummary(item, unit || null, cub);
     const commercial = unitCommercial(item, unit);
@@ -815,6 +838,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   };
   const sendProposal = async () => {
     if (!proposal) return;
+    if (secondsUntilExpiry !== null && secondsUntilExpiry <= 0) { setSent("Seu acesso expirou. Solicite ao especialista uma nova validade para enviar a proposta."); return; }
     if (!proposalUnit || !commercial || Math.abs(flowTotal - commercial.finalPrice) > 0.02) {
       setSent(`O fluxo ainda não fecha. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Distribua o saldo entre até as chaves e pós-chaves antes de enviar.`);
       return;
@@ -889,6 +913,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             <p style={{ color: "#a1a1aa", margin: 0 }}>
               Uma curadoria pessoal de oportunidades selecionadas para você.
             </p>
+            <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 11px", borderRadius: 8, border: `1px solid ${secondsUntilExpiry !== null && secondsUntilExpiry < 3600 ? "#b45309" : "#3f3524"}`, background: "#17140e", color: secondsUntilExpiry !== null && secondsUntilExpiry < 3600 ? "#fbbf24" : "#d7ab63", fontSize: 12, fontWeight: 800 }}><CalendarDays size={15} /> {expiryLabel}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button
@@ -919,6 +944,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             </button>
           </div>
         </header>
+        {accessExpired && <section style={{ border: "1px solid #854d0e", background: "#25170b", borderRadius: 12, padding: 24, maxWidth: 680, margin: "30px auto", textAlign: "center" }}><Lock size={30} color="#fbbf24" /><h2 style={{ margin: "12px 0 8px", color: "#fbbf24" }}>Acesso expirado</h2><p style={{ color: "#fed7aa", lineHeight: 1.6 }}>O prazo desta curadoria terminou. Os empreendimentos e fluxos estão temporariamente indisponíveis.</p><p style={{ color: "#d4d4d8", marginBottom: 0 }}>Solicite ao especialista uma nova data de validade para voltar a consultar e enviar propostas.</p></section>}
         {error && (
           <section
             style={{
