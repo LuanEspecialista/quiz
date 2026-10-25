@@ -257,6 +257,10 @@ function MoneyScenario({
   max,
   locked = false,
   onToggleLock,
+  count,
+  setCount,
+  countMax = 360,
+  countLabel,
 }: {
   label: string;
   value: number;
@@ -264,10 +268,21 @@ function MoneyScenario({
   max: number;
   locked?: boolean;
   onToggleLock?: () => void;
+  count?: number;
+  setCount?: (value: number) => void;
+  countMax?: number;
+  countLabel?: string;
 }) {
+  const adjustCount = (delta: number) => setCount?.(Math.max(0, Math.min(countMax, (count || 0) + delta)));
   return (
-    <label style={{ fontSize: 12, color: "#d4d4d8" }}>
-      <span style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:7}}><span>{label}</span>{onToggleLock && <button type="button" aria-label={locked ? `Destravar ${label}` : `Travar ${label}`} title={locked ? "Destravar valor" : "Travar valor"} onClick={onToggleLock} style={{border:0,background:"transparent",color:locked?"#d7ab63":"#86efac",padding:2,cursor:"pointer"}}>{locked ? <Lock size={15}/> : <Unlock size={15}/>}</button>}</span>
+    <label style={{ display:"block", minWidth:0, fontSize: 12, color: "#d4d4d8" }}>
+      <span style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,minWidth:0}}>
+        <span style={{minWidth:0}}>{label}{countLabel && <small style={{display:"block",marginTop:3,color:"#a1a1aa",fontWeight:400}}>{countLabel}</small>}</span>
+        <span style={{display:"inline-flex",alignItems:"center",gap:4,flexShrink:0}}>
+          {count !== undefined && setCount && <><button type="button" aria-label={`Diminuir ${countLabel || label}`} onClick={()=>adjustCount(-1)} style={{...input,width:34,height:34,padding:0,fontWeight:900,cursor:"pointer",textAlign:"center"}}>−</button><output style={{minWidth:32,textAlign:"center",fontWeight:800,color:"#f5e0b2"}}>{count}</output><button type="button" aria-label={`Aumentar ${countLabel || label}`} onClick={()=>adjustCount(1)} style={{...input,width:34,height:34,padding:0,fontWeight:900,cursor:"pointer",textAlign:"center"}}>+</button></>}
+          {onToggleLock && <button type="button" aria-label={locked ? `Destravar ${label}` : `Travar ${label}`} title={locked ? "Destravar valor" : "Travar valor"} onClick={onToggleLock} style={{border:0,background:"transparent",color:locked?"#d7ab63":"#86efac",padding:2,cursor:"pointer"}}>{locked ? <Lock size={15}/> : <Unlock size={15}/>}</button>}
+        </span>
+      </span>
       <div style={{marginTop:6}}><CurrencyInput value={value} onChange={(next) => setValue(Math.max(0, Math.min(max, next)))} disabled={locked} style={{ ...input, margin: 0, opacity: locked ? .72 : 1 }} /></div>
       <input
         type="range"
@@ -282,11 +297,6 @@ function MoneyScenario({
       <b style={{ color: "#f5e0b2", fontSize: 13 }}>{money(value)}</b>
     </label>
   );
-}
-
-function CountScenario({ label, value, setValue, max = 360 }: { label: string; value: number; setValue: (value: number) => void; max?: number }) {
-  const adjust = (delta: number) => setValue(Math.max(0, Math.min(max, value + delta)));
-  return <label style={{fontSize:12,color:"#d4d4d8"}}>{label}<div style={{display:"grid",gridTemplateColumns:"38px minmax(0,1fr) 38px",gap:5,alignItems:"center",marginTop:6}}><button type="button" aria-label={`Diminuir ${label}`} onClick={()=>adjust(-1)} style={{...input,padding:"8px 0",fontWeight:900,cursor:"pointer"}}>−</button><input type="number" min="0" max={max} value={value || ""} onChange={(e)=>setValue(Math.max(0,Math.min(max,Number(e.target.value)||0)))} style={{...input,margin:0}}/><button type="button" aria-label={`Aumentar ${label}`} onClick={()=>adjust(1)} style={{...input,padding:"8px 0",fontWeight:900,cursor:"pointer"}}>+</button></div><input type="range" min="0" max={max} step="1" value={value} onChange={(e)=>setValue(Number(e.target.value))} style={{width:"100%",accentColor:"#d7ab63"}}/><b style={{color:"#f5e0b2",fontSize:13}}>{value}</b></label>;
 }
 
 function OpportunityLanding({
@@ -1097,8 +1107,10 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   max={Math.max(20000, (proposal.preco || 500000) * 0.08)}
                   locked={lockedMonthly}
                   onToggleLock={() => setLockedMonthly((value) => !value)}
+                  count={preMonths}
+                  setCount={setPreMonths}
+                  countLabel="Parcelas até as chaves"
                 />
-                <CountScenario label="Parcelas até as chaves" value={preMonths} setValue={setPreMonths} />
                 <MoneyScenario
                   label="Balão"
                   value={balloon}
@@ -1106,17 +1118,20 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   max={proposal.preco || 500000}
                   locked={lockedBalloon}
                   onToggleLock={() => setLockedBalloon((value) => !value)}
+                  count={balloonCount}
+                  setCount={setBalloonCount}
+                  countMax={120}
+                  countLabel="Quantidade de balões"
                 />
               </div>
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "180px 1fr",
-                  gap: 13,
-                  marginTop: 13,
+                  gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
+                  gap: 10,
+                  marginTop: 12,
                 }}
               >
-                <CountScenario label="Quantidade de balões" value={balloonCount} setValue={setBalloonCount} max={120} />
                 <label style={{ fontSize: 12, color: "#d4d4d8" }}>
                   Observação
                   <textarea
@@ -1125,7 +1140,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                     onChange={(e) => setNote(e.target.value)}
                     rows={3}
                     placeholder="Ex.: consigo ajustar a entrada em dois atos."
-                    style={{ ...input, marginTop: 6, resize: "vertical" }}
+                    style={{ ...input, marginTop: 5, resize: "vertical", minHeight: 72 }}
                   />
                 </label>
               </div>
@@ -1133,8 +1148,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 <strong style={{fontSize:12,color:"#edcf91"}}>O que fazer com o saldo após as chaves?</strong>
                 <select value={postMode} onChange={(e)=>changePostMode(e.target.value as PostMode)} style={{...input,marginTop:2}}><option value="chaves">Quitar/financiar o saldo nas chaves</option><option value="parcelas_e_baloes">Pós-chaves: parcelas e balões</option><option value="somente_parcelas">Pós-chaves: somente parcelas</option><option value="somente_baloes">Pós-chaves: somente balões</option></select>
                 {financingAtKeys ? <span style={{fontSize:12,color:"#d4d4d8"}}>O saldo restante será quitado ou financiado nas chaves: <strong>{money(financingTotal)}</strong>.</span> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
-                  {(postMode === "parcelas_e_baloes" || postMode === "somente_parcelas") && <><MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={changePostMonthly} max={Math.max(20000,(commercial?.finalPrice || 500000)*0.08)} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} /><CountScenario label="Quantidade de parcelas pós" value={postMonths} setValue={changePostMonths} /></>}
-                  {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <><MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={commercial?.finalPrice || 500000} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} /><CountScenario label="Quantidade de balões pós" value={postBalloonCount} setValue={changePostBalloonCount} max={120} /></>}
+                  {(postMode === "parcelas_e_baloes" || postMode === "somente_parcelas") && <MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={changePostMonthly} max={Math.max(20000,(commercial?.finalPrice || 500000)*0.08)} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} count={postMonths} setCount={changePostMonths} countLabel="Quantidade de parcelas" />}
+                  {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={commercial?.finalPrice || 500000} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} count={postBalloonCount} setCount={changePostBalloonCount} countMax={120} countLabel="Quantidade de balões" />}
                 </div>}
               </section>
               <div style={{display:"grid",gap:5,marginTop:13,padding:12,border:`1px solid ${acceptance.color}`,borderRadius:9,background:"#17140e",color:"#d4d4d8",fontSize:12}}><strong style={{color:acceptance.color}}>Aderência: {acceptance.label}</strong><span>{acceptance.detail}</span><span>Meta até as chaves: {targets.prePct}% ({money(targets.preTarget)}) · meta pós-chaves: {targets.postPct}% ({money(targets.postTarget)}).</span><span>Até as chaves: {money(preTotal)} · {financingAtKeys ? `financiamento nas chaves: ${money(financingTotal)}` : `pós-chaves: ${money(postTotal)}`} · saldo: <strong style={{color:acceptance.color}}>{money(flowDifference)}</strong></span><button type="button" onClick={redistributeFlow} style={{border:"1px solid #8f7138",borderRadius:7,padding:9,background:"#211a0f",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Redistribuir respeitando o fluxo e fechar o valor</button></div>
