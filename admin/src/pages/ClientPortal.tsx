@@ -143,6 +143,17 @@ function flowSummary(item: Opportunity, unit?: PortalUnit | null, cub?: CubQuote
   return { flow, rules, delivery, preCount, elapsed, remaining, postCount, postIndex, postInterest, nominalInstallment, correctedInstallment, baseCub };
 }
 
+function commercialSchedule(item: Opportunity) {
+  const custom = item.caracteristicas?.fluxo_comercial || {};
+  return {
+    launch: String(custom.lancamento || item.regras_correcao?.lancamento || ""),
+    works: String(custom.inicio_obras || item.cronograma?.inicio_obras || item.regras_correcao?.inicio_obras || ""),
+    keys: String(custom.entrega || item.data_entrega_chaves || item.entrega_date || item.previsao_entrega || ""),
+    preIndex: String(custom.correcao_ate_chaves || item.regras_correcao?.indice_ate_chaves || "CUB"),
+    keysMode: String(custom.nas_chaves || item.regras_correcao?.modalidade_chaves || "Financiamento"),
+  };
+}
+
 function unitCommercial(item: Opportunity, unit?: PortalUnit | null) {
   const tablePrice = Math.max(0, Number(unit?.valor || item.preco || 0));
   const fixedDiscount = Math.max(0, Number(unit?.desconto_valor || 0));
@@ -155,17 +166,27 @@ function unitCommercial(item: Opportunity, unit?: PortalUnit | null) {
   return { tablePrice, discountValue, percentage, finalPrice: Math.max(0, tablePrice - discountValue) };
 }
 
+function flowTargets(unit: PortalUnit | null, total: number) {
+  const flow = unit?.fluxo_dados || {};
+  const pre = Number(flow.percentual_ate_chaves ?? flow.percentual_pre_chaves ?? 0);
+  const post = Number(flow.percentual_pos_chaves ?? 0);
+  const prePct = pre > 0 ? Math.min(100, pre) : post > 0 ? Math.max(0, 100 - post) : 100;
+  return { prePct, postPct: Math.max(0, 100 - prePct), preTarget: Number((total * prePct / 100).toFixed(2)), postTarget: Number((total * (100 - prePct) / 100).toFixed(2)) };
+}
+
 function FlowSchedule({ item, unit, cub }: { item: Opportunity; unit?: PortalUnit | null; cub?: CubQuote | null }) {
   const summary = flowSummary(item, unit, cub);
+  const schedule = commercialSchedule(item);
   const preIndex = String(summary.flow.indice_pre_chaves || summary.rules.indice_pre_chaves || "CUB");
   const formattedInterest = summary.postInterest ? ` + ${summary.postInterest.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}% a.m.` : "";
   return <section className="portal-flow-summary">
     <div className="portal-flow-heading"><div><small>CRONOGRAMA E FLUXO NOMINAL</small><strong>{item.nome}</strong></div><span>Atualizado em {new Intl.DateTimeFormat("pt-BR").format(new Date())}</span></div>
     <div className="portal-flow-grid">
-      <div><small>Início das obras</small><b>{monthLabel(item.cronograma?.inicio_obras || item.caracteristicas?.fluxo_comercial?.inicio_obras)}</b></div>
-      <div><small>Entrega prevista</small><b>{monthLabel(summary.delivery)}</b></div>
+      {schedule.launch && <div><small>Lançamento</small><b>{monthLabel(schedule.launch)}</b></div>}
+      {schedule.works && <div><small>Início das obras</small><b>{monthLabel(schedule.works)}</b></div>}
+      <div><small>Entrega / chaves</small><b>{monthLabel(summary.delivery || schedule.keys)}</b><em>{schedule.keysMode}</em></div>
       <div><small>Até as chaves</small><b>{summary.preCount ? `${summary.remaining} restantes` : "Conforme tabela"}</b><em>{summary.preCount ? `${summary.elapsed} já transcorridas de ${summary.preCount}` : ""}</em></div>
-      <div><small>Correção até as chaves</small><b>{preIndex}</b><em>valor nominal ajustado pela competência vigente</em></div>
+      <div><small>Correção até as chaves</small><b>{schedule.preIndex || preIndex}</b><em>valor nominal ajustado pela competência vigente</em></div>
       <div><small>Pós-chaves</small><b>{summary.postCount ? `${summary.postCount} parcelas` : "Conforme contrato"}</b><em>{summary.postIndex}{formattedInterest}</em></div>
     </div>
     {summary.nominalInstallment > 0 && <p className="portal-flow-note">Parcela nominal da tabela: <strong>{money(summary.nominalInstallment)}</strong>{cub && summary.baseCub ? <> · estimativa com CUB vigente ({money(cub.value)}/m²): <strong>{money(summary.correctedInstallment)}</strong></> : ""}. O sistema recalcula a quantidade restante pelo mês atual e não projeta IPCA futuro.</p>}
@@ -230,21 +251,28 @@ function MoneyScenario({
   value,
   setValue,
   max,
+  step = 100,
 }: {
   label: string;
   value: number;
   setValue: (value: number) => void;
   max: number;
+  step?: number;
 }) {
+  const adjust = (delta: number) => setValue(Math.max(0, Math.min(max, Number((value + delta).toFixed(2)))));
   return (
     <label style={{ fontSize: 12, color: "#d4d4d8" }}>
       {label}
-      <CurrencyInput value={value} onChange={(next) => setValue(Math.max(0, Math.min(max, next)))} style={{ ...input, marginTop: 6 }} />
+      <div style={{display:"grid",gridTemplateColumns:"38px minmax(0,1fr) 38px",gap:5,alignItems:"center",marginTop:6}}>
+        <button type="button" aria-label={`Diminuir ${label}`} onClick={() => adjust(-step)} style={{...input,padding:"8px 0",fontWeight:900,cursor:"pointer"}}>−</button>
+        <CurrencyInput value={value} onChange={(next) => setValue(Math.max(0, Math.min(max, next)))} style={{ ...input, margin: 0 }} />
+        <button type="button" aria-label={`Aumentar ${label}`} onClick={() => adjust(step)} style={{...input,padding:"8px 0",fontWeight:900,cursor:"pointer"}}>+</button>
+      </div>
       <input
         type="range"
         min="0"
         max={max}
-        step="500"
+        step={step}
         value={Math.min(value, max)}
         onChange={(e) => setValue(Number(e.target.value))}
         style={{ width: "100%", accentColor: "#d7ab63" }}
@@ -252,6 +280,11 @@ function MoneyScenario({
       <b style={{ color: "#f5e0b2", fontSize: 13 }}>{money(value)}</b>
     </label>
   );
+}
+
+function CountScenario({ label, value, setValue, max = 360 }: { label: string; value: number; setValue: (value: number) => void; max?: number }) {
+  const adjust = (delta: number) => setValue(Math.max(0, Math.min(max, value + delta)));
+  return <label style={{fontSize:12,color:"#d4d4d8"}}>{label}<div style={{display:"grid",gridTemplateColumns:"38px minmax(0,1fr) 38px",gap:5,alignItems:"center",marginTop:6}}><button type="button" aria-label={`Diminuir ${label}`} onClick={()=>adjust(-1)} style={{...input,padding:"8px 0",fontWeight:900,cursor:"pointer"}}>−</button><input type="number" min="0" max={max} value={value || ""} onChange={(e)=>setValue(Math.max(0,Math.min(max,Number(e.target.value)||0)))} style={{...input,margin:0}}/><button type="button" aria-label={`Aumentar ${label}`} onClick={()=>adjust(1)} style={{...input,padding:"8px 0",fontWeight:900,cursor:"pointer"}}>+</button></div><input type="range" min="0" max={max} step="1" value={value} onChange={(e)=>setValue(Number(e.target.value))} style={{width:"100%",accentColor:"#d7ab63"}}/><b style={{color:"#f5e0b2",fontSize:13}}>{value}</b></label>;
 }
 
 function OpportunityLanding({
@@ -665,17 +698,29 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const openProposal = (item: Opportunity, unit?: PortalUnit) => {
     const summary = flowSummary(item, unit || null, cub);
     const commercial = unitCommercial(item, unit);
+    const initialEntry = Number((commercial.finalPrice * 0.1).toFixed(2));
+    const initialPreMonths = Math.max(0, summary.remaining);
+    const initialPostMonths = Math.max(0, summary.postCount);
+    const initialPostBalloon = Number(summary.flow.reforco_pos_chaves_valor || 0);
+    const initialPostBalloonCount = Number(summary.flow.quantidade_reforcos_pos_chaves || 0);
+    const initialTargets = flowTargets(unit || null, commercial.finalPrice);
+    const initialMonthly = initialPreMonths > 0
+      ? Math.max(0, Number(((initialTargets.preTarget - initialEntry) / initialPreMonths).toFixed(2)))
+      : Math.round(summary.correctedInstallment || 2500);
+    const initialPostMonthly = initialPostMonths > 0
+      ? Math.max(0, Number(((initialTargets.postTarget - initialPostBalloon * initialPostBalloonCount) / initialPostMonths).toFixed(2)))
+      : 0;
     setProposal(item);
     setProposalUnit(unit || null);
-    setEntry(Number((commercial.finalPrice * 0.1).toFixed(2)));
-    setMonthly(Math.round(summary.correctedInstallment || 2500));
+    setEntry(initialEntry);
+    setMonthly(initialMonthly);
     setBalloon(0);
     setBalloonCount(0);
-    setPreMonths(Math.max(0, summary.remaining));
-    setPostMonthly(Number(flowSummary(item, unit || null, cub).flow.parcela_pos_chaves_valor || 0));
-    setPostMonths(Math.max(0, summary.postCount));
-    setPostBalloon(Number(flowSummary(item, unit || null, cub).flow.reforco_pos_chaves_valor || 0));
-    setPostBalloonCount(Number(flowSummary(item, unit || null, cub).flow.quantidade_reforcos_pos_chaves || 0));
+    setPreMonths(initialPreMonths);
+    setPostMonthly(initialPostMonthly);
+    setPostMonths(initialPostMonths);
+    setPostBalloon(initialPostBalloon);
+    setPostBalloonCount(initialPostBalloonCount);
     setNote("");
     setSent("");
   };
@@ -683,16 +728,22 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     if (item.apresentacao?.url) setPresentation({ url: item.apresentacao.url, title: item.nome || "Apresentação" });
   };
   const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
-  const flowTotal = Number((entry + monthly * preMonths + balloon * balloonCount + postMonthly * postMonths + postBalloon * postBalloonCount).toFixed(2));
-  const solveMonthly = () => {
-    if (!commercial || preMonths <= 0) return;
-    const other = entry + balloon * balloonCount + postMonthly * postMonths + postBalloon * postBalloonCount;
-    setMonthly(Math.max(0, Number(((commercial.finalPrice - other) / preMonths).toFixed(2))));
+  const targets = proposal && commercial ? flowTargets(proposalUnit, commercial.finalPrice) : { prePct: 100, postPct: 0, preTarget: 0, postTarget: 0 };
+  const preTotal = Number((entry + monthly * preMonths + balloon * balloonCount).toFixed(2));
+  const postTotal = Number((postMonthly * postMonths + postBalloon * postBalloonCount).toFixed(2));
+  const flowTotal = Number((preTotal + postTotal).toFixed(2));
+  const flowDifference = commercial ? Number((commercial.finalPrice - flowTotal).toFixed(2)) : 0;
+  const redistributeFlow = () => {
+    if (!commercial) return;
+    const nextMonthly = preMonths > 0 ? Math.max(0, Number(((targets.preTarget - entry - balloon * balloonCount) / preMonths).toFixed(2))) : 0;
+    const nextPostMonthly = postMonths > 0 ? Math.max(0, Number(((targets.postTarget - postBalloon * postBalloonCount) / postMonths).toFixed(2))) : 0;
+    setMonthly(nextMonthly);
+    setPostMonthly(nextPostMonthly);
   };
   const sendProposal = async () => {
     if (!proposal) return;
     if (!proposalUnit || !commercial || Math.abs(flowTotal - commercial.finalPrice) > 0.02) {
-      setSent(`O fluxo ainda não fecha. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Use “Ajustar parcela” ou informe os centavos até zerar a diferença.`);
+      setSent(`O fluxo ainda não fecha. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Distribua o saldo entre até as chaves e pós-chaves antes de enviar.`);
       return;
     }
     if (!clientName.trim() || !clientPhone.trim() || !clientCpf.replace(/\D/g, "").length || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail.trim())) {
@@ -711,7 +762,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       p_mensagem: note || null,
       p_unidade_id: proposalUnit?.id || null,
       p_desconto_percentual: Number(commercial.percentage || 0),
-      p_fluxo_snapshot: { total: flowTotal, valor_tabela: commercial.tablePrice, desconto_negociado: commercial.discountValue, valores: { entrada: entry, parcela: monthly, parcelas_ate_chaves: preMonths, balao: balloon, baloes_ate_chaves: balloonCount, parcela_pos_chaves: postMonthly, parcelas_pos_chaves: postMonths, balao_pos_chaves: postBalloon, baloes_pos_chaves: postBalloonCount } },
+      p_fluxo_snapshot: { total: flowTotal, valor_tabela: commercial.tablePrice, desconto_negociado: commercial.discountValue, distribuicao: { percentual_ate_chaves: targets.prePct, percentual_pos_chaves: targets.postPct, total_ate_chaves: preTotal, total_pos_chaves: postTotal, meta_ate_chaves: targets.preTarget, meta_pos_chaves: targets.postTarget, saldo: flowDifference }, valores: { entrada: entry, parcela: monthly, parcelas_ate_chaves: preMonths, balao: balloon, baloes_ate_chaves: balloonCount, parcela_pos_chaves: postMonthly, parcelas_pos_chaves: postMonths, balao_pos_chaves: postBalloon, baloes_pos_chaves: postBalloonCount } },
       p_cpf: clientCpf,
       p_email: clientEmail.trim().toLowerCase(),
       p_nome: clientName.trim(),
@@ -994,7 +1045,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   setValue={setMonthly}
                   max={Math.max(20000, (proposal.preco || 500000) * 0.08)}
                 />
-                <label style={{fontSize:12,color:"#d4d4d8"}}>Parcelas até as chaves<input type="number" min="0" max="360" value={preMonths || ""} onChange={(e)=>setPreMonths(Math.max(0,Math.min(360,Number(e.target.value)||0)))} style={{...input,marginTop:6}} /><small style={{display:"block",color:"#8e8b83",marginTop:4}}>{money(monthly)} por parcela</small></label>
+                <CountScenario label="Parcelas até as chaves" value={preMonths} setValue={setPreMonths} />
                 <MoneyScenario
                   label="Balão"
                   value={balloon}
@@ -1040,12 +1091,13 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               <section style={{display:"grid",gap:10,marginTop:13,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
                 <strong style={{fontSize:12,color:"#edcf91"}}>Pós-chaves</strong>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>Parcela pós-chaves<CurrencyInput value={postMonthly} onChange={setPostMonthly} style={{...input,marginTop:5}} /></label>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>Quantidade de parcelas<input type="number" min="0" max="360" value={postMonths || ""} onChange={(e)=>setPostMonths(Math.max(0,Math.min(360,Number(e.target.value)||0)))} style={{...input,marginTop:5}} /></label>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>Balão pós-chaves<CurrencyInput value={postBalloon} onChange={setPostBalloon} style={{...input,marginTop:5}} /></label>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>Quantidade de balões<input type="number" min="0" max="120" value={postBalloonCount || ""} onChange={(e)=>setPostBalloonCount(Math.max(0,Math.min(120,Number(e.target.value)||0)))} style={{...input,marginTop:5}} /></label>
+                  <MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={setPostMonthly} max={Math.max(20000,(commercial?.finalPrice || 500000)*0.08)} />
+                  <CountScenario label="Quantidade de parcelas" value={postMonths} setValue={setPostMonths} />
+                  <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={setPostBalloon} max={commercial?.finalPrice || 500000} />
+                  <CountScenario label="Quantidade de balões" value={postBalloonCount} setValue={setPostBalloonCount} max={120} />
                 </div>
               </section>
+              <div style={{display:"grid",gap:5,marginTop:13,padding:12,border:"1px solid #3a3327",borderRadius:9,background:"#17140e",color:"#d4d4d8",fontSize:12}}><strong style={{color:"#edcf91"}}>Distribuição íntegra do valor</strong><span>Meta até as chaves: {targets.prePct}% ({money(targets.preTarget)}) · meta pós-chaves: {targets.postPct}% ({money(targets.postTarget)}).</span><span>Até as chaves: {money(preTotal)} · pós-chaves: {money(postTotal)} · saldo: <strong style={{color:Math.abs(flowDifference)<=0.02?"#86efac":"#fbbf24"}}>{money(flowDifference)}</strong></span><button type="button" onClick={redistributeFlow} style={{border:"1px solid #8f7138",borderRadius:7,padding:9,background:"#211a0f",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Distribuir automaticamente até fechar o valor</button></div>
               <div
                 style={{
                   marginTop: 18,
@@ -1063,7 +1115,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   : ""}
                 {postMonths ? `, pós-chaves ${postMonths}x de ${money(postMonthly)}` : ""}. A construtora valida condições e disponibilidade.
               </div>
-              <button type="button" onClick={solveMonthly} disabled={!commercial || preMonths <= 0} style={{marginTop:10,width:"100%",border:"1px solid #8f7138",borderRadius:7,padding:10,background:"#17140e",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Ajustar parcela para fechar exatamente o valor final</button>
               {sent && (
                 <p
                   style={{
