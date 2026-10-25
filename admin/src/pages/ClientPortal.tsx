@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import CurrencyInput from "../components/CurrencyInput";
 import MinhaConta from "./modules/MinhaConta";
 import { isR2Path, r2PublicUrl } from "../lib/r2Media";
 import * as pdfjsLib from "pdfjs-dist";
@@ -79,9 +80,11 @@ type PortalUnit = {
   valor?: number | null;
   status?: string | null;
   fluxo_dados?: Record<string, unknown>;
+  desconto_valor?: number | null;
+  desconto_percentual?: number | null;
 };
 type Portal = {
-  cliente?: { nome?: string; objetivo?: string };
+  cliente?: { nome?: string; telefone?: string | null; email?: string | null; cpf?: string | null; objetivo?: string };
   oportunidades?: Opportunity[];
 };
 type CubQuote = { value: number; competencia?: string | null; mes_referencia?: string | null; source?: string; updated_at?: string };
@@ -138,6 +141,18 @@ function flowSummary(item: Opportunity, unit?: PortalUnit | null, cub?: CubQuote
   const postIndex = String(flow.indice_pos_chaves || rules.indice_pos_chaves || "IPCA");
   const postInterest = numberValue(flow.juros_pos_chaves_am, rules.juros_pos_chaves_am);
   return { flow, rules, delivery, preCount, elapsed, remaining, postCount, postIndex, postInterest, nominalInstallment, correctedInstallment, baseCub };
+}
+
+function unitCommercial(item: Opportunity, unit?: PortalUnit | null) {
+  const tablePrice = Math.max(0, Number(unit?.valor || item.preco || 0));
+  const fixedDiscount = Math.max(0, Number(unit?.desconto_valor || 0));
+  const percentage = fixedDiscount > 0
+    ? Math.min(100, fixedDiscount / Math.max(tablePrice, 1) * 100)
+    : Math.max(0, Number(unit?.desconto_percentual || item.desconto_percentual || 0));
+  const discountValue = fixedDiscount > 0
+    ? Math.min(tablePrice, fixedDiscount)
+    : Math.min(tablePrice, tablePrice * percentage / 100);
+  return { tablePrice, discountValue, percentage, finalPrice: Math.max(0, tablePrice - discountValue) };
 }
 
 function FlowSchedule({ item, unit, cub }: { item: Opportunity; unit?: PortalUnit | null; cub?: CubQuote | null }) {
@@ -224,14 +239,7 @@ function MoneyScenario({
   return (
     <label style={{ fontSize: 12, color: "#d4d4d8" }}>
       {label}
-      <input
-        type="number"
-        min="0"
-        step="500"
-        value={value || ""}
-        onChange={(e) => setValue(Math.max(0, Number(e.target.value) || 0))}
-        style={{ ...input, marginTop: 6 }}
-      />
+      <CurrencyInput value={value} onChange={(next) => setValue(Math.max(0, Math.min(max, next)))} style={{ ...input, marginTop: 6 }} />
       <input
         type="range"
         min="0"
@@ -475,7 +483,7 @@ function OpportunityLanding({
           {item.exibir_fluxo && <div style={{padding:15,borderRadius:10,background:"#18181b",border:"1px solid #3a3327"}}><strong style={{color:"#edcf91"}}>Condições comerciais</strong><p style={{color:"#b4b4bb",fontSize:13,lineHeight:1.6,marginBottom:0}}>O fluxo será estruturado conforme sua entrada, capacidade mensal e reforços, sujeito à tabela vigente e aprovação da construtora.</p></div>}
         </div>}
         {item.exibir_fluxo && <FlowSchedule item={item} cub={cub} />}
-        {!!item.unidades?.length && <div style={{display:"grid",gap:8,padding:14,border:"1px solid #3a3327",borderRadius:10,background:"#14120f"}}><strong style={{color:"#edcf91"}}>Unidades liberadas para análise</strong><small style={{color:"#a1a1aa"}}>Escolha uma unidade para abrir o fluxo. A simulação é individual e não altera a condição oficial.</small>{item.unidades.map((unit) => { const original=Number(unit.valor||0); const discount=Math.max(0,Number(item.desconto_percentual||0)); const final=original*(1-discount/100); return <div key={unit.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",padding:"9px 0",borderTop:"1px solid #29251f"}}><span><b>{unit.codigo || unit.numero || "Unidade"}</b>{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#a1a1aa"}}>{money(original)}{discount ? ` · ${discount}% de condição especial · ${money(final)}` : ""}</small></span><button type="button" onClick={() => onProposal(item, unit)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 11px",fontWeight:800,cursor:"pointer"}}>Ver fluxo</button></div>})}</div>}
+        {!!item.unidades?.length && <div style={{display:"grid",gap:8,padding:14,border:"1px solid #3a3327",borderRadius:10,background:"#14120f"}}><strong style={{color:"#edcf91"}}>Unidades liberadas para análise</strong><small style={{color:"#a1a1aa"}}>Escolha uma unidade para abrir o fluxo. A simulação usa a condição liberada pelo especialista e não altera a tabela oficial.</small>{item.unidades.map((unit) => { const commercial=unitCommercial(item,unit); return <div key={unit.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",padding:"9px 0",borderTop:"1px solid #29251f"}}><span style={{minWidth:0}}><b>{unit.codigo || unit.numero || "Unidade"}</b>{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:commercial.discountValue>0?"#d9c28e":"#a1a1aa"}}>{commercial.discountValue>0 ? <>{money(commercial.tablePrice)} · desconto negociado de {money(commercial.discountValue)} · <strong>{money(commercial.finalPrice)}</strong></> : money(commercial.tablePrice)}</small></span><button type="button" onClick={() => onProposal(item, unit)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 11px",fontWeight:800,cursor:"pointer",maxWidth:"100%"}}>Ver fluxo</button></div>})}</div>}
         {item.observacao_comercial && <p style={{margin:0,padding:"10px 12px",borderLeft:"3px solid #d7ab63",color:"#ead5aa",background:"#17140e",fontSize:12,lineHeight:1.55}}>{item.observacao_comercial}</p>}
         <div
           style={{
@@ -536,10 +544,19 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [monthly, setMonthly] = useState(2500);
   const [balloon, setBalloon] = useState(0);
   const [balloonCount, setBalloonCount] = useState(0);
+  const [preMonths, setPreMonths] = useState(0);
+  const [postMonthly, setPostMonthly] = useState(0);
+  const [postMonths, setPostMonths] = useState(0);
+  const [postBalloon, setPostBalloon] = useState(0);
+  const [postBalloonCount, setPostBalloonCount] = useState(0);
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState("");
   const [cub, setCub] = useState<CubQuote | null>(null);
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientCpf, setClientCpf] = useState("");
 
   useEffect(() => {
     void fetch("/api/cub", { headers: { accept: "application/json" } })
@@ -634,6 +651,10 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           }),
         );
         setPortal({ ...result, oportunidades: opportunities });
+        setClientName(result.cliente?.nome || "");
+        setClientPhone(result.cliente?.telefone || "");
+        setClientEmail(result.cliente?.email || "");
+        setClientCpf(result.cliente?.cpf || "");
       });
   }, []);
 
@@ -643,20 +664,41 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
   const openProposal = (item: Opportunity, unit?: PortalUnit) => {
     const summary = flowSummary(item, unit || null, cub);
+    const commercial = unitCommercial(item, unit);
     setProposal(item);
     setProposalUnit(unit || null);
-    setEntry(Math.round((Number(unit?.valor || item.preco) || 0) * 0.1));
+    setEntry(Number((commercial.finalPrice * 0.1).toFixed(2)));
     setMonthly(Math.round(summary.correctedInstallment || 2500));
     setBalloon(0);
     setBalloonCount(0);
+    setPreMonths(Math.max(0, summary.remaining));
+    setPostMonthly(Number(flowSummary(item, unit || null, cub).flow.parcela_pos_chaves_valor || 0));
+    setPostMonths(Math.max(0, summary.postCount));
+    setPostBalloon(Number(flowSummary(item, unit || null, cub).flow.reforco_pos_chaves_valor || 0));
+    setPostBalloonCount(Number(flowSummary(item, unit || null, cub).flow.quantidade_reforcos_pos_chaves || 0));
     setNote("");
     setSent("");
   };
   const openPresentation = (item: Opportunity) => {
     if (item.apresentacao?.url) setPresentation({ url: item.apresentacao.url, title: item.nome || "Apresentação" });
   };
+  const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
+  const flowTotal = Number((entry + monthly * preMonths + balloon * balloonCount + postMonthly * postMonths + postBalloon * postBalloonCount).toFixed(2));
+  const solveMonthly = () => {
+    if (!commercial || preMonths <= 0) return;
+    const other = entry + balloon * balloonCount + postMonthly * postMonths + postBalloon * postBalloonCount;
+    setMonthly(Math.max(0, Number(((commercial.finalPrice - other) / preMonths).toFixed(2))));
+  };
   const sendProposal = async () => {
     if (!proposal) return;
+    if (!proposalUnit || !commercial || Math.abs(flowTotal - commercial.finalPrice) > 0.02) {
+      setSent(`O fluxo ainda não fecha. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Use “Ajustar parcela” ou informe os centavos até zerar a diferença.`);
+      return;
+    }
+    if (!clientName.trim() || !clientPhone.trim() || !clientCpf.replace(/\D/g, "").length || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail.trim())) {
+      setSent("Preencha nome, telefone, CPF e e-mail para enviar a proposta.");
+      return;
+    }
     setSending(true);
     setSent("");
     const { error: rpcError } = await supabase.rpc("enviar_proposta_cliente", {
@@ -668,7 +710,12 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       p_objetivo: client?.objetivo || null,
       p_mensagem: note || null,
       p_unidade_id: proposalUnit?.id || null,
-      p_desconto_percentual: Number(proposal.desconto_percentual || 0),
+      p_desconto_percentual: Number(commercial.percentage || 0),
+      p_fluxo_snapshot: { total: flowTotal, valor_tabela: commercial.tablePrice, desconto_negociado: commercial.discountValue, valores: { entrada: entry, parcela: monthly, parcelas_ate_chaves: preMonths, balao: balloon, baloes_ate_chaves: balloonCount, parcela_pos_chaves: postMonthly, parcelas_pos_chaves: postMonths, balao_pos_chaves: postBalloon, baloes_pos_chaves: postBalloonCount } },
+      p_cpf: clientCpf,
+      p_email: clientEmail.trim().toLowerCase(),
+      p_nome: clientName.trim(),
+      p_telefone: clientPhone.trim(),
     });
     setSending(false);
     setSent(
@@ -832,7 +879,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             />
           </section>
         )}
-        {comparisonOpen && <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1050,background:"#000d",padding:18,overflow:"auto"}}><section style={{maxWidth:980,margin:"20px auto",background:"#111113",border:"1px solid #514124",borderRadius:14,padding:"clamp(18px,3vw,30px)"}}><header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}><div><small style={{color:"#d7ab63",fontWeight:800,letterSpacing:".1em"}}>COMPARATIVO GERAL</small><h2 style={{margin:"6px 0"}}>Escolha a melhor unidade e ajuste o fluxo</h2><p style={{margin:0,color:"#a1a1aa",fontSize:13}}>Estas são somente as unidades liberadas pelo seu especialista. A simulação não altera a tabela oficial.</p></div><button type="button" onClick={() => setComparisonOpen(false)}><X size={17}/></button></header>{(() => {const rows=opportunities.flatMap((op)=> (op.unidades||[]).map((unit)=>({op,unit})));const max=Math.max(...rows.map(({unit})=>Number(unit.valor||0)),1);return rows.length ? <div style={{display:"grid",gap:10,marginTop:20}}>{rows.map(({op,unit})=>{const value=Number(unit.valor||0);return <div key={`${op.id}-${unit.id}`} style={{display:"grid",gridTemplateColumns:"minmax(180px,1fr) minmax(120px,1fr) auto",alignItems:"center",gap:12,padding:"12px 0",borderTop:"1px solid #29251f"}}><span><b>{op.nome}</b><small style={{display:"block",color:"#d7ab63"}}>{unit.codigo||unit.numero||"Unidade"}{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</small></span><span><div style={{height:10,borderRadius:10,background:"#27272a",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.max(5,value/max*100)}%`,background:"linear-gradient(90deg,#d7ab63,#f5e0b2)"}}/></div><small style={{color:"#a1a1aa"}}>{money(value)}</small></span><button type="button" onClick={() => {setComparisonOpen(false);openProposal(op,unit);}} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 11px",fontWeight:800,cursor:"pointer"}}>Ajustar fluxo</button></div>})}</div> : <p style={{marginTop:20,color:"#fbbf24"}}>Nenhuma unidade foi liberada para esta cliente.</p>})()}<p style={{margin:"20px 0 0",color:"#a1a1aa",fontSize:12}}>Depois de ajustar entrada, parcela e balões, use “Enviar cenário para análise”. A proposta será recebida no seu painel.</p></section></div>}
+        {comparisonOpen && <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1050,background:"#000d",padding:12,overflowX:"hidden",overflowY:"auto"}}><section style={{maxWidth:980,width:"100%",maxHeight:"calc(100dvh - 24px)",overflowY:"auto",boxSizing:"border-box",margin:"12px auto",background:"#111113",border:"1px solid #514124",borderRadius:14,padding:"clamp(18px,3vw,30px)"}}><header style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}><div style={{minWidth:0}}><small style={{color:"#d7ab63",fontWeight:800,letterSpacing:".1em"}}>COMPARATIVO GERAL</small><h2 style={{margin:"6px 0"}}>Escolha a melhor unidade e ajuste o fluxo</h2><p style={{margin:0,color:"#a1a1aa",fontSize:13}}>Estas são somente as unidades liberadas pelo seu especialista. A simulação não altera a tabela oficial.</p></div><button type="button" onClick={() => setComparisonOpen(false)}><X size={17}/></button></header>{(() => {const rows=opportunities.flatMap((op)=> (op.unidades||[]).map((unit)=>({op,unit})));const max=Math.max(...rows.map(({op,unit})=>unitCommercial(op,unit).finalPrice),1);return rows.length ? <div style={{display:"grid",gap:10,marginTop:20}}>{rows.map(({op,unit})=>{const commercial=unitCommercial(op,unit);return <div key={`${op.id}-${unit.id}`} style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",alignItems:"start",gap:8,padding:"12px 0",borderTop:"1px solid #29251f",minWidth:0}}><span style={{minWidth:0,overflowWrap:"anywhere"}}><b>{op.nome}</b><small style={{display:"block",color:"#d7ab63"}}>{unit.codigo||unit.numero||"Unidade"}{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</small></span><span style={{minWidth:0,width:"100%"}}><div style={{height:10,borderRadius:10,background:"#27272a",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.max(5,commercial.finalPrice/max*100)}%`,background:"linear-gradient(90deg,#d7ab63,#f5e0b2)"}}/></div><small style={{color:"#a1a1aa"}}>{commercial.discountValue>0 ? `${money(commercial.finalPrice)} · desconto ${money(commercial.discountValue)}` : money(commercial.finalPrice)}</small></span><button type="button" onClick={() => {setComparisonOpen(false);openProposal(op,unit);}} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 11px",fontWeight:800,cursor:"pointer",justifySelf:"start",maxWidth:"100%"}}>Ajustar fluxo</button></div>})}</div> : <p style={{marginTop:20,color:"#fbbf24"}}>Nenhuma unidade foi liberada para esta cliente.</p>})()}<p style={{margin:"20px 0 0",color:"#a1a1aa",fontSize:12}}>Depois de ajustar entrada, parcela e balões, use “Enviar cenário para análise”. A proposta será recebida no seu painel.</p></section></div>}
         {accountOpen && (
           <div
             role="dialog"
@@ -914,8 +961,18 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   <X size={16} />
                 </button>
               </header>
-              {proposal.unidades?.length ? <div style={{marginTop:22,padding:12,border:"1px solid #514124",borderRadius:9,background:"#17140e"}}><strong style={{display:"block",color:"#edcf91",fontSize:12,marginBottom:8}}>Escolha a unidade para simular</strong><div style={{display:"grid",gap:7}}>{proposal.unidades.map((unit)=>{const active=proposalUnit?.id===unit.id;return <button type="button" key={unit.id} onClick={()=>{setProposalUnit(unit);setEntry(Math.round(Number(unit.valor||proposal.preco||0)*0.1));setMonthly(Math.round(flowSummary(proposal,unit,cub).correctedInstallment||2500));}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,textAlign:"left",border:`1px solid ${active?"#d7ab63":"#3f3f46"}`,background:active?"#2a2112":"#111113",color:"#f5e0b2",borderRadius:7,padding:"9px 10px",cursor:"pointer"}}><span><b>{unit.codigo||unit.numero||"Unidade"}</b>{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</span><span>{money(unit.valor)}</span></button>})}</div></div> : null}
+              {proposal.unidades?.length ? <div style={{marginTop:22,padding:12,border:"1px solid #514124",borderRadius:9,background:"#17140e"}}><strong style={{display:"block",color:"#edcf91",fontSize:12,marginBottom:8}}>Escolha a unidade para simular</strong><div style={{display:"grid",gap:7}}>{proposal.unidades.map((unit)=>{const active=proposalUnit?.id===unit.id;const unitPrice=unitCommercial(proposal,unit);return <button type="button" key={unit.id} onClick={()=>openProposal(proposal,unit)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,textAlign:"left",border:`1px solid ${active?"#d7ab63":"#3f3f46"}`,background:active?"#2a2112":"#111113",color:"#f5e0b2",borderRadius:7,padding:"9px 10px",cursor:"pointer",minWidth:0}}><span style={{minWidth:0,overflowWrap:"anywhere"}}><b>{unit.codigo||unit.numero||"Unidade"}</b>{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</span><span style={{whiteSpace:"nowrap"}}>{money(unitPrice.finalPrice)}</span></button>})}</div></div> : null}
               {proposal && <FlowSchedule item={proposal} unit={proposalUnit} cub={cub} />}
+              <section style={{display:"grid",gap:10,marginTop:18,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
+                <strong style={{color:"#edcf91",fontSize:12}}>Dados para emissão da proposta</strong>
+                <small style={{color:"#a1a1aa"}}>Os dados já cadastrados foram preenchidos automaticamente. Corrija ou complete apenas o que estiver faltando.</small>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:9}}>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Nome<input value={clientName} onChange={(e)=>setClientName(e.target.value)} style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Telefone<input value={clientPhone} onChange={(e)=>setClientPhone(e.target.value)} inputMode="tel" style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>CPF<input value={clientCpf} onChange={(e)=>setClientCpf(e.target.value)} inputMode="numeric" style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>E-mail<input value={clientEmail} onChange={(e)=>setClientEmail(e.target.value)} type="email" style={{...input,marginTop:5}} /></label>
+                </div>
+              </section>
               <div
                 style={{
                   display: "grid",
@@ -937,6 +994,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   setValue={setMonthly}
                   max={Math.max(20000, (proposal.preco || 500000) * 0.08)}
                 />
+                <label style={{fontSize:12,color:"#d4d4d8"}}>Parcelas até as chaves<input type="number" min="0" max="360" value={preMonths || ""} onChange={(e)=>setPreMonths(Math.max(0,Math.min(360,Number(e.target.value)||0)))} style={{...input,marginTop:6}} /><small style={{display:"block",color:"#8e8b83",marginTop:4}}>{money(monthly)} por parcela</small></label>
                 <MoneyScenario
                   label="Balão"
                   value={balloon}
@@ -979,6 +1037,15 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   />
                 </label>
               </div>
+              <section style={{display:"grid",gap:10,marginTop:13,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
+                <strong style={{fontSize:12,color:"#edcf91"}}>Pós-chaves</strong>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Parcela pós-chaves<CurrencyInput value={postMonthly} onChange={setPostMonthly} style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Quantidade de parcelas<input type="number" min="0" max="360" value={postMonths || ""} onChange={(e)=>setPostMonths(Math.max(0,Math.min(360,Number(e.target.value)||0)))} style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Balão pós-chaves<CurrencyInput value={postBalloon} onChange={setPostBalloon} style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Quantidade de balões<input type="number" min="0" max="120" value={postBalloonCount || ""} onChange={(e)=>setPostBalloonCount(Math.max(0,Math.min(120,Number(e.target.value)||0)))} style={{...input,marginTop:5}} /></label>
+                </div>
+              </section>
               <div
                 style={{
                   marginTop: 18,
@@ -989,13 +1056,14 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   fontSize: 12,
                 }}
               >
-                O especialista receberá: entrada {money(entry)}, parcela mensal{" "}
+                Total do fluxo: <strong>{money(flowTotal)}</strong> de {money(commercial?.finalPrice)}. O especialista receberá: entrada {money(entry)}, parcela mensal{" "}
                 {money(monthly)}
                 {balloonCount
                   ? `, ${balloonCount} balão(ões) de ${money(balloon)}`
                   : ""}
-                . A construtora valida condições e disponibilidade.
+                {postMonths ? `, pós-chaves ${postMonths}x de ${money(postMonthly)}` : ""}. A construtora valida condições e disponibilidade.
               </div>
+              <button type="button" onClick={solveMonthly} disabled={!commercial || preMonths <= 0} style={{marginTop:10,width:"100%",border:"1px solid #8f7138",borderRadius:7,padding:10,background:"#17140e",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Ajustar parcela para fechar exatamente o valor final</button>
               {sent && (
                 <p
                   style={{

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { parseStandardTypology } from "@/lib/realEstateStandard";
-import { formatBRL, parseBRL } from "@/components/CurrencyInput";
+import CurrencyInput, { formatBRL, parseBRL } from "@/components/CurrencyInput";
 import { r2PublicUrl } from "@/lib/r2Media";
 
 type Client = {
@@ -96,6 +96,7 @@ type Selection = {
   imagem_ids_selecionadas?: string[];
   unidade_ids_selecionadas?: string[];
   desconto_percentual?: number;
+  condicoes_unidades?: Record<string, { desconto_valor?: number }>;
   observacao_comercial?: string | null;
   landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
   unidade_ids?: string[];
@@ -1331,7 +1332,7 @@ export default function Clientes({
                                 const term=(unitQueries[property.id]||"").trim().toLocaleLowerCase("pt-BR");
                                 if(!term) return true;
                                 return [unit.torre,unit.codigo,unit.codigo_unidade,unit.numero,unit.numero_unidade,unit.tipologia,unit.andar].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR").includes(term);
-                              }).sort((a,b)=>String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true})).map(unit=>{const selected=selection.unidade_ids_selecionadas || [];const checked=selected.includes(unit.id);const tower=unit.torre || "Torre não informada";const code=unit.codigo || unit.codigo_unidade || unit.numero || unit.numero_unidade || unit.id.slice(0,8);return <label key={unit.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span><input type="checkbox" checked={checked} onChange={()=>{const next=checked?selected.filter(id=>id!==unit.id):[...selected,unit.id];void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> <b>{tower}</b> · Unidade {code}{unit.andar ? ` · ${unit.andar}º andar` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}</span><b>{money(unit.valor_tabela || unit.valor)}</b></label>})}
+                              }).sort((a,b)=>String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true})).map(unit=>{const selected=selection.unidade_ids_selecionadas || [];const checked=selected.includes(unit.id);const tower=unit.torre || "Torre não informada";const code=unit.codigo || unit.codigo_unidade || unit.numero || unit.numero_unidade || unit.id.slice(0,8);const negotiated=Number(selection.condicoes_unidades?.[unit.id]?.desconto_valor || 0);return <label key={unit.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span style={{minWidth:0}}><input type="checkbox" checked={checked} onChange={()=>{const next=checked?selected.filter(id=>id!==unit.id):[...selected,unit.id];void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> <b>{tower}</b> · Unidade {code}{unit.andar ? ` · ${unit.andar}º andar` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#8b8b95",marginTop:3}}>Tabela: {money(unit.valor_tabela || unit.valor)}</small></span><span style={{display:"grid",gap:3,minWidth:125}}><small style={{color:"#8b8b95"}}>Desconto negociado</small><CurrencyInput value={negotiated} onChange={(value)=>{const next={...(selection.condicoes_unidades || {})};if(value>0) next[unit.id]={desconto_valor:value};else delete next[unit.id];void updateSelection(curating.id,property.id,{condicoes_unidades:next});}} style={{...input,padding:"6px 7px",fontSize:11}} /></span></label>})}
                               {units.filter(unit=>unit.empreendimento_id===property.id).length===0 && <small style={{color:"#fbbf24"}}>Nenhuma unidade cadastrada para este empreendimento.</small>}
                             </div>
                           </div>
