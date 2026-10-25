@@ -250,6 +250,14 @@ function coverStoragePath(item: Opportunity) {
     : null;
 }
 
+function r2EnterpriseFacade(item: Opportunity) {
+  const name = String(item.nome || "").toLowerCase();
+  if (name.includes("ayra")) return r2PublicUrl("r2://empreendimentos/Ayra/galeria-fachada-diurna.webp");
+  if (name.includes("pinna")) return r2PublicUrl("r2://empreendimentos/pinna-studios/fachada.jpg");
+  if (name.includes("park beach") || name.includes("beach park")) return r2PublicUrl("r2://empreendimentos/beach-park-studios/fachada.jpg");
+  return "";
+}
+
 function MoneyScenario({
   label,
   value,
@@ -589,6 +597,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [monthly, setMonthly] = useState(2500);
   const [balloon, setBalloon] = useState(0);
   const [balloonCount, setBalloonCount] = useState(0);
+  const [keysValue, setKeysValue] = useState(0);
   const [preMonths, setPreMonths] = useState(0);
   const [postMonthly, setPostMonthly] = useState(0);
   const [postMonths, setPostMonths] = useState(0);
@@ -665,6 +674,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               }
             }
             const cardCover =
+              r2EnterpriseFacade(item) ||
               coverUrl ||
               images.find((media) => media.url)?.url ||
               plants.find((media) => media.url)?.url;
@@ -741,6 +751,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     setMonthly(initialMonthly);
     setBalloon(0);
     setBalloonCount(0);
+    setKeysValue(0);
     setPreMonths(initialPreMonths);
     setPostMonthly(initialPostMonthly);
     setPostMonths(initialPostMonths);
@@ -755,7 +766,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
   const targets = proposal && commercial ? flowTargets(proposal, proposalUnit, commercial.finalPrice) : { prePct: 100, postPct: 0, preTarget: 0, postTarget: 0 };
   const financingAtKeys = postMode === "chaves";
-  const preTotal = Number((entry + monthly * preMonths + balloon * balloonCount).toFixed(2));
+  const preTotal = Number((entry + monthly * preMonths + balloon * balloonCount + keysValue).toFixed(2));
   const postTotal = Number((postMonthly * postMonths + postBalloon * postBalloonCount).toFixed(2));
   const remainingAfterPre = commercial ? Math.max(0, Number((commercial.finalPrice - preTotal).toFixed(2))) : 0;
   const financingTotal = financingAtKeys ? remainingAfterPre : 0;
@@ -763,7 +774,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const flowDifference = commercial ? Number((commercial.finalPrice - flowTotal).toFixed(2)) : 0;
   const preShare = commercial?.finalPrice ? preTotal / commercial.finalPrice * 100 : 0;
   const shareDeviation = Math.abs(preShare - targets.prePct);
-  const acceptance = Math.abs(flowDifference) > 0.02 ? { label: "Não fecha", color: "#f87171", detail: "Há saldo ou excesso no cálculo." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
+  const hasExcess = Boolean(commercial && preTotal > commercial.finalPrice + 0.02);
+  const acceptance = hasExcess ? { label: "Não fecha", color: "#f87171", detail: "Os valores até as chaves ultrapassam o valor da unidade." } : !financingAtKeys && Math.abs(flowDifference) > 0.02 ? { label: "Não fecha", color: "#f87171", detail: "Há saldo ou excesso no cálculo." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: financingAtKeys ? "O valor até as chaves atende à meta; o saldo restante será quitado ou financiado nas chaves." : "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
   const changePostMonths = (next: number) => {
     setPostMonths(next);
     if (postMode === "somente_parcelas") { setPostMonthly(next > 0 ? Number((remainingAfterPre / next).toFixed(2)) : 0); return; }
@@ -790,9 +802,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   };
   const redistributeFlow = () => {
     if (!commercial) return;
-    const nextMonthly = preMonths > 0 ? Math.max(0, Number(((targets.preTarget - entry - balloon * balloonCount) / preMonths).toFixed(2))) : 0;
+    const nextMonthly = preMonths > 0 ? Math.max(0, Number(((targets.preTarget - entry - keysValue - balloon * balloonCount) / preMonths).toFixed(2))) : 0;
     setMonthly(nextMonthly);
-    const remaining = Math.max(0, Number((commercial.finalPrice - (entry + nextMonthly * preMonths + balloon * balloonCount)).toFixed(2)));
+    const remaining = Math.max(0, Number((commercial.finalPrice - (entry + nextMonthly * preMonths + balloon * balloonCount + keysValue)).toFixed(2)));
     if (postMode === "chaves") { setPostMonthly(0); setPostBalloon(0); setPostBalloonCount(0); setPostMonths(0); return; }
     if (postMode === "somente_parcelas") { setPostBalloon(0); setPostBalloonCount(0); setPostMonthly(postMonths > 0 ? Number((remaining / postMonths).toFixed(2)) : 0); return; }
     if (postMode === "somente_baloes") { setPostMonthly(0); setPostMonths(0); setPostBalloon(postBalloonCount > 0 ? Number((remaining / postBalloonCount).toFixed(2)) : 0); return; }
@@ -821,7 +833,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       p_mensagem: note || null,
       p_unidade_id: proposalUnit?.id || null,
       p_desconto_percentual: Number(commercial.percentage || 0),
-      p_fluxo_snapshot: { total: flowTotal, valor_tabela: commercial.tablePrice, desconto_negociado: commercial.discountValue, distribuicao: { percentual_ate_chaves: targets.prePct, percentual_pos_chaves: targets.postPct, modalidade_pos_chaves: financingAtKeys ? "financiamento_nas_chaves" : "direto_construtora", total_ate_chaves: preTotal, total_pos_chaves: postTotal, financiamento_nas_chaves: financingTotal, meta_ate_chaves: targets.preTarget, meta_pos_chaves: targets.postTarget, saldo: flowDifference }, valores: { entrada: entry, parcela: monthly, parcelas_ate_chaves: preMonths, balao: balloon, baloes_ate_chaves: balloonCount, parcela_pos_chaves: postMonthly, parcelas_pos_chaves: postMonths, balao_pos_chaves: postBalloon, baloes_pos_chaves: postBalloonCount } },
+      p_fluxo_snapshot: { total: flowTotal, valor_tabela: commercial.tablePrice, desconto_negociado: commercial.discountValue, distribuicao: { percentual_ate_chaves: targets.prePct, percentual_pos_chaves: targets.postPct, modalidade_pos_chaves: financingAtKeys ? "financiamento_nas_chaves" : "direto_construtora", total_ate_chaves: preTotal, total_pos_chaves: postTotal, financiamento_nas_chaves: financingTotal, meta_ate_chaves: targets.preTarget, meta_pos_chaves: targets.postTarget, saldo: flowDifference }, valores: { entrada: entry, parcela: monthly, parcelas_ate_chaves: preMonths, balao: balloon, baloes_ate_chaves: balloonCount, nas_chaves: keysValue, parcela_pos_chaves: postMonthly, parcelas_pos_chaves: postMonths, balao_pos_chaves: postBalloon, baloes_pos_chaves: postBalloonCount } },
       p_cpf: clientCpf,
       p_email: clientEmail.trim().toLowerCase(),
       p_nome: clientName.trim(),
@@ -1123,6 +1135,12 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   countMax={120}
                   countLabel="Quantidade de balões"
                 />
+                <MoneyScenario
+                  label="Valor nas chaves"
+                  value={keysValue}
+                  setValue={setKeysValue}
+                  max={proposal.preco || 500000}
+                />
               </div>
               <div
                 style={{
@@ -1152,7 +1170,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={commercial?.finalPrice || 500000} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} count={postBalloonCount} setCount={changePostBalloonCount} countMax={120} countLabel="Quantidade de balões" />}
                 </div>}
               </section>
-              <div style={{display:"grid",gap:5,marginTop:13,padding:12,border:`1px solid ${acceptance.color}`,borderRadius:9,background:"#17140e",color:"#d4d4d8",fontSize:12}}><strong style={{color:acceptance.color}}>Aderência: {acceptance.label}</strong><span>{acceptance.detail}</span><span>Meta até as chaves: {targets.prePct}% ({money(targets.preTarget)}) · meta pós-chaves: {targets.postPct}% ({money(targets.postTarget)}).</span><span>Até as chaves: {money(preTotal)} · {financingAtKeys ? `financiamento nas chaves: ${money(financingTotal)}` : `pós-chaves: ${money(postTotal)}`} · saldo: <strong style={{color:acceptance.color}}>{money(flowDifference)}</strong></span><button type="button" onClick={redistributeFlow} style={{border:"1px solid #8f7138",borderRadius:7,padding:9,background:"#211a0f",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Redistribuir respeitando o fluxo e fechar o valor</button></div>
+              <div style={{display:"grid",gap:5,marginTop:13,padding:12,border:`1px solid ${acceptance.color}`,borderRadius:9,background:"#17140e",color:"#d4d4d8",fontSize:12}}><strong style={{color:acceptance.color}}>Aderência: {acceptance.label}</strong><span>{acceptance.detail}</span><span>Meta até as chaves: {targets.prePct}% ({money(targets.preTarget)}) · meta pós-chaves: {targets.postPct}% ({money(targets.postTarget)}).</span><span>Até as chaves: {money(preTotal)}{keysValue ? ` · valor informado nas chaves: ${money(keysValue)}` : ""} · {financingAtKeys ? `financiamento nas chaves: ${money(financingTotal)}` : `pós-chaves: ${money(postTotal)}`} · saldo: <strong style={{color:acceptance.color}}>{money(flowDifference)}</strong></span><button type="button" onClick={redistributeFlow} style={{border:"1px solid #8f7138",borderRadius:7,padding:9,background:"#211a0f",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Redistribuir respeitando o fluxo e fechar o valor</button></div>
               <div
                 style={{
                   marginTop: 18,
