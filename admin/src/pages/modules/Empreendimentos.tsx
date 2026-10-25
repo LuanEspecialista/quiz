@@ -1542,8 +1542,8 @@ export default function Empreendimentos() {
                     <p style={{ color: "#8d8d96", fontSize: 11, margin: "5px 0 0" }}>Essas regras permitem encontrar unidades pela capacidade real de pagamento do cliente.</p>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 10 }}>
                       <span style={{ color: "#a1a1aa", fontSize: 11 }}>Aplicar padrão:</span>
-                      {[["30/70", "30", "70", "10"], ["40/60", "40", "60", "10"], ["50/50", "50", "50", "10"], ["100% direto", "100", "0", "10"]].map(([label, untilKeys, postKeys, entry]) => (
-                        <button key={label} type="button" className="emp-secondary" style={{ minHeight: 28, padding: "0 9px", fontSize: 11 }} onClick={() => setForm((current) => ({ ...current, percentual_ate_chaves: untilKeys, percentual_pos_chaves: postKeys, percentual_ato: entry, modelo_pos_chaves: untilKeys === "100" ? "quitacao_chaves" : current.modelo_pos_chaves }))}>{label}</button>
+                      {[['67/33 Pinna', '67', '33', '10', 'direto_construtora'], ['35/65 Ayra', '35', '65', '10', 'financiamento_bancario'], ['73/27 Park Beach', '73', '27', '10', 'direto_construtora'], ['30/70', '30', '70', '10', 'financiamento_bancario'], ['40/60', '40', '60', '10', 'financiamento_bancario'], ['50/50', '50', '50', '10', 'financiamento_bancario'], ['100% quitação', '100', '0', '10', 'quitacao_chaves']].map(([label, untilKeys, postKeys, entry, model]) => (
+                        <button key={label} type="button" className="emp-secondary" style={{ minHeight: 28, padding: "0 9px", fontSize: 11 }} onClick={() => setForm((current) => ({ ...current, percentual_ate_chaves: untilKeys, percentual_pos_chaves: postKeys, percentual_ato: entry, modelo_pos_chaves: model }))}>{label}</button>
                       ))}
                       <span style={{ color: "#71717a", fontSize: 11 }}>Você pode ajustar os dois percentuais abaixo.</span>
                     </div>
