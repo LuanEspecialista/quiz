@@ -90,6 +90,7 @@ type Portal = {
   oportunidades?: Opportunity[];
 };
 type CubQuote = { value: number; competencia?: string | null; mes_referencia?: string | null; source?: string; updated_at?: string };
+type PostMode = "chaves" | "parcelas_e_baloes" | "somente_parcelas" | "somente_baloes";
 const money = (value?: number | null) =>
   value == null
     ? "Sob consulta"
@@ -583,6 +584,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [postMonths, setPostMonths] = useState(0);
   const [postBalloon, setPostBalloon] = useState(0);
   const [postBalloonCount, setPostBalloonCount] = useState(0);
+  const [postMode, setPostMode] = useState<PostMode>("parcelas_e_baloes");
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState("");
@@ -709,6 +711,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     const initialPostMonths = Math.max(0, summary.postCount);
     const initialPostBalloon = Number(summary.flow.reforco_pos_chaves_valor || 0);
     const initialPostBalloonCount = Number(summary.flow.quantidade_reforcos_pos_chaves || 0);
+    const initialPostMode: PostMode = /financiamento/i.test(commercialSchedule(item).keysMode) ? "chaves" : "parcelas_e_baloes";
     const initialTargets = flowTargets(item, unit || null, commercial.finalPrice);
     const initialMonthly = initialPreMonths > 0
       ? Math.max(0, Number(((initialTargets.preTarget - initialEntry) / initialPreMonths).toFixed(2)))
@@ -718,6 +721,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       : 0;
     setProposal(item);
     setProposalUnit(unit || null);
+    setPostMode(initialPostMode);
     setLockedEntry(true);
     setLockedMonthly(true);
     setLockedBalloon(true);
@@ -740,23 +744,50 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   };
   const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
   const targets = proposal && commercial ? flowTargets(proposal, proposalUnit, commercial.finalPrice) : { prePct: 100, postPct: 0, preTarget: 0, postTarget: 0 };
-  const proposalSchedule = proposal ? commercialSchedule(proposal) : null;
-  const financingAtKeys = Boolean(proposalSchedule && /financiamento/i.test(proposalSchedule.keysMode));
+  const financingAtKeys = postMode === "chaves";
   const preTotal = Number((entry + monthly * preMonths + balloon * balloonCount).toFixed(2));
   const postTotal = Number((postMonthly * postMonths + postBalloon * postBalloonCount).toFixed(2));
-  const financingTotal = financingAtKeys ? targets.postTarget : 0;
+  const remainingAfterPre = commercial ? Math.max(0, Number((commercial.finalPrice - preTotal).toFixed(2))) : 0;
+  const financingTotal = financingAtKeys ? remainingAfterPre : 0;
   const flowTotal = Number((preTotal + postTotal + financingTotal).toFixed(2));
   const flowDifference = commercial ? Number((commercial.finalPrice - flowTotal).toFixed(2)) : 0;
   const preShare = commercial?.finalPrice ? preTotal / commercial.finalPrice * 100 : 0;
   const shareDeviation = Math.abs(preShare - targets.prePct);
   const acceptance = Math.abs(flowDifference) > 0.02 ? { label: "Não fecha", color: "#f87171", detail: "Há saldo ou excesso no cálculo." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
+  const changePostMonths = (next: number) => {
+    setPostMonths(next);
+    if (postMode === "somente_parcelas") { setPostMonthly(next > 0 ? Number((remainingAfterPre / next).toFixed(2)) : 0); return; }
+    if (postMode === "parcelas_e_baloes" && lockedPostMonthly && postBalloonCount > 0) setPostBalloon(Number(Math.max(0, (remainingAfterPre - postMonthly * next) / postBalloonCount).toFixed(2)));
+  };
+  const changePostBalloonCount = (next: number) => {
+    setPostBalloonCount(next);
+    if (postMode === "somente_baloes") { setPostBalloon(next > 0 ? Number((remainingAfterPre / next).toFixed(2)) : 0); return; }
+    if (postMode === "parcelas_e_baloes" && lockedPostBalloon && postMonths > 0) setPostMonthly(Number(Math.max(0, (remainingAfterPre - postBalloon * next) / postMonths).toFixed(2)));
+  };
+  const changePostMonthly = (next: number) => {
+    setPostMonthly(next);
+    if (postMode === "parcelas_e_baloes" && postBalloonCount > 0) setPostBalloon(Number(Math.max(0, (remainingAfterPre - next * postMonths) / postBalloonCount).toFixed(2)));
+  };
+  const changePostBalloon = (next: number) => {
+    setPostBalloon(next);
+    if (postMode === "parcelas_e_baloes" && postMonths > 0) setPostMonthly(Number(Math.max(0, (remainingAfterPre - next * postBalloonCount) / postMonths).toFixed(2)));
+  };
+  const changePostMode = (next: PostMode) => {
+    setPostMode(next);
+    if (next === "chaves") { setPostMonthly(0); setPostBalloon(0); setPostMonths(0); setPostBalloonCount(0); }
+    if (next === "somente_parcelas") { setPostBalloon(0); setPostBalloonCount(0); }
+    if (next === "somente_baloes") { setPostMonthly(0); setPostMonths(0); }
+  };
   const redistributeFlow = () => {
     if (!commercial) return;
     const nextMonthly = preMonths > 0 ? Math.max(0, Number(((targets.preTarget - entry - balloon * balloonCount) / preMonths).toFixed(2))) : 0;
-    const nextPostMonthly = !financingAtKeys && postMonths > 0 ? Math.max(0, Number(((targets.postTarget - postBalloon * postBalloonCount) / postMonths).toFixed(2))) : 0;
     setMonthly(nextMonthly);
-    setPostMonthly(nextPostMonthly);
-    if (financingAtKeys) { setPostBalloon(0); setPostBalloonCount(0); setPostMonths(0); }
+    const remaining = Math.max(0, Number((commercial.finalPrice - (entry + nextMonthly * preMonths + balloon * balloonCount)).toFixed(2)));
+    if (postMode === "chaves") { setPostMonthly(0); setPostBalloon(0); setPostBalloonCount(0); setPostMonths(0); return; }
+    if (postMode === "somente_parcelas") { setPostBalloon(0); setPostBalloonCount(0); setPostMonthly(postMonths > 0 ? Number((remaining / postMonths).toFixed(2)) : 0); return; }
+    if (postMode === "somente_baloes") { setPostMonthly(0); setPostMonths(0); setPostBalloon(postBalloonCount > 0 ? Number((remaining / postBalloonCount).toFixed(2)) : 0); return; }
+    if (lockedPostMonthly && postBalloonCount > 0) setPostBalloon(Number(Math.max(0, (remaining - postMonthly * postMonths) / postBalloonCount).toFixed(2)));
+    else setPostMonthly(postMonths > 0 ? Number(Math.max(0, (remaining - postBalloon * postBalloonCount) / postMonths).toFixed(2)) : 0);
   };
   const sendProposal = async () => {
     if (!proposal) return;
@@ -1099,12 +1130,11 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 </label>
               </div>
               <section style={{display:"grid",gap:10,marginTop:13,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
-                <strong style={{fontSize:12,color:"#edcf91"}}>{financingAtKeys ? "Saldo nas chaves" : "Pós-chaves direto com a construtora"}</strong>
-                {financingAtKeys ? <span style={{fontSize:12,color:"#d4d4d8"}}>Este empreendimento usa financiamento nas chaves. O saldo automático é <strong>{money(financingTotal)}</strong>; não é uma parcela direta editável neste fluxo.</span> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
-                  <MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={setPostMonthly} max={Math.max(20000,(commercial?.finalPrice || 500000)*0.08)} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} />
-                  <CountScenario label="Quantidade de parcelas" value={postMonths} setValue={setPostMonths} />
-                  <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={setPostBalloon} max={commercial?.finalPrice || 500000} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} />
-                  <CountScenario label="Quantidade de balões" value={postBalloonCount} setValue={setPostBalloonCount} max={120} />
+                <strong style={{fontSize:12,color:"#edcf91"}}>O que fazer com o saldo após as chaves?</strong>
+                <select value={postMode} onChange={(e)=>changePostMode(e.target.value as PostMode)} style={{...input,marginTop:2}}><option value="chaves">Quitar/financiar o saldo nas chaves</option><option value="parcelas_e_baloes">Pós-chaves: parcelas e balões</option><option value="somente_parcelas">Pós-chaves: somente parcelas</option><option value="somente_baloes">Pós-chaves: somente balões</option></select>
+                {financingAtKeys ? <span style={{fontSize:12,color:"#d4d4d8"}}>O saldo restante será quitado ou financiado nas chaves: <strong>{money(financingTotal)}</strong>.</span> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
+                  {(postMode === "parcelas_e_baloes" || postMode === "somente_parcelas") && <><MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={changePostMonthly} max={Math.max(20000,(commercial?.finalPrice || 500000)*0.08)} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} /><CountScenario label="Quantidade de parcelas pós" value={postMonths} setValue={changePostMonths} /></>}
+                  {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <><MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={commercial?.finalPrice || 500000} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} /><CountScenario label="Quantidade de balões pós" value={postBalloonCount} setValue={changePostBalloonCount} max={120} /></>}
                 </div>}
               </section>
               <div style={{display:"grid",gap:5,marginTop:13,padding:12,border:`1px solid ${acceptance.color}`,borderRadius:9,background:"#17140e",color:"#d4d4d8",fontSize:12}}><strong style={{color:acceptance.color}}>Aderência: {acceptance.label}</strong><span>{acceptance.detail}</span><span>Meta até as chaves: {targets.prePct}% ({money(targets.preTarget)}) · meta pós-chaves: {targets.postPct}% ({money(targets.postTarget)}).</span><span>Até as chaves: {money(preTotal)} · {financingAtKeys ? `financiamento nas chaves: ${money(financingTotal)}` : `pós-chaves: ${money(postTotal)}`} · saldo: <strong style={{color:acceptance.color}}>{money(flowDifference)}</strong></span><button type="button" onClick={redistributeFlow} style={{border:"1px solid #8f7138",borderRadius:7,padding:9,background:"#211a0f",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Redistribuir respeitando o fluxo e fechar o valor</button></div>
