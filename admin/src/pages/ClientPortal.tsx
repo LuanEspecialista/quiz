@@ -801,6 +801,30 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const shareDeviation = Math.abs(preShare - targets.prePct);
   const hasExcess = Boolean(commercial && preTotal > commercial.finalPrice + 0.02);
   const acceptance = hasExcess ? { label: "Não fecha", color: "#f87171", detail: "Os valores até as chaves ultrapassam o valor da unidade." } : !financingAtKeys && Math.abs(flowDifference) > 0.02 ? { label: "Não fecha", color: "#f87171", detail: "Há saldo ou excesso no cálculo." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: financingAtKeys ? "O valor até as chaves atende à meta; o saldo restante será quitado ou financiado nas chaves." : "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
+  useEffect(() => {
+    if (!commercial || !lockedKeysValue) return;
+    const automaticKeys = Math.max(0, Number((targets.preTarget - entry - monthly * preMonths - balloon * balloonCount).toFixed(2)));
+    setKeysValue((current) => Math.abs(current - automaticKeys) > 0.005 ? automaticKeys : current);
+  }, [commercial?.finalPrice, targets.preTarget, entry, monthly, preMonths, balloon, balloonCount, lockedKeysValue]);
+  useEffect(() => {
+    if (!commercial || !lockedKeysValue || financingAtKeys) return;
+    const remaining = Math.max(0, Number((commercial.finalPrice - preTotal).toFixed(2)));
+    if (postMode === "somente_parcelas" && postMonths > 0) {
+      const next = Number((remaining / postMonths).toFixed(2));
+      setPostMonthly((current) => Math.abs(current - next) > 0.005 ? next : current);
+    } else if (postMode === "somente_baloes" && postBalloonCount > 0) {
+      const next = Number((remaining / postBalloonCount).toFixed(2));
+      setPostBalloon((current) => Math.abs(current - next) > 0.005 ? next : current);
+    } else if (postMode === "parcelas_e_baloes") {
+      if (lockedPostMonthly && postBalloonCount > 0) {
+        const next = Math.max(0, Number(((remaining - postMonthly * postMonths) / postBalloonCount).toFixed(2)));
+        setPostBalloon((current) => Math.abs(current - next) > 0.005 ? next : current);
+      } else if (postMonths > 0) {
+        const next = Math.max(0, Number(((remaining - postBalloon * postBalloonCount) / postMonths).toFixed(2)));
+        setPostMonthly((current) => Math.abs(current - next) > 0.005 ? next : current);
+      }
+    }
+  }, [commercial?.finalPrice, preTotal, postMode, postMonths, postBalloonCount, postMonthly, postBalloon, lockedPostMonthly, lockedKeysValue, financingAtKeys]);
   const changePostMonths = (next: number) => {
     setPostMonths(next);
     if (postMode === "somente_parcelas") { setPostMonthly(next > 0 ? Number((remainingAfterPre / next).toFixed(2)) : 0); return; }
@@ -1171,6 +1195,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   locked={lockedKeysValue}
                   onToggleLock={() => setLockedKeysValue((value) => !value)}
                 />
+                {lockedKeysValue && <small style={{gridColumn:"1/-1",color:"#b9d89c",fontSize:12,lineHeight:1.5}}>Com o cadeado ativo, o valor nas chaves é recalculado automaticamente para completar a meta até às chaves. Ao adicionar balões, eles entram no mesmo cálculo; destrave para editar manualmente.</small>}
               </div>
               <div
                 style={{
