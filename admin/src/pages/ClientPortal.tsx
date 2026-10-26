@@ -1092,11 +1092,11 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               LUAN ESPECIALISTA
             </a>
             <h1
-              style={{ fontSize: "clamp(28px,5vw,48px)", margin: "10px 0 8px" }}
+              style={{ fontSize: "clamp(28px,5vw,48px)", margin: "10px 0 16px", lineHeight: 1.2 }}
             >
               Parabéns{firstName ? `, ${firstName}` : ""} por dar este próximo passo.
             </h1>
-            <p style={{ color: "#a1a1aa", margin: 0 }}>
+            <p style={{ color: "#a1a1aa", margin: 0, lineHeight: 1.6 }}>
               Explore o empreendimento, confira a apresentação e monte seu fluxo de pagamento.
             </p>
             <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 11px", borderRadius: 8, border: `1px solid ${secondsUntilExpiry !== null && secondsUntilExpiry < 3600 ? "#b45309" : "#3f3524"}`, background: "#17140e", color: secondsUntilExpiry !== null && secondsUntilExpiry < 3600 ? "#fbbf24" : "#d7ab63", fontSize: 12, fontWeight: 800 }}><CalendarDays size={15} /> {expiryLabel}</div>
