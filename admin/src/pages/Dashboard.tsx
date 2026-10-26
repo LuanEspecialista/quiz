@@ -35,6 +35,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
   const [flowUnits, setFlowUnits] = useState<any[]>([]);
   const [flowClientId, setFlowClientId] = useState<string>();
   const [metrics, setMetrics] = useState({ empreendimentos: 0, unidades: 0, clientes: 0, propostasEmAndamento: 0, cadastrosBlog: 0, solicitacoesContato: 0 });
+  const [notificationCounts, setNotificationCounts] = useState({ newClientProposals: 0, pendingAccessRequests: 0 });
   const empreendimentoId = initialParams.get("empreendimento") || undefined;
   const empreendimentoIds = (initialParams.get("empreendimentos") || "").split(",").map((value) => value.trim()).filter(Boolean);
   const disponibilidade = initialParams.get("disponibilidade") || undefined;
@@ -51,6 +52,28 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
       supabase.from("playbook_leads").select("id", { count: "exact", head: true }).eq("origem", "site_oportunidade"),
     ]).then(([empreendimentos, unidades, clientes, propostas, blogLeads, contactLeads]) => setMetrics({ empreendimentos: empreendimentos.count ?? 0, unidades: unidades.count ?? 0, clientes: clientes.count ?? 0, propostasEmAndamento: propostas.count ?? 0, cadastrosBlog: blogLeads.count ?? 0, solicitacoesContato: contactLeads.count ?? 0 })).catch((error) => console.error("Erro ao carregar métricas:", error));
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "dashboard" || role !== "admin") return;
+    let disposed = false;
+    const refreshNotifications = async () => {
+      const [proposals, accessRequests] = await Promise.all([
+        supabase.from("cliente_propostas").select("id", { count: "exact", head: true }).eq("status", "nova"),
+        supabase.from("solicitacoes_acesso").select("id", { count: "exact", head: true }).eq("status", "pendente"),
+      ]);
+      if (disposed) return;
+      setNotificationCounts((current) => ({
+        newClientProposals: proposals.error ? current.newClientProposals : proposals.count ?? 0,
+        pendingAccessRequests: accessRequests.error ? current.pendingAccessRequests : accessRequests.count ?? 0,
+      }));
+    };
+    void refreshNotifications();
+    const intervalId = window.setInterval(() => void refreshNotifications(), 30_000);
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeTab, role]);
 
   useEffect(() => {
     if (activeTab !== "fluxos") return;
@@ -92,6 +115,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
       <Header userName={userName} role={role} setActiveTab={setActiveTab} onTickerSelect={() => setActiveTab("indicadores")} />
       <main className="app-main" style={{ marginTop: 56, padding: "1.5rem 2rem", width: "100%", boxSizing: "border-box" }}>
         <Suspense fallback={<div style={{ minHeight: 240, display: "grid", placeItems: "center", color: "#c5a059" }}>Carregando módulo…</div>}>
+        {role === "admin" && activeTab === "dashboard" && (notificationCounts.newClientProposals > 0 || notificationCounts.pendingAccessRequests > 0) && <section aria-label="Notificações pendentes" style={{ marginBottom: 16, padding: 14, border: "1px solid #8a6a2e", borderRadius: 10, background: "linear-gradient(135deg,#1c160b,#111114)" }}><div style={{ color: "#edcf91", fontWeight: 800, marginBottom: 10 }}>Avisos pendentes</div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 9 }}>{notificationCounts.newClientProposals > 0 && <button type="button" onClick={() => setActiveTab("clientes")} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: 12, border: "1px solid #4a3a20", borderRadius: 8, background: "#15120d", color: "#fff", cursor: "pointer", textAlign: "left" }}><span><small style={{ display: "block", color: "#a1a1aa" }}>Propostas de clientes</small><strong>{notificationCounts.newClientProposals} nova(s) para analisar</strong></span><span style={{ color: "#edcf91", whiteSpace: "nowrap" }}>Abrir Clientes →</span></button>}{notificationCounts.pendingAccessRequests > 0 && <button type="button" onClick={() => setActiveTab("usuarios-acessos")} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: 12, border: "1px solid #4a3a20", borderRadius: 8, background: "#15120d", color: "#fff", cursor: "pointer", textAlign: "left" }}><span><small style={{ display: "block", color: "#a1a1aa" }}>Pedidos de acesso</small><strong>{notificationCounts.pendingAccessRequests} pendente(s)</strong></span><span style={{ color: "#edcf91", whiteSpace: "nowrap" }}>Abrir Acessos →</span></button>}</div><small style={{ display: "block", color: "#71717a", marginTop: 9 }}>Atualizado automaticamente a cada 30 segundos. Os avisos permanecem até a proposta ou solicitação ser tratada.</small></section>}
         {role !== "afiliado" && activeTab === "dashboard" && <SmartDashboard metrics={metrics} onSearch={searchUnits} onNavigate={setActiveTab} />}
         {role === "admin" && activeTab === "construtoras" && <ConstrutorasModule />}
         {role === "admin" && activeTab === "empreendimentos" && <EmpreendimentosModule />}
