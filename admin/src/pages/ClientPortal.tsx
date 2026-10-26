@@ -1198,13 +1198,13 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                       </div>}
                     </div>
                   </article>
-                  {canOpenFlow && <button type="button" onClick={() => openProposal(item, selectedUnit || undefined)} style={{ width: "100%", marginTop: 9, border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer" }}>{selectedUnit ? `Montar fluxo da unidade ${selectedUnit.codigo || selectedUnit.numero || "selecionada"}` : "Montar fluxo de pagamento"}</button>}
+                  {canOpenFlow && <button type="button" onClick={() => openProposal(item, selectedUnit || undefined)} style={{ display: "block", width: "min(340px,100%)", margin: "9px auto 0", border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer", textAlign: "center" }}>{selectedUnit ? `Montar fluxo da unidade ${selectedUnit.codigo || selectedUnit.numero || "selecionada"}` : "Montar fluxo de pagamento"}</button>}
                 </div>
               );
             })}
           </section>
         )}
-        {!activeOpportunity && opportunities.length > 1 && <button type="button" onClick={() => setComparisonOpen(true)} style={{ display: "block", width: "min(680px,100%)", margin: "22px 0 0", border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 9, padding: "14px 18px", fontWeight: 900, fontSize: 15, cursor: "pointer" }}><Landmark size={17} /> Comparar fluxos e fazer proposta</button>}
+        {!activeOpportunity && opportunities.length > 1 && <button type="button" onClick={() => setComparisonOpen(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "min(680px,100%)", margin: "22px auto 0", border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 9, padding: "14px 18px", fontWeight: 900, fontSize: 15, cursor: "pointer", textAlign: "center" }}><Landmark size={17} /> Comparar fluxos e fazer proposta</button>}
         {activeOpportunity && (
           <section style={{ display: "grid", gap: 12 }}>
             <button
