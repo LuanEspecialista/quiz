@@ -442,7 +442,7 @@ function bindParkCarousels() {
   const meta=`<p class="eyebrow">${esc(p.categoria||'Insights')} <span class="meta-dot">·</span> ${date(p.publicado_em)} <span class="meta-dot">·</span> ${mins} min de leitura</p>`;
   const header=`<header class="article-head">${meta}${show?'':`<h1>${esc(p.titulo)}</h1><p class="deck">${esc(p.resumo||'')}</p>`}${wise?wiseCard():''}</header>`;
   const heroMarkup=show?`<figure class="hero-figure hero-overlay"><img src="${esc(hero)}" fetchpriority="high" decoding="async" alt="${esc(heroImage?.alt||p.titulo)}"><figcaption class="hero-overlay-copy"><h1>${esc(p.titulo)}</h1><p class="deck">${esc(p.resumo||'')}</p></figcaption></figure>`:'';
-  root.innerHTML=`${header}${heroMarkup}<main class="article-flow">${readingMap(sections)}${body}${gallery}</main>${presentationMode?'':`${sources(b)}${stay22Context(p)}${finalCta}${engagement(p)}`}`;
+  root.innerHTML=`${header}${heroMarkup}<main class="article-flow">${readingMap(sections)}${body}${gallery}</main>${presentationMode?stay22Context(p):`${sources(b)}${stay22Context(p)}${finalCta}${engagement(p)}`}`;
   bindCarousel();if(!presentationMode){bindRatingControls();bindEngagement();}
 }
 function render(){

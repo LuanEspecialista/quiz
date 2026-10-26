@@ -14,11 +14,18 @@ type Apresentacao = {
   link_url?: string | null;
   tipo_preferido?: "pdf" | "link";
   imagem_capa?: string | null;
+  cliente_ativo?: boolean;
+  cliente_tipo?: "pdf" | "link" | "post" | null;
+  cliente_pdf_path?: string | null;
+  cliente_link_url?: string | null;
+  cliente_blog_post_id?: string | null;
   updated_at?: string | null;
 };
+type BlogPostOption = { id: string; titulo: string; slug: string; empreendimento_id?: string | null; publicado_em?: string | null };
 type ViewerState = { url: string; title: string };
 
 const BUCKET = "pdfs";
+const CLIENT_PRESENTATION_BUCKET = "cliente-apresentacoes";
 const ENTERPRISE_IMAGES_BUCKET = "empreendimentos";
 const STORAGE_REFERENCE_PREFIX = "storage://empreendimentos/";
 const MAX_PDF_MB = 250;
@@ -58,6 +65,12 @@ export default function Apresentacoes() {
   const [file, setFile] = useState<File | null>(null);
   const [linkUrl, setLinkUrl] = useState("");
   const [preferredType, setPreferredType] = useState<"pdf" | "link">("pdf");
+  const [clientType, setClientType] = useState<"" | "pdf" | "link" | "post">("");
+  const [clientPdfFile, setClientPdfFile] = useState<File | null>(null);
+  const [clientLinkUrl, setClientLinkUrl] = useState("");
+  const [clientPostId, setClientPostId] = useState("");
+  const [clientPosts, setClientPosts] = useState<BlogPostOption[]>([]);
+  const [clientActive, setClientActive] = useState(false);
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("Todas");
   const [loading, setLoading] = useState(true);
@@ -72,14 +85,16 @@ export default function Apresentacoes() {
     try {
       const empPromise = supabase.from("empreendimentos").select("id, nome, cidade, imagem_url, caracteristicas").order("nome");
       const imagePromise = supabase.from("empreendimento_imagens").select("empreendimento_id, url, storage_path, ordem").order("ordem", { ascending: true });
-      let presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, imagem_capa, updated_at");
+      let presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, imagem_capa, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at");
       const missingLinkColumns = Boolean(presentationResult.error && /link_url|tipo_preferido/i.test(presentationResult.error.message || ""));
       if (missingLinkColumns) presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, updated_at");
-      const [empResult, imageResult] = await Promise.all([empPromise, imagePromise]);
+      const postPromise = supabase.from("blog_posts").select("id,titulo,slug,empreendimento_id,publicado_em").eq("status", "publicado").lte("publicado_em", new Date().toISOString()).order("titulo").limit(500);
+      const [empResult, imageResult, postResult] = await Promise.all([empPromise, imagePromise, postPromise]);
       setSupportsLinks(!missingLinkColumns);
       if (empResult.error) throw empResult.error;
       if (imageResult.error) throw imageResult.error;
       if (presentationResult.error) throw presentationResult.error;
+      if (!postResult.error) setClientPosts((postResult.data || []) as BlogPostOption[]);
       const firstImageByEnterprise = new Map<string, EmpreendimentoImagem>();
       ((imageResult.data || []) as EmpreendimentoImagem[]).forEach((image) => {
         if (image.empreendimento_id && !firstImageByEnterprise.has(image.empreendimento_id)) firstImageByEnterprise.set(image.empreendimento_id, image);
@@ -123,6 +138,11 @@ export default function Apresentacoes() {
     setFile(null);
     setLinkUrl(current?.link_url || "");
     setPreferredType(current?.tipo_preferido || (current?.link_url && !current?.pdf_url ? "link" : "pdf"));
+    setClientType(current?.cliente_tipo || "");
+    setClientPdfFile(null);
+    setClientLinkUrl(current?.cliente_link_url || "");
+    setClientPostId(current?.cliente_blog_post_id || "");
+    setClientActive(Boolean(current?.cliente_ativo));
     setMessage(null);
   }
 
@@ -144,7 +164,7 @@ export default function Apresentacoes() {
     const ativo = !(previous?.ativo ?? false);
     setApresentacoes((state) => ({ ...state, [item.id]: { ...previous, empreendimento_id: item.id, ativo } }));
     const query = supabase.from("apresentacoes").upsert({ empreendimento_id: item.id, ativo }, { onConflict: "empreendimento_id" });
-    const { data, error } = await query.select(supportsLinks ? "empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, updated_at" : "empreendimento_id, ativo, pdf_url, storage_path, updated_at").single();
+    const { data, error } = await query.select(supportsLinks ? "empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at" : "empreendimento_id, ativo, pdf_url, storage_path, updated_at").single();
     if (error) {
       setApresentacoes((state) => {
         const next = { ...state };
@@ -154,6 +174,113 @@ export default function Apresentacoes() {
       setMessage({ error: error.message || "Não foi possível atualizar o status." });
     } else {
       setApresentacoes((state) => ({ ...state, [item.id]: data as unknown as Apresentacao }));
+    }
+  }
+
+  async function toggleClientActive(item: Empreendimento) {
+    const current = apresentacoes[item.id];
+    if (!current?.cliente_tipo || (current.cliente_tipo === "pdf" && !current.cliente_pdf_path) || (current.cliente_tipo === "link" && !current.cliente_link_url) || (current.cliente_tipo === "post" && !current.cliente_blog_post_id)) {
+      setMessage({ error: "Configure primeiro o PDF, link ou post destinado ao cliente." });
+      return;
+    }
+    const cliente_ativo = !current.cliente_ativo;
+    const { data, error } = await supabase.from("apresentacoes").upsert({ empreendimento_id: item.id, cliente_ativo, updated_at: new Date().toISOString() }, { onConflict: "empreendimento_id" })
+      .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at").single();
+    if (error) setMessage({ error: error.message || "Não foi possível atualizar o acesso do cliente." });
+    else setApresentacoes((state) => ({ ...state, [item.id]: { ...current, ...(data as unknown as Apresentacao) } }));
+  }
+
+  async function saveClientPresentation() {
+    if (!editing) return;
+    const current = apresentacoes[editing.id];
+    const normalizedLink = clientLinkUrl.trim();
+    if (clientType === "link") {
+      try {
+        const parsed = new URL(normalizedLink);
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
+      } catch {
+        setMessage({ error: "Informe um link completo e seguro, começando com https://." });
+        return;
+      }
+    }
+    const selectedPost = clientPosts.find((post) => post.id === clientPostId);
+    if (clientType === "post" && !selectedPost) {
+      setMessage({ error: "Selecione um post publicado para vincular a este empreendimento." });
+      return;
+    }
+    if (clientType === "pdf" && !clientPdfFile && !current?.cliente_pdf_path) {
+      setMessage({ error: "Envie um PDF para clientes antes de salvar esta opção." });
+      return;
+    }
+    if (clientPdfFile && (clientPdfFile.type !== "application/pdf" && !clientPdfFile.name.toLowerCase().endsWith(".pdf"))) {
+      setMessage({ error: "Selecione um arquivo PDF válido." });
+      return;
+    }
+    if (clientPdfFile && clientPdfFile.size > MAX_PDF_BYTES) {
+      setMessage({ error: `O PDF para clientes deve ter no máximo ${MAX_PDF_MB} MB.` });
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+    let uploadedPath: string | null = null;
+    try {
+      if (!clientType) {
+        const { data, error } = await supabase.from("apresentacoes").upsert({
+          empreendimento_id: editing.id,
+          cliente_ativo: false,
+          cliente_tipo: null,
+          cliente_pdf_path: null,
+          cliente_link_url: null,
+          cliente_blog_post_id: null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "empreendimento_id" })
+          .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at").single();
+        if (error) throw error;
+        setApresentacoes((state) => ({ ...state, [editing.id]: { ...current, ...(data as unknown as Apresentacao) } }));
+        setClientPdfFile(null);
+        setClientActive(false);
+        if (current?.cliente_pdf_path) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([current.cliente_pdf_path]);
+        setMessage({ success: "Material destinado a clientes removido. A apresentação ao vivo permanece intacta." });
+        return;
+      }
+
+      let pdfPath = current?.cliente_pdf_path || null;
+      if (clientType === "pdf" && clientPdfFile) {
+        pdfPath = `${editing.id}/${crypto.randomUUID()}.pdf`;
+        const uploadPromise = supabase.storage.from(CLIENT_PRESENTATION_BUCKET).upload(pdfPath, clientPdfFile, { contentType: "application/pdf", cacheControl: "60", upsert: false });
+        const { error: uploadError } = await Promise.race([
+          uploadPromise,
+          new Promise<never>((_, reject) => { window.setTimeout(() => reject(new Error("O upload excedeu o limite de 10 minutos. Tente novamente.")), UPLOAD_TIMEOUT_MS); }),
+        ]);
+        if (uploadError) throw uploadError;
+        uploadedPath = pdfPath;
+      }
+
+      const payload = {
+        empreendimento_id: editing.id,
+        cliente_ativo: true,
+        cliente_tipo: clientType,
+        cliente_pdf_path: clientType === "pdf" ? pdfPath : null,
+        cliente_link_url: clientType === "link" ? normalizedLink : null,
+        cliente_blog_post_id: clientType === "post" ? selectedPost?.id : null,
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await supabase.from("apresentacoes").upsert(payload, { onConflict: "empreendimento_id" })
+        .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at").single();
+      if (error) throw error;
+      setApresentacoes((state) => ({ ...state, [editing.id]: { ...current, ...(data as unknown as Apresentacao) } }));
+      setClientPdfFile(null);
+      setClientActive(true);
+      setMessage({ success: "Material de clientes salvo e ativado. A apresentação ao vivo não foi alterada." });
+      if (current?.cliente_pdf_path && current.cliente_pdf_path !== payload.cliente_pdf_path) {
+        await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([current.cliente_pdf_path]);
+      }
+    } catch (error: unknown) {
+      if (uploadedPath) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([uploadedPath]);
+      setMessage({ error: errorMessage(error, "Não foi possível salvar o material para clientes.") });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -252,7 +379,7 @@ export default function Apresentacoes() {
 
   return <section style={{ maxWidth: 1240, margin: "0 auto", color: "#e4e4e7" }}>
     <div style={{ display: "flex", justifyContent: "space-between", gap: 18, marginBottom: 20 }}>
-      <div><h1 style={{ color: "#fff", fontSize: 23, margin: 0 }}>Apresentações</h1><p style={{ margin: "6px 0 0", color: "#a1a1aa", fontSize: 13 }}>Uma apresentação por empreendimento cadastrado.</p></div>
+      <div><h1 style={{ color: "#fff", fontSize: 23, margin: 0 }}>Apresentações</h1><p style={{ margin: "6px 0 0", color: "#a1a1aa", fontSize: 13 }}>Configure separadamente sua apresentação ao vivo e o material enxuto liberado aos clientes.</p></div>
       <button onClick={() => void load()} style={secondaryButtonStyle}><RefreshCw size={15} /> Atualizar</button>
     </div>
 
@@ -272,6 +399,8 @@ export default function Apresentacoes() {
           const hasLink = Boolean(presentation?.link_url);
           const active = Boolean(presentation?.ativo);
           const canPresent = active && (hasPdf || hasLink);
+          const hasClientMaterial = Boolean(presentation?.cliente_tipo && (presentation.cliente_tipo === "pdf" ? presentation.cliente_pdf_path : presentation.cliente_tipo === "link" ? presentation.cliente_link_url : presentation.cliente_blog_post_id));
+          const clientTypeLabel = presentation?.cliente_tipo === "pdf" ? "PDF privado" : presentation?.cliente_tipo === "link" ? "link" : presentation?.cliente_tipo === "post" ? "post do blog" : "não configurado";
           return <article key={item.id} style={cardStyle}>
             <div style={{ height: 142, background: "#1a1a1f", position: "relative" }}>
               {presentation?.imagem_capa || item.imagem_url || galleryCovers[item.id] ? <img src={presentation?.imagem_capa || item.imagem_url || galleryCovers[item.id]} onError={(event) => { const fallback = galleryCovers[item.id]; if (fallback && event.currentTarget.src !== fallback) event.currentTarget.src = fallback; else event.currentTarget.style.display = "none"; }} alt={item.nome || "Empreendimento"} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ height: "100%", display: "grid", placeItems: "center", color: "#f5d58b", background: "linear-gradient(135deg,#21190d,#111827)" }}><div style={{ textAlign: "center" }}><FileText size={30} style={{ marginBottom: 7 }} /><strong style={{ display: "block", fontSize: 12, color: "#f4f4f5" }}>{item.nome || "Apresentação"}</strong><small style={{ color: "#a1a1aa" }}>Capa pendente</small></div></div>}
@@ -281,8 +410,10 @@ export default function Apresentacoes() {
               <h2 style={{ color: "#fff", fontSize: 15, margin: 0 }}>{item.nome || "Sem nome"}</h2>
               <p style={{ color: "#a1a1aa", fontSize: 12, margin: "5px 0" }}>{item.cidade || "Cidade não informada"}</p>
               <p style={{ color: hasPdf || hasLink ? "#c5a059" : "#fbbf24", fontSize: 12, margin: "0 0 16px" }}>{hasPdf && hasLink ? `PDF + link · principal: ${presentation?.tipo_preferido === "link" ? "link" : "PDF"}` : hasPdf ? "PDF cadastrado" : hasLink ? "Link cadastrado" : "Apresentação ainda não cadastrada"}</p>
+              <div style={{ display: "grid", gap: 6, margin: "0 0 12px", padding: 9, border: "1px solid #332d22", borderRadius: 7, background: "#0c0c0e" }}><small style={{ color: "#a1a1aa" }}>Apresentação ao vivo: <strong style={{ color: active ? "#86efac" : "#fbbf24" }}>{active ? "ativa" : "desativada"}</strong></small><small style={{ color: "#a1a1aa" }}>Material do cliente: <strong style={{ color: hasClientMaterial && presentation?.cliente_ativo ? "#86efac" : "#d4d4d8" }}>{clientTypeLabel}{hasClientMaterial ? presentation?.cliente_ativo ? " · ativo" : " · pausado" : ""}</strong></small></div>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 16 }}>
                 <button onClick={() => void toggleActive(item)} aria-label={active ? "Desativar apresentação" : "Ativar apresentação"} aria-pressed={active} style={{ ...switchStyle, background: active ? "#16a34a" : "#b91c1c" }}><span style={{ ...knobStyle, transform: active ? "translateX(19px)" : "translateX(0)" }} /></button>
+                <button disabled={!hasClientMaterial} onClick={() => void toggleClientActive(item)} title={!hasClientMaterial ? "Configure o material de cliente primeiro" : undefined} style={{ ...secondaryButtonStyle, opacity: hasClientMaterial ? 1 : .45, cursor: hasClientMaterial ? "pointer" : "not-allowed" }}>{presentation?.cliente_ativo ? "Pausar para clientes" : "Ativar para clientes"}</button>
                 <button onClick={() => openEditor(item)} style={secondaryButtonStyle}><Edit3 size={14} /> Editar</button>
               </div>
               <button disabled={!canPresent} onClick={() => present(item)} title={!hasPdf && !hasLink ? "Cadastre um PDF ou link primeiro" : !active ? "Ative a apresentação primeiro" : undefined} style={{ ...primaryButtonStyle, marginTop: "auto", alignSelf: "center", opacity: canPresent ? 1 : .45, cursor: canPresent ? "pointer" : "not-allowed" }}><Play size={14} /> Apresentar</button>
@@ -300,9 +431,9 @@ export default function Apresentacoes() {
     </div>}
 
     {editing && <div role="dialog" aria-modal="true" aria-labelledby="presentation-modal-title" style={overlayStyle} onMouseDown={(event) => { if (event.target === event.currentTarget) setEditing(null); }}>
-      <div style={modalStyle}>
+      <div style={{ ...modalStyle, width: "min(760px, 100%)", maxHeight: "calc(100dvh - 40px)", overflowY: "auto" }}>
         <button onClick={() => setEditing(null)} aria-label="Fechar" style={closeStyle}><X size={18} /></button>
-        <h2 id="presentation-modal-title" style={{ margin: "0 36px 4px 0", color: "#fff", fontSize: 18 }}>Editar apresentação</h2>
+        <h2 id="presentation-modal-title" style={{ margin: "0 36px 4px 0", color: "#fff", fontSize: 18 }}>Editar apresentações do empreendimento</h2>
         <p style={{ color: "#c5a059", fontWeight: 700, margin: "0 0 18px" }}>{editing.nome || "Empreendimento sem nome"}</p>
         <div style={{ padding: 12, border: "1px solid #27272a", borderRadius: 8, background: "#18181b", marginBottom: 16 }}><span style={{ display: "block", color: "#a1a1aa", fontSize: 11 }}>Fontes disponíveis</span><strong style={{ color: apresentacoes[editing.id]?.pdf_url || apresentacoes[editing.id]?.link_url ? "#4ade80" : "#fbbf24", fontSize: 13 }}>{apresentacoes[editing.id]?.pdf_url ? "PDF" : "Sem PDF"} · {supportsLinks ? (apresentacoes[editing.id]?.link_url ? "Link" : "Sem link") : "Link aguardando atualização do banco"}</strong></div>
         <label style={labelStyle}>Fonte de apresentação incorporada<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>
@@ -313,6 +444,15 @@ export default function Apresentacoes() {
         <hr style={{ border: 0, borderTop: "1px solid #27272a", margin: "18px 0" }} />
         <label style={labelStyle}>Novo PDF (até 250 MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "10px 0" }} /></label>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}><button onClick={() => setEditing(null)} style={secondaryButtonStyle}>Cancelar</button><button disabled={!file || saving} onClick={() => void uploadPdf()} style={{ ...primaryButtonStyle, opacity: !file || saving ? .5 : 1 }}>{saving ? <Loader2 size={16} /> : <Upload size={16} />}{saving ? "Enviando..." : "Salvar PDF"}</button></div>
+        <section style={{ display: "grid", gap: 11, marginTop: 22, padding: 15, border: "1px solid #65502a", borderRadius: 10, background: "linear-gradient(145deg,#1b1710,#111113)" }}>
+          <div><small style={{ color: "#c5a059", fontWeight: 800, letterSpacing: ".1em" }}>MATERIAL SEPARADO PARA CLIENTES</small><h3 style={{ color: "#fff", margin: "5px 0" }}>Acesso pelo portal com prazo de validade</h3><p style={{ color: "#a1a1aa", fontSize: 12, margin: 0, lineHeight: 1.5 }}>Este material é independente da apresentação ao vivo acima. O portal só o mostra para clientes com curadoria e acesso válidos.</p></div>
+          <label style={labelStyle}>Formato para o cliente<select value={clientType} onChange={(event) => setClientType(event.target.value as "" | "pdf" | "link" | "post")} style={selectStyle}><option value="">Sem material para cliente</option><option value="pdf">PDF privado</option><option value="link">Link externo / blog</option><option value="post">Post publicado do blog (modo limpo)</option></select></label>
+          {clientType === "pdf" && <div style={{ display: "grid", gap: 5 }}><label style={labelStyle}>PDF enxuto do cliente (até {MAX_PDF_MB} MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setClientPdfFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "8px 0" }} /></label><small style={{ color: "#a1a1aa" }}>{clientPdfFile ? `${clientPdfFile.name} · ${(clientPdfFile.size / 1024 / 1024).toFixed(1)} MB` : apresentacoes[editing.id]?.cliente_pdf_path ? "Já existe um PDF privado; deixe o campo vazio para mantê-lo." : "O arquivo é privado e não substitui o PDF da apresentação ao vivo."}</small></div>}
+          {clientType === "link" && <label style={labelStyle}>Link que o cliente poderá abrir<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={clientLinkUrl} onChange={(event) => setClientLinkUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>}
+          {clientType === "post" && <label style={labelStyle}>Post publicado vinculado a {editing.nome || "este empreendimento"}<select value={clientPostId} onChange={(event) => setClientPostId(event.target.value)} style={selectStyle}><option value="">Selecione um post</option>{clientPosts.filter((post) => !post.empreendimento_id || post.empreendimento_id === editing.id).map((post) => <option key={post.id} value={post.id}>{post.titulo} · /blog/{post.slug}/</option>)}</select><small style={{ color: "#a1a1aa" }}>{clientPosts.filter((post) => !post.empreendimento_id || post.empreendimento_id === editing.id).length ? "O cliente abrirá o conteúdo limpo, sem navegação, rodapé ou newsletter; o mapa de hospedagem do artigo será mantido." : "Não há posts publicados disponíveis para vincular. Publique o artigo primeiro."}</small></label>}
+          {clientType && <small style={{ color: clientActive ? "#86efac" : "#fbbf24" }}>{clientActive ? "Este material está ativo para curadorias de clientes." : "Salvar o material o ativa; a visibilidade individual continua controlada pela curadoria e pelo prazo do cliente."}</small>}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}><button disabled={saving} onClick={() => void saveClientPresentation()} style={{ ...primaryButtonStyle, opacity: saving ? .5 : 1 }}>{saving ? <Loader2 size={16} /> : <Save size={15} />}{clientType ? "Salvar material do cliente" : "Remover material do cliente"}</button></div>
+        </section>
       </div>
     </div>}
   </section>;

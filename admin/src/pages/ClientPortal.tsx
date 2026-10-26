@@ -34,6 +34,8 @@ type PortalPresentation = {
   titulo?: string | null;
   url?: string | null;
   storage_path?: string | null;
+  storage_bucket?: string | null;
+  origem?: "post" | "link" | "pdf";
 };
 type LandingBlock = {
   tipo?: "hero" | "texto" | "destaque" | "galeria" | "plantas" | "cidade";
@@ -611,6 +613,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [proposal, setProposal] = useState<Opportunity | null>(null);
   const [proposalUnit, setProposalUnit] = useState<PortalUnit | null>(null);
   const [presentation, setPresentation] = useState<{ url: string; title: string } | null>(null);
+  const [presentationError, setPresentationError] = useState("");
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
@@ -693,11 +696,11 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 : [];
             const presentations = await Promise.all(sourcePresentations.map(async (presentation) => {
               let url = presentation.url;
-              if (presentation.storage_path && presentation.tipo !== "link") {
+              if (presentation.storage_path && presentation.tipo !== "link" && presentation.storage_bucket !== "cliente-apresentacoes") {
                 if (isR2Path(presentation.storage_path)) {
                   url = r2PublicUrl(presentation.storage_path);
                 } else {
-                  const { data: signedPdf } = await supabase.storage.from("pdfs").createSignedUrl(presentation.storage_path, 3600);
+                  const { data: signedPdf } = await supabase.storage.from(presentation.storage_bucket || "pdfs").createSignedUrl(presentation.storage_path, 3600);
                   if (signedPdf?.signedUrl) url = signedPdf.signedUrl;
                 }
               }
@@ -774,15 +777,16 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     return () => { document.removeEventListener("contextmenu", protectContent); document.removeEventListener("keydown", blockPrint); };
   }, []);
 
+  const hasExpiry = secondsUntilExpiry !== null;
   useEffect(() => {
-    if (secondsUntilExpiry === null) return;
+    if (!hasExpiry) return;
     const timer = window.setInterval(() => setSecondsUntilExpiry((value) => {
       const next = value === null ? null : Math.max(0, value - 1);
-      if (next === 0) { setAccessExpired(true); setPortal(null); setProposal(null); setActiveOpportunity(null); setComparisonOpen(false); }
+      if (next === 0) { setAccessExpired(true); setPortal(null); setProposal(null); setPresentation(null); setActiveOpportunity(null); setComparisonOpen(false); }
       return next;
     }), 1000);
     return () => window.clearInterval(timer);
-  }, [secondsUntilExpiry === null]);
+  }, [hasExpiry]);
 
   const client = portal?.cliente;
   const opportunities = portal?.oportunidades || [];
@@ -790,6 +794,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
   const expiryLabel = secondsUntilExpiry === null ? "Acesso sem prazo definido" : secondsUntilExpiry <= 0 ? "Acesso expirado" : `Seu acesso expira em ${Math.floor(secondsUntilExpiry / 86400)}d ${String(Math.floor(secondsUntilExpiry / 3600) % 24).padStart(2, "0")}h ${String(Math.floor(secondsUntilExpiry / 60) % 60).padStart(2, "0")}min ${String(secondsUntilExpiry % 60).padStart(2, "0")}s`;
   const openProposal = (item: Opportunity, unit?: PortalUnit) => {
+    if (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0)) return;
     const summary = flowSummary(item, unit || null, cub);
     const commercial = unitCommercial(item, unit);
     const initialEntry = Number((commercial.finalPrice * 0.1).toFixed(2));
@@ -832,14 +837,29 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     setPrivacyConsent(false);
     setSpouseConsent(false);
   };
-  const openPresentation = (item: Opportunity, selected?: PortalPresentation | null) => {
+  const openPresentation = async (item: Opportunity, selected?: PortalPresentation | null) => {
     const presentation = selected || item.apresentacao;
-    if (!presentation?.url) return;
+    if (!presentation) return;
+    setPresentationError("");
+    if (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0)) {
+      setPresentationError("Seu acesso expirou. Solicite ao especialista uma nova validade.");
+      return;
+    }
+    const { data: accessStatus } = await supabase.rpc("portal_access_status");
+    if (accessStatus?.status !== "ativo") {
+      setAccessExpired(accessStatus?.status === "expirado");
+      setPortal(null);
+      setProposal(null);
+      setPresentation(null);
+      setPresentationError("Seu acesso não está mais ativo. Solicite ao especialista uma nova validade.");
+      return;
+    }
     if (presentation.tipo === "link") {
       let destinationUrl = presentation.url;
+      if (!destinationUrl) return;
       try {
         const publicSiteUrl = new URL(import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin);
-        const destination = new URL(presentation.url, publicSiteUrl.origin);
+        const destination = new URL(destinationUrl, publicSiteUrl.origin);
         const destinationHost = destination.hostname.replace(/^www\./i, "");
         const publicSiteHost = publicSiteUrl.hostname.replace(/^www\./i, "");
         if (destinationHost === publicSiteHost && /^\/blog\/[^/]+\/?$/.test(destination.pathname)) {
@@ -852,7 +872,21 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       window.open(destinationUrl, "_blank", "noopener,noreferrer");
       return;
     }
-    setPresentation({ url: presentation.url, title: presentation.titulo || item.nome || "Apresentação" });
+    let pdfUrl = presentation.url;
+    if (presentation.storage_path && presentation.storage_bucket === "cliente-apresentacoes") {
+      const signedFor = secondsUntilExpiry === null ? 300 : Math.max(1, Math.min(300, secondsUntilExpiry));
+      const { data, error: signedError } = await supabase.storage.from("cliente-apresentacoes").createSignedUrl(presentation.storage_path, signedFor);
+      if (signedError || !data?.signedUrl) {
+        setPresentationError("Não foi possível abrir o PDF. Confirme se a curadoria e o acesso estão ativos.");
+        return;
+      }
+      pdfUrl = data.signedUrl;
+    }
+    if (!pdfUrl) {
+      setPresentationError("O material ainda não está disponível. Fale com seu especialista.");
+      return;
+    }
+    setPresentation({ url: pdfUrl, title: presentation.titulo || item.nome || "Apresentação" });
   };
   const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
   const targets = proposal && commercial ? flowTargets(proposal, proposalUnit, commercial.finalPrice) : { prePct: 100, postPct: 0, preTarget: 0, postTarget: 0 };
@@ -1095,6 +1129,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           </div>
         </header>
         {accessExpired && <section style={{ border: "1px solid #854d0e", background: "#25170b", borderRadius: 12, padding: 24, maxWidth: 680, margin: "30px auto", textAlign: "center" }}><Lock size={30} color="#fbbf24" /><h2 style={{ margin: "12px 0 8px", color: "#fbbf24" }}>Acesso expirado</h2><p style={{ color: "#fed7aa", lineHeight: 1.6 }}>O prazo desta curadoria terminou. Os empreendimentos e fluxos estão temporariamente indisponíveis.</p><p style={{ color: "#d4d4d8", marginBottom: 0 }}>Solicite ao especialista uma nova data de validade para voltar a consultar e enviar propostas.</p></section>}
+        {presentationError && <p role="alert" style={{ color: "#fca5a5", margin: "12px 0" }}>{presentationError}</p>}
         {error && (
           <section
             style={{
@@ -1130,9 +1165,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           <section style={{ display: "grid", gap: 22 }}>
             {opportunities.map((item) => {
               const cover = item.imagens?.[0]?.url;
-              const selectedPresentation = item.apresentacao?.url
+              const selectedPresentation = (item.apresentacao?.url || (item.apresentacao?.tipo === "pdf" && item.apresentacao.storage_path))
                 ? item.apresentacao
-                : item.apresentacoes?.find((resource) => resource.url) || null;
+                : item.apresentacoes?.find((resource) => resource.url || (resource.tipo === "pdf" && resource.storage_path)) || null;
               const units = item.unidades || [];
               const selectedUnit = units.find((unit) => unit.id === selectedUnitsByOpportunity[item.id]) || units[0] || null;
               const commercial = unitCommercial(item, selectedUnit);
@@ -1150,7 +1185,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                       </div>
                     </button>
                     <div style={{ padding: "0 15px 15px", display: "grid", gap: 11 }}>
-                      {selectedPresentation?.url ? <button type="button" onClick={() => openPresentation(item, selectedPresentation)} style={{ width: "100%", border: "1px solid #54452c", background: "#17140e", color: "#ead5aa", borderRadius: 7, padding: "10px 11px", fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
+                      {selectedPresentation && (selectedPresentation.url || (selectedPresentation.tipo === "pdf" && selectedPresentation.storage_path)) ? <button type="button" onClick={() => void openPresentation(item, selectedPresentation)} style={{ width: "100%", border: "1px solid #54452c", background: "#17140e", color: "#ead5aa", borderRadius: 7, padding: "10px 11px", fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
                         {selectedPresentation.tipo === "link" ? "Ver apresentação online" : "Abrir apresentação em PDF"}
                       </button> : <small style={{ color: "#71717a" }}>A apresentação ainda não foi liberada para esta curadoria.</small>}
                       {units.length > 1 && <label style={{ color: "#d4d4d8", fontSize: 12 }}>Unidade liberada

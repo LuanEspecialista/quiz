@@ -572,7 +572,7 @@ function renderPage(post, presentationMode = false) {
     body.blog-presentation-mode .article-head h1,body.blog-presentation-mode .hero-overlay-copy h1{font-size:clamp(30px,5vw,48px)!important;line-height:1.08!important}
     body.blog-presentation-mode .article-flow{width:100%!important;max-width:none!important}
     body.blog-presentation-mode .hero-figure img{border-radius:12px!important}
-    body.blog-presentation-mode .site-header,body.blog-presentation-mode .blog-post-back-wrap,body.blog-presentation-mode .newsletter,body.blog-presentation-mode footer,body.blog-presentation-mode .engagement,body.blog-presentation-mode .article-cta,body.blog-presentation-mode .destination-map,body.blog-presentation-mode .sources,body.blog-presentation-mode .ayra-actions,body.blog-presentation-mode .ayra-btn,body.blog-presentation-mode .ayra-final,body.blog-presentation-mode .ayra-stay22,body.blog-presentation-mode .pinna-stay22,body.blog-presentation-mode .park-final,body.blog-presentation-mode .luan-language,body.blog-presentation-mode .luan-consent-banner{display:none!important}
+    body.blog-presentation-mode .site-header,body.blog-presentation-mode .blog-post-back-wrap,body.blog-presentation-mode .newsletter,body.blog-presentation-mode footer,body.blog-presentation-mode .engagement,body.blog-presentation-mode .article-cta,body.blog-presentation-mode .sources,body.blog-presentation-mode .ayra-actions,body.blog-presentation-mode .ayra-btn,body.blog-presentation-mode .ayra-final,body.blog-presentation-mode .park-final,body.blog-presentation-mode .luan-language,body.blog-presentation-mode .luan-consent-banner{display:none!important}
   </style>` : "";
 
   return `<!doctype html>
