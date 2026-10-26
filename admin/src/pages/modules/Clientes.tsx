@@ -271,6 +271,7 @@ export default function Clientes({
     [open, setOpen] = useState(false),
     [saving, setSaving] = useState(false),
     [message, setMessage] = useState("");
+  const [searchArmed, setSearchArmed] = useState(false);
   const [accessBusy, setAccessBusy] = useState<string | null>(null);
   const [unitQueries, setUnitQueries] = useState<Record<string, string>>({});
   const [credentials, setCredentials] = useState<{ nome: string; email: string; usuario: string; senha: string } | null>(null);
@@ -862,12 +863,29 @@ export default function Clientes({
           <Search size={16} color="#71717a" />
           <input
             type="search"
-            name="clientes-search"
-            autoComplete="off"
+            name="client-directory-filter"
+            autoComplete="new-password"
             autoCapitalize="none"
+            autoCorrect="off"
             spellCheck={false}
+            readOnly={!searchArmed}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onFocus={(event) => {
+              setSearchArmed(true);
+              if (!query) event.currentTarget.value = "";
+            }}
+            onChange={(event) => {
+              if (searchArmed) setQuery(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                setQuery("");
+                event.currentTarget.value = "";
+                event.currentTarget.blur();
+              }
+            }}
             placeholder="Buscar por nome, telefone, e-mail ou cidade"
             style={input}
           />
