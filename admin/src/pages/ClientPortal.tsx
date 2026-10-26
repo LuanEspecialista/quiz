@@ -26,6 +26,7 @@ type PortalUnit = {
   numero?: string | null;
   tipologia?: string | null;
   tipologia_dados?: Record<string, any> | null;
+  fluxo_dados?: Record<string, any> | null;
   valor_tabela?: number | null;
   area_privativa?: number | null;
   status?: string | null;
@@ -423,6 +424,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [monthly, setMonthly] = useState(2500);
   const [balloon, setBalloon] = useState(0);
   const [balloonCount, setBalloonCount] = useState(0);
+  const [postMode, setPostMode] = useState<"financiamento" | "quitacao" | "parcelas" | "baloes" | "misto">("financiamento");
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState("");
@@ -513,6 +515,12 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const opportunities = portal?.oportunidades || [];
   const firstName =
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
+  const selectedUnit = proposal?.unidades?.find((unit) => unit.id === selectedUnitId);
+  const selectedPrice = Number(selectedUnit?.valor_tabela || proposal?.preco || 0);
+  const preKeysPercent = Number(selectedUnit?.fluxo_dados?.percentual_ate_chaves) || Math.max(0, 100 - Number(selectedUnit?.fluxo_dados?.percentual_financiamento || 0)) || 100;
+  const preKeysTarget = selectedPrice * preKeysPercent / 100;
+  const monthsToKeys = Math.max(1, Number(selectedUnit?.fluxo_dados?.meses_ate_chaves || selectedUnit?.fluxo_dados?.parcelas_antes_chaves || 47));
+  const keysBalance = Math.max(0, preKeysTarget - entry - monthly * monthsToKeys - balloon * balloonCount);
   const openProposal = (item: Opportunity) => {
     setProposal(item);
     setSelectedUnitId((current) => current || item.unidades?.[0]?.id || null);
@@ -520,6 +528,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     setMonthly(2500);
     setBalloon(0);
     setBalloonCount(0);
+    setPostMode("financiamento");
     setNote("");
     setSent("");
   };
@@ -534,7 +543,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       p_balao: balloon,
       p_quantidade_baloes: balloonCount,
       p_objetivo: client?.objetivo || null,
-      p_mensagem: [selectedUnitId ? `Unidade selecionada: ${proposal.unidades?.find(u=>u.id===selectedUnitId)?.numero || selectedUnitId}` : "", note].filter(Boolean).join("\n") || null,
+      p_mensagem: [selectedUnitId ? `Unidade selecionada: ${selectedUnit?.numero || selectedUnitId}` : "", `Saldo calculado nas chaves: ${money(keysBalance)} (${preKeysPercent.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% até as chaves, ${monthsToKeys} meses)`, `Pós-chaves: ${postMode}`, note].filter(Boolean).join("\n") || null,
     });
     setSending(false);
     setSent(
@@ -852,14 +861,31 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   max={proposal.preco || 500000}
                 />
               </div>
+              <div style={{ marginTop: 13, padding: 12, border: "1px solid #5a4828", borderRadius: 9, background: "#17130d" }}>
+                <small style={{ color: "#d7ab63", fontWeight: 800 }}>CÁLCULO AUTOMÁTICO DO FLUXO</small>
+                <strong style={{ display: "block", marginTop: 5, color: "#fff", fontSize: 17 }}>Nas chaves: {money(keysBalance)}</strong>
+                <span style={{ display: "block", marginTop: 4, color: "#a1a1aa", fontSize: 12, lineHeight: 1.5 }}>
+                  Considerando {preKeysPercent.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% até as chaves, {monthsToKeys} meses, entrada, parcelas e balões informados. Sem balão, o saldo restante não desaparece: ele fica reservado para as chaves.
+                </span>
+              </div>
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "180px 1fr",
+                  gridTemplateColumns: "minmax(180px,260px) 1fr",
                   gap: 13,
                   marginTop: 13,
                 }}
               >
+                <label style={{ fontSize: 12, color: "#d4d4d8" }}>
+                  Destino do saldo pós-chaves
+                  <select value={postMode} onChange={(e) => setPostMode(e.target.value as typeof postMode)} style={{ ...input, marginTop: 6 }}>
+                    <option value="financiamento">Financiamento bancário</option>
+                    <option value="quitacao">Quitação nas chaves</option>
+                    <option value="parcelas">Parcelas pós-chaves</option>
+                    <option value="baloes">Balões pós-chaves</option>
+                    <option value="misto">Parcelas + balões</option>
+                  </select>
+                </label>
                 <label style={{ fontSize: 12, color: "#d4d4d8" }}>
                   Quantidade de balões
                   <input
@@ -902,7 +928,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 {balloonCount
                   ? `, ${balloonCount} balão(ões) de ${money(balloon)}`
                   : ""}
-                . A construtora valida condições e disponibilidade.
+                . Nas chaves: {money(keysBalance)}. Pós-chaves: {postMode}. A construtora valida condições e disponibilidade.
               </div>
               {sent && (
                 <p
