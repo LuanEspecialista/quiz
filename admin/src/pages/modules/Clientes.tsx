@@ -249,7 +249,7 @@ export default function Clientes({
     [units, setUnits] = useState<Unit[]>([]);
   const [proposals, setProposals] = useState<ClientProposal[]>([]);
   const [proposalView, setProposalView] = useState<ClientProposal | null>(null);
-  const [lastProposalCount, setLastProposalCount] = useState(0);
+  const [lastProposalCount, setLastProposalCount] = useState<number | null>(null);
   const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [siteOpportunityLeads, setSiteOpportunityLeads] = useState<SiteOpportunityLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
@@ -334,8 +334,8 @@ export default function Clientes({
     if (!cp.error) {
       const nextProposals = (cp.data || []) as ClientProposal[];
       const nextNewCount = nextProposals.filter((item) => item.status === "nova").length;
-      if (lastProposalCount > 0 && nextNewCount > lastProposalCount && typeof Notification !== "undefined" && Notification.permission === "granted") {
-        new Notification("Nova proposta recebida", { body: "Uma cliente enviou uma nova simulação para análise." });
+      if (lastProposalCount !== null && nextNewCount > lastProposalCount && typeof Notification !== "undefined" && Notification.permission === "granted") {
+        new Notification("Nova proposta recebida", { body: "Um cliente enviou uma nova simulação para análise." });
       }
       setLastProposalCount(nextNewCount);
       setProposals(nextProposals);
@@ -589,9 +589,20 @@ export default function Clientes({
     propertyId: string,
     patch: Partial<Selection>,
   ) {
+    const selectionPatch: Partial<Selection> = { ...patch };
+    const selectedUnitIds = Array.isArray(patch.unidade_ids_selecionadas)
+      ? patch.unidade_ids_selecionadas
+      : Array.isArray(patch.unidade_ids)
+        ? patch.unidade_ids
+        : null;
+    if (selectedUnitIds !== null) {
+      const synchronizedUnitIds = [...new Set(selectedUnitIds)];
+      selectionPatch.unidade_ids = synchronizedUnitIds;
+      selectionPatch.unidade_ids_selecionadas = synchronizedUnitIds;
+    }
     const { error } = await supabase
       .from("cliente_empreendimentos")
-      .update({ ...patch, updated_at: new Date().toISOString() })
+      .update({ ...selectionPatch, updated_at: new Date().toISOString() })
       .eq("cliente_id", clientId)
       .eq("empreendimento_id", propertyId);
     if (error)
@@ -600,7 +611,7 @@ export default function Clientes({
       setSelections((current) =>
         current.map((item) =>
           item.cliente_id === clientId && item.empreendimento_id === propertyId
-            ? { ...item, ...patch }
+            ? { ...item, ...selectionPatch }
             : item,
         ),
       );
@@ -757,6 +768,11 @@ export default function Clientes({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Search size={16} color="#71717a" />
           <input
+            type="search"
+            name="clientes-search"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por nome, telefone, e-mail ou cidade"
