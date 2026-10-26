@@ -1164,7 +1164,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           </section>
         )}
         {!activeOpportunity && opportunities.length > 0 && (
-          <section style={{ display: "grid", gap: 22 }}>
+          <section className="client-portal-opportunity-grid" data-columns={opportunities.length >= 4 ? 2 : Math.min(3, opportunities.length)}>
             {opportunities.map((item) => {
               const cover = item.imagens?.[0]?.url;
               const selectedPresentation = (item.apresentacao?.url || (item.apresentacao?.tipo === "pdf" && item.apresentacao.storage_path))
@@ -1175,7 +1175,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               const commercial = unitCommercial(item, selectedUnit);
               const canOpenFlow = Boolean(item.permitir_proposta || item.exibir_fluxo);
               return (
-                <div key={item.id} style={{ width: "min(390px,100%)" }}>
+                <div key={item.id} style={{ width: "100%", minWidth: 0 }}>
                   <article style={{ border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
                     <button type="button" onClick={() => selectedPresentation ? void openPresentation(item, selectedPresentation) : setActiveOpportunity(item)} style={{ display: "block", width: "100%", padding: 0, textAlign: "left", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
                       {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 110, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}

@@ -218,6 +218,10 @@ img, video, canvas {
 .portal-flow-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .portal-flow-heading small { display: block; color: #d7ab63; font-size: 10px; letter-spacing: .12em; }
 .portal-flow-heading strong { display: block; margin-top: 4px; color: #fff; font-size: 15px; }
+.client-portal-opportunity-grid { display: grid; grid-template-columns: minmax(0, 390px); justify-content: center; gap: 22px; }
+.client-portal-opportunity-grid[data-columns="2"] { grid-template-columns: repeat(2, minmax(0, 390px)); }
+.client-portal-opportunity-grid[data-columns="3"] { grid-template-columns: repeat(2, minmax(0, 390px)); }
+@media (min-width: 1024px) { .client-portal-opportunity-grid[data-columns="3"] { grid-template-columns: repeat(3, minmax(0, 390px)); } }
 .portal-flow-heading span, .portal-flow-source { color: #8e8b83; font-size: 11px; }
 .portal-flow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .portal-flow-grid > div { min-width: 0; padding: 10px; border: 1px solid #2c281f; border-radius: 8px; background: #1a1712; }
@@ -228,6 +232,7 @@ img, video, canvas {
 .portal-payment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 .portal-payment-grid > label, .portal-proposal-data-grid > label, .portal-document-grid > label { min-width: 0; }
 @media (max-width: 820px) { .portal-flow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) { .client-portal-opportunity-grid, .client-portal-opportunity-grid[data-columns="2"], .client-portal-opportunity-grid[data-columns="3"] { grid-template-columns: minmax(0, 390px); } }
 @media (max-width: 620px) { .portal-payment-grid, .portal-proposal-data-grid, .portal-document-grid { grid-template-columns: minmax(0, 1fr) !important; } }
 @media (max-width: 520px) { .portal-flow-summary { padding: 12px; } .portal-flow-heading { display: grid; gap: 5px; } .portal-flow-grid { grid-template-columns: minmax(0, 1fr); } .portal-flow-heading strong { font-size: 14px; } }
 
