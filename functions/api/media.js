@@ -80,11 +80,37 @@ export async function onRequest(context) {
   if (request.method === "GET" && requestUrl.searchParams.get("key")) {
     const key = requestUrl.searchParams.get("key") || "";
     const normalizedKey = normalize(key);
-    const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park");
-    if (!key.startsWith(BUCKET_PREFIX) || !allowedAsset || !/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
-    const object = await env.MEDIA.get(key);
+    const allowedAsset = normalizedKey.includes("pinna") || normalizedKey.includes("park-beach") || normalizedKey.includes("beach-park") || /\.pdf$/i.test(key) || /\/apresenta(?:cao|coes)\//i.test(key);
+    if (!key.startsWith(BUCKET_PREFIX) || !allowedAsset || !/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov|pdf)$/i.test(key)) return json({ error: "Arquivo público não permitido." }, 403);
+    const head = await env.MEDIA.head(key);
+    if (!head) return json({ error: "Arquivo não encontrado." }, 404);
+    const rangeHeader = request.headers.get("range");
+    let object;
+    let status = 200;
+    const headers = {
+      "content-type": head.httpMetadata?.contentType || "application/pdf",
+      "cache-control": "public, max-age=3600",
+      "accept-ranges": "bytes",
+      "content-disposition": "inline",
+      "content-length": String(head.size || 0),
+    };
+    if (rangeHeader) {
+      const match = rangeHeader.match(/^bytes=(\d+)-(\d*)$/);
+      if (match) {
+        const start = Number(match[1]);
+        const requestedEnd = match[2] ? Number(match[2]) : (head.size || 1) - 1;
+        const end = Math.min(requestedEnd, (head.size || 1) - 1);
+        if (start <= end) {
+          object = await env.MEDIA.get(key, { range: { offset: start, length: end - start + 1 } });
+          status = 206;
+          headers["content-length"] = String(end - start + 1);
+          headers["content-range"] = `bytes ${start}-${end}/${head.size}`;
+        }
+      }
+    }
+    if (!object) object = await env.MEDIA.get(key);
     if (!object) return json({ error: "Arquivo não encontrado." }, 404);
-    return new Response(object.body, { headers: { "content-type": object.httpMetadata?.contentType || "application/octet-stream", "cache-control": "no-store, max-age=0, must-revalidate" } });
+    return new Response(object.body, { status, headers });
   }
 
   // A landing pública do Pinna precisa descobrir as imagens editoriais já
@@ -92,8 +118,8 @@ export async function onRequest(context) {
   // empreendimento e retorna somente imagens públicas, sem metadados internos.
   if (request.method === "GET" && new URL(request.url).searchParams.get("list") === "1") {
     const enterprise = normalize(new URL(request.url).searchParams.get("enterprise"));
-    if (!["pinna", "pinna-studios", "park", "park-beach", "park-beach-studios", "beach-park-studios"].includes(enterprise)) return json({ error: "Listagem não disponível para este empreendimento." }, 403);
-    const wanted = enterprise.startsWith("park") || enterprise.startsWith("beach") ? /(?:park-beach-studios|beach-park-studios|empreendimentos-park(?:-|$))/i : /pinna/i;
+    if (!enterprise) return json({ error: "Informe o empreendimento para listar os arquivos." }, 400);
+    const wanted = enterprise.startsWith("park") || enterprise.startsWith("beach") ? /(?:park-beach-studios|beach-park-studios|empreendimentos-park(?:-|$))/i : new RegExp(enterprise.replace(/[^a-z0-9]+/g, ".*"), "i");
     const prefixes = enterprise.startsWith("park") || enterprise.startsWith("beach")
       ? [`${BUCKET_PREFIX}Park Beach Studios/`, `${BUCKET_PREFIX}park-beach-studios/`, `${BUCKET_PREFIX}Park/`, `${BUCKET_PREFIX}park/`, BUCKET_PREFIX]
       : [`${BUCKET_PREFIX}Pinna/`, `${BUCKET_PREFIX}pinna/`, `${BUCKET_PREFIX}Pinna Studios/`, `${BUCKET_PREFIX}pinna-studios/`, `${BUCKET_PREFIX}PINNA/`, BUCKET_PREFIX];
@@ -103,7 +129,8 @@ export async function onRequest(context) {
       for (const object of listing?.objects || []) {
         const normalizedKey = normalize(object.key);
         const looksLikePinnaPlant = /(?:unidade|planta|tipologia)[^/]*?(?:0?[1-9])(?:\D|$)/i.test(normalizedKey);
-        if (/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov)$/i.test(object.key) && (wanted.test(normalizedKey) || looksLikePinnaPlant && enterprise.startsWith("pinna"))) {
+        const isPresentationPdf = /\.pdf$/i.test(object.key) && (/\/apresenta(?:cao|coes)\//i.test(object.key) || normalizedKey.includes(enterprise));
+        if (/\.(?:jpe?g|png|webp|avif|gif|mp4|webm|mov|pdf)$/i.test(object.key) && (isPresentationPdf || wanted.test(normalizedKey) || looksLikePinnaPlant && enterprise.startsWith("pinna"))) {
           objects.push({ key: object.key, url: `${requestUrl.origin}/api/media?key=${encodeURIComponent(object.key)}`, size: object.size || 0 });
         }
       }

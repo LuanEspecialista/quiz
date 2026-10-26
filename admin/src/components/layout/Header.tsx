@@ -50,6 +50,14 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
         getEuroIndicator(),
         supabase.from("indicadores_ticker_config").select("sku, ativo"),
       ]);
+      const [cubQuote, ipcaQuote] = await Promise.all([
+        fetch("/api/cub").then((response) => response.ok ? response.json() : null).catch(() => null),
+        fetch("/api/ipca").then((response) => response.ok ? response.json() : null).catch(() => null),
+      ]);
+      const liveIndices = [
+        cubQuote?.value ? { id: "live-cub-sc", sku: "CUB-SC", nome: "CUB/SC médio", categoria: "IMOBILIARIO_M2", valor: cubQuote.value, valor_atual: cubQuote.value, indexador_base: "Sinduscon/SC", data_atualizacao: cubQuote.competencia } : null,
+        ipcaQuote?.value != null ? { id: "live-ipca", sku: "IPCA", nome: "IPCA mensal", categoria: "INFLACAO", valor: ipcaQuote.value, valor_atual: ipcaQuote.value, indexador_base: "IBGE/SIDRA", data_atualizacao: ipcaQuote.competencia } : null,
+      ].filter(Boolean);
       if (data) {
         const historyByIndicator = (historico || []).reduce((map: Record<string, any[]>, item: any) => {
           (map[item.indicador_id] ||= []).push(item);
@@ -63,7 +71,7 @@ export function Header({ userName, role = "admin", setActiveTab, onTickerSelect 
         const next = applyExchangeRate(withTrend.filter((item: any) => !isEuroIndicator(item)), cotacao)
           .filter((item: any) => !isUsdBrlIndicator(item));
         const preferencias = new Map((tickerConfig || []).map((item: any) => [item.sku, item.ativo]));
-        setIndicadores([...next, ...(euro ? [euro] : []), ...crypto].filter((item: any) => {
+        setIndicadores([...liveIndices, ...next, ...(euro ? [euro] : []), ...crypto].filter((item: any) => {
           const valor = Number(item.valor_atual ?? item.valor);
           return Number.isFinite(valor) && valor > 0 && preferencias.get(item.sku) !== false;
         }));

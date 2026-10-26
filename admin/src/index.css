@@ -212,3 +212,18 @@ img, video, canvas {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Portal do cliente: fluxo legível em celular, tablet e desktop. */
+.portal-flow-summary { display: grid; gap: 12px; padding: 15px; border: 1px solid #3a3327; border-radius: 10px; background: #14120f; }
+.portal-flow-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.portal-flow-heading small { display: block; color: #d7ab63; font-size: 10px; letter-spacing: .12em; }
+.portal-flow-heading strong { display: block; margin-top: 4px; color: #fff; font-size: 15px; }
+.portal-flow-heading span, .portal-flow-source { color: #8e8b83; font-size: 11px; }
+.portal-flow-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.portal-flow-grid > div { min-width: 0; padding: 10px; border: 1px solid #2c281f; border-radius: 8px; background: #1a1712; }
+.portal-flow-grid small, .portal-flow-grid em { display: block; color: #9f9a8f; font-size: 11px; font-style: normal; line-height: 1.35; }
+.portal-flow-grid b { display: block; margin: 4px 0; color: #f3dfb4; font-size: 13px; }
+.portal-flow-note { color: #c9c4b9; font-size: 12px; line-height: 1.55; }
+.portal-flow-note strong { color: #f3dfb4; }
+@media (max-width: 820px) { .portal-flow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .portal-flow-summary { padding: 12px; } .portal-flow-heading { display: grid; gap: 5px; } .portal-flow-grid { grid-template-columns: minmax(0, 1fr); } .portal-flow-heading strong { font-size: 14px; } }

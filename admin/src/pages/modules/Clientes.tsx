@@ -18,12 +18,14 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { parseStandardTypology } from "@/lib/realEstateStandard";
-import { formatBRL, parseBRL } from "@/components/CurrencyInput";
+import CurrencyInput, { formatBRL, parseBRL } from "@/components/CurrencyInput";
+import { r2PublicUrl } from "@/lib/r2Media";
 
 type Client = {
   id: string;
   user_id?: string | null;
   acesso_portal?: boolean;
+  acesso_expira_em?: string | null;
   nome: string;
   telefone?: string | null;
   email?: string | null;
@@ -64,6 +66,11 @@ type Unit = {
   id: string;
   empreendimento_id: string;
   numero?: string | null;
+  numero_unidade?: string | null;
+  codigo?: string | null;
+  codigo_unidade?: string | null;
+  torre?: string | null;
+  andar?: number | null;
   tipologia?: string | null;
   tipologia_dados?: Record<string, any> | null;
   valor?: number | null;
@@ -88,6 +95,10 @@ type Selection = {
   permitir_proposta?: boolean;
   mensagem_personalizada?: string | null;
   imagem_ids_selecionadas?: string[];
+  unidade_ids_selecionadas?: string[];
+  desconto_percentual?: number;
+  condicoes_unidades?: Record<string, { desconto_valor?: number }>;
+  observacao_comercial?: string | null;
   landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
   unidade_ids?: string[];
 };
@@ -103,6 +114,10 @@ type ClientProposal = {
   mensagem?: string | null;
   status: string;
   created_at: string;
+  cpf?: string | null;
+  unidade_id?: string | null;
+  valor_final?: number | null;
+  fluxo_snapshot?: Record<string, any> | null;
 };
 type BlogLead = { user_id:string; nome?:string|null; email:string; interesses?:string[]|null; status:string; criado_em:string; consentiu_contato?:boolean|null; consentimento_em?:string|null; consentimento_revogado_em?:string|null; blog_posts?:{ titulo?:string|null }|null };
 type SiteOpportunityLead = { id:string; nome:string; telefone?:string|null; email?:string|null; objetivo?:string|null; codigo_oportunidade?:string|null; empreendimento_nome_interno?:string|null; oportunidade_publica_id?:string|null; criado_em:string; etapa?:string|null; notas?:string|null };
@@ -210,6 +225,7 @@ const monetaryFields = new Set<keyof Form>([
 ]);
 const privateCoverPrefix = "storage://empreendimentos/";
 async function resolvePrivateCover(property: Property): Promise<Property> {
+  if (property.imagem_url?.startsWith("r2://")) return { ...property, imagem_url: r2PublicUrl(property.imagem_url) };
   if (!property.imagem_url?.startsWith(privateCoverPrefix)) return property;
   const { data, error } = await supabase.storage
     .from("empreendimentos")
@@ -232,6 +248,8 @@ export default function Clientes({
     [selections, setSelections] = useState<Selection[]>([]),
     [units, setUnits] = useState<Unit[]>([]);
   const [proposals, setProposals] = useState<ClientProposal[]>([]);
+  const [proposalView, setProposalView] = useState<ClientProposal | null>(null);
+  const [lastProposalCount, setLastProposalCount] = useState(0);
   const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [siteOpportunityLeads, setSiteOpportunityLeads] = useState<SiteOpportunityLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
@@ -242,6 +260,7 @@ export default function Clientes({
     [saving, setSaving] = useState(false),
     [message, setMessage] = useState("");
   const [accessBusy, setAccessBusy] = useState<string | null>(null);
+  const [unitQueries, setUnitQueries] = useState<Record<string, string>>({});
   const [credentials, setCredentials] = useState<{ nome: string; email: string; usuario: string; senha: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null),
     [curating, setCurating] = useState<Client | null>(null),
@@ -312,12 +331,21 @@ export default function Clientes({
       );
     if (!s.error) setSelections((s.data || []) as Selection[]);
     if (!u.error) setUnits((u.data || []) as Unit[]);
-    if (!cp.error) setProposals((cp.data || []) as ClientProposal[]);
+    if (!cp.error) {
+      const nextProposals = (cp.data || []) as ClientProposal[];
+      const nextNewCount = nextProposals.filter((item) => item.status === "nova").length;
+      if (lastProposalCount > 0 && nextNewCount > lastProposalCount && typeof Notification !== "undefined" && Notification.permission === "granted") {
+        new Notification("Nova proposta recebida", { body: "Uma cliente enviou uma nova simulação para análise." });
+      }
+      setLastProposalCount(nextNewCount);
+      setProposals(nextProposals);
+    }
     if (!leads.error) setBlogLeads((leads.data || []) as unknown as BlogLead[]);
     if (!opportunityLeads.error) setSiteOpportunityLeads((opportunityLeads.data || []) as SiteOpportunityLead[]);
     if (!media.error) {
       const signed = await Promise.all(((media.data || []) as CuradoriaMedia[]).map(async item => {
         if (!item.storage_path) return { ...item, preview_url:item.url };
+        if (item.storage_path.startsWith("r2://")) return { ...item, preview_url:r2PublicUrl(item.storage_path) };
         const { data } = await supabase.storage.from("empreendimentos").createSignedUrl(item.storage_path,3600);
         return { ...item, preview_url:data?.signedUrl || undefined };
       }));
@@ -325,7 +353,10 @@ export default function Clientes({
     }
   }
   useEffect(() => {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") void Notification.requestPermission().catch(() => undefined);
     void load();
+    const timer = window.setInterval(() => void load(), 30000);
+    return () => window.clearInterval(timer);
   }, []);
   const visible = useMemo(
     () =>
@@ -440,6 +471,19 @@ export default function Clientes({
       client.error?.message || `Acesso ${active ? "ativado" : "bloqueado"}.`,
     );
     void load();
+  };
+  async function updateAccessExpiry(item: Client, value: string) {
+    const expiration = value ? new Date(value).toISOString() : null;
+    if (expiration && new Date(expiration) <= new Date()) return setMessage("A expiração precisa estar no futuro.");
+    const { error } = await supabase.from("clientes").update({ acesso_expira_em: expiration }).eq("id", item.id);
+    if (error) setMessage(`Não foi possível salvar a expiração: ${error.message}`);
+    else { setMessage(expiration ? "Expiração salva." : "Expiração removida; o acesso não tem prazo."); void load(); }
+  }
+  const localDateTimeValue = (value?: string | null) => {
+    if (!value) return "";
+    const date = new Date(value);
+    const pad = (part: number) => String(part).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
   async function save() {
     if (!form.nome.trim()) return setMessage("Informe o nome do cliente.");
@@ -620,6 +664,7 @@ export default function Clientes({
           </div>
         </section>
       )}
+      {proposals.some((item) => item.status === "nova") && <section style={{ ...panel, borderColor: "#c5a059", background: "#1c160b", color: "#f5e0b2" }}><strong>Nova proposta recebida</strong><span style={{ display: "block", marginTop: 4, fontSize: 12, color: "#d4d4d8" }}>A cliente enviou uma simulação. Abra a proposta para consultar os valores e imprimir a ficha formal.</span></section>}
       {siteOpportunityLeads.length > 0 && <details style={{...panel,borderColor:"#8a6a2e"}} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Solicitações de conversa ({siteOpportunityLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{siteOpportunityLeads.map((lead)=><article key={lead.id} style={{border:"1px solid #4a3a20",borderRadius:8,padding:11,background:"#15120d"}}><div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>Solicitação de {lead.nome}</strong><span style={{color:"#edcf91",fontSize:12}}>{lead.empreendimento_nome_interno || "Oportunidade selecionada"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.telefone || "Sem telefone"}{lead.email ? ` · ${lead.email}` : ""} · {new Date(lead.criado_em).toLocaleString("pt-BR")}</small>{lead.objetivo && <p style={{fontSize:12,color:"#d4d4d8",margin:"8px 0 0"}}>Objetivo: {lead.objetivo}</p>}<small style={{display:"block",color:"#888",marginTop:7}}>A oportunidade clicada foi vinculada internamente ao cadastro.</small></article>)}</div></details>}
       {blogLeads.length > 0 && <details style={panel} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Leads identificados pelo Blog ({blogLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{blogLeads.map((lead)=><article key={lead.user_id} style={{border:"1px solid #303036",borderRadius:8,padding:11}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}><strong>{lead.nome || "Leitor identificado"}</strong><span style={{color:lead.consentiu_contato?"#9bd4ac":"#a1a1aa",fontSize:11}}>{lead.consentiu_contato?"Autorizou contato":"Sem autorização para contato"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.email}{lead.blog_posts?.titulo ? ` · Origem: ${lead.blog_posts.titulo}` : ""}</small>{lead.interesses?.length ? <p style={{fontSize:12,color:"#d4d4d8",marginBottom:0}}>Interesses: {lead.interesses.join(" · ")}</p> : <small style={{color:"#71717a"}}>Ainda não informou interesses.</small>}</article>)}</div></details>}
       {proposals.length > 0 && (
@@ -642,7 +687,7 @@ export default function Clientes({
                 <article
                   key={proposal.id}
                   style={{
-                    border: "1px solid #303036",
+                    border: `1px solid ${proposal.status === "nova" ? "#c5a059" : "#303036"}`,
                     borderRadius: 8,
                     padding: 11,
                     display: "grid",
@@ -673,6 +718,7 @@ export default function Clientes({
                         {proposal.mensagem}
                       </p>
                     )}
+                    <button type="button" onClick={() => setProposalView(proposal)} style={{ ...button, marginTop: 8, fontSize: 11, background: "#c5a059", color: "#09090b" }}>Ver proposta formal</button>
                   </div>
                   <select
                     value={proposal.status}
@@ -693,6 +739,20 @@ export default function Clientes({
           </div>
         </details>
       )}
+      {proposalView && (() => {
+        const client = items.find((item) => Number(item.id) === proposalView.cliente_id);
+        const property = properties.find((item) => item.id === proposalView.empreendimento_id);
+        return <div style={{ position: "fixed", inset: 0, zIndex: 7000, background: "rgba(0,0,0,.82)", padding: 14, overflow: "auto" }}>
+          <section style={{ ...panel, maxWidth: 820, margin: "20px auto", background: "#fff", color: "#161616", padding: 32 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><div><small style={{ letterSpacing: ".14em", color: "#8a6a2e", fontWeight: 800 }}>LUAN ESPECIALISTA</small><h1 style={{ margin: "8px 0 4px", fontSize: 25 }}>Proposta comercial</h1><p style={{ margin: 0, color: "#555" }}>Simulação enviada pela cliente para análise.</p></div><button type="button" onClick={() => setProposalView(null)} style={{ background: "#eee", border: 0, padding: 8, cursor: "pointer" }}><X size={18} /></button></div>
+            <hr style={{ margin: "22px 0", border: 0, borderTop: "1px solid #ddd" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16, fontSize: 13 }}><div><b>Cliente</b><div>{client?.nome || "Não informado"}</div><div>CPF: {(client as any)?.cpf || proposalView.cpf || "Não informado"}</div><div>{client?.telefone || ""}{client?.email ? ` · ${client.email}` : ""}</div></div><div><b>Empreendimento</b><div>{property?.nome || proposalView.empreendimento_id}</div><div>Data: {new Date(proposalView.created_at).toLocaleString("pt-BR")}</div><div>Status: {proposalView.status}</div></div></div>
+            <h3 style={{ margin: "24px 0 10px" }}>Condições propostas</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, fontSize: 14 }}><div style={{ padding: 12, background: "#f5f5f5" }}>Entrada<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.entrada)}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Parcela mensal<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.parcela_mensal)}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Balão<strong style={{ display: "block", marginTop: 4 }}>{proposalView.quantidade_baloes ? `${proposalView.quantidade_baloes} × ${money(proposalView.balao)}` : "Não informado"}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Valor final<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.valor_final)}</strong></div></div>
+            <p style={{ marginTop: 24, color: "#444", minHeight: 42 }}>{proposalView.mensagem || "Sem observações adicionais."}</p><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 50, marginTop: 48, fontSize: 12, textAlign: "center" }}><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>Luan Especialista<br /><small>Corretor responsável</small></div><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{client?.nome || "Cliente"}<br /><small>CPF: {(client as any)?.cpf || proposalView.cpf || "Não informado"}</small></div></div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 28 }}><button type="button" onClick={() => window.print()} style={{ ...button, background: "#161616", color: "#fff" }}>Imprimir / salvar PDF</button></div>
+          </section>
+        </div>;
+      })()}
       <section style={panel}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Search size={16} color="#71717a" />
@@ -845,6 +905,15 @@ export default function Clientes({
                   >
                     {item.acesso_portal ? "Acesso ativo" : "Acesso bloqueado"}
                   </button>
+                )}
+                {item.user_id && (
+                  <label style={{ display: "grid", gap: 4, minWidth: 220, color: "#a1a1aa", fontSize: 11 }}>
+                    Expiração do acesso (data e hora)
+                    <input type="datetime-local" value={localDateTimeValue(item.acesso_expira_em)} onChange={(event) => void updateAccessExpiry(item, event.target.value)} style={{ ...input, padding: "7px 8px", fontSize: 11 }} title="Deixe vazio para acesso sem prazo" />
+                    <small style={{ color: item.acesso_expira_em && new Date(item.acesso_expira_em) <= new Date() ? "#fca5a5" : "#86efac" }}>
+                      {item.acesso_expira_em ? `Expira em ${new Date(item.acesso_expira_em).toLocaleString("pt-BR")}` : "Sem expiração definida"}
+                    </small>
+                  </label>
                 )}
                 <button
                   onClick={() => setCurating(item)}
@@ -1297,7 +1366,7 @@ export default function Clientes({
                             <strong style={{fontSize:11}}>Unidades liberadas para o Fluxo ({selection.unidade_ids?.length || 0})</strong>
                             <small style={{color:"#71717a"}}>Selecione somente as unidades que {curating.nome} poderá simular no portal.</small>
                             <div style={{display:"grid",gap:5,maxHeight:220,overflow:"auto"}}>
-                              {units.filter(u=>u.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(u.status||"").toLowerCase())).map(u=>{const ids=selection.unidade_ids || []; const checked=ids.includes(u.id); return <label key={u.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"7px 8px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span><input type="checkbox" checked={checked} onChange={()=>{const next=checked?ids.filter(id=>id!==u.id):[...ids,u.id];void updateSelection(curating.id,property.id,{unidade_ids:next});}}/> Unidade {u.numero || u.id.slice(0,8)}{u.tipologia ? ` · ${u.tipologia}` : ""}</span><b>{money(u.valor_tabela || u.valor)}</b></label>})}
+                              {units.filter(u=>u.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(u.status||"").toLowerCase())).map(u=>{const ids=selection.unidade_ids || []; const checked=ids.includes(u.id); return <label key={u.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"7px 8px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span><input type="checkbox" checked={checked} onChange={()=>{const next=checked?ids.filter(id=>id!==u.id):[...ids,u.id];void updateSelection(curating.id,property.id,{unidade_ids:next,unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> Unidade {u.numero || u.id.slice(0,8)}{u.tipologia ? ` · ${u.tipologia}` : ""}</span><b>{money(u.valor_tabela || u.valor)}</b></label>})}
                             </div>
                           </div>}
                           {selection.exibir_imagens && <div style={{display:"grid",gap:7}}>
@@ -1311,6 +1380,26 @@ export default function Clientes({
                               </button>})}
                             </div>
                           </div>}
+                          <div style={{display:"grid",gap:7}}>
+                            <strong style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({selection.unidade_ids_selecionadas?.length || 0})</strong>
+                            <small style={{color:"#71717a"}}>Pesquise por torre, código, número ou tipologia. A cliente verá somente as unidades marcadas.</small>
+                            <input value={unitQueries[property.id] || ""} onChange={(event)=>setUnitQueries(current=>({...current,[property.id]:event.target.value}))} placeholder="Pesquisar: Torre A, 304, 807, Studio..." style={{...input,marginTop:2}} />
+                            <div style={{display:"grid",gap:5,maxHeight:260,overflow:"auto"}}>
+                              {units.filter(unit=>{
+                                if(unit.empreendimento_id!==property.id || ["vendida","bloqueada","fora de tabela"].includes(String(unit.status||"").toLowerCase())) return false;
+                                const term=(unitQueries[property.id]||"").trim().toLocaleLowerCase("pt-BR");
+                                if(!term) return true;
+                                return [unit.torre,unit.codigo,unit.codigo_unidade,unit.numero,unit.numero_unidade,unit.tipologia,unit.andar].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR").includes(term);
+                              }).sort((a,b)=>String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true})).map(unit=>{const selected=selection.unidade_ids_selecionadas || [];const checked=selected.includes(unit.id);const tower=unit.torre || "Torre não informada";const code=unit.codigo || unit.codigo_unidade || unit.numero || unit.numero_unidade || unit.id.slice(0,8);const negotiated=Number(selection.condicoes_unidades?.[unit.id]?.desconto_valor || 0);return <label key={unit.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span style={{minWidth:0}}><input type="checkbox" checked={checked} onChange={()=>{const next=checked?selected.filter(id=>id!==unit.id):[...selected,unit.id];void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> <b>{tower}</b> · Unidade {code}{unit.andar ? ` · ${unit.andar}º andar` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#8b8b95",marginTop:3}}>Tabela: {money(unit.valor_tabela || unit.valor)}</small></span><span style={{display:"grid",gap:3,minWidth:125}}><small style={{color:"#8b8b95"}}>Desconto negociado</small><CurrencyInput value={negotiated} onChange={(value)=>{const next={...(selection.condicoes_unidades || {})};if(value>0) next[unit.id]={desconto_valor:value};else delete next[unit.id];void updateSelection(curating.id,property.id,{condicoes_unidades:next});}} style={{...input,padding:"6px 7px",fontSize:11}} /></span></label>})}
+                              {units.filter(unit=>unit.empreendimento_id===property.id).length===0 && <small style={{color:"#fbbf24"}}>Nenhuma unidade cadastrada para este empreendimento.</small>}
+                            </div>
+                          </div>
+                          <label style={{fontSize:11,color:"#d4d4d8"}}>Desconto/condição especial (%)
+                            <input type="number" min="0" max="100" step="0.1" value={selection.desconto_percentual ?? 0} onChange={(event)=>setSelections(current=>current.map(item=>item===selection?{...item,desconto_percentual:Math.max(0,Math.min(100,Number(event.target.value)||0))}:item))} onBlur={(event)=>void updateSelection(curating.id,property.id,{desconto_percentual:Math.max(0,Math.min(100,Number(event.target.value)||0))})} style={{...input,marginTop:5}} />
+                          </label>
+                          <label style={{fontSize:11,color:"#d4d4d8"}}>Observação comercial visível para a cliente
+                            <textarea rows={2} value={selection.observacao_comercial || ""} onChange={(event)=>setSelections(current=>current.map(item=>item===selection?{...item,observacao_comercial:event.target.value}:item))} onBlur={(event)=>void updateSelection(curating.id,property.id,{observacao_comercial:event.target.value})} placeholder="Ex.: condição especial obtida nesta negociação." style={{...input,marginTop:5}} />
+                          </label>
                           <textarea
                             rows={2}
                             value={selection.mensagem_personalizada || ""}
