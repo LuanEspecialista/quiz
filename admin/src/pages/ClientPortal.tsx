@@ -105,6 +105,15 @@ type CivilStatus = "" | "solteiro" | "casado_civil" | "uniao_estavel" | "divorci
 type DocumentType = "cpf" | "cnpj";
 type ProposalDocumentType = "identificacao" | "comprovante_residencia" | "certidao_casamento" | "identificacao_conjuge";
 type SpouseData = { nome: string; cpf: string; telefone: string; email: string; profissao: string };
+type ProposalDocumentRecord = { tipo: ProposalDocumentType; nome_original: string; mime_type: string; tamanho_bytes: number; storage_path: string; enviado_em?: string; reuso_historico_confirmado?: boolean };
+type ProposalProfileResponse = {
+  dados_proponente?: { nome?: string; cpf?: string; documento_tipo?: "CPF" | "CNPJ"; telefone?: string; email?: string; profissao?: string; estado_civil?: CivilStatus };
+  dados_conjuge?: Partial<SpouseData> | null;
+  documentos?: ProposalDocumentRecord[];
+  reutilizacao_autorizada?: boolean;
+  reutilizacao_conjuge_autorizada?: boolean;
+  enviado_em?: string;
+};
 const proposalDocuments: { type: ProposalDocumentType; label: string; hint: string }[] = [
   { type: "identificacao", label: "RG/CPF ou CNH do proponente", hint: "Documento de identidade legível." },
   { type: "comprovante_residencia", label: "Comprovante de residência", hint: "Emitido há no máximo 60 dias." },
@@ -129,6 +138,7 @@ const input = {
   padding: "10px 11px",
   fontSize: 14,
 };
+const portalSmallButton = { border: 0, borderRadius: 6, padding: "6px 9px", cursor: "pointer", fontSize: 10, fontWeight: 700 } as const;
 
 function normalizeDocument(value: string, type: DocumentType) {
   if (type === "cpf") return value.replace(/\D/g, "").slice(0, 11);
@@ -718,6 +728,18 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [civilStatus, setCivilStatus] = useState<CivilStatus>("");
   const [spouse, setSpouse] = useState<SpouseData>({ nome: "", cpf: "", telefone: "", email: "", profissao: "" });
   const [proposalDocumentFiles, setProposalDocumentFiles] = useState<Partial<Record<ProposalDocumentType, File>>>({});
+  const [savedProposalDocuments, setSavedProposalDocuments] = useState<ProposalDocumentRecord[]>([]);
+  const [proposalHistorySuggestion, setProposalHistorySuggestion] = useState<ProposalProfileResponse | null>(null);
+  const [selectedHistoryDocuments, setSelectedHistoryDocuments] = useState<ProposalDocumentRecord[]>([]);
+  const [historySuggestionApplied, setHistorySuggestionApplied] = useState(false);
+  const [historySuggestionLoading, setHistorySuggestionLoading] = useState(false);
+  const [historySuggestionUnavailable, setHistorySuggestionUnavailable] = useState(false);
+  const [profileReuseConsent, setProfileReuseConsent] = useState(false);
+  const [profileConsentPersisted, setProfileConsentPersisted] = useState(false);
+  const [spouseProfileReuseConsent, setSpouseProfileReuseConsent] = useState(false);
+  const [spouseProfileConsentPersisted, setSpouseProfileConsentPersisted] = useState(false);
+  const [profileActionBusy, setProfileActionBusy] = useState(false);
+  const [documentDeleteBusy, setDocumentDeleteBusy] = useState<string | null>(null);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [spouseConsent, setSpouseConsent] = useState(false);
   const [selectedUnitsByOpportunity, setSelectedUnitsByOpportunity] = useState<Record<string, string>>({});
@@ -752,6 +774,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           return;
         }
         const result = (data || {}) as Portal;
+        const profileRequest = supabase.rpc("portal_cliente_proposta_perfil");
         const opportunities = await Promise.all(
           (result.oportunidades || []).map(async (item) => {
             const sign = async (media: PortalMedia) => {
@@ -853,6 +876,32 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         setClientDocumentType(storedDocumentType);
         setClientCpf(formatDocument(storedDocument, storedDocumentType));
         setSecondsUntilExpiry(result.cliente?.acesso_expira_em ? Math.max(0, Math.floor((new Date(result.cliente.acesso_expira_em).getTime() - Date.now()) / 1000)) : null);
+        const { data: profileData, error: profileError } = await profileRequest;
+        if (!profileError && profileData) {
+          const profile = profileData as ProposalProfileResponse;
+          const person = profile.dados_proponente || {};
+          const savedDocument = person.cpf || storedDocument;
+          const savedDocumentType: DocumentType = person.documento_tipo === "CNPJ" || normalizeDocument(savedDocument, "cnpj").length === 14 ? "cnpj" : "cpf";
+          setClientName(person.nome || result.cliente?.nome || "");
+          setClientPhone(formatBrazilPhone(person.telefone || result.cliente?.telefone || ""));
+          setClientEmail(person.email || result.cliente?.email || "");
+          setClientDocumentType(savedDocumentType);
+          setClientCpf(formatDocument(savedDocument, savedDocumentType));
+          setClientProfession(person.profissao || "");
+          setCivilStatus(person.estado_civil || "");
+          setSpouse({
+            nome: String(profile.dados_conjuge?.nome || ""),
+            cpf: formatDocument(String(profile.dados_conjuge?.cpf || ""), "cpf"),
+            telefone: formatBrazilPhone(String(profile.dados_conjuge?.telefone || "")),
+            email: String(profile.dados_conjuge?.email || ""),
+            profissao: String(profile.dados_conjuge?.profissao || ""),
+          });
+          setSavedProposalDocuments(Array.isArray(profile.documentos) ? profile.documentos : []);
+          setProfileReuseConsent(Boolean(profile.reutilizacao_autorizada));
+          setProfileConsentPersisted(Boolean(profile.reutilizacao_autorizada));
+          setSpouseProfileReuseConsent(Boolean(profile.reutilizacao_conjuge_autorizada));
+          setSpouseProfileConsentPersisted(Boolean(profile.reutilizacao_conjuge_autorizada));
+        }
       });
     return () => { document.removeEventListener("contextmenu", protectContent); document.removeEventListener("keydown", blockPrint); };
   }, []);
@@ -873,6 +922,13 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const firstName =
     (client?.nome || userName || "").trim().split(/\s+/)[0] || "";
   const expiryLabel = secondsUntilExpiry === null ? "Acesso sem prazo definido" : secondsUntilExpiry <= 0 ? "Acesso expirado" : `Seu acesso expira em ${Math.floor(secondsUntilExpiry / 86400)}d ${String(Math.floor(secondsUntilExpiry / 3600) % 24).padStart(2, "0")}h ${String(Math.floor(secondsUntilExpiry / 60) % 60).padStart(2, "0")}min ${String(secondsUntilExpiry % 60).padStart(2, "0")}s`;
+  const applicableProposalDocuments = proposalDocuments.filter((document) =>
+    (document.type !== "certidao_casamento" || civilStatus === "casado_civil") &&
+    (document.type !== "identificacao_conjuge" || civilStatus === "casado_civil" || civilStatus === "uniao_estavel"),
+  );
+  const hiddenSavedProposalDocuments = [...savedProposalDocuments, ...(historySuggestionApplied ? selectedHistoryDocuments : [])]
+    .filter((saved, index, all) => all.findIndex((item) => item.storage_path === saved.storage_path) === index)
+    .filter((saved) => !applicableProposalDocuments.some((document) => document.type === saved.tipo));
   const openProposal = (item: Opportunity, unit?: PortalUnit) => {
     if (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0)) return;
     const summary = flowSummary(item, unit || null, cub);
@@ -911,11 +967,124 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     setPostBalloonCount(initialPostBalloonCount);
     setNote("");
     setSent("");
-    setCivilStatus("");
-    setSpouse({ nome: "", cpf: "", telefone: "", email: "", profissao: "" });
     setProposalDocumentFiles({});
+    setSelectedHistoryDocuments([]);
+    setHistorySuggestionApplied(false);
     setPrivacyConsent(false);
     setSpouseConsent(false);
+  };
+  const applyProposalHistorySuggestion = async () => {
+    let suggestion = proposalHistorySuggestion;
+    if (!suggestion) {
+      if (historySuggestionUnavailable || historySuggestionLoading) return;
+      setHistorySuggestionLoading(true);
+      try {
+        const { data, error: suggestionError } = await supabase.rpc("portal_cliente_ultima_proposta_sugestao");
+        if (suggestionError) throw suggestionError;
+        if (!data) {
+          setHistorySuggestionUnavailable(true);
+          setSent("Não há uma proposta anterior com dados para carregar.");
+          return;
+        }
+        suggestion = data as ProposalProfileResponse;
+        setProposalHistorySuggestion(suggestion);
+      } catch (error) {
+        setSent(error instanceof Error ? `Não foi possível carregar o último envio: ${error.message}` : "Não foi possível carregar o último envio. Tente novamente.");
+        return;
+      } finally {
+        setHistorySuggestionLoading(false);
+      }
+    }
+    const person = suggestion.dados_proponente || {};
+    const documentValue = person.cpf || "";
+    const documentType: DocumentType = person.documento_tipo === "CNPJ" || normalizeDocument(documentValue, "cnpj").length === 14 ? "cnpj" : "cpf";
+    setClientName(person.nome || client?.nome || "");
+    setClientPhone(formatBrazilPhone(person.telefone || client?.telefone || ""));
+    setClientEmail(person.email || client?.email || "");
+    setClientDocumentType(documentType);
+    setClientCpf(formatDocument(documentValue || client?.cpf || "", documentType));
+    setClientProfession(person.profissao || "");
+    setCivilStatus(person.estado_civil || "");
+    setSpouse({
+      nome: String(suggestion.dados_conjuge?.nome || ""),
+      cpf: formatDocument(String(suggestion.dados_conjuge?.cpf || ""), "cpf"),
+      telefone: formatBrazilPhone(String(suggestion.dados_conjuge?.telefone || "")),
+      email: String(suggestion.dados_conjuge?.email || ""),
+      profissao: String(suggestion.dados_conjuge?.profissao || ""),
+    });
+    setSelectedHistoryDocuments(Array.isArray(suggestion.documentos) ? suggestion.documentos : []);
+    setHistorySuggestionApplied(true);
+    setSent("Dados e documentos do último envio carregados para esta proposta. Revise tudo antes de enviar.");
+  };
+  const revokeReusableProfile = async () => {
+    if (!profileConsentPersisted || profileActionBusy) return;
+    if (!window.confirm("Revogar o perfil reutilizável? Os dados deixam de ser preenchidos automaticamente em propostas futuras. O histórico de propostas anteriores não será apagado por esta ação.")) return;
+    setProfileActionBusy(true);
+    try {
+      const { error: revokeError } = await supabase.rpc("portal_cliente_revogar_perfil_proposta");
+      if (revokeError) throw revokeError;
+      setProfileConsentPersisted(false);
+      setProfileReuseConsent(false);
+      setSpouseProfileReuseConsent(false);
+      setSpouseProfileConsentPersisted(false);
+      setSavedProposalDocuments([]);
+      setSent("Perfil reutilizável revogado. Propostas anteriores permanecem no histórico; use a exclusão de documento para apagá-lo também do armazenamento.");
+    } catch (error) {
+      setSent(error instanceof Error ? `Não foi possível revogar o perfil: ${error.message}` : "Não foi possível revogar o perfil. Tente novamente.");
+    } finally {
+      setProfileActionBusy(false);
+    }
+  };
+  const revokeSpouseProfileConsent = async () => {
+    if (!spouseProfileConsentPersisted || profileActionBusy) return;
+    if (!window.confirm("Revogar a retenção dos dados e documentos do cônjuge? O perfil do proponente continuará salvo e os documentos enviados em propostas anteriores não serão apagados por esta ação.")) return;
+    setProfileActionBusy(true);
+    try {
+      const { error: revokeError } = await supabase.rpc("portal_cliente_revogar_perfil_conjuge_proposta");
+      if (revokeError) throw revokeError;
+      setSpouseProfileReuseConsent(false);
+      setSpouseProfileConsentPersisted(false);
+      setSavedProposalDocuments((current) => current.filter((document) => !["certidao_casamento", "identificacao_conjuge"].includes(document.tipo)));
+      setSent("Retenção dos dados e documentos do cônjuge revogada. Propostas anteriores permanecem no histórico.");
+    } catch (error) {
+      setSent(error instanceof Error ? `Não foi possível revogar a retenção do cônjuge: ${error.message}` : "Não foi possível revogar a retenção do cônjuge. Tente novamente.");
+    } finally {
+      setProfileActionBusy(false);
+    }
+  };
+  const deletePreviousProposalDocument = async (saved: ProposalDocumentRecord) => {
+    const label = proposalDocuments.find((document) => document.type === saved.tipo)?.label || "documento";
+    if (!window.confirm(`Excluir definitivamente ${label.toLowerCase()}? O arquivo e suas referências em propostas anteriores serão apagados. Será necessário anexá-lo novamente se precisar usá-lo.`)) return;
+    setDocumentDeleteBusy(saved.storage_path);
+    try {
+      const { data, error: referenceError } = await supabase.rpc("portal_cliente_excluir_documento_proposta", { p_storage_path: saved.storage_path });
+      if (referenceError) throw referenceError;
+      const removalResult = data as { removed?: boolean } | null;
+      if (!removalResult?.removed) {
+        setSent("Este documento já não está vinculado ao seu perfil ou às propostas anteriores.");
+        return;
+      }
+      setSavedProposalDocuments((current) => current.filter((document) => document.storage_path !== saved.storage_path));
+      setSelectedHistoryDocuments((current) => current.filter((document) => document.storage_path !== saved.storage_path));
+      setProposalHistorySuggestion((current) => current ? {
+        ...current,
+        documentos: (current.documentos || []).filter((document) => document.storage_path !== saved.storage_path),
+      } : null);
+      const { error: storageError } = await supabase.storage.from(proposalDocumentBucket).remove([saved.storage_path]);
+      const { error: finalizeError } = await supabase.rpc("finalizar_cliente_proposta_documento_exclusao", {
+        p_storage_path: saved.storage_path,
+        p_erro: storageError?.message || null,
+      });
+      setSent(storageError
+        ? "As referências foram removidas, mas o arquivo privado ainda aguarda exclusão física. A equipe verá uma pendência recuperável no painel."
+        : finalizeError
+          ? "O arquivo foi apagado, mas a confirmação da fila ficou pendente. A equipe poderá concluir a limpeza pelo painel."
+          : "Documento excluído do armazenamento e das propostas anteriores. Você poderá anexar uma nova versão.");
+    } catch (error) {
+      setSent(error instanceof Error ? `Não foi possível excluir o documento: ${error.message}` : "Não foi possível excluir o documento. Atualize a tela e tente novamente.");
+    } finally {
+      setDocumentDeleteBusy(null);
+    }
   };
   const openPresentation = async (item: Opportunity, selected?: PortalPresentation | null) => {
     const presentation = selected || item.apresentacao;
@@ -1043,6 +1212,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   };
   const sendProposal = async () => {
     if (!proposal) return;
+    if (documentDeleteBusy) { setSent("Aguarde a exclusão do documento anterior terminar antes de enviar."); return; }
     if (!proposal.permitir_proposta) { setSent("Este empreendimento está liberado para simulação, mas o envio de proposta ainda não foi autorizado pelo especialista."); return; }
     if (secondsUntilExpiry !== null && secondsUntilExpiry <= 0) { setSent("Seu acesso expirou. Solicite ao especialista uma nova validade para enviar a proposta."); return; }
     if (!proposalUnit || !commercial || Math.abs(flowTotal - commercial.finalPrice) > 0.02) {
@@ -1070,7 +1240,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       return;
     }
     const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
-    const selectedFiles = proposalDocuments.flatMap(({ type }) => {
+    const selectedFiles = applicableProposalDocuments.flatMap(({ type }) => {
       const file = proposalDocumentFiles[type];
       return file ? [{ type, file }] : [];
     });
@@ -1088,8 +1258,21 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     const proposalId = crypto.randomUUID();
     const uploadedPaths: string[] = [];
     try {
-      const documentMetadata: Record<string, unknown>[] = [];
-      for (const { type, file } of selectedFiles) {
+      const documentMetadata: ProposalDocumentRecord[] = [];
+      for (const document of applicableProposalDocuments) {
+        const { type } = document;
+        const file = proposalDocumentFiles[type];
+        if (!file) {
+          const selectedHistoryDocument = historySuggestionApplied
+            ? selectedHistoryDocuments.find((item) => item.tipo === type)
+            : undefined;
+          const savedProfileDocument = profileReuseConsent
+            ? savedProposalDocuments.find((item) => item.tipo === type)
+            : undefined;
+          if (selectedHistoryDocument) documentMetadata.push({ ...selectedHistoryDocument, reuso_historico_confirmado: true });
+          else if (savedProfileDocument) documentMetadata.push(savedProfileDocument);
+          continue;
+        }
         const extension = file.type === "application/pdf" ? "pdf" : file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : "webp";
         const path = `${authResult.user.id}/${proposalId}/${type}/${crypto.randomUUID()}.${extension}`;
         const { error: uploadError } = await supabase.storage.from(proposalDocumentBucket).upload(path, file, {
@@ -1133,7 +1316,44 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         p_consentimento_conjuge: hasSpouse && spouseConsent,
       });
       if (rpcError) throw rpcError;
-      setSent(`Proposta enviada ao especialista para análise${documentMetadata.length ? ` com ${documentMetadata.length} documento(s) anexado(s)` : ""}. A simulação ainda não é um contrato.`);
+      const successMessage = `Proposta enviada ao especialista para análise${documentMetadata.length ? ` com ${documentMetadata.length} documento(s) anexado(s)` : ""}. A simulação ainda não é um contrato.`;
+      setProposalHistorySuggestion({
+        dados_proponente: {
+          nome: clientName.trim(),
+          cpf: documentValue,
+          documento_tipo: clientDocumentType === "cnpj" ? "CNPJ" : "CPF",
+          telefone: clientPhoneValue,
+          email: clientEmail.trim().toLowerCase(),
+          profissao: clientProfession.trim(),
+          estado_civil: civilStatus,
+        },
+        dados_conjuge: hasSpouse ? { ...spouse, cpf: spouseCpf, telefone: spousePhone, email: spouse.email.trim().toLowerCase() } : null,
+        documentos: documentMetadata,
+        enviado_em: new Date().toISOString(),
+      });
+      setHistorySuggestionUnavailable(false);
+      if (profileReuseConsent) {
+        const { error: profileError } = await supabase.rpc("salvar_cliente_proposta_perfil", {
+          p_proposta_id: proposalId,
+          p_consentimento_reutilizacao: true,
+          p_consentimento_conjuge_reutilizacao: hasSpouse && spouseProfileReuseConsent,
+        });
+        if (profileError) {
+          setSent(`${successMessage} Não foi possível salvar o perfil para futuras propostas; os dados desta proposta foram recebidos normalmente.`);
+        } else {
+          setProfileConsentPersisted(true);
+          setSpouseProfileConsentPersisted(Boolean(hasSpouse && spouseProfileReuseConsent));
+          setSavedProposalDocuments((current) => {
+            const updatedTypes = new Set(documentMetadata.map((document) => document.tipo));
+            return [...current.filter((document) => !updatedTypes.has(document.tipo)), ...documentMetadata.filter((document) =>
+              spouseProfileReuseConsent || !["certidao_casamento", "identificacao_conjuge"].includes(document.tipo),
+            )];
+          });
+          setSent(`${successMessage} Seu perfil reutilizável foi atualizado com sua autorização.`);
+        }
+      } else {
+        setSent(successMessage);
+      }
     } catch {
       if (uploadedPaths.length) {
         try { await supabase.storage.from(proposalDocumentBucket).remove(uploadedPaths); } catch { /* preserva o erro principal */ }
@@ -1487,6 +1707,10 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               <section style={{display:"grid",gap:10,marginTop:12,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
                 <strong style={{color:"#edcf91",fontSize:12}}>Dados para emissão da proposta</strong>
                 <small style={{color:"#a1a1aa"}}>Informe seus dados depois de montar o fluxo. Os campos com * são necessários para encaminhar a proposta.</small>
+                {!historySuggestionUnavailable && <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",padding:10,border:"1px solid #4a3a20",borderRadius:7,background:"#15120d"}}>
+                  <small style={{color:"#d4d4d8",lineHeight:1.5}}>{proposalHistorySuggestion?`Existe um envio anterior${proposalHistorySuggestion.enviado_em?` de ${new Date(proposalHistorySuggestion.enviado_em).toLocaleDateString("pt-BR")}`:""}.`:"Se já enviou uma proposta antes, o histórico só será consultado quando você pedir."} O conteúdo só será carregado para esta proposta após sua escolha.</small>
+                  <button type="button" disabled={historySuggestionLoading} onClick={()=>void applyProposalHistorySuggestion()} style={{...portalSmallButton,background:"#c5a059",color:"#09090b"}}>{historySuggestionLoading?"Carregando…":historySuggestionApplied?"Carregar novamente":"Usar dados e anexos do último envio"}</button>
+                </div>}
                 <div className="portal-proposal-data-grid" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:9}}>
                   <label style={{fontSize:12,color:"#d4d4d8"}}>Nome *<input value={clientName} onChange={(event)=>setClientName(event.target.value)} autoComplete="name" style={{...input,marginTop:5}} /></label>
                   <label style={{fontSize:12,color:"#d4d4d8"}}>Documento *<span style={{display:"grid",gridTemplateColumns:"minmax(88px,.38fr) minmax(0,1fr)",gap:6,marginTop:5}}><select value={clientDocumentType} onChange={(event)=>{const next=event.target.value as DocumentType;setClientDocumentType(next);setClientCpf("");}} aria-label="Tipo de documento" style={input}><option value="cpf">CPF</option><option value="cnpj">CNPJ</option></select><input value={clientCpf} onChange={(event)=>setClientCpf(formatDocument(event.target.value,clientDocumentType))} inputMode={clientDocumentType === "cpf" ? "numeric" : "text"} autoCapitalize={clientDocumentType === "cnpj" ? "characters" : "none"} autoCorrect="off" autoComplete="off" maxLength={clientDocumentType === "cpf" ? 14 : 18} placeholder={clientDocumentType === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"} style={input} /></span><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>CPF: 11 dígitos · CNPJ: 14 posições, aceita letras e números.</small></label>
@@ -1510,13 +1734,34 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               <section style={{display:"grid",gap:10,marginTop:12,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
                 <strong style={{fontSize:12,color:"#edcf91"}}>Documentos para análise</strong>
                 <small style={{color:"#a1a1aa",lineHeight:1.5}}>Os arquivos ficam em armazenamento privado no Supabase e só podem ser acessados por você e pela equipe autorizada. Aceitamos PDF, JPG, PNG ou WebP, até 10 MB cada. O comprovante de residência deve ter no máximo 60 dias.</small>
+                <small style={{color:"#a1a1aa",lineHeight:1.5}}>Documentos de um perfil autorizado são reutilizados sem novo upload. Envios antigos sem perfil consentido só entram nesta proposta depois da sua escolha acima. Selecione outro arquivo para substituir um documento salvo.</small>
                 <div className="portal-document-grid" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:9}}>
-                  {proposalDocuments.filter((document)=>document.type !== "certidao_casamento" || civilStatus === "casado_civil").filter((document)=>document.type !== "identificacao_conjuge" || civilStatus === "casado_civil" || civilStatus === "uniao_estavel").map((document)=>{
+                  {applicableProposalDocuments.map((document)=>{
                     const file=proposalDocumentFiles[document.type];
-                    return <label key={document.type} style={{fontSize:12,color:"#d4d4d8"}}>{document.label}<small style={{display:"block",color:"#a1a1aa",marginTop:3}}>{document.hint}</small><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onChange={(event)=>{const file=event.target.files?.[0];if(file)setProposalDocumentFiles((current)=>({...current,[document.type]:file}));}} style={{...input,marginTop:6,fontSize:11,padding:8}} />{file && <small style={{display:"block",color:"#b9d89c",marginTop:4}}>{file.name} · {(file.size/1024/1024).toFixed(1)} MB</small>}</label>;
+                    const profileSaved=savedProposalDocuments.find((item)=>item.tipo===document.type);
+                    const historySaved=historySuggestionApplied?selectedHistoryDocuments.find((item)=>item.tipo===document.type):undefined;
+                    const visibleSaved=historySaved||profileSaved;
+                    const willReuse=Boolean(historySaved|| (profileReuseConsent&&profileSaved));
+                    return <div key={document.type} style={{fontSize:12,color:"#d4d4d8",padding:10,border:"1px solid #34343a",borderRadius:7}}>
+                      <strong>{document.label}</strong>
+                      <small style={{display:"block",color:"#a1a1aa",marginTop:3}}>{document.hint}</small>
+                      {visibleSaved && <small style={{display:"block",color:willReuse?"#b9d89c":"#a1a1aa",marginTop:6}}>Já enviado: {visibleSaved.nome_original} · {(visibleSaved.tamanho_bytes/1024/1024).toFixed(1)} MB. {historySaved?"Selecionado do último envio para esta proposta.":willReuse?"Será reutilizado sem novo upload.":"Não será anexado enquanto a reutilização do perfil estiver desativada."}</small>}
+                      <input key={`${document.type}-${file?.name || visibleSaved?.storage_path || "empty"}`} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onChange={(event)=>{const nextFile=event.target.files?.[0];if(nextFile)setProposalDocumentFiles((current)=>({...current,[document.type]:nextFile}));}} style={{...input,marginTop:6,fontSize:11,padding:8}} />
+                      {file && <small style={{display:"block",color:"#b9d89c",marginTop:4}}>Novo arquivo: {file.name} · {(file.size/1024/1024).toFixed(1)} MB</small>}
+                      {file && visibleSaved && <button type="button" onClick={()=>setProposalDocumentFiles((current)=>{const next={...current};delete next[document.type];return next;})} style={{...portalSmallButton,marginTop:7,background:"#3f3f46",color:"#fff"}}>Manter o documento salvo</button>}
+                      {visibleSaved && <button type="button" disabled={documentDeleteBusy===visibleSaved.storage_path} onClick={()=>void deletePreviousProposalDocument(visibleSaved)} style={{...portalSmallButton,display:"block",marginTop:7,background:"transparent",color:"#fca5a5",fontSize:11,textDecoration:"underline"}}>{documentDeleteBusy===visibleSaved.storage_path?"Excluindo…":"Excluir documento anterior definitivamente"}</button>}
+                    </div>;
                   })}
                 </div>
-                <label style={{display:"flex",alignItems:"flex-start",gap:8,color:"#d4d4d8",fontSize:12,lineHeight:1.55}}><input type="checkbox" checked={privacyConsent} onChange={(event)=>setPrivacyConsent(event.target.checked)} style={{marginTop:2,accentColor:"#d7ab63"}} />Autorizo o uso dos dados e documentos enviados para análise desta proposta e contato sobre este empreendimento. Entendo que esta simulação não é contrato, reserva nem aprovação de crédito.</label>
+                {hiddenSavedProposalDocuments.length>0 && <div style={{display:"grid",gap:7,padding:10,border:"1px solid #34343a",borderRadius:7}}><strong style={{fontSize:12,color:"#d4d4d8"}}>Anexos salvos que não serão usados nesta proposta</strong>{hiddenSavedProposalDocuments.map((saved)=><div key={saved.storage_path} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:9,flexWrap:"wrap"}}><small style={{color:"#a1a1aa"}}>{proposalDocuments.find((document)=>document.type===saved.tipo)?.label || "Documento"}: {saved.nome_original}</small><button type="button" disabled={documentDeleteBusy===saved.storage_path} onClick={()=>void deletePreviousProposalDocument(saved)} style={{...portalSmallButton,padding:"6px 9px",fontSize:10,background:"#3f3f46",color:"#fecaca"}}>{documentDeleteBusy===saved.storage_path?"Excluindo…":"Excluir definitivamente"}</button></div>)}</div>}
+                <label style={{display:"flex",alignItems:"flex-start",gap:8,color:"#d4d4d8",fontSize:12,lineHeight:1.55}}><input type="checkbox" checked={privacyConsent} onChange={(event)=>setPrivacyConsent(event.target.checked)} style={{marginTop:2,accentColor:"#d7ab63"}} />Autorizo o uso dos dados e documentos selecionados para análise desta proposta e contato sobre este empreendimento. Entendo que esta simulação não é contrato, reserva nem aprovação de crédito.</label>
+                <label style={{display:"flex",alignItems:"flex-start",gap:8,color:"#d4d4d8",fontSize:12,lineHeight:1.55}}><input type="checkbox" checked={profileReuseConsent} onChange={(event)=>setProfileReuseConsent(event.target.checked)} style={{marginTop:2,accentColor:"#d7ab63"}} />Autorizo salvar/atualizar meus dados e documentos no perfil reutilizável para facilitar futuras propostas. Esta autorização é opcional e separada da análise desta proposta.</label>
+                {profileConsentPersisted && <small style={{color:"#a1a1aa",lineHeight:1.5}}>Desmarcar impede atualizar o perfil neste envio, mas não revoga os dados já salvos. Para interromper o preenchimento automático, use “Revogar perfil reutilizável”.</small>}
+                {(civilStatus === "casado_civil" || civilStatus === "uniao_estavel") && profileReuseConsent && <label style={{display:"flex",alignItems:"flex-start",gap:8,color:"#d4d4d8",fontSize:12,lineHeight:1.55}}><input type="checkbox" checked={spouseProfileReuseConsent} onChange={(event)=>setSpouseProfileReuseConsent(event.target.checked)} style={{marginTop:2,accentColor:"#d7ab63"}} />Meu cônjuge também autorizou manter os dados e documentos dele(a) para facilitar futuras propostas.</label>}
+                {profileConsentPersisted && <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <button type="button" disabled={profileActionBusy} onClick={()=>void revokeReusableProfile()} style={{...portalSmallButton,background:"#3f3f46",color:"#fecaca"}}>{profileActionBusy?"Atualizando…":"Revogar perfil reutilizável"}</button>
+                  {spouseProfileConsentPersisted && <button type="button" disabled={profileActionBusy} onClick={()=>void revokeSpouseProfileConsent()} style={{...portalSmallButton,background:"#3f3f46",color:"#fecaca"}}>{profileActionBusy?"Atualizando…":"Revogar retenção do cônjuge"}</button>}
+                </div>}
               </section>
               {sent && (
                 <p

@@ -108,6 +108,7 @@ type CuradoriaMedia = { id:string; empreendimento_id:string; titulo?:string|null
 type PresentationOption = { empreendimento_id:string; titulo?:string|null; ativo:boolean; pdf_url?:string|null; storage_path?:string|null; link_url?:string|null; tipo_preferido?:"pdf"|"link"; cliente_ativo?:boolean; cliente_tipo?:"pdf"|"link"|"post"|null; cliente_pdf_path?:string|null; cliente_link_url?:string|null; cliente_blog_post_id?:string|null };
 type ProposalPerson = { nome?: string; cpf?: string; documento_tipo?: "CPF" | "CNPJ"; telefone?: string; email?: string; profissao?: string; estado_civil?: string };
 type ProposalDocument = { tipo: string; nome_original: string; mime_type: string; tamanho_bytes: number; storage_path: string; enviado_em?: string };
+type PendingDocumentDeletion = { cliente_id: string | number; cliente_nome?: string | null; storage_path: string; documento_tipo?: string | null; nome_original?: string | null; requested_at: string; last_attempt_at?: string | null; last_error?: string | null };
 type ClientProposal = {
   id: string;
   cliente_id: number;
@@ -276,9 +277,11 @@ export default function Clientes({
     [selections, setSelections] = useState<Selection[]>([]),
     [units, setUnits] = useState<Unit[]>([]);
   const [proposals, setProposals] = useState<ClientProposal[]>([]);
+  const [pendingDocumentDeletions, setPendingDocumentDeletions] = useState<PendingDocumentDeletion[]>([]);
   const [proposalView, setProposalView] = useState<ClientProposal | null>(null);
   const [lastProposalCount, setLastProposalCount] = useState<number | null>(null);
   const [documentDownloadBusy, setDocumentDownloadBusy] = useState<string | null>(null);
+  const [documentDeleteBusy, setDocumentDeleteBusy] = useState<string | null>(null);
   const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [siteOpportunityLeads, setSiteOpportunityLeads] = useState<SiteOpportunityLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
@@ -325,7 +328,7 @@ export default function Clientes({
   }, [open, curating, comparing]);
 
   async function load() {
-    const [c, p, s, u, cp, media, leads, opportunityLeads, presentationResult] = await Promise.all([
+    const [c, p, s, u, cp, media, leads, opportunityLeads, presentationResult, pendingDeletionResult] = await Promise.all([
       supabase
         .from("clientes")
         .select("*")
@@ -349,6 +352,7 @@ export default function Clientes({
       supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,consentiu_contato,consentimento_em,consentimento_revogado_em,blog_posts(titulo)").order("criado_em", { ascending:false }).limit(500),
       supabase.from("playbook_leads").select("id,nome,telefone,email,objetivo,codigo_oportunidade,empreendimento_nome_interno,oportunidade_publica_id,criado_em,etapa,notas").eq("origem", "site_oportunidade").order("criado_em", { ascending:false }).limit(40),
       supabase.from("apresentacoes").select("empreendimento_id,titulo,ativo,pdf_url,storage_path,link_url,tipo_preferido,cliente_ativo,cliente_tipo,cliente_pdf_path,cliente_link_url,cliente_blog_post_id").limit(500),
+      supabase.rpc("admin_listar_cliente_proposta_exclusoes_pendentes"),
     ]);
     if (c.error) {
       setMessage(`Não foi possível carregar os clientes: ${c.error.message}`);
@@ -379,6 +383,7 @@ export default function Clientes({
       setLastProposalCount(nextNewCount);
       setProposals(nextProposals);
     }
+    if (!pendingDeletionResult.error) setPendingDocumentDeletions((pendingDeletionResult.data || []) as PendingDocumentDeletion[]);
     if (!leads.error) setBlogLeads((leads.data || []) as unknown as BlogLead[]);
     if (!opportunityLeads.error) setSiteOpportunityLeads((opportunityLeads.data || []) as SiteOpportunityLead[]);
     if (!media.error) {
@@ -709,6 +714,84 @@ export default function Clientes({
       setDocumentDownloadBusy(null);
     }
   }
+  async function deleteProposalDocumentPermanently(proposal: ClientProposal, file: ProposalDocument) {
+    if (!window.confirm(`Excluir definitivamente “${file.nome_original}”? O arquivo será removido do armazenamento e de todas as propostas deste cliente. Esta ação não pode ser desfeita.`)) return;
+    setDocumentDeleteBusy(file.storage_path);
+    try {
+      const { data, error } = await supabase.rpc("admin_cliente_excluir_documento_proposta", {
+        p_cliente_id: String(proposal.cliente_id),
+        p_storage_path: file.storage_path,
+      });
+      if (error) throw error;
+      const result = data as { removed?: boolean } | null;
+      if (!result?.removed) {
+        setMessage("O documento já não está vinculado às propostas ou ao perfil reutilizável.");
+        return;
+      }
+      setProposalView((current) => current ? {
+        ...current,
+        documentos: (current.documentos || []).filter((document) => document.storage_path !== file.storage_path),
+      } : null);
+      const { error: storageError } = await supabase.storage.from("cliente-propostas").remove([file.storage_path]);
+      const { error: finalizeError } = await supabase.rpc("finalizar_cliente_proposta_documento_exclusao", {
+        p_storage_path: file.storage_path,
+        p_erro: storageError?.message || null,
+      });
+      if (storageError) setMessage(`As referências foram removidas, mas o arquivo físico aguarda exclusão. A pendência foi registrada para retry: ${storageError.message}`);
+      else if (finalizeError) setMessage("O arquivo foi apagado, mas a fila de exclusão não pôde ser confirmada. A equipe poderá concluir a limpeza pelo painel.");
+      else setMessage("Documento excluído do armazenamento privado e de todas as propostas deste cliente.");
+      void load();
+    } catch (error) {
+      setMessage(error instanceof Error ? `Não foi possível excluir o documento: ${error.message}` : "Não foi possível excluir o documento. Atualize a tela e tente novamente.");
+    } finally {
+      setDocumentDeleteBusy(null);
+    }
+  }
+
+  async function retryPendingDocumentDeletion(pending: PendingDocumentDeletion) {
+    setDocumentDeleteBusy(pending.storage_path);
+    try {
+      const { error: storageError } = await supabase.storage.from("cliente-propostas").remove([pending.storage_path]);
+      const { error: finalizeError } = await supabase.rpc("finalizar_cliente_proposta_documento_exclusao", {
+        p_storage_path: pending.storage_path,
+        p_erro: storageError?.message || null,
+      });
+      if (storageError) setMessage(`A exclusão ainda falhou para ${pending.nome_original || pending.storage_path}: ${storageError.message}`);
+      else if (finalizeError) setMessage("O arquivo foi apagado, mas a confirmação da fila falhou. Tente atualizar o painel.");
+      else setMessage(`Exclusão física concluída para ${pending.nome_original || "o documento"}.`);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? `Não foi possível repetir a exclusão: ${error.message}` : "Não foi possível repetir a exclusão. Tente novamente.");
+    } finally {
+      setDocumentDeleteBusy(null);
+    }
+  }
+
+  const activeProposals = proposals.filter((proposal) => !["aceita", "recusada"].includes(proposal.status));
+  const historicalProposals = proposals.filter((proposal) => ["aceita", "recusada"].includes(proposal.status));
+  const renderProposalCard = (proposal: ClientProposal) => {
+    const client = items.find((item) => Number(item.id) === proposal.cliente_id);
+    const property = properties.find((item) => item.id === proposal.empreendimento_id);
+    return (
+      <article key={proposal.id} style={{ border: `1px solid ${proposal.status === "nova" ? "#c5a059" : "#303036"}`, borderRadius: 8, padding: 11, display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(140px,auto)", gap: 10 }}>
+        <div>
+          <small style={{ display: "block", color: "#a1a1aa", marginBottom: 4 }}>{proposal.status.replaceAll("_", " ")} · {new Date(proposal.created_at).toLocaleString("pt-BR")}</small>
+          <strong>{client?.nome || "Cliente"} · {property?.nome || proposal.empreendimento_id}</strong>
+          <small style={{ display: "block", color: "#a1a1aa", marginTop: 4 }}>Entrada {money(proposal.entrada)} · Mensais {money(proposal.parcela_mensal)}{proposal.quantidade_baloes ? ` · ${proposal.quantidade_baloes} balão(ões) de ${money(proposal.balao)}` : ""}</small>
+          {proposal.mensagem && <p style={{ fontSize: 12, color: "#d4d4d8" }}>{proposal.mensagem}</p>}
+          <button type="button" onClick={() => setProposalView(proposal)} style={{ ...button, marginTop: 8, fontSize: 11, background: "#c5a059", color: "#09090b" }}>Ver proposta formal</button>
+          <small style={{ display: "block", color: "#a1a1aa", marginTop: 5 }}>{proposal.documentos?.length || 0} documento(s) anexado(s)</small>
+        </div>
+        <select value={proposal.status} onChange={(event) => void updateProposal(proposal.id, event.target.value)} style={{ ...input, width: "100%", alignSelf: "start" }} aria-label={`Status da proposta de ${client?.nome || "cliente"}`}>
+          <option value="nova">Nova</option>
+          <option value="em_analise">Em análise</option>
+          <option value="contraproposta">Contraproposta</option>
+          <option value="aceita">Aceita</option>
+          <option value="recusada">Recusada</option>
+        </select>
+      </article>
+    );
+  };
 
   return (
     <div style={{ color: "#f4f4f5", display: "grid", gap: 14 }}>
@@ -758,81 +841,32 @@ export default function Clientes({
           </div>
         </section>
       )}
+      {pendingDocumentDeletions.length > 0 && <section style={{ ...panel, borderColor: "#854d0e", background: "#17140e" }}>
+        <strong style={{ color: "#fbbf24" }}>Arquivos privados aguardando exclusão física ({pendingDocumentDeletions.length})</strong>
+        <small style={{ display: "block", color: "#a1a1aa", marginTop: 5 }}>As referências já foram retiradas do perfil e do histórico. Use o retry abaixo para remover objetos que falharam no Storage.</small>
+        <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+          {pendingDocumentDeletions.map((pending) => <article key={pending.storage_path} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", padding: 9, border: "1px solid #45361f", borderRadius: 7 }}>
+            <div><strong style={{ fontSize: 12 }}>{pending.cliente_nome || `Cliente ${pending.cliente_id}`} · {pending.nome_original || pending.storage_path.split("/").pop()}</strong><small style={{ display: "block", color: "#a1a1aa", marginTop: 3 }}>Solicitado em {new Date(pending.requested_at).toLocaleString("pt-BR")}{pending.last_error ? ` · Última falha: ${pending.last_error}` : ""}</small></div>
+            <button type="button" disabled={documentDeleteBusy === pending.storage_path} onClick={() => void retryPendingDocumentDeletion(pending)} style={{ ...button, background: "#c5a059", color: "#09090b", fontSize: 11 }}>{documentDeleteBusy === pending.storage_path ? "Tentando…" : "Tentar apagar novamente"}</button>
+          </article>)}
+        </div>
+      </section>}
       {proposals.some((item) => item.status === "nova") && <section style={{ ...panel, borderColor: "#c5a059", background: "#1c160b", color: "#f5e0b2" }}><strong>Nova proposta recebida</strong><span style={{ display: "block", marginTop: 4, fontSize: 12, color: "#d4d4d8" }}>A cliente enviou uma simulação. Abra a proposta para consultar os valores e imprimir a ficha formal.</span></section>}
       {siteOpportunityLeads.length > 0 && <details style={{...panel,borderColor:"#8a6a2e"}} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Solicitações de conversa ({siteOpportunityLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{siteOpportunityLeads.map((lead)=><article key={lead.id} style={{border:"1px solid #4a3a20",borderRadius:8,padding:11,background:"#15120d"}}><div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>Solicitação de {lead.nome}</strong><span style={{color:"#edcf91",fontSize:12}}>{lead.empreendimento_nome_interno || "Oportunidade selecionada"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.telefone || "Sem telefone"}{lead.email ? ` · ${lead.email}` : ""} · {new Date(lead.criado_em).toLocaleString("pt-BR")}</small>{lead.objetivo && <p style={{fontSize:12,color:"#d4d4d8",margin:"8px 0 0"}}>Objetivo: {lead.objetivo}</p>}<small style={{display:"block",color:"#888",marginTop:7}}>A oportunidade clicada foi vinculada internamente ao cadastro.</small></article>)}</div></details>}
       {blogLeads.length > 0 && <details style={panel} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Leads identificados pelo Blog ({blogLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{blogLeads.map((lead)=><article key={lead.user_id} style={{border:"1px solid #303036",borderRadius:8,padding:11}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}><strong>{lead.nome || "Leitor identificado"}</strong><span style={{color:lead.consentiu_contato?"#9bd4ac":"#a1a1aa",fontSize:11}}>{lead.consentiu_contato?"Autorizou contato":"Sem autorização para contato"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.email}{lead.blog_posts?.titulo ? ` · Origem: ${lead.blog_posts.titulo}` : ""}</small>{lead.interesses?.length ? <p style={{fontSize:12,color:"#d4d4d8",marginBottom:0}}>Interesses: {lead.interesses.join(" · ")}</p> : <small style={{color:"#71717a"}}>Ainda não informou interesses.</small>}</article>)}</div></details>}
       {proposals.length > 0 && (
-        <details style={panel} open>
-          <summary
-            style={{ cursor: "pointer", fontWeight: 800, color: "#edcf91" }}
-          >
-            Propostas enviadas pelos clientes (
-            {proposals.filter((item) => item.status === "nova").length} nova(s))
-          </summary>
-          <div style={{ display: "grid", gap: 9, marginTop: 12 }}>
-            {proposals.slice(0, 12).map((proposal) => {
-              const client = items.find(
-                (item) => Number(item.id) === proposal.cliente_id,
-              );
-              const property = properties.find(
-                (item) => item.id === proposal.empreendimento_id,
-              );
-              return (
-                <article
-                  key={proposal.id}
-                  style={{
-                    border: `1px solid ${proposal.status === "nova" ? "#c5a059" : "#303036"}`,
-                    borderRadius: 8,
-                    padding: 11,
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto",
-                    gap: 10,
-                  }}
-                >
-                  <div>
-                    <strong>
-                      {client?.nome || "Cliente"} ·{" "}
-                      {property?.nome || proposal.empreendimento_id}
-                    </strong>
-                    <small
-                      style={{
-                        display: "block",
-                        color: "#a1a1aa",
-                        marginTop: 4,
-                      }}
-                    >
-                      Entrada {money(proposal.entrada)} · Mensais{" "}
-                      {money(proposal.parcela_mensal)}
-                      {proposal.quantidade_baloes
-                        ? ` · ${proposal.quantidade_baloes} balão(ões) de ${money(proposal.balao)}`
-                        : ""}
-                    </small>
-                    {proposal.mensagem && (
-                      <p style={{ fontSize: 12, color: "#d4d4d8" }}>
-                        {proposal.mensagem}
-                      </p>
-                    )}
-                    <button type="button" onClick={() => setProposalView(proposal)} style={{ ...button, marginTop: 8, fontSize: 11, background: "#c5a059", color: "#09090b" }}>Ver proposta formal</button>
-                    <small style={{ display: "block", color: "#a1a1aa", marginTop: 5 }}>{proposal.documentos?.length || 0} documento(s) anexado(s)</small>
-                  </div>
-                  <select
-                    value={proposal.status}
-                    onChange={(event) =>
-                      void updateProposal(proposal.id, event.target.value)
-                    }
-                    style={{ ...input, width: 150 }}
-                  >
-                    <option value="nova">Nova</option>
-                    <option value="em_analise">Em análise</option>
-                    <option value="contraproposta">Contraproposta</option>
-                    <option value="aceita">Aceita</option>
-                    <option value="recusada">Recusada</option>
-                  </select>
-                </article>
-              );
-            })}
-          </div>
-        </details>
+        <section style={panel}>
+          <details open>
+            <summary style={{ cursor: "pointer", fontWeight: 800, color: "#edcf91" }}>Fila de propostas ({activeProposals.length} ativa(s) · {activeProposals.filter((item) => item.status === "nova").length} nova(s))</summary>
+            <div style={{ display: "grid", gap: 9, marginTop: 12 }}>
+              {activeProposals.length ? activeProposals.slice(0, 30).map(renderProposalCard) : <p style={{ margin: 0, color: "#a1a1aa", fontSize: 13 }}>Nenhuma proposta pendente de análise.</p>}
+            </div>
+          </details>
+          {historicalProposals.length > 0 && <details style={{ marginTop: 12 }}>
+            <summary style={{ cursor: "pointer", fontWeight: 800, color: "#a1a1aa" }}>Histórico de propostas aceitas/recusadas ({historicalProposals.length})</summary>
+            <div style={{ display: "grid", gap: 9, marginTop: 12 }}>{historicalProposals.slice(0, 50).map(renderProposalCard)}</div>
+          </details>}
+        </section>
       )}
       {proposalView && (() => {
         const client = items.find((item) => Number(item.id) === proposalView.cliente_id);
@@ -854,8 +888,8 @@ export default function Clientes({
         const documentLabels: Record<string, string> = { identificacao: "Identidade do proponente", comprovante_residencia: "Comprovante de residência", certidao_casamento: "Certidão de casamento", identificacao_conjuge: "Identidade do cônjuge" };
         return <div className="client-proposal-overlay" style={{ position: "fixed", inset: 0, zIndex: 7000, background: "rgba(0,0,0,.82)", padding: 14, overflow: "auto" }}>
           <section className="client-proposal-no-print" style={{ ...panel, maxWidth: 820, margin: "20px auto", background: "#111113", color: "#fff", padding: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}><div><strong>Documentos recebidos ({files.length})</strong><small style={{ display: "block", color: "#a1a1aa", marginTop: 4 }}>Os arquivos estão em bucket privado. Os links de download expiram após 5 minutos.</small></div><button type="button" onClick={() => setProposalView(null)} style={{ background: "#27272a", color: "#fff", border: 0, padding: 9, cursor: "pointer", borderRadius: 6 }}>Fechar</button></div>
-            {files.length ? <div style={{ display: "grid", gap: 8, marginTop: 12 }}>{files.map((file) => <div key={file.storage_path} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", padding: 10, border: "1px solid #303036", borderRadius: 7 }}><span><strong style={{ display: "block", fontSize: 12 }}>{documentLabels[file.tipo] || "Documento"}</strong><small style={{ color: "#a1a1aa" }}>{file.nome_original} · {(file.tamanho_bytes / 1024 / 1024).toFixed(1)} MB</small></span><button type="button" disabled={documentDownloadBusy === file.storage_path} onClick={() => void downloadProposalDocument(file)} style={{ ...button, background: "#d7ab63", color: "#09090b", opacity: documentDownloadBusy === file.storage_path ? .65 : 1 }}>{documentDownloadBusy === file.storage_path ? "Preparando…" : "Baixar documento"}</button></div>)}</div> : <p style={{ color: "#a1a1aa", fontSize: 13 }}>Nenhum documento foi anexado a esta proposta.</p>}
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}><div><strong>Documentos recebidos ({files.length})</strong><small style={{ display: "block", color: "#a1a1aa", marginTop: 4 }}>Bucket privado. Excluir remove o arquivo de todas as propostas deste cliente; downloads expiram após 5 minutos.</small></div><button type="button" onClick={() => setProposalView(null)} style={{ background: "#27272a", color: "#fff", border: 0, padding: 9, cursor: "pointer", borderRadius: 6 }}>Fechar</button></div>
+            {files.length ? <div style={{ display: "grid", gap: 8, marginTop: 12 }}>{files.map((file) => <div key={file.storage_path} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", padding: 10, border: "1px solid #303036", borderRadius: 7 }}><span><strong style={{ display: "block", fontSize: 12 }}>{documentLabels[file.tipo] || "Documento"}</strong><small style={{ color: "#a1a1aa" }}>{file.nome_original} · {(file.tamanho_bytes / 1024 / 1024).toFixed(1)} MB</small></span><div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}><button type="button" disabled={documentDownloadBusy === file.storage_path} onClick={() => void downloadProposalDocument(file)} style={{ ...button, background: "#d7ab63", color: "#09090b", opacity: documentDownloadBusy === file.storage_path ? .65 : 1 }}>{documentDownloadBusy === file.storage_path ? "Preparando…" : "Baixar documento"}</button><button type="button" disabled={documentDeleteBusy === file.storage_path} onClick={() => void deleteProposalDocumentPermanently(proposalView, file)} style={{ ...button, background: "#7f1d1d", color: "#fee2e2", opacity: documentDeleteBusy === file.storage_path ? .65 : 1 }}>{documentDeleteBusy === file.storage_path ? "Excluindo…" : "Excluir definitivamente"}</button></div></div>)}</div> : <p style={{ color: "#a1a1aa", fontSize: 13 }}>Nenhum documento foi anexado a esta proposta.</p>}
           </section>
           <section className="client-proposal-print" style={{ ...panel, maxWidth: 820, margin: "20px auto", background: "#fff", color: "#161616", padding: 32 }}>
             <div className="client-proposal-no-print" style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 14 }}><button type="button" onClick={() => window.print()} style={{ ...button, background: "#161616", color: "#fff" }}>Imprimir / salvar proposta em PDF</button></div>
