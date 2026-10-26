@@ -1,4 +1,8 @@
 const SITE_ORIGIN = "https://luan-especialista.pro";
+// A anon key é pública por definição e já é usada pelo bundle do site. O fallback
+// evita que uma configuração ausente no Pages transforme o Blog inteiro em HTML vazio.
+const PUBLIC_SUPABASE_URL = "https://kdwvbkxucwdvuoknotkb.supabase.co";
+const PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkd3Zia3h1Y3dkdnVva25vdGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMzYzMDQsImV4cCI6MjA5OTcxMjMwNH0.SQJ2gOYYPIwhrKOxt6BU_VIoOTdagQxCbC8EdKZGZm8";
 const BLOG_SELECT = [
   "id",
   "titulo",
@@ -600,9 +604,8 @@ function renderPage(post) {
 }
 
 async function loadPosts(context) {
-  const supabaseUrl = String(context.env?.SUPABASE_URL || "").replace(/\/+$/, "");
-  const anonKey = context.env?.SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !anonKey) throw new Error("missing-public-database-config");
+  const supabaseUrl = String(context.env?.SUPABASE_URL || PUBLIC_SUPABASE_URL).replace(/\/+$/, "");
+  const anonKey = context.env?.SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY;
 
   const endpoint = new URL(`${supabaseUrl}/rest/v1/blog_posts`);
   endpoint.searchParams.set("select", BLOG_SELECT);
@@ -781,9 +784,8 @@ function errorPage(status, heading, message) {
 }
 
 async function loadPost(context, slug) {
-  const supabaseUrl = String(context.env?.SUPABASE_URL || "").replace(/\/+$/, "");
-  const anonKey = context.env?.SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !anonKey) throw new Error("missing-public-database-config");
+  const supabaseUrl = String(context.env?.SUPABASE_URL || PUBLIC_SUPABASE_URL).replace(/\/+$/, "");
+  const anonKey = context.env?.SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY;
 
   const endpoint = new URL(`${supabaseUrl}/rest/v1/blog_posts`);
   endpoint.searchParams.set("select", BLOG_SELECT);

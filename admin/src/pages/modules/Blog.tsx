@@ -119,11 +119,14 @@ export default function BlogModule() {
       .select(
         "id,titulo,slug,resumo,conteudo,categoria,layout,imagem_capa_url,imagens,blocos,cidade,empreendimento_id,seo_titulo,seo_descricao,palavras_chave,status,publicado_em,atualizado_em",
       )
-      .order("atualizado_em", { ascending: false });
-    setPosts(((data || []) as Post[]).map((post) => ({ ...post, blocos: post.blocos || {} })));
+      .order("atualizado_em", { ascending: false })
+      .limit(500);
+    if (!error) {
+      setPosts(((data || []) as Post[]).map((post) => ({ ...post, blocos: post.blocos || {} })));
+    }
     setMessage(
       error
-        ? "Não foi possível carregar o Blog. Aplique a migração editorial no Supabase."
+        ? `Não foi possível carregar o Blog: ${error.message}`
         : "",
     );
     setLoading(false);

@@ -298,7 +298,8 @@ export default function Clientes({
       supabase
         .from("clientes")
         .select("*")
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .limit(500),
       supabase
         .from("empreendimentos")
         .select(
@@ -306,21 +307,22 @@ export default function Clientes({
         )
         .eq("ativo", true)
         .order("nome"),
-      supabase.from("cliente_empreendimentos").select("*").order("ordem"),
-      supabase.from("unidades").select("*"),
+      supabase.from("cliente_empreendimentos").select("*").order("ordem").limit(2000),
+      supabase.from("unidades").select("*").limit(5000),
       supabase
         .from("cliente_propostas")
         .select("*")
-        .order("created_at", { ascending: false }),
-      supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem"),
-      supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,consentiu_contato,consentimento_em,consentimento_revogado_em,blog_posts(titulo)").order("criado_em", { ascending:false }),
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem").limit(5000),
+      supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,consentiu_contato,consentimento_em,consentimento_revogado_em,blog_posts(titulo)").order("criado_em", { ascending:false }).limit(500),
       supabase.from("playbook_leads").select("id,nome,telefone,email,objetivo,codigo_oportunidade,empreendimento_nome_interno,oportunidade_publica_id,criado_em,etapa,notas").eq("origem", "site_oportunidade").order("criado_em", { ascending:false }).limit(40),
     ]);
-    if (c.error)
-      setMessage(
-        "Aplique a atualização de clientes no Supabase para ativar o módulo.",
-      );
-    else setItems((c.data || []) as Client[]);
+    if (c.error) {
+      setMessage(`Não foi possível carregar os clientes: ${c.error.message}`);
+    } else {
+      setItems((c.data || []) as Client[]);
+    }
     if (!p.error)
       setProperties(
         await Promise.all(
