@@ -102,6 +102,7 @@ type Portal = {
 type CubQuote = { value: number; competencia?: string | null; mes_referencia?: string | null; source?: string; updated_at?: string };
 type PostMode = "chaves" | "parcelas_e_baloes" | "somente_parcelas" | "somente_baloes";
 type CivilStatus = "" | "solteiro" | "casado_civil" | "uniao_estavel" | "divorciado" | "viuvo";
+type DocumentType = "cpf" | "cnpj";
 type ProposalDocumentType = "identificacao" | "comprovante_residencia" | "certidao_casamento" | "identificacao_conjuge";
 type SpouseData = { nome: string; cpf: string; telefone: string; email: string; profissao: string };
 const proposalDocuments: { type: ProposalDocumentType; label: string; hint: string }[] = [
@@ -128,6 +129,80 @@ const input = {
   padding: "10px 11px",
   fontSize: 14,
 };
+
+function normalizeDocument(value: string, type: DocumentType) {
+  if (type === "cpf") return value.replace(/\D/g, "").slice(0, 11);
+  const characters = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return `${characters.slice(0, 12)}${characters.slice(12).replace(/\D/g, "")}`.slice(0, 14);
+}
+
+function formatDocument(value: string, type: DocumentType) {
+  const normalized = normalizeDocument(value, type);
+  if (type === "cpf") {
+    let formatted = normalized.slice(0, 3);
+    if (normalized.length > 3) formatted += `.${normalized.slice(3, 6)}`;
+    if (normalized.length > 6) formatted += `.${normalized.slice(6, 9)}`;
+    if (normalized.length > 9) formatted += `-${normalized.slice(9, 11)}`;
+    return formatted;
+  }
+  let formatted = normalized.slice(0, 2);
+  if (normalized.length > 2) formatted += `.${normalized.slice(2, 5)}`;
+  if (normalized.length > 5) formatted += `.${normalized.slice(5, 8)}`;
+  if (normalized.length > 8) formatted += `/${normalized.slice(8, 12)}`;
+  if (normalized.length > 12) formatted += `-${normalized.slice(12, 14)}`;
+  return formatted;
+}
+
+function brazilPhoneDigits(value: string) {
+  return value.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "").slice(0, 11);
+}
+
+function formatBrazilPhone(value: string) {
+  const digits = brazilPhoneDigits(value);
+  if (!digits) return "";
+  if (digits.length <= 2) return `(${digits}`;
+  const area = digits.slice(0, 2);
+  const subscriber = digits.slice(2);
+  const splitAt = subscriber.startsWith("9") || digits.length > 10 ? 5 : 4;
+  const formattedSubscriber = subscriber.length > splitAt
+    ? `${subscriber.slice(0, splitAt)}-${subscriber.slice(splitAt)}`
+    : subscriber;
+  return `(${area}) ${formattedSubscriber}`;
+}
+
+function isValidCpf(value: string) {
+  const digits = normalizeDocument(value, "cpf");
+  if (digits.length !== 11 || /^([0-9])\1{10}$/.test(digits)) return false;
+  const checkDigit = (length: number) => {
+    const sum = digits.slice(0, length).split("").reduce((total, digit, index) => total + Number(digit) * (length + 1 - index), 0);
+    const remainder = (sum * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+  return checkDigit(9) === Number(digits[9]) && checkDigit(10) === Number(digits[10]);
+}
+
+function isValidCnpj(value: string) {
+  const cnpj = normalizeDocument(value, "cnpj");
+  if (!/^[A-Z0-9]{12}[0-9]{2}$/.test(cnpj) || /^([A-Z0-9])\1{13}$/.test(cnpj)) return false;
+  const calculateDigit = (prefix: string) => {
+    let weight = 2;
+    let sum = 0;
+    for (let index = prefix.length - 1; index >= 0; index -= 1) {
+      sum += (prefix.charCodeAt(index) - 48) * weight;
+      weight = weight === 9 ? 2 : weight + 1;
+    }
+    const remainder = sum % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+  const first = calculateDigit(cnpj.slice(0, 12));
+  const second = calculateDigit(`${cnpj.slice(0, 12)}${first}`);
+  return cnpj.endsWith(`${first}${second}`);
+}
+
+function isValidBrazilPhone(value: string) {
+  const digits = brazilPhoneDigits(value);
+  return digits.length === 10 || digits.length === 11;
+}
 
 const numberValue = (...values: unknown[]) => {
   for (const value of values) {
@@ -638,6 +713,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientCpf, setClientCpf] = useState("");
+  const [clientDocumentType, setClientDocumentType] = useState<DocumentType>("cpf");
   const [clientProfession, setClientProfession] = useState("");
   const [civilStatus, setCivilStatus] = useState<CivilStatus>("");
   const [spouse, setSpouse] = useState<SpouseData>({ nome: "", cpf: "", telefone: "", email: "", profissao: "" });
@@ -770,9 +846,12 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         );
         setPortal({ ...result, oportunidades: opportunities });
         setClientName(result.cliente?.nome || "");
-        setClientPhone(result.cliente?.telefone || "");
+        setClientPhone(formatBrazilPhone(result.cliente?.telefone || ""));
         setClientEmail(result.cliente?.email || "");
-        setClientCpf(result.cliente?.cpf || "");
+        const storedDocument = result.cliente?.cpf || "";
+        const storedDocumentType: DocumentType = normalizeDocument(storedDocument, "cnpj").length === 14 ? "cnpj" : "cpf";
+        setClientDocumentType(storedDocumentType);
+        setClientCpf(formatDocument(storedDocument, storedDocumentType));
         setSecondsUntilExpiry(result.cliente?.acesso_expira_em ? Math.max(0, Math.floor((new Date(result.cliente.acesso_expira_em).getTime() - Date.now()) / 1000)) : null);
       });
     return () => { document.removeEventListener("contextmenu", protectContent); document.removeEventListener("keydown", blockPrint); };
@@ -970,14 +1049,20 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       setSent(`O fluxo ainda não fecha. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Distribua o saldo entre até as chaves e pós-chaves antes de enviar.`);
       return;
     }
-    const cpfDigits = clientCpf.replace(/\D/g, "");
+    const documentValue = normalizeDocument(clientCpf, clientDocumentType);
+    const validDocument = clientDocumentType === "cpf"
+      ? isValidCpf(documentValue)
+      : isValidCnpj(documentValue);
+    const clientPhoneValue = formatBrazilPhone(clientPhone);
     const hasSpouse = civilStatus === "casado_civil" || civilStatus === "uniao_estavel";
-    if (!clientName.trim() || !clientPhone.trim() || cpfDigits.length !== 11 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail.trim()) || !clientProfession.trim() || !civilStatus) {
-      setSent("Preencha nome, telefone, CPF válido, e-mail, profissão e estado civil.");
+    if (!clientName.trim() || !isValidBrazilPhone(clientPhoneValue) || !validDocument || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail.trim()) || !clientProfession.trim() || !civilStatus) {
+      setSent(`Preencha nome, WhatsApp com DDD, ${clientDocumentType.toUpperCase()} válido, e-mail, profissão e estado civil.`);
       return;
     }
-    if (hasSpouse && (!spouse.nome.trim() || spouse.cpf.replace(/\D/g, "").length !== 11 || !spouse.telefone.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(spouse.email.trim()) || !spouse.profissao.trim())) {
-      setSent("Preencha os dados do cônjuge: nome, CPF, telefone, e-mail e profissão.");
+    const spouseCpf = normalizeDocument(spouse.cpf, "cpf");
+    const spousePhone = formatBrazilPhone(spouse.telefone);
+    if (hasSpouse && (!spouse.nome.trim() || !isValidCpf(spouseCpf) || !isValidBrazilPhone(spousePhone) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(spouse.email.trim()) || !spouse.profissao.trim())) {
+      setSent("Preencha os dados do cônjuge: nome, CPF válido, WhatsApp com DDD, e-mail e profissão.");
       return;
     }
     if (!privacyConsent || (hasSpouse && !spouseConsent)) {
@@ -1035,13 +1120,13 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         p_unidade_id: proposalUnit?.id || null,
         p_desconto_percentual: Number(commercial.percentage || 0),
         p_fluxo_snapshot: { total: flowTotal, valor_tabela: commercial.tablePrice, desconto_negociado: commercial.discountValue, distribuicao: { percentual_ate_chaves: targets.prePct, percentual_pos_chaves: targets.postPct, modalidade_pos_chaves: financingAtKeys ? "financiamento_nas_chaves" : "direto_construtora", total_ate_chaves: preTotal, total_pos_chaves: postTotal, financiamento_nas_chaves: financingTotal, meta_ate_chaves: targets.preTarget, meta_pos_chaves: targets.postTarget, saldo: flowDifference }, valores: { entrada: entry, parcela: monthly, parcelas_ate_chaves: preMonths, balao: balloon, baloes_ate_chaves: balloonCount, nas_chaves: keysValue, parcela_pos_chaves: postMonthly, parcelas_pos_chaves: postMonths, balao_pos_chaves: postBalloon, baloes_pos_chaves: postBalloonCount } },
-        p_cpf: cpfDigits,
+        p_cpf: documentValue,
         p_email: clientEmail.trim().toLowerCase(),
         p_nome: clientName.trim(),
-        p_telefone: clientPhone.trim(),
+        p_telefone: clientPhoneValue,
         p_profissao: clientProfession.trim(),
         p_estado_civil: civilStatus,
-        p_dados_conjuge: hasSpouse ? { ...spouse, cpf: spouse.cpf.replace(/\D/g, ""), email: spouse.email.trim().toLowerCase() } : null,
+        p_dados_conjuge: hasSpouse ? { ...spouse, cpf: spouseCpf, telefone: spousePhone, email: spouse.email.trim().toLowerCase() } : null,
         p_documentos: documentMetadata,
         p_proposta_id: proposalId,
         p_consentimento_dados: privacyConsent,
@@ -1404,8 +1489,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 <small style={{color:"#a1a1aa"}}>Informe seus dados depois de montar o fluxo. Os campos com * são necessários para encaminhar a proposta.</small>
                 <div className="portal-proposal-data-grid" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:9}}>
                   <label style={{fontSize:12,color:"#d4d4d8"}}>Nome *<input value={clientName} onChange={(event)=>setClientName(event.target.value)} autoComplete="name" style={{...input,marginTop:5}} /></label>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>CPF *<input value={clientCpf} onChange={(event)=>setClientCpf(event.target.value)} inputMode="numeric" autoComplete="off" style={{...input,marginTop:5}} /></label>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>Telefone celular *<input value={clientPhone} onChange={(event)=>setClientPhone(event.target.value)} inputMode="tel" autoComplete="tel" style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Documento *<span style={{display:"grid",gridTemplateColumns:"minmax(88px,.38fr) minmax(0,1fr)",gap:6,marginTop:5}}><select value={clientDocumentType} onChange={(event)=>{const next=event.target.value as DocumentType;setClientDocumentType(next);setClientCpf("");}} aria-label="Tipo de documento" style={input}><option value="cpf">CPF</option><option value="cnpj">CNPJ</option></select><input value={clientCpf} onChange={(event)=>setClientCpf(formatDocument(event.target.value,clientDocumentType))} inputMode={clientDocumentType === "cpf" ? "numeric" : "text"} autoCapitalize={clientDocumentType === "cnpj" ? "characters" : "none"} autoCorrect="off" autoComplete="off" maxLength={clientDocumentType === "cpf" ? 14 : 18} placeholder={clientDocumentType === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"} style={input} /></span><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>CPF: 11 dígitos · CNPJ: 14 posições, aceita letras e números.</small></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>WhatsApp *<input value={clientPhone} onChange={(event)=>setClientPhone(formatBrazilPhone(event.target.value))} inputMode="tel" autoComplete="tel" maxLength={16} placeholder="(00) 00000-0000" style={{...input,marginTop:5}} /><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>Inclua o DDD; a formatação é automática.</small></label>
                   <label style={{fontSize:12,color:"#d4d4d8"}}>E-mail *<input value={clientEmail} onChange={(event)=>setClientEmail(event.target.value)} type="email" autoComplete="email" style={{...input,marginTop:5}} /></label>
                   <label style={{fontSize:12,color:"#d4d4d8"}}>Profissão *<input value={clientProfession} onChange={(event)=>setClientProfession(event.target.value)} autoComplete="organization-title" style={{...input,marginTop:5}} /></label>
                   <label style={{fontSize:12,color:"#d4d4d8"}}>Estado civil *<select value={civilStatus} onChange={(event)=>setCivilStatus(event.target.value as CivilStatus)} style={{...input,marginTop:5}}><option value="">Selecione</option><option value="solteiro">Solteiro(a)</option><option value="casado_civil">Casado(a) no civil</option><option value="uniao_estavel">União estável</option><option value="divorciado">Divorciado(a)</option><option value="viuvo">Viúvo(a)</option></select></label>
@@ -1414,8 +1499,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   <strong style={{fontSize:12,color:"#edcf91"}}>Dados do cônjuge</strong>
                   <div className="portal-proposal-data-grid" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:9}}>
                     <label style={{fontSize:12,color:"#d4d4d8"}}>Nome *<input value={spouse.nome} onChange={(event)=>setSpouse((current)=>({...current,nome:event.target.value}))} autoComplete="off" style={{...input,marginTop:5}} /></label>
-                    <label style={{fontSize:12,color:"#d4d4d8"}}>CPF *<input value={spouse.cpf} onChange={(event)=>setSpouse((current)=>({...current,cpf:event.target.value}))} inputMode="numeric" style={{...input,marginTop:5}} /></label>
-                    <label style={{fontSize:12,color:"#d4d4d8"}}>Telefone celular *<input value={spouse.telefone} onChange={(event)=>setSpouse((current)=>({...current,telefone:event.target.value}))} inputMode="tel" style={{...input,marginTop:5}} /></label>
+                    <label style={{fontSize:12,color:"#d4d4d8"}}>CPF *<input value={spouse.cpf} onChange={(event)=>setSpouse((current)=>({...current,cpf:formatDocument(event.target.value,"cpf")}))} inputMode="numeric" maxLength={14} placeholder="000.000.000-00" style={{...input,marginTop:5}} /></label>
+                    <label style={{fontSize:12,color:"#d4d4d8"}}>WhatsApp celular *<input value={spouse.telefone} onChange={(event)=>setSpouse((current)=>({...current,telefone:formatBrazilPhone(event.target.value)}))} inputMode="tel" maxLength={16} placeholder="(00) 00000-0000" style={{...input,marginTop:5}} /></label>
                     <label style={{fontSize:12,color:"#d4d4d8"}}>E-mail *<input value={spouse.email} onChange={(event)=>setSpouse((current)=>({...current,email:event.target.value}))} type="email" style={{...input,marginTop:5}} /></label>
                     <label style={{fontSize:12,color:"#d4d4d8"}}>Profissão *<input value={spouse.profissao} onChange={(event)=>setSpouse((current)=>({...current,profissao:event.target.value}))} style={{...input,marginTop:5}} /></label>
                   </div>

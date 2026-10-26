@@ -106,7 +106,7 @@ type Selection = {
 };
 type CuradoriaMedia = { id:string; empreendimento_id:string; titulo?:string|null; categoria?:string|null; storage_path?:string|null; url?:string|null; preview_url?:string|null };
 type PresentationOption = { empreendimento_id:string; titulo?:string|null; ativo:boolean; pdf_url?:string|null; storage_path?:string|null; link_url?:string|null; tipo_preferido?:"pdf"|"link"; cliente_ativo?:boolean; cliente_tipo?:"pdf"|"link"|"post"|null; cliente_pdf_path?:string|null; cliente_link_url?:string|null; cliente_blog_post_id?:string|null };
-type ProposalPerson = { nome?: string; cpf?: string; telefone?: string; email?: string; profissao?: string; estado_civil?: string };
+type ProposalPerson = { nome?: string; cpf?: string; documento_tipo?: "CPF" | "CNPJ"; telefone?: string; email?: string; profissao?: string; estado_civil?: string };
 type ProposalDocument = { tipo: string; nome_original: string; mime_type: string; tamanho_bytes: number; storage_path: string; enviado_em?: string };
 type ClientProposal = {
   id: string;
@@ -186,6 +186,24 @@ const money = (value?: number | null) =>
         maximumFractionDigits: 2,
       }).format(value)
     : "Não informado";
+const formatProposalDocument = (value: string, type: "CPF" | "CNPJ") => {
+  const normalized = type === "CNPJ"
+    ? value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 14)
+    : value.replace(/\D/g, "").slice(0, 11);
+  if (type === "CPF") {
+    let formatted = normalized.slice(0, 3);
+    if (normalized.length > 3) formatted += `.${normalized.slice(3, 6)}`;
+    if (normalized.length > 6) formatted += `.${normalized.slice(6, 9)}`;
+    if (normalized.length > 9) formatted += `-${normalized.slice(9, 11)}`;
+    return formatted;
+  }
+  let formatted = normalized.slice(0, 2);
+  if (normalized.length > 2) formatted += `.${normalized.slice(2, 5)}`;
+  if (normalized.length > 5) formatted += `.${normalized.slice(5, 8)}`;
+  if (normalized.length > 8) formatted += `/${normalized.slice(8, 12)}`;
+  if (normalized.length > 12) formatted += `-${normalized.slice(12, 14)}`;
+  return formatted;
+};
 const panel = {
   background: "#101012",
   border: "1px solid #27272a",
@@ -822,6 +840,10 @@ export default function Clientes({
         const unit = units.find((item) => item.id === proposalView.unidade_id);
         const applicant = proposalView.dados_proponente || {};
         const spouse = proposalView.dados_conjuge;
+        const rawApplicantDocument = applicant.cpf || proposalView.cpf || "";
+        const applicantDocumentType: "CPF" | "CNPJ" = applicant.documento_tipo === "CNPJ" || rawApplicantDocument.replace(/[^A-Z0-9]/gi, "").length === 14 ? "CNPJ" : "CPF";
+        const applicantDocument = formatProposalDocument(rawApplicantDocument, applicantDocumentType);
+        const spouseDocument = spouse?.cpf ? formatProposalDocument(spouse.cpf, "CPF") : "—";
         const snapshot = proposalView.fluxo_snapshot || {};
         const values = snapshot.valores || {};
         const files = proposalView.documentos || [];
@@ -840,8 +862,8 @@ export default function Clientes({
             <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><div><small style={{ letterSpacing: ".14em", color: "#8a6a2e", fontWeight: 800 }}>LUAN ESPECIALISTA</small><h1 style={{ margin: "8px 0 4px", fontSize: 25 }}>Resumo da proposta comercial</h1><p style={{ margin: 0, color: "#555" }}>Manifestação de interesse enviada pelo cliente para análise.</p></div><span style={{ fontSize: 11, color: "#666", textAlign: "right" }}>Proposta {proposalView.id.slice(0, 8).toUpperCase()}<br />{new Date(proposalView.created_at).toLocaleDateString("pt-BR")}</span></div>
             <p style={{ margin: "18px 0 0", padding: 10, border: "1px solid #e6d7b8", background: "#fbf7ee", fontSize: 11, lineHeight: 1.5 }}>Documento informativo gerado a partir da simulação do cliente. Não constitui contrato, reserva, aprovação de crédito ou garantia de preço e disponibilidade. Condições sujeitas à validação do especialista e da construtora.</p>
             <hr style={{ margin: "20px 0", border: 0, borderTop: "1px solid #ddd" }} />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16, fontSize: 13 }}><div><b>Proponente</b><div>{applicant.nome || client?.nome || "Não informado"}</div><div>CPF: {applicant.cpf || proposalView.cpf || "Não informado"}</div><div>{applicant.telefone || client?.telefone || "—"} · {applicant.email || client?.email || "—"}</div><div>Profissão: {applicant.profissao || client?.profissao || "Não informada"}</div><div>Estado civil: {civilLabels[applicant.estado_civil || ""] || "Não informado"}</div></div><div><b>Empreendimento</b><div>{property?.nome || proposalView.empreendimento_id}</div><div>Unidade: {unit ? `${unit.codigo_unidade || unit.numero_unidade || unit.numero || unit.id}${unit.torre ? ` · Torre ${unit.torre}` : ""}` : "Não informada"}</div><div>Status da análise: {proposalView.status}</div><div>Valor de tabela: {money(tablePrice)}</div><div>Desconto negociado: {money(discountValue)}</div><strong>Valor final simulado: {money(finalPrice)}</strong></div></div>
-            {spouse && <section style={{ marginTop: 18, padding: 12, background: "#f7f7f7", fontSize: 13 }}><b>Dados do cônjuge</b><div>{spouse.nome}</div><div>CPF: {spouse.cpf || "—"}</div><div>{spouse.telefone || "—"} · {spouse.email || "—"}</div><div>Profissão: {spouse.profissao || "Não informada"}</div></section>}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16, fontSize: 13 }}><div><b>Proponente</b><div>{applicant.nome || client?.nome || "Não informado"}</div><div>{applicantDocumentType}: {applicantDocument || "Não informado"}</div><div>{applicant.telefone || client?.telefone || "—"} · {applicant.email || client?.email || "—"}</div><div>Profissão: {applicant.profissao || client?.profissao || "Não informada"}</div><div>Estado civil: {civilLabels[applicant.estado_civil || ""] || "Não informado"}</div></div><div><b>Empreendimento</b><div>{property?.nome || proposalView.empreendimento_id}</div><div>Unidade: {unit ? `${unit.codigo_unidade || unit.numero_unidade || unit.numero || unit.id}${unit.torre ? ` · Torre ${unit.torre}` : ""}` : "Não informada"}</div><div>Status da análise: {proposalView.status}</div><div>Valor de tabela: {money(tablePrice)}</div><div>Desconto negociado: {money(discountValue)}</div><strong>Valor final simulado: {money(finalPrice)}</strong></div></div>
+            {spouse && <section style={{ marginTop: 18, padding: 12, background: "#f7f7f7", fontSize: 13 }}><b>Dados do cônjuge</b><div>{spouse.nome}</div><div>CPF: {spouseDocument}</div><div>{spouse.telefone || "—"} · {spouse.email || "—"}</div><div>Profissão: {spouse.profissao || "Não informada"}</div></section>}
             <h3 style={{ margin: "22px 0 10px" }}>Condições e cronograma propostos</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 9, fontSize: 13 }}>
               <div style={{ padding: 11, background: "#f5f5f5" }}>Entrada<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.entrada)}</strong></div>
@@ -854,7 +876,7 @@ export default function Clientes({
             </div>
             <p style={{ marginTop: 20, color: "#444", minHeight: 34 }}><b>Observações do cliente:</b> {proposalView.mensagem || "Sem observações adicionais."}</p>
             {proposalView.observacao_comercial && <p style={{ color: "#444", fontSize: 12 }}><b>Observação comercial interna:</b> {proposalView.observacao_comercial}</p>}
-            <div style={{ display: "grid", gridTemplateColumns: spouse ? "repeat(3,minmax(0,1fr))" : "repeat(2,minmax(0,1fr))", gap: 28, marginTop: 42, fontSize: 11, textAlign: "center" }}><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>Luan Especialista<br /><small>Responsável pela análise</small></div><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{applicant.nome || client?.nome || "Proponente"}<br /><small>Proponente · CPF {applicant.cpf || proposalView.cpf || "—"}</small></div>{spouse && <div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{spouse.nome}<br /><small>Cônjuge · CPF {spouse.cpf || "—"}</small></div>}</div>
+            <div style={{ display: "grid", gridTemplateColumns: spouse ? "repeat(3,minmax(0,1fr))" : "repeat(2,minmax(0,1fr))", gap: 28, marginTop: 42, fontSize: 11, textAlign: "center" }}><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>Luan Especialista<br /><small>Responsável pela análise</small></div><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{applicant.nome || client?.nome || "Proponente"}<br /><small>Proponente · {applicantDocumentType} {applicantDocument || "—"}</small></div>{spouse && <div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{spouse.nome}<br /><small>Cônjuge · CPF {spouseDocument}</small></div>}</div>
           </section>
         </div>;
       })()}
