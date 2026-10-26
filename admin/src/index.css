@@ -218,7 +218,7 @@ img, video, canvas {
 .portal-flow-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .portal-flow-heading small { display: block; color: #d7ab63; font-size: 10px; letter-spacing: .12em; }
 .portal-flow-heading strong { display: block; margin-top: 4px; color: #fff; font-size: 15px; }
-.client-portal-opportunity-grid { display: grid; grid-template-columns: minmax(0, 390px); justify-content: center; gap: 22px; }
+.client-portal-opportunity-grid { display: grid; grid-template-columns: minmax(0, 390px); grid-auto-rows: 1fr; align-items: stretch; justify-content: center; gap: 22px; }
 .client-portal-opportunity-grid[data-columns="2"] { grid-template-columns: repeat(2, minmax(0, 390px)); }
 .client-portal-opportunity-grid[data-columns="3"] { grid-template-columns: repeat(2, minmax(0, 390px)); }
 @media (min-width: 1024px) { .client-portal-opportunity-grid[data-columns="3"] { grid-template-columns: repeat(3, minmax(0, 390px)); } }

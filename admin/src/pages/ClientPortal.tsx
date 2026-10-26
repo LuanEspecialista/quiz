@@ -1175,14 +1175,14 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               const commercial = unitCommercial(item, selectedUnit);
               const canOpenFlow = Boolean(item.permitir_proposta || item.exibir_fluxo);
               return (
-                <div key={item.id} style={{ width: "100%", minWidth: 0 }}>
-                  <article style={{ border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
+                <div key={item.id} style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column" }}>
+                  <article style={{ flex: "1 1 auto", border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
                     <button type="button" onClick={() => selectedPresentation ? void openPresentation(item, selectedPresentation) : setActiveOpportunity(item)} style={{ display: "block", width: "100%", padding: 0, textAlign: "left", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
-                      {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 110, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
+                      {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 155, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
                       <div style={{ padding: "14px 15px 12px", display: "grid", gap: 7 }}>
                         <small style={{ color: "#d7ab63", fontWeight: 800 }}>{[item.bairro, item.cidade].filter(Boolean).join(" · ") || item.status}</small>
-                        <span style={{ fontSize: 19, fontWeight: 800 }}>{item.nome}</span>
-                        <span style={{ color: "#a1a1aa", fontSize: 12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.descricao || "Confira os detalhes selecionados para você."}</span>
+                        <span style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.2, height: "2.4em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.nome}</span>
+                        <span style={{ color: "#a1a1aa", fontSize: 12, lineHeight: 1.4, height: "2.8em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.descricao || "Confira os detalhes selecionados para você."}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#edcf91", fontWeight: 800, marginTop: 3 }}>Detalhes do empreendimento <ChevronRight size={17} /></span>
                       </div>
                     </button>
@@ -1198,7 +1198,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                       </div>}
                     </div>
                   </article>
-                  {canOpenFlow && <button type="button" onClick={() => openProposal(item, selectedUnit || undefined)} style={{ display: "block", width: "min(340px,100%)", margin: "9px auto 0", border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer", textAlign: "center" }}>{selectedUnit ? `Montar fluxo da unidade ${selectedUnit.codigo || selectedUnit.numero || "selecionada"}` : "Montar fluxo de pagamento"}</button>}
+                  {canOpenFlow ? <button type="button" onClick={() => openProposal(item, selectedUnit || undefined)} style={{ display: "block", width: "min(340px,100%)", minHeight: 52, margin: "9px auto 0", border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer", textAlign: "center" }}>{selectedUnit ? `Montar fluxo da unidade ${selectedUnit.codigo || selectedUnit.numero || "selecionada"}` : "Montar fluxo de pagamento"}</button> : <div aria-hidden="true" style={{ height: 61, flex: "0 0 61px" }} />}
                 </div>
               );
             })}
