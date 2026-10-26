@@ -613,6 +613,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [proposal, setProposal] = useState<Opportunity | null>(null);
   const [proposalUnit, setProposalUnit] = useState<PortalUnit | null>(null);
   const [presentation, setPresentation] = useState<{ url: string; title: string } | null>(null);
+  const [presentationLink, setPresentationLink] = useState<{ url: string; title: string } | null>(null);
   const [presentationError, setPresentationError] = useState("");
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [activeOpportunity, setActiveOpportunity] =
@@ -782,7 +783,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     if (!hasExpiry) return;
     const timer = window.setInterval(() => setSecondsUntilExpiry((value) => {
       const next = value === null ? null : Math.max(0, value - 1);
-      if (next === 0) { setAccessExpired(true); setPortal(null); setProposal(null); setPresentation(null); setActiveOpportunity(null); setComparisonOpen(false); }
+      if (next === 0) { setAccessExpired(true); setPortal(null); setProposal(null); setPresentation(null); setPresentationLink(null); setActiveOpportunity(null); setComparisonOpen(false); }
       return next;
     }), 1000);
     return () => window.clearInterval(timer);
@@ -851,6 +852,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       setPortal(null);
       setProposal(null);
       setPresentation(null);
+      setPresentationLink(null);
       setPresentationError("Seu acesso não está mais ativo. Solicite ao especialista uma nova validade.");
       return;
     }
@@ -869,7 +871,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       } catch {
         // Se o link estiver fora do formato esperado, abre-se como foi configurado.
       }
-      window.open(destinationUrl, "_blank", "noopener,noreferrer");
+      setPresentationLink({ url: destinationUrl, title: presentation.titulo || item.nome || "Apresentação" });
       return;
     }
     let pdfUrl = presentation.url;
@@ -1175,7 +1177,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               return (
                 <div key={item.id} style={{ width: "min(390px,100%)" }}>
                   <article style={{ border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
-                    <button type="button" onClick={() => setActiveOpportunity(item)} style={{ display: "block", width: "100%", padding: 0, textAlign: "left", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
+                    <button type="button" onClick={() => selectedPresentation ? void openPresentation(item, selectedPresentation) : setActiveOpportunity(item)} style={{ display: "block", width: "100%", padding: 0, textAlign: "left", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
                       {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 110, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
                       <div style={{ padding: "14px 15px 12px", display: "grid", gap: 7 }}>
                         <small style={{ color: "#d7ab63", fontWeight: 800 }}>{[item.bairro, item.cidade].filter(Boolean).join(" · ") || item.status}</small>
@@ -1185,9 +1187,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                       </div>
                     </button>
                     <div style={{ padding: "0 15px 15px", display: "grid", gap: 11 }}>
-                      {selectedPresentation && (selectedPresentation.url || (selectedPresentation.tipo === "pdf" && selectedPresentation.storage_path)) ? <button type="button" onClick={() => void openPresentation(item, selectedPresentation)} style={{ width: "100%", border: "1px solid #54452c", background: "#17140e", color: "#ead5aa", borderRadius: 7, padding: "10px 11px", fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
-                        {selectedPresentation.tipo === "link" ? "Ver apresentação online" : "Abrir apresentação em PDF"}
-                      </button> : <small style={{ color: "#71717a" }}>A apresentação ainda não foi liberada para esta curadoria.</small>}
                       {units.length > 1 && <label style={{ color: "#d4d4d8", fontSize: 12 }}>Unidade liberada
                         <select value={selectedUnit?.id || ""} onChange={(event) => setSelectedUnitsByOpportunity((current) => ({ ...current, [item.id]: event.target.value }))} style={{ ...input, marginTop: 5 }}>
                           {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.codigo || unit.numero || "Unidade"}{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}</option>)}
@@ -1467,6 +1466,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           </div>
         )}
         {presentation && <PresentationSlides url={presentation.url} title={presentation.title} onClose={() => setPresentation(null)} />}
+        {presentationLink && <div role="dialog" aria-modal="true" aria-label={presentationLink.title} style={{ position: "fixed", inset: 0, zIndex: 1250, background: "#09090bf7", padding: 14, display: "grid", placeItems: "center" }}><section style={{ width: "min(1100px,100%)", height: "min(880px,calc(100dvh - 28px))", display: "grid", gridTemplateRows: "auto minmax(0,1fr) auto", gap: 10, background: "#111113", border: "1px solid #514124", borderRadius: 12, padding: 12, boxSizing: "border-box" }}><header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, color: "#fff" }}><strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{presentationLink.title}</strong><button type="button" onClick={() => setPresentationLink(null)} style={{ border: "1px solid #5a4828", background: "#18140e", color: "#edcf91", borderRadius: 8, padding: "9px 12px", cursor: "pointer", flex: "0 0 auto" }}>Fechar</button></header><iframe title={presentationLink.title} src={presentationLink.url} style={{ width: "100%", height: "100%", border: "1px solid #302a20", borderRadius: 8, background: "#fff" }} /><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}><small style={{ color: "#a1a1aa" }}>A apresentação abre dentro do portal. Se o site de destino bloquear a exibição incorporada, use a opção manual.</small><a href={presentationLink.url} target="_blank" rel="noopener noreferrer" style={{ color: "#edcf91", fontSize: 12 }}>Abrir separadamente</a></div></section></div>}
       </div>
     </main>
   );

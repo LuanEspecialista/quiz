@@ -98,7 +98,7 @@ type Selection = {
   imagem_ids_selecionadas?: string[];
   unidade_ids_selecionadas?: string[];
   desconto_percentual?: number;
-  condicoes_unidades?: Record<string, { desconto_valor?: number }>;
+  condicoes_unidades?: Record<string, { desconto_valor?: number; desconto_percentual?: number }>;
   observacao_comercial?: string | null;
   landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
   apresentacao_modo?: "preferida" | "nenhuma";
@@ -637,6 +637,26 @@ export default function Clientes({
       );
       setMessage("Conteúdo autorizado atualizado.");
     }
+  }
+  function updateUnitDiscountDraft(
+    clientId: string,
+    propertyId: string,
+    unitId: string,
+    tablePrice: number,
+    field: "valor" | "percentual",
+    rawValue: number,
+  ) {
+    const base = Math.max(0, Number(tablePrice) || 0);
+    const entered = Math.max(0, Math.min(field === "percentual" ? 100 : base, Number(rawValue) || 0));
+    const discountValue = field === "valor" ? Number(entered.toFixed(2)) : Number((base * entered / 100).toFixed(2));
+    const discountPercent = field === "percentual" ? Number(entered.toFixed(2)) : base > 0 ? Number((discountValue / base * 100).toFixed(2)) : 0;
+    setSelections((current) => current.map((item) => item.cliente_id === clientId && item.empreendimento_id === propertyId
+      ? { ...item, condicoes_unidades: { ...(item.condicoes_unidades || {}), [unitId]: { desconto_valor: discountValue, desconto_percentual: discountPercent } } }
+      : item));
+  }
+  async function saveUnitDiscount(clientId: string, propertyId: string) {
+    const current = selections.find((item) => item.cliente_id === clientId && item.empreendimento_id === propertyId);
+    if (current) await updateSelection(clientId, propertyId, { condicoes_unidades: current.condicoes_unidades || {} });
   }
   async function updateProposal(id: string, status: string) {
     const { error } = await supabase
@@ -1494,12 +1514,29 @@ export default function Clientes({
                                 const term=(unitQueries[property.id]||"").trim().toLocaleLowerCase("pt-BR");
                                 if(!term) return true;
                                 return [unit.torre,unit.codigo,unit.codigo_unidade,unit.numero,unit.numero_unidade,unit.tipologia,unit.andar].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR").includes(term);
-                              }).sort((a,b)=>String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true})).map(unit=>{const selected=selection.unidade_ids_selecionadas || [];const checked=selected.includes(unit.id);const tower=unit.torre || "Torre não informada";const code=unit.codigo || unit.codigo_unidade || unit.numero || unit.numero_unidade || unit.id.slice(0,8);const negotiated=Number(selection.condicoes_unidades?.[unit.id]?.desconto_valor || 0);return <label key={unit.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span style={{minWidth:0}}><input type="checkbox" checked={checked} onChange={()=>{const next=checked?selected.filter(id=>id!==unit.id):[...selected,unit.id];void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> <b>{tower}</b> · Unidade {code}{unit.andar ? ` · ${unit.andar}º andar` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#8b8b95",marginTop:3}}>Tabela: {money(unit.valor_tabela || unit.valor)}</small></span><span style={{display:"grid",gap:3,minWidth:125}}><small style={{color:"#8b8b95"}}>Desconto negociado</small><CurrencyInput value={negotiated} onChange={(value)=>{const next={...(selection.condicoes_unidades || {})};if(value>0) next[unit.id]={desconto_valor:value};else delete next[unit.id];void updateSelection(curating.id,property.id,{condicoes_unidades:next});}} style={{...input,padding:"6px 7px",fontSize:11}} /></span></label>})}
+                              }).sort((a,b)=>String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true})).map(unit=>{
+                                const selected=selection.unidade_ids_selecionadas || [];
+                                const checked=selected.includes(unit.id);
+                                const tower=unit.torre || "Torre não informada";
+                                const code=unit.codigo || unit.codigo_unidade || unit.numero || unit.numero_unidade || unit.id.slice(0,8);
+                                const tablePrice=Number(unit.valor_tabela || unit.valor || 0);
+                                const rule=selection.condicoes_unidades?.[unit.id];
+                                const discountPercent=rule?.desconto_percentual != null ? Number(rule.desconto_percentual) : rule?.desconto_valor != null ? (tablePrice>0?Number((Number(rule.desconto_valor)/tablePrice*100).toFixed(2)):0) : Number(selection.desconto_percentual || 0);
+                                const negotiated=rule?.desconto_valor != null ? Number(rule.desconto_valor) : Number((tablePrice*discountPercent/100).toFixed(2));
+                                return <div key={unit.id} style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",gap:9,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}>
+                                  <span style={{minWidth:0,flex:"1 1 155px"}}><input type="checkbox" checked={checked} onChange={()=>{const next=checked?selected.filter(id=>id!==unit.id):[...selected,unit.id];void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> <b>{tower}</b> · Unidade {code}{unit.andar ? ` · ${unit.andar}º andar` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#8b8b95",marginTop:3}}>Tabela: {money(tablePrice)}</small></span>
+                                  <span style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:7,minWidth:175,flex:"1 1 175px"}}>
+                                    <label style={{display:"grid",gap:3,color:"#a1a1aa"}}>Desconto (R$)<CurrencyInput value={negotiated} ariaLabel={`Desconto em reais da unidade ${code}`} onChange={(value)=>updateUnitDiscountDraft(curating.id,property.id,unit.id,tablePrice,"valor",value)} onBlur={()=>void saveUnitDiscount(curating.id,property.id)} style={{...input,padding:"6px 7px",fontSize:11}} /></label>
+                                    <label style={{display:"grid",gap:3,color:"#a1a1aa"}}>Desconto (%)<input type="number" min="0" max="100" step="0.01" value={discountPercent} aria-label={`Desconto percentual da unidade ${code}`} onChange={(event)=>updateUnitDiscountDraft(curating.id,property.id,unit.id,tablePrice,"percentual",Number(event.target.value)||0)} onBlur={()=>void saveUnitDiscount(curating.id,property.id)} style={{...input,padding:"6px 7px",fontSize:11}} /></label>
+                                  </span>
+                                </div>
+                              })}
                               {units.filter(unit=>unit.empreendimento_id===property.id).length===0 && <small style={{color:"#fbbf24"}}>Nenhuma unidade cadastrada para este empreendimento.</small>}
                             </div>
                           </div>
-                          <label style={{fontSize:11,color:"#d4d4d8"}}>Desconto/condição especial (%)
+                          <label style={{fontSize:11,color:"#d4d4d8"}}>Desconto padrão para unidades sem ajuste individual (%)
                             <input type="number" min="0" max="100" step="0.1" value={selection.desconto_percentual ?? 0} onChange={(event)=>setSelections(current=>current.map(item=>item===selection?{...item,desconto_percentual:Math.max(0,Math.min(100,Number(event.target.value)||0))}:item))} onBlur={(event)=>void updateSelection(curating.id,property.id,{desconto_percentual:Math.max(0,Math.min(100,Number(event.target.value)||0))})} style={{...input,marginTop:5}} />
+                            <small style={{display:"block",color:"#8b8b95",marginTop:4}}>O valor equivalente em reais aparece junto de cada unidade; um ajuste individual substitui este padrão.</small>
                           </label>
                           <label style={{fontSize:11,color:"#d4d4d8"}}>Observação comercial visível para a cliente
                             <textarea rows={2} value={selection.observacao_comercial || ""} onChange={(event)=>setSelections(current=>current.map(item=>item===selection?{...item,observacao_comercial:event.target.value}:item))} onBlur={(event)=>void updateSelection(curating.id,property.id,{observacao_comercial:event.target.value})} placeholder="Ex.: condição especial obtida nesta negociação." style={{...input,marginTop:5}} />
