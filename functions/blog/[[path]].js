@@ -597,7 +597,7 @@ function renderPage(post, presentationMode = false) {
   ${presentationStyles}
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261022-park-beach-media-2"></script>
+  <script defer src="/assets/blog.js?v=20261026-client-presentation-map-1"></script>
   ${presentationMode ? "" : '<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261007-1"></script>'}
 </head>
 <body class="${presentationMode ? "blog-presentation-mode" : ""}">
