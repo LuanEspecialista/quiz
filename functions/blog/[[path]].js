@@ -417,7 +417,7 @@ function renderDestinationMap(post) {
   return `<section class="destination-map" aria-labelledby="destination-map-title"><div class="destination-map-card"><div class="destination-map-copy"><span class="destination-map-eyebrow">${esc(eyebrow)}</span><h2 id="destination-map-title">${esc(title)}</h2><p>${esc(text)}</p><a href="${esc(src)}" target="_blank" rel="sponsored noopener noreferrer">Ver opções de hospedagem <span aria-hidden="true">↗</span></a></div><div class="destination-map-frame"><iframe title="Opções de hospedagem próximas a ${esc(venue)}" width="100%" height="450" src="${esc(src)}" frameborder="0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><p class="destination-map-note">Ao reservar por opções deste mapa, podemos receber uma comissão, sem custo adicional para você. Valores e disponibilidade são definidos pelos fornecedores.</p></div></section>`;
 }
 
-function renderArticle(post) {
+function renderArticle(post, presentationMode = false) {
   const blocks = post.blocos || {};
   const sections = Array.isArray(blocks.secoes) ? blocks.secoes : [];
   const images = Array.isArray(post.imagens) ? post.imagens : [];
@@ -480,9 +480,9 @@ function renderArticle(post) {
     useOverlayHero ? "" : `<h1>${esc(post.titulo)}</h1><p class="deck">${esc(post.resumo || "")}</p>`
   }</header>`;
 
-  return `${articleHeader}${heroMarkup}<main class="article-flow">${renderReadingMap(
-    sections,
-  )}${body}${gallery}</main>${renderSources(blocks)}${renderDestinationMap(post)}${finalCta}<section class="engagement" aria-labelledby="engagement-title"><div class="engagement-header"><div class="engagement-question"><p class="eyebrow">OPINIÃO DOS LEITORES</p><h2 id="engagement-title">Este conteúdo foi útil?</h2><p>Uma nota rápida ajuda outras pessoas a decidir por onde começar.</p></div><div class="rating-summary" aria-live="polite"><strong class="rating-average">—</strong><span class="rating-summary-stars" aria-hidden="true">☆☆☆☆☆</span><small class="rating-count">Carregando avaliações…</small></div></div><div class="stars" role="group" aria-label="Avalie este conteúdo de uma a cinco estrelas">${[
+  const articleBody = `${articleHeader}${heroMarkup}<main class="article-flow">${renderReadingMap(sections)}${body}${gallery}</main>`;
+  if (presentationMode) return articleBody;
+  return `${articleBody}${renderSources(blocks)}${renderDestinationMap(post)}${finalCta}<section class="engagement" aria-labelledby="engagement-title"><div class="engagement-header"><div class="engagement-question"><p class="eyebrow">OPINIÃO DOS LEITORES</p><h2 id="engagement-title">Este conteúdo foi útil?</h2><p>Uma nota rápida ajuda outras pessoas a decidir por onde começar.</p></div><div class="rating-summary" aria-live="polite"><strong class="rating-average">—</strong><span class="rating-summary-stars" aria-hidden="true">☆☆☆☆☆</span><small class="rating-count">Carregando avaliações…</small></div></div><div class="stars" role="group" aria-label="Avalie este conteúdo de uma a cinco estrelas">${[
     1, 2, 3, 4, 5,
   ]
     .map((rating) => `<button data-rate="${rating}" aria-label="${rating} estrelas">★</button>`)
@@ -496,7 +496,7 @@ function setMeta(name, content, attribute = "name") {
   return `<meta ${attribute}="${esc(name)}" content="${esc(content)}">`;
 }
 
-function renderPage(post) {
+function renderPage(post, presentationMode = false) {
   const title = String(post.seo_titulo || post.titulo || "Insights").trim();
   const description = String(post.seo_descricao || post.resumo || "").trim();
   const slug = encodeURIComponent(post.slug);
@@ -531,14 +531,14 @@ function renderPage(post) {
     inLanguage: "pt-BR",
   };
   const jsonLd = JSON.stringify(structuredData).replace(/</g, "\\u003c");
-  const articleHtml = renderArticle(post);
+  const articleHtml = renderArticle(post, presentationMode);
   const preload = hero
     ? `<link rel="preload" as="image" href="${esc(hero)}" fetchpriority="high"><link rel="preconnect" href="https://santerempreendimentos.com.br" crossorigin>`
     : "";
   const meta = [
     setMeta("description", description),
     setMeta("keywords", keywords),
-    setMeta("robots", "index,follow"),
+    setMeta("robots", presentationMode ? "noindex,nofollow" : "index,follow"),
     setMeta("og:type", "article", "property"),
     setMeta("og:title", title, "property"),
     setMeta("og:description", description, "property"),
@@ -552,6 +552,28 @@ function renderPage(post) {
     setMeta("article:published_time", published, "property"),
     setMeta("article:modified_time", modified, "property"),
   ].join("");
+  const siteHeader = presentationMode ? "" : `<header class="site-header">
+    <a class="brand" href="/" aria-label="Página inicial Luan Especialista"><img src="/imagens/logo.png" alt="Luan Especialista"></a>
+    <nav><a href="/">Início</a><a href="/imoveis/">Oportunidades</a><a href="/estrategias-patrimoniais/">Estratégias</a><a class="active" href="/blog/">Insights</a></nav>
+    <a class="contact" href="https://api.whatsapp.com/send?phone=5547992120915">Falar com especialista</a>
+  </header>`;
+  const postBack = presentationMode ? "" : '<div class="blog-post-back-wrap"><a class="blog-post-back" href="/blog/" aria-label="Voltar aos posts"><span class="blog-post-back-arrow" aria-hidden="true">←</span><span>Voltar aos posts</span></a></div>';
+  const newsletter = presentationMode ? "" : `<section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
+      <div><p class="eyebrow">NEWSLETTER</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens.</p></div>
+      <form id="newsletter-form" novalidate><label for="newsletter-name">Seu nome</label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Digite seu nome"><label for="newsletter-email">Seu e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="Digite seu e-mail"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
+    </section>`;
+  const siteFooter = presentationMode ? "" : BLOG_FOOTER_HTML;
+  const presentationStyles = presentationMode ? `<style>
+    html,body{background:#08090b!important}
+    body.blog-presentation-mode{margin:0!important;min-height:100vh}
+    body.blog-presentation-mode main{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+    body.blog-presentation-mode #posts.article{width:100%!important;max-width:none!important;margin:0!important;padding:0 0 38px!important}body.blog-presentation-mode #posts.article:not(.ayra-article):not(.pinna-article):not(.park-article){width:min(920px,calc(100% - 32px))!important;max-width:920px!important;margin:0 auto!important}
+    body.blog-presentation-mode .article-head{padding:26px 0 18px!important}
+    body.blog-presentation-mode .article-head h1,body.blog-presentation-mode .hero-overlay-copy h1{font-size:clamp(30px,5vw,48px)!important;line-height:1.08!important}
+    body.blog-presentation-mode .article-flow{width:100%!important;max-width:none!important}
+    body.blog-presentation-mode .hero-figure img{border-radius:12px!important}
+    body.blog-presentation-mode .site-header,body.blog-presentation-mode .blog-post-back-wrap,body.blog-presentation-mode .newsletter,body.blog-presentation-mode footer,body.blog-presentation-mode .engagement,body.blog-presentation-mode .article-cta,body.blog-presentation-mode .destination-map,body.blog-presentation-mode .sources,body.blog-presentation-mode .ayra-actions,body.blog-presentation-mode .ayra-btn,body.blog-presentation-mode .ayra-final,body.blog-presentation-mode .ayra-stay22,body.blog-presentation-mode .pinna-stay22,body.blog-presentation-mode .park-final,body.blog-presentation-mode .luan-language,body.blog-presentation-mode .luan-consent-banner{display:none!important}
+  </style>` : "";
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -572,33 +594,26 @@ function renderPage(post) {
   <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
   <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
+  ${presentationStyles}
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261022-park-beach-media-2"></script>
-  <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
-  <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
+  ${presentationMode ? "" : '<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261007-1"></script>'}
 </head>
-<body>
-  <header class="site-header">
-    <a class="brand" href="/" aria-label="Página inicial Luan Especialista"><img src="/imagens/logo.png" alt="Luan Especialista"></a>
-    <nav><a href="/">Início</a><a href="/imoveis/">Oportunidades</a><a href="/estrategias-patrimoniais/">Estratégias</a><a class="active" href="/blog/">Insights</a></nav>
-    <a class="contact" href="https://api.whatsapp.com/send?phone=5547992120915">Falar com especialista</a>
-  </header>
+<body class="${presentationMode ? "blog-presentation-mode" : ""}">
+  ${siteHeader}
   <main>
     <section class="intro" id="intro" hidden><p class="eyebrow">CONHECIMENTO PARA DECIDIR MELHOR</p><h1>Insights</h1></section>
     <div id="filters" hidden></div>
-    <div class="blog-post-back-wrap"><a class="blog-post-back" href="/blog/" aria-label="Voltar aos posts"><span class="blog-post-back-arrow" aria-hidden="true">←</span><span>Voltar aos posts</span></a></div>
+    ${postBack}
     <section id="posts" class="article article-${esc(
       post.layout || "artigo",
     )} intent-${esc(post.blocos?.intencao || "descoberta")}${
       post.blocos?.template !== "ayra-landing" && post.imagem_capa_url && post.blocos?.exibir_hero !== false ? " has-overlay-hero" : ""
     }" aria-live="polite">${articleHtml}</section>
-    <section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
-      <div><p class="eyebrow">NEWSLETTER</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens.</p></div>
-      <form id="newsletter-form" novalidate><label for="newsletter-name">Seu nome</label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Digite seu nome"><label for="newsletter-email">Seu e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="Digite seu e-mail"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
-    </section>
+    ${newsletter}
   </main>
-  ${BLOG_FOOTER_HTML}
+  ${siteFooter}
 </body>
 </html>`;
 }
@@ -820,6 +835,7 @@ export async function onRequest(context) {
   }
 
   const url = new URL(request.url);
+  const presentationMode = url.searchParams.get("apresentacao") === "1";
   if (url.searchParams.get("preview") === "1") {
     const response = await context.next();
     const headers = new Headers(response.headers);
@@ -866,10 +882,11 @@ export async function onRequest(context) {
     if (!post) {
       return errorPage(404, "Conteúdo não encontrado", "Este artigo não está disponível ou foi retirado do ar.");
     }
-    const html = renderPage(post);
+    const html = renderPage(post, presentationMode);
     const headers = {
       ...baseHeaders,
-      "X-Robots-Tag": "index, follow",
+      "X-Robots-Tag": presentationMode ? "noindex, nofollow" : "index, follow",
+      ...(presentationMode ? { "Cache-Control": "no-store" } : {}),
     };
     return responseForMethod(html, method, 200, headers);
   } catch {

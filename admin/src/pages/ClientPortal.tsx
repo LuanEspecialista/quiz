@@ -29,6 +29,12 @@ type PortalMedia = {
   storage_path?: string;
   url?: string;
 };
+type PortalPresentation = {
+  tipo?: "pdf" | "link";
+  titulo?: string | null;
+  url?: string | null;
+  storage_path?: string | null;
+};
 type LandingBlock = {
   tipo?: "hero" | "texto" | "destaque" | "galeria" | "plantas" | "cidade";
   titulo?: string;
@@ -68,7 +74,8 @@ type Opportunity = {
   exibir_fluxo?: boolean;
   desconto_percentual?: number;
   observacao_comercial?: string | null;
-  apresentacao?: { url?: string | null; tipo?: "pdf" | "link"; storage_path?: string | null } | null;
+  apresentacao?: PortalPresentation | null;
+  apresentacoes?: PortalPresentation[];
   unidades?: PortalUnit[];
 };
 type PortalUnit = {
@@ -80,6 +87,7 @@ type PortalUnit = {
   tipologia?: string | null;
   area_privativa?: number | null;
   valor?: number | null;
+  valor_tabela?: number | null;
   status?: string | null;
   fluxo_dados?: Record<string, unknown>;
   desconto_valor?: number | null;
@@ -158,7 +166,7 @@ function commercialSchedule(item: Opportunity) {
 }
 
 function unitCommercial(item: Opportunity, unit?: PortalUnit | null) {
-  const tablePrice = Math.max(0, Number(unit?.valor || item.preco || 0));
+  const tablePrice = Math.max(0, Number(unit?.valor ?? unit?.valor_tabela ?? item.preco ?? 0));
   const fixedDiscount = Math.max(0, Number(unit?.desconto_valor || 0));
   const percentage = fixedDiscount > 0
     ? Math.min(100, fixedDiscount / Math.max(tablePrice, 1) * 100)
@@ -371,6 +379,9 @@ function OpportunityLanding({
   return (
     <article
       style={{
+        width: "100%",
+        maxWidth: 920,
+        justifySelf: "start",
         border: "1px solid #332d22",
         background: "#101012",
         borderRadius: 15,
@@ -633,7 +644,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     void supabase.rpc("portal_access_status").then(async ({ data: status }) => {
       if (status?.status === "expirado") { setAccessExpired(true); setError("Acesso expirado. Solicite ao especialista uma nova validade para voltar a consultar os empreendimentos."); return null; }
       if (status?.status !== "ativo") { setError("Seu acesso está bloqueado. Fale com seu especialista."); return null; }
-      return supabase.rpc("portal_cliente");
+      return supabase.rpc("portal_cliente_experiencia");
     }).then(async (response) => {
         if (!response) return;
         const { data, error: requestError } = response;
@@ -658,11 +669,24 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             };
             const images = await Promise.all((item.imagens || []).map(sign));
             const plants = await Promise.all((item.plantas || []).map(sign));
-            let presentation = item.apresentacao;
-            if (presentation?.storage_path && !isR2Path(presentation.storage_path) && presentation.tipo !== "link") {
-              const { data: signedPdf } = await supabase.storage.from("pdfs").createSignedUrl(presentation.storage_path, 3600);
-              if (signedPdf?.signedUrl) presentation = { ...presentation, url: signedPdf.signedUrl };
-            }
+            const sourcePresentations = item.apresentacoes?.length
+              ? item.apresentacoes
+              : item.apresentacao
+                ? [item.apresentacao]
+                : [];
+            const presentations = await Promise.all(sourcePresentations.map(async (presentation) => {
+              let url = presentation.url;
+              if (presentation.storage_path && presentation.tipo !== "link") {
+                if (isR2Path(presentation.storage_path)) {
+                  url = r2PublicUrl(presentation.storage_path);
+                } else {
+                  const { data: signedPdf } = await supabase.storage.from("pdfs").createSignedUrl(presentation.storage_path, 3600);
+                  if (signedPdf?.signedUrl) url = signedPdf.signedUrl;
+                }
+              }
+              return { ...presentation, url };
+            }));
+            const presentation = presentations.find((itemPresentation) => itemPresentation.tipo === item.apresentacao?.tipo) || presentations[0] || null;
             const storedCoverPath = coverStoragePath(item);
             let coverUrl: string | undefined =
               item.imagem_url &&
@@ -710,6 +734,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               imagens: displayImages,
               plantas: plants,
               apresentacao: presentation,
+              apresentacoes: presentations,
               caracteristicas: {
                 ...item.caracteristicas,
                 landing_blocos: blocks.map((block) => ({
@@ -785,8 +810,27 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     setNote("");
     setSent("");
   };
-  const openPresentation = (item: Opportunity) => {
-    if (item.apresentacao?.url) setPresentation({ url: item.apresentacao.url, title: item.nome || "Apresentação" });
+  const openPresentation = (item: Opportunity, selected?: PortalPresentation | null) => {
+    const presentation = selected || item.apresentacao;
+    if (!presentation?.url) return;
+    if (presentation.tipo === "link") {
+      let destinationUrl = presentation.url;
+      try {
+        const publicSiteUrl = new URL(import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin);
+        const destination = new URL(presentation.url, publicSiteUrl.origin);
+        const destinationHost = destination.hostname.replace(/^www\./i, "");
+        const publicSiteHost = publicSiteUrl.hostname.replace(/^www\./i, "");
+        if (destinationHost === publicSiteHost && /^\/blog\/[^/]+\/?$/.test(destination.pathname)) {
+          destination.searchParams.set("apresentacao", "1");
+          destinationUrl = destination.toString();
+        }
+      } catch {
+        // Se o link estiver fora do formato esperado, abre-se como foi configurado.
+      }
+      window.open(destinationUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    setPresentation({ url: presentation.url, title: presentation.titulo || item.nome || "Apresentação" });
   };
   const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
   const targets = proposal && commercial ? flowTargets(proposal, proposalUnit, commercial.finalPrice) : { prePct: 100, postPct: 0, preTarget: 0, postTarget: 0 };
@@ -932,10 +976,10 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             <h1
               style={{ fontSize: "clamp(28px,5vw,48px)", margin: "10px 0 8px" }}
             >
-              Bem-vindo{firstName ? `, ${firstName}` : ""}.
+              Parabéns{firstName ? `, ${firstName}` : ""} por dar este próximo passo.
             </h1>
             <p style={{ color: "#a1a1aa", margin: 0 }}>
-              Uma curadoria pessoal de oportunidades selecionadas para você.
+              Explore o empreendimento, confira a apresentação e monte seu fluxo de pagamento.
             </p>
             <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 11px", borderRadius: 8, border: `1px solid ${secondsUntilExpiry !== null && secondsUntilExpiry < 3600 ? "#b45309" : "#3f3524"}`, background: "#17140e", color: secondsUntilExpiry !== null && secondsUntilExpiry < 3600 ? "#fbbf24" : "#d7ab63", fontSize: 12, fontWeight: 800 }}><CalendarDays size={15} /> {expiryLabel}</div>
           </div>
@@ -1001,30 +1045,53 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           </section>
         )}
         {!activeOpportunity && opportunities.length > 0 && (
-          <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(290px,1fr))",gap:16}}>
+          <section style={{ display: "grid", gap: 14 }}>
             {opportunities.map((item) => {
               const cover = item.imagens?.[0]?.url;
+              const presentationOptions = item.apresentacoes?.length
+                ? item.apresentacoes
+                : item.apresentacao?.url
+                  ? [item.apresentacao]
+                  : [];
+              const units = item.unidades || [];
               return (
-                <article key={item.id} style={{border:"1px solid #332d22",background:"#101012",color:"#fff",borderRadius:13,overflow:"hidden"}}>
-                  <button type="button" onClick={() => openPresentation(item)} style={{display:"block",width:"100%",padding:0,textAlign:"left",border:0,background:"transparent",color:"inherit",cursor:item.apresentacao?.url?"pointer":"default"}}>
-                    {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{width:"100%",height:190,objectFit:"cover",display:"block"}} /> : <div style={{height:110,display:"grid",placeItems:"center",background:"linear-gradient(135deg,#18140e,#111113)",color:"#806a43"}}><Building2 size={34} /></div>}
-                    <div style={{padding:"17px 17px 12px",display:"grid",gap:8}}>
-                      <small style={{color:"#d7ab63",fontWeight:800}}>{[item.bairro,item.cidade].filter(Boolean).join(" · ") || item.status}</small>
-                      <span style={{fontSize:22,fontWeight:800}}>{item.nome}</span>
-                      <span style={{color:"#a1a1aa",fontSize:13}}>{item.preco != null ? `A partir de ${money(item.preco)}` : "Consulte os detalhes liberados"}</span>
-                      {item.apresentacao?.url && <span style={{display:"flex",alignItems:"center",gap:6,color:"#edcf91",fontWeight:800,marginTop:5}}>Abrir apresentação <ChevronRight size={18} /></span>}
+                <div key={item.id} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),360px))", gap: 12, alignItems: "stretch", justifyContent: "start" }}>
+                  <article style={{ border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%" }}>
+                    <button type="button" onClick={() => setActiveOpportunity(item)} style={{ display: "block", width: "100%", padding: 0, textAlign: "left", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
+                      {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 110, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
+                      <div style={{ padding: "14px 15px 12px", display: "grid", gap: 7 }}>
+                        <small style={{ color: "#d7ab63", fontWeight: 800 }}>{[item.bairro, item.cidade].filter(Boolean).join(" · ") || item.status}</small>
+                        <span style={{ fontSize: 19, fontWeight: 800 }}>{item.nome}</span>
+                        <span style={{ color: "#a1a1aa", fontSize: 12 }}>{item.preco != null ? `A partir de ${money(item.preco)}` : "Confira a apresentação e os detalhes selecionados para você."}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#edcf91", fontWeight: 800, marginTop: 3 }}>Ver empreendimento <ChevronRight size={17} /></span>
+                      </div>
+                    </button>
+                    <div style={{ padding: "0 15px 15px", display: "grid", gap: 7 }}>
+                      {presentationOptions.map((presentation, index) => (
+                        <button key={`${presentation.tipo || "apresentacao"}-${index}`} type="button" disabled={!presentation.url} onClick={() => openPresentation(item, presentation)} style={{ width: "100%", border: "1px solid #54452c", background: "#17140e", color: "#ead5aa", borderRadius: 7, padding: "9px 10px", fontWeight: 700, cursor: presentation.url ? "pointer" : "not-allowed", textAlign: "left" }}>
+                          {presentation.tipo === "link" ? "Ver apresentação online" : "Abrir PDF da construtora"}
+                        </button>
+                      ))}
+                      {!presentationOptions.length && <small style={{ color: "#71717a" }}>Apresentação ainda não liberada para esta curadoria.</small>}
                     </div>
-                  </button>
-                  <div style={{padding:"0 17px 17px",display:"grid",gap:9}}>
-                    {(item.permitir_proposta || item.exibir_fluxo) && !item.unidades?.length && <button type="button" onClick={() => openProposal(item)} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:8,padding:12,fontWeight:800,cursor:"pointer"}}><Landmark size={15} /> Abrir editor de fluxo e proposta</button>}
-                    {!item.unidades?.length && !(item.permitir_proposta || item.exibir_fluxo) && <small style={{color:"#71717a"}}>Apresentação disponível. Consulte o especialista para condições e unidades.</small>}
-                  </div>
-                </article>
+                  </article>
+                  <article style={{ border: "1px solid #3a3327", background: "linear-gradient(155deg,#17140e,#101012 58%)", color: "#fff", borderRadius: 13, padding: 16, width: "100%", boxSizing: "border-box", display: "grid", alignContent: "start", gap: 10 }}>
+                    <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".08em" }}>SIMULAÇÃO PERSONALIZADA</small><h2 style={{ margin: "5px 0", fontSize: 19 }}>Fluxo de pagamento</h2><p style={{ color: "#a1a1aa", fontSize: 12, lineHeight: 1.5, margin: 0 }}>Escolha uma unidade liberada e ajuste entrada, parcelas e reforços.</p></div>
+                    {units.length ? <div style={{ display: "grid", gap: 8 }}>{units.slice(0, 3).map((unit) => {
+                      const commercial = unitCommercial(item, unit);
+                      return <div key={unit.id} style={{ border: "1px solid #302a20", background: "#0d0d0f", borderRadius: 9, padding: 10, display: "grid", gap: 7 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "start" }}><span><strong>Unidade {unit.codigo || unit.numero || "selecionada"}</strong>{unit.torre && <small style={{ display: "block", color: "#a1a1aa" }}>Torre {unit.torre}</small>}</span><strong style={{ color: "#edcf91", whiteSpace: "nowrap" }}>{money(commercial.finalPrice)}</strong></div>
+                        <small style={{ color: "#85858d" }}>Valor de tabela: {money(commercial.tablePrice)}</small>
+                        <button type="button" onClick={() => openProposal(item, unit)} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 7, padding: "9px 10px", fontWeight: 800, cursor: "pointer" }}>Montar fluxo desta unidade</button>
+                      </div>;
+                    })}{units.length > 3 && <button type="button" onClick={() => setComparisonOpen(true)} style={{ border: "1px solid #54452c", background: "#17140e", color: "#edcf91", borderRadius: 7, padding: 9, cursor: "pointer" }}>Comparar todas as {units.length} unidades</button>}</div> : <p style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.6, margin: 0 }}>{item.exibir_fluxo || item.permitir_proposta ? "O especialista ainda não liberou uma unidade para simulação." : "As condições de fluxo ainda não foram liberadas para este empreendimento."}</p>}
+                  </article>
+                </div>
               );
             })}
           </section>
         )}
-        {!activeOpportunity && opportunities.length > 0 && <button type="button" onClick={() => setComparisonOpen(true)} style={{display:"block",width:"min(680px,100%)",margin:"22px auto 0",border:0,background:"#d7ab63",color:"#09090b",borderRadius:9,padding:"14px 18px",fontWeight:900,fontSize:15,cursor:"pointer"}}><Landmark size={17} /> Comparar fluxos e fazer proposta</button>}
+        {!activeOpportunity && opportunities.length > 1 && <button type="button" onClick={() => setComparisonOpen(true)} style={{ display: "block", width: "min(680px,100%)", margin: "22px 0 0", border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 9, padding: "14px 18px", fontWeight: 900, fontSize: 15, cursor: "pointer" }}><Landmark size={17} /> Comparar fluxos e fazer proposta</button>}
         {activeOpportunity && (
           <section style={{ display: "grid", gap: 12 }}>
             <button

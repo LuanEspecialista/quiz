@@ -100,9 +100,11 @@ type Selection = {
   condicoes_unidades?: Record<string, { desconto_valor?: number }>;
   observacao_comercial?: string | null;
   landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
+  apresentacao_modo?: "preferida" | "pdf" | "link" | "ambas" | "nenhuma";
   unidade_ids?: string[];
 };
 type CuradoriaMedia = { id:string; empreendimento_id:string; titulo?:string|null; categoria?:string|null; storage_path?:string|null; url?:string|null; preview_url?:string|null };
+type PresentationOption = { empreendimento_id:string; titulo?:string|null; ativo:boolean; pdf_url?:string|null; storage_path?:string|null; link_url?:string|null; tipo_preferido?:"pdf"|"link" };
 type ClientProposal = {
   id: string;
   cliente_id: number;
@@ -253,6 +255,7 @@ export default function Clientes({
   const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [siteOpportunityLeads, setSiteOpportunityLeads] = useState<SiteOpportunityLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
+  const [presentationOptions, setPresentationOptions] = useState<Record<string, PresentationOption>>({});
   const [flowSelection, setFlowSelection] = useState<string[]>([]);
   const [form, setForm] = useState<Form>(empty),
     [query, setQuery] = useState(""),
@@ -294,7 +297,7 @@ export default function Clientes({
   }, [open, curating, comparing]);
 
   async function load() {
-    const [c, p, s, u, cp, media, leads, opportunityLeads] = await Promise.all([
+    const [c, p, s, u, cp, media, leads, opportunityLeads, presentationResult] = await Promise.all([
       supabase
         .from("clientes")
         .select("*")
@@ -317,6 +320,7 @@ export default function Clientes({
       supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem").limit(5000),
       supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,consentiu_contato,consentimento_em,consentimento_revogado_em,blog_posts(titulo)").order("criado_em", { ascending:false }).limit(500),
       supabase.from("playbook_leads").select("id,nome,telefone,email,objetivo,codigo_oportunidade,empreendimento_nome_interno,oportunidade_publica_id,criado_em,etapa,notas").eq("origem", "site_oportunidade").order("criado_em", { ascending:false }).limit(40),
+      supabase.from("apresentacoes").select("empreendimento_id,titulo,ativo,pdf_url,storage_path,link_url,tipo_preferido").limit(500),
     ]);
     if (c.error) {
       setMessage(`Não foi possível carregar os clientes: ${c.error.message}`);
@@ -331,6 +335,13 @@ export default function Clientes({
       );
     if (!s.error) setSelections((s.data || []) as Selection[]);
     if (!u.error) setUnits((u.data || []) as Unit[]);
+    if (!presentationResult.error) {
+      const byEnterprise: Record<string, PresentationOption> = {};
+      ((presentationResult.data || []) as PresentationOption[]).forEach((presentation) => {
+        if (presentation.empreendimento_id) byEnterprise[presentation.empreendimento_id] = presentation;
+      });
+      setPresentationOptions(byEnterprise);
+    }
     if (!cp.error) {
       const nextProposals = (cp.data || []) as ClientProposal[];
       const nextNewCount = nextProposals.filter((item) => item.status === "nova").length;
@@ -1275,6 +1286,9 @@ export default function Clientes({
                   (item) => item.empreendimento_id === property.id,
                 );
                 const checked = Boolean(selection);
+                const presentationOption = presentationOptions[property.id];
+                const hasPdf = Boolean(presentationOption?.ativo && (presentationOption.pdf_url || presentationOption.storage_path));
+                const hasLink = Boolean(presentationOption?.ativo && presentationOption.link_url);
                 return (
                   <article
                     key={property.id}
@@ -1378,6 +1392,21 @@ export default function Clientes({
                               <option value="investidor">Investidor — conteúdo e números</option>
                             </select>
                           </label>
+                          <label style={{ fontSize: 11, color: "#d4d4d8" }}>Apresentação exibida para este cliente
+                            <select value={selection.apresentacao_modo || "preferida"} onChange={(event) => void updateSelection(curating.id, property.id, { apresentacao_modo: event.target.value as Selection["apresentacao_modo"] })} style={{ ...input, marginTop: 5 }}>
+                              <option value="preferida">Principal configurada no empreendimento</option>
+                              <option value="pdf" disabled={!hasPdf}>Somente PDF da construtora</option>
+                              <option value="link" disabled={!hasLink}>Somente link online (blog/site)</option>
+                              <option value="ambas" disabled={!hasPdf || !hasLink}>Link online + PDF, em sequência</option>
+                              <option value="nenhuma">Não exibir apresentação</option>
+                            </select>
+                          </label>
+                          <small style={{ color: presentationOption?.ativo && (hasPdf || hasLink) ? "#86efac" : "#a1a1aa", fontSize: 10 }}>
+                            {presentationOption?.ativo && (hasPdf || hasLink)
+                              ? `Disponíveis: ${[hasLink ? "link" : "", hasPdf ? "PDF" : ""].filter(Boolean).join(" + ")}.`
+                              : "Cadastre e ative um link e/ou PDF no módulo Apresentações para liberar estes itens."}
+                          </small>
+                          {hasLink && <small style={{ color: "#a1a1aa", fontSize: 10 }}>Posts do blog no domínio do site abrem em modo apresentação, sem o cabeçalho e o rodapé do blog.</small>}
                           {selection.exibir_fluxo && <div style={{display:"grid",gap:7,padding:"9px 0",borderTop:"1px solid #27272a"}}>
                             <strong style={{fontSize:11}}>Unidades liberadas para o Fluxo ({selection.unidade_ids?.length || 0})</strong>
                             <small style={{color:"#71717a"}}>Selecione somente as unidades que {curating.nome} poderá simular no portal.</small>
