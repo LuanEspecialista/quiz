@@ -29,6 +29,7 @@ type Client = {
   nome: string;
   telefone?: string | null;
   email?: string | null;
+  profissao?: string | null;
   cidade?: string | null;
   objetivo?: string | null;
   modo_apresentacao?: "moradia" | "investidor" | "renda" | "revenda";
@@ -100,11 +101,13 @@ type Selection = {
   condicoes_unidades?: Record<string, { desconto_valor?: number }>;
   observacao_comercial?: string | null;
   landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
-  apresentacao_modo?: "preferida" | "pdf" | "link" | "ambas" | "nenhuma";
+  apresentacao_modo?: "preferida" | "pdf" | "link" | "nenhuma";
   unidade_ids?: string[];
 };
 type CuradoriaMedia = { id:string; empreendimento_id:string; titulo?:string|null; categoria?:string|null; storage_path?:string|null; url?:string|null; preview_url?:string|null };
 type PresentationOption = { empreendimento_id:string; titulo?:string|null; ativo:boolean; pdf_url?:string|null; storage_path?:string|null; link_url?:string|null; tipo_preferido?:"pdf"|"link" };
+type ProposalPerson = { nome?: string; cpf?: string; telefone?: string; email?: string; profissao?: string; estado_civil?: string };
+type ProposalDocument = { tipo: string; nome_original: string; mime_type: string; tamanho_bytes: number; storage_path: string; enviado_em?: string };
 type ClientProposal = {
   id: string;
   cliente_id: number;
@@ -118,8 +121,13 @@ type ClientProposal = {
   created_at: string;
   cpf?: string | null;
   unidade_id?: string | null;
+  valor_original?: number | null;
   valor_final?: number | null;
   fluxo_snapshot?: Record<string, any> | null;
+  observacao_comercial?: string | null;
+  dados_proponente?: ProposalPerson | null;
+  dados_conjuge?: ProposalPerson | null;
+  documentos?: ProposalDocument[] | null;
 };
 type BlogLead = { user_id:string; nome?:string|null; email:string; interesses?:string[]|null; status:string; criado_em:string; consentiu_contato?:boolean|null; consentimento_em?:string|null; consentimento_revogado_em?:string|null; blog_posts?:{ titulo?:string|null }|null };
 type SiteOpportunityLead = { id:string; nome:string; telefone?:string|null; email?:string|null; objetivo?:string|null; codigo_oportunidade?:string|null; empreendimento_nome_interno?:string|null; oportunidade_publica_id?:string|null; criado_em:string; etapa?:string|null; notas?:string|null };
@@ -252,6 +260,7 @@ export default function Clientes({
   const [proposals, setProposals] = useState<ClientProposal[]>([]);
   const [proposalView, setProposalView] = useState<ClientProposal | null>(null);
   const [lastProposalCount, setLastProposalCount] = useState<number | null>(null);
+  const [documentDownloadBusy, setDocumentDownloadBusy] = useState<string | null>(null);
   const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [siteOpportunityLeads, setSiteOpportunityLeads] = useState<SiteOpportunityLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
@@ -637,6 +646,30 @@ export default function Clientes({
     setMessage(error?.message || "Situação da proposta atualizada.");
     if (!error) void load();
   }
+  async function downloadProposalDocument(file: ProposalDocument) {
+    setDocumentDownloadBusy(file.storage_path);
+    try {
+      const { data, error } = await supabase.storage
+        .from("cliente-propostas")
+        .createSignedUrl(file.storage_path, 300, { download: file.nome_original || true });
+      if (error || !data?.signedUrl) {
+        setMessage(`Não foi possível preparar o download: ${error?.message || "arquivo indisponível"}`);
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = data.signedUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.download = file.nome_original || "documento-proposta";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setMessage("Não foi possível preparar o download. Atualize a tela e tente novamente.");
+    } finally {
+      setDocumentDownloadBusy(null);
+    }
+  }
 
   return (
     <div style={{ color: "#f4f4f5", display: "grid", gap: 14 }}>
@@ -741,6 +774,7 @@ export default function Clientes({
                       </p>
                     )}
                     <button type="button" onClick={() => setProposalView(proposal)} style={{ ...button, marginTop: 8, fontSize: 11, background: "#c5a059", color: "#09090b" }}>Ver proposta formal</button>
+                    <small style={{ display: "block", color: "#a1a1aa", marginTop: 5 }}>{proposal.documentos?.length || 0} documento(s) anexado(s)</small>
                   </div>
                   <select
                     value={proposal.status}
@@ -764,14 +798,42 @@ export default function Clientes({
       {proposalView && (() => {
         const client = items.find((item) => Number(item.id) === proposalView.cliente_id);
         const property = properties.find((item) => item.id === proposalView.empreendimento_id);
-        return <div style={{ position: "fixed", inset: 0, zIndex: 7000, background: "rgba(0,0,0,.82)", padding: 14, overflow: "auto" }}>
-          <section style={{ ...panel, maxWidth: 820, margin: "20px auto", background: "#fff", color: "#161616", padding: 32 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><div><small style={{ letterSpacing: ".14em", color: "#8a6a2e", fontWeight: 800 }}>LUAN ESPECIALISTA</small><h1 style={{ margin: "8px 0 4px", fontSize: 25 }}>Proposta comercial</h1><p style={{ margin: 0, color: "#555" }}>Simulação enviada pela cliente para análise.</p></div><button type="button" onClick={() => setProposalView(null)} style={{ background: "#eee", border: 0, padding: 8, cursor: "pointer" }}><X size={18} /></button></div>
-            <hr style={{ margin: "22px 0", border: 0, borderTop: "1px solid #ddd" }} />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16, fontSize: 13 }}><div><b>Cliente</b><div>{client?.nome || "Não informado"}</div><div>CPF: {(client as any)?.cpf || proposalView.cpf || "Não informado"}</div><div>{client?.telefone || ""}{client?.email ? ` · ${client.email}` : ""}</div></div><div><b>Empreendimento</b><div>{property?.nome || proposalView.empreendimento_id}</div><div>Data: {new Date(proposalView.created_at).toLocaleString("pt-BR")}</div><div>Status: {proposalView.status}</div></div></div>
-            <h3 style={{ margin: "24px 0 10px" }}>Condições propostas</h3><div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, fontSize: 14 }}><div style={{ padding: 12, background: "#f5f5f5" }}>Entrada<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.entrada)}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Parcela mensal<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.parcela_mensal)}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Balão<strong style={{ display: "block", marginTop: 4 }}>{proposalView.quantidade_baloes ? `${proposalView.quantidade_baloes} × ${money(proposalView.balao)}` : "Não informado"}</strong></div><div style={{ padding: 12, background: "#f5f5f5" }}>Valor final<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.valor_final)}</strong></div></div>
-            <p style={{ marginTop: 24, color: "#444", minHeight: 42 }}>{proposalView.mensagem || "Sem observações adicionais."}</p><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 50, marginTop: 48, fontSize: 12, textAlign: "center" }}><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>Luan Especialista<br /><small>Corretor responsável</small></div><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{client?.nome || "Cliente"}<br /><small>CPF: {(client as any)?.cpf || proposalView.cpf || "Não informado"}</small></div></div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 28 }}><button type="button" onClick={() => window.print()} style={{ ...button, background: "#161616", color: "#fff" }}>Imprimir / salvar PDF</button></div>
+        const unit = units.find((item) => item.id === proposalView.unidade_id);
+        const applicant = proposalView.dados_proponente || {};
+        const spouse = proposalView.dados_conjuge;
+        const snapshot = proposalView.fluxo_snapshot || {};
+        const values = snapshot.valores || {};
+        const files = proposalView.documentos || [];
+        const tablePrice = Number(snapshot.valor_tabela ?? proposalView.valor_original ?? 0);
+        const finalPrice = Number(proposalView.valor_final ?? snapshot.total ?? 0);
+        const discountValue = Number(snapshot.desconto_negociado ?? Math.max(0, tablePrice - finalPrice));
+        const civilLabels: Record<string, string> = { solteiro: "Solteiro(a)", casado_civil: "Casado(a) no civil", uniao_estavel: "União estável", divorciado: "Divorciado(a)", viuvo: "Viúvo(a)" };
+        const documentLabels: Record<string, string> = { identificacao: "Identidade do proponente", comprovante_residencia: "Comprovante de residência", certidao_casamento: "Certidão de casamento", identificacao_conjuge: "Identidade do cônjuge" };
+        return <div className="client-proposal-overlay" style={{ position: "fixed", inset: 0, zIndex: 7000, background: "rgba(0,0,0,.82)", padding: 14, overflow: "auto" }}>
+          <section className="client-proposal-no-print" style={{ ...panel, maxWidth: 820, margin: "20px auto", background: "#111113", color: "#fff", padding: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}><div><strong>Documentos recebidos ({files.length})</strong><small style={{ display: "block", color: "#a1a1aa", marginTop: 4 }}>Os arquivos estão em bucket privado. Os links de download expiram após 5 minutos.</small></div><button type="button" onClick={() => setProposalView(null)} style={{ background: "#27272a", color: "#fff", border: 0, padding: 9, cursor: "pointer", borderRadius: 6 }}>Fechar</button></div>
+            {files.length ? <div style={{ display: "grid", gap: 8, marginTop: 12 }}>{files.map((file) => <div key={file.storage_path} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", padding: 10, border: "1px solid #303036", borderRadius: 7 }}><span><strong style={{ display: "block", fontSize: 12 }}>{documentLabels[file.tipo] || "Documento"}</strong><small style={{ color: "#a1a1aa" }}>{file.nome_original} · {(file.tamanho_bytes / 1024 / 1024).toFixed(1)} MB</small></span><button type="button" disabled={documentDownloadBusy === file.storage_path} onClick={() => void downloadProposalDocument(file)} style={{ ...button, background: "#d7ab63", color: "#09090b", opacity: documentDownloadBusy === file.storage_path ? .65 : 1 }}>{documentDownloadBusy === file.storage_path ? "Preparando…" : "Baixar documento"}</button></div>)}</div> : <p style={{ color: "#a1a1aa", fontSize: 13 }}>Nenhum documento foi anexado a esta proposta.</p>}
+          </section>
+          <section className="client-proposal-print" style={{ ...panel, maxWidth: 820, margin: "20px auto", background: "#fff", color: "#161616", padding: 32 }}>
+            <div className="client-proposal-no-print" style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 14 }}><button type="button" onClick={() => window.print()} style={{ ...button, background: "#161616", color: "#fff" }}>Imprimir / salvar proposta em PDF</button></div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><div><small style={{ letterSpacing: ".14em", color: "#8a6a2e", fontWeight: 800 }}>LUAN ESPECIALISTA</small><h1 style={{ margin: "8px 0 4px", fontSize: 25 }}>Resumo da proposta comercial</h1><p style={{ margin: 0, color: "#555" }}>Manifestação de interesse enviada pelo cliente para análise.</p></div><span style={{ fontSize: 11, color: "#666", textAlign: "right" }}>Proposta {proposalView.id.slice(0, 8).toUpperCase()}<br />{new Date(proposalView.created_at).toLocaleDateString("pt-BR")}</span></div>
+            <p style={{ margin: "18px 0 0", padding: 10, border: "1px solid #e6d7b8", background: "#fbf7ee", fontSize: 11, lineHeight: 1.5 }}>Documento informativo gerado a partir da simulação do cliente. Não constitui contrato, reserva, aprovação de crédito ou garantia de preço e disponibilidade. Condições sujeitas à validação do especialista e da construtora.</p>
+            <hr style={{ margin: "20px 0", border: 0, borderTop: "1px solid #ddd" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16, fontSize: 13 }}><div><b>Proponente</b><div>{applicant.nome || client?.nome || "Não informado"}</div><div>CPF: {applicant.cpf || proposalView.cpf || "Não informado"}</div><div>{applicant.telefone || client?.telefone || "—"} · {applicant.email || client?.email || "—"}</div><div>Profissão: {applicant.profissao || client?.profissao || "Não informada"}</div><div>Estado civil: {civilLabels[applicant.estado_civil || ""] || "Não informado"}</div></div><div><b>Empreendimento</b><div>{property?.nome || proposalView.empreendimento_id}</div><div>Unidade: {unit ? `${unit.codigo_unidade || unit.numero_unidade || unit.numero || unit.id}${unit.torre ? ` · Torre ${unit.torre}` : ""}` : "Não informada"}</div><div>Status da análise: {proposalView.status}</div><div>Valor de tabela: {money(tablePrice)}</div><div>Desconto negociado: {money(discountValue)}</div><strong>Valor final simulado: {money(finalPrice)}</strong></div></div>
+            {spouse && <section style={{ marginTop: 18, padding: 12, background: "#f7f7f7", fontSize: 13 }}><b>Dados do cônjuge</b><div>{spouse.nome}</div><div>CPF: {spouse.cpf || "—"}</div><div>{spouse.telefone || "—"} · {spouse.email || "—"}</div><div>Profissão: {spouse.profissao || "Não informada"}</div></section>}
+            <h3 style={{ margin: "22px 0 10px" }}>Condições e cronograma propostos</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 9, fontSize: 13 }}>
+              <div style={{ padding: 11, background: "#f5f5f5" }}>Entrada<strong style={{ display: "block", marginTop: 4 }}>{money(proposalView.entrada)}</strong></div>
+              <div style={{ padding: 11, background: "#f5f5f5" }}>Parcelas até as chaves<strong style={{ display: "block", marginTop: 4 }}>{Number(values.parcelas_ate_chaves || 0)} × {money(Number(values.parcela ?? proposalView.parcela_mensal))}</strong></div>
+              <div style={{ padding: 11, background: "#f5f5f5" }}>Balões até as chaves<strong style={{ display: "block", marginTop: 4 }}>{Number(values.baloes_ate_chaves || proposalView.quantidade_baloes || 0)} × {money(Number(values.balao ?? proposalView.balao))}</strong></div>
+              <div style={{ padding: 11, background: "#f5f5f5" }}>Valor nas chaves<strong style={{ display: "block", marginTop: 4 }}>{money(Number(values.nas_chaves || 0))}</strong></div>
+              {Number(values.parcelas_pos_chaves || 0) > 0 && <div style={{ padding: 11, background: "#f5f5f5" }}>Pós-chaves — parcelas<strong style={{ display: "block", marginTop: 4 }}>{Number(values.parcelas_pos_chaves)} × {money(Number(values.parcela_pos_chaves || 0))}</strong></div>}
+              {Number(values.baloes_pos_chaves || 0) > 0 && <div style={{ padding: 11, background: "#f5f5f5" }}>Pós-chaves — balões<strong style={{ display: "block", marginTop: 4 }}>{Number(values.baloes_pos_chaves)} × {money(Number(values.balao_pos_chaves || 0))}</strong></div>}
+              <div style={{ padding: 11, background: "#efe7d7" }}>Total da simulação<strong style={{ display: "block", marginTop: 4 }}>{money(Number(snapshot.total || finalPrice))}</strong></div>
+            </div>
+            <p style={{ marginTop: 20, color: "#444", minHeight: 34 }}><b>Observações do cliente:</b> {proposalView.mensagem || "Sem observações adicionais."}</p>
+            {proposalView.observacao_comercial && <p style={{ color: "#444", fontSize: 12 }}><b>Observação comercial interna:</b> {proposalView.observacao_comercial}</p>}
+            <div style={{ display: "grid", gridTemplateColumns: spouse ? "repeat(3,minmax(0,1fr))" : "repeat(2,minmax(0,1fr))", gap: 28, marginTop: 42, fontSize: 11, textAlign: "center" }}><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>Luan Especialista<br /><small>Responsável pela análise</small></div><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{applicant.nome || client?.nome || "Proponente"}<br /><small>Proponente · CPF {applicant.cpf || proposalView.cpf || "—"}</small></div>{spouse && <div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{spouse.nome}<br /><small>Cônjuge · CPF {spouse.cpf || "—"}</small></div>}</div>
           </section>
         </div>;
       })()}
@@ -1397,7 +1459,6 @@ export default function Clientes({
                               <option value="preferida">Principal configurada no empreendimento</option>
                               <option value="pdf" disabled={!hasPdf}>Somente PDF da construtora</option>
                               <option value="link" disabled={!hasLink}>Somente link online (blog/site)</option>
-                              <option value="ambas" disabled={!hasPdf || !hasLink}>Link online + PDF, em sequência</option>
                               <option value="nenhuma">Não exibir apresentação</option>
                             </select>
                           </label>

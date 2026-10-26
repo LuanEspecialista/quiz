@@ -99,6 +99,16 @@ type Portal = {
 };
 type CubQuote = { value: number; competencia?: string | null; mes_referencia?: string | null; source?: string; updated_at?: string };
 type PostMode = "chaves" | "parcelas_e_baloes" | "somente_parcelas" | "somente_baloes";
+type CivilStatus = "" | "solteiro" | "casado_civil" | "uniao_estavel" | "divorciado" | "viuvo";
+type ProposalDocumentType = "identificacao" | "comprovante_residencia" | "certidao_casamento" | "identificacao_conjuge";
+type SpouseData = { nome: string; cpf: string; telefone: string; email: string; profissao: string };
+const proposalDocuments: { type: ProposalDocumentType; label: string; hint: string }[] = [
+  { type: "identificacao", label: "RG/CPF ou CNH do proponente", hint: "Documento de identidade legível." },
+  { type: "comprovante_residencia", label: "Comprovante de residência", hint: "Emitido há no máximo 60 dias." },
+  { type: "certidao_casamento", label: "Certidão de casamento civil", hint: "Solicitada para casamento civil." },
+  { type: "identificacao_conjuge", label: "RG/CPF ou CNH do cônjuge", hint: "Documento de identidade legível, quando aplicável." },
+];
+const proposalDocumentBucket = "cliente-propostas";
 const money = (value?: number | null) =>
   value == null
     ? "Sob consulta"
@@ -624,6 +634,13 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientCpf, setClientCpf] = useState("");
+  const [clientProfession, setClientProfession] = useState("");
+  const [civilStatus, setCivilStatus] = useState<CivilStatus>("");
+  const [spouse, setSpouse] = useState<SpouseData>({ nome: "", cpf: "", telefone: "", email: "", profissao: "" });
+  const [proposalDocumentFiles, setProposalDocumentFiles] = useState<Partial<Record<ProposalDocumentType, File>>>({});
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [spouseConsent, setSpouseConsent] = useState(false);
+  const [selectedUnitsByOpportunity, setSelectedUnitsByOpportunity] = useState<Record<string, string>>({});
   const [secondsUntilExpiry, setSecondsUntilExpiry] = useState<number | null>(null);
   const [lockedEntry, setLockedEntry] = useState(true);
   const [lockedMonthly, setLockedMonthly] = useState(true);
@@ -809,6 +826,11 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     setPostBalloonCount(initialPostBalloonCount);
     setNote("");
     setSent("");
+    setCivilStatus("");
+    setSpouse({ nome: "", cpf: "", telefone: "", email: "", profissao: "" });
+    setProposalDocumentFiles({});
+    setPrivacyConsent(false);
+    setSpouseConsent(false);
   };
   const openPresentation = (item: Opportunity, selected?: PortalPresentation | null) => {
     const presentation = selected || item.apresentacao;
@@ -906,39 +928,99 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   };
   const sendProposal = async () => {
     if (!proposal) return;
+    if (!proposal.permitir_proposta) { setSent("Este empreendimento está liberado para simulação, mas o envio de proposta ainda não foi autorizado pelo especialista."); return; }
     if (secondsUntilExpiry !== null && secondsUntilExpiry <= 0) { setSent("Seu acesso expirou. Solicite ao especialista uma nova validade para enviar a proposta."); return; }
     if (!proposalUnit || !commercial || Math.abs(flowTotal - commercial.finalPrice) > 0.02) {
       setSent(`O fluxo ainda não fecha. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Distribua o saldo entre até as chaves e pós-chaves antes de enviar.`);
       return;
     }
-    if (!clientName.trim() || !clientPhone.trim() || !clientCpf.replace(/\D/g, "").length || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail.trim())) {
-      setSent("Preencha nome, telefone, CPF e e-mail para enviar a proposta.");
+    const cpfDigits = clientCpf.replace(/\D/g, "");
+    const hasSpouse = civilStatus === "casado_civil" || civilStatus === "uniao_estavel";
+    if (!clientName.trim() || !clientPhone.trim() || cpfDigits.length !== 11 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail.trim()) || !clientProfession.trim() || !civilStatus) {
+      setSent("Preencha nome, telefone, CPF válido, e-mail, profissão e estado civil.");
+      return;
+    }
+    if (hasSpouse && (!spouse.nome.trim() || spouse.cpf.replace(/\D/g, "").length !== 11 || !spouse.telefone.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(spouse.email.trim()) || !spouse.profissao.trim())) {
+      setSent("Preencha os dados do cônjuge: nome, CPF, telefone, e-mail e profissão.");
+      return;
+    }
+    if (!privacyConsent || (hasSpouse && !spouseConsent)) {
+      setSent("Confirme a autorização de uso dos dados antes de enviar a proposta.");
+      return;
+    }
+    const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+    const selectedFiles = proposalDocuments.flatMap(({ type }) => {
+      const file = proposalDocumentFiles[type];
+      return file ? [{ type, file }] : [];
+    });
+    if (selectedFiles.some(({ file }) => !allowedTypes.has(file.type) || file.size <= 0 || file.size > 10 * 1024 * 1024)) {
+      setSent("Use PDF, JPG, PNG ou WebP, com até 10 MB por arquivo.");
+      return;
+    }
+    const { data: authResult, error: authError } = await supabase.auth.getUser();
+    if (authError || !authResult.user) {
+      setSent("Sua sessão expirou. Entre novamente para enviar a proposta.");
       return;
     }
     setSending(true);
     setSent("");
-    const { error: rpcError } = await supabase.rpc("enviar_proposta_cliente", {
-      p_empreendimento_id: proposal.id,
-      p_entrada: entry,
-      p_parcela_mensal: monthly,
-      p_balao: balloon,
-      p_quantidade_baloes: balloonCount,
-      p_objetivo: client?.objetivo || null,
-      p_mensagem: note || null,
-      p_unidade_id: proposalUnit?.id || null,
-      p_desconto_percentual: Number(commercial.percentage || 0),
-      p_fluxo_snapshot: { total: flowTotal, valor_tabela: commercial.tablePrice, desconto_negociado: commercial.discountValue, distribuicao: { percentual_ate_chaves: targets.prePct, percentual_pos_chaves: targets.postPct, modalidade_pos_chaves: financingAtKeys ? "financiamento_nas_chaves" : "direto_construtora", total_ate_chaves: preTotal, total_pos_chaves: postTotal, financiamento_nas_chaves: financingTotal, meta_ate_chaves: targets.preTarget, meta_pos_chaves: targets.postTarget, saldo: flowDifference }, valores: { entrada: entry, parcela: monthly, parcelas_ate_chaves: preMonths, balao: balloon, baloes_ate_chaves: balloonCount, nas_chaves: keysValue, parcela_pos_chaves: postMonthly, parcelas_pos_chaves: postMonths, balao_pos_chaves: postBalloon, baloes_pos_chaves: postBalloonCount } },
-      p_cpf: clientCpf,
-      p_email: clientEmail.trim().toLowerCase(),
-      p_nome: clientName.trim(),
-      p_telefone: clientPhone.trim(),
-    });
-    setSending(false);
-    setSent(
-      rpcError
-        ? "Não foi possível enviar agora. Revise os valores ou fale com seu especialista."
-        : "Interesse registrado. Seu especialista receberá este cenário para análise com a construtora.",
-    );
+    const proposalId = crypto.randomUUID();
+    const uploadedPaths: string[] = [];
+    try {
+      const documentMetadata: Record<string, unknown>[] = [];
+      for (const { type, file } of selectedFiles) {
+        const extension = file.type === "application/pdf" ? "pdf" : file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : "webp";
+        const path = `${authResult.user.id}/${proposalId}/${type}/${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from(proposalDocumentBucket).upload(path, file, {
+          cacheControl: "3600",
+          contentType: file.type,
+          upsert: false,
+        });
+        if (uploadError) throw uploadError;
+        uploadedPaths.push(path);
+        documentMetadata.push({
+          tipo: type,
+          nome_original: file.name.replace(/[\\/]/g, "_").slice(0, 180),
+          mime_type: file.type,
+          tamanho_bytes: file.size,
+          storage_path: path,
+          enviado_em: new Date().toISOString(),
+        });
+      }
+
+      const { error: rpcError } = await supabase.rpc("enviar_proposta_cliente", {
+        p_empreendimento_id: proposal.id,
+        p_entrada: entry,
+        p_parcela_mensal: monthly,
+        p_balao: balloon,
+        p_quantidade_baloes: balloonCount,
+        p_objetivo: client?.objetivo || null,
+        p_mensagem: note || null,
+        p_unidade_id: proposalUnit?.id || null,
+        p_desconto_percentual: Number(commercial.percentage || 0),
+        p_fluxo_snapshot: { total: flowTotal, valor_tabela: commercial.tablePrice, desconto_negociado: commercial.discountValue, distribuicao: { percentual_ate_chaves: targets.prePct, percentual_pos_chaves: targets.postPct, modalidade_pos_chaves: financingAtKeys ? "financiamento_nas_chaves" : "direto_construtora", total_ate_chaves: preTotal, total_pos_chaves: postTotal, financiamento_nas_chaves: financingTotal, meta_ate_chaves: targets.preTarget, meta_pos_chaves: targets.postTarget, saldo: flowDifference }, valores: { entrada: entry, parcela: monthly, parcelas_ate_chaves: preMonths, balao: balloon, baloes_ate_chaves: balloonCount, nas_chaves: keysValue, parcela_pos_chaves: postMonthly, parcelas_pos_chaves: postMonths, balao_pos_chaves: postBalloon, baloes_pos_chaves: postBalloonCount } },
+        p_cpf: cpfDigits,
+        p_email: clientEmail.trim().toLowerCase(),
+        p_nome: clientName.trim(),
+        p_telefone: clientPhone.trim(),
+        p_profissao: clientProfession.trim(),
+        p_estado_civil: civilStatus,
+        p_dados_conjuge: hasSpouse ? { ...spouse, cpf: spouse.cpf.replace(/\D/g, ""), email: spouse.email.trim().toLowerCase() } : null,
+        p_documentos: documentMetadata,
+        p_proposta_id: proposalId,
+        p_consentimento_dados: privacyConsent,
+        p_consentimento_conjuge: hasSpouse && spouseConsent,
+      });
+      if (rpcError) throw rpcError;
+      setSent(`Proposta enviada ao especialista para análise${documentMetadata.length ? ` com ${documentMetadata.length} documento(s) anexado(s)` : ""}. A simulação ainda não é um contrato.`);
+    } catch {
+      if (uploadedPaths.length) {
+        try { await supabase.storage.from(proposalDocumentBucket).remove(uploadedPaths); } catch { /* preserva o erro principal */ }
+      }
+      setSent("Não foi possível concluir o envio. Confira os dados e os arquivos; nenhuma proposta foi confirmada.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -1045,47 +1127,44 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           </section>
         )}
         {!activeOpportunity && opportunities.length > 0 && (
-          <section style={{ display: "grid", gap: 14 }}>
+          <section style={{ display: "grid", gap: 22 }}>
             {opportunities.map((item) => {
               const cover = item.imagens?.[0]?.url;
-              const presentationOptions = item.apresentacoes?.length
-                ? item.apresentacoes
-                : item.apresentacao?.url
-                  ? [item.apresentacao]
-                  : [];
+              const selectedPresentation = item.apresentacao?.url
+                ? item.apresentacao
+                : item.apresentacoes?.find((resource) => resource.url) || null;
               const units = item.unidades || [];
+              const selectedUnit = units.find((unit) => unit.id === selectedUnitsByOpportunity[item.id]) || units[0] || null;
+              const commercial = unitCommercial(item, selectedUnit);
+              const canOpenFlow = Boolean(item.permitir_proposta || item.exibir_fluxo);
               return (
-                <div key={item.id} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),360px))", gap: 12, alignItems: "stretch", justifyContent: "start" }}>
-                  <article style={{ border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%" }}>
+                <div key={item.id} style={{ width: "min(390px,100%)" }}>
+                  <article style={{ border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
                     <button type="button" onClick={() => setActiveOpportunity(item)} style={{ display: "block", width: "100%", padding: 0, textAlign: "left", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
                       {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 110, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
                       <div style={{ padding: "14px 15px 12px", display: "grid", gap: 7 }}>
                         <small style={{ color: "#d7ab63", fontWeight: 800 }}>{[item.bairro, item.cidade].filter(Boolean).join(" · ") || item.status}</small>
                         <span style={{ fontSize: 19, fontWeight: 800 }}>{item.nome}</span>
-                        <span style={{ color: "#a1a1aa", fontSize: 12 }}>{item.preco != null ? `A partir de ${money(item.preco)}` : "Confira a apresentação e os detalhes selecionados para você."}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#edcf91", fontWeight: 800, marginTop: 3 }}>Ver empreendimento <ChevronRight size={17} /></span>
+                        <span style={{ color: "#a1a1aa", fontSize: 12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.descricao || "Confira os detalhes selecionados para você."}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#edcf91", fontWeight: 800, marginTop: 3 }}>Detalhes do empreendimento <ChevronRight size={17} /></span>
                       </div>
                     </button>
-                    <div style={{ padding: "0 15px 15px", display: "grid", gap: 7 }}>
-                      {presentationOptions.map((presentation, index) => (
-                        <button key={`${presentation.tipo || "apresentacao"}-${index}`} type="button" disabled={!presentation.url} onClick={() => openPresentation(item, presentation)} style={{ width: "100%", border: "1px solid #54452c", background: "#17140e", color: "#ead5aa", borderRadius: 7, padding: "9px 10px", fontWeight: 700, cursor: presentation.url ? "pointer" : "not-allowed", textAlign: "left" }}>
-                          {presentation.tipo === "link" ? "Ver apresentação online" : "Abrir PDF da construtora"}
-                        </button>
-                      ))}
-                      {!presentationOptions.length && <small style={{ color: "#71717a" }}>Apresentação ainda não liberada para esta curadoria.</small>}
+                    <div style={{ padding: "0 15px 15px", display: "grid", gap: 11 }}>
+                      {selectedPresentation?.url ? <button type="button" onClick={() => openPresentation(item, selectedPresentation)} style={{ width: "100%", border: "1px solid #54452c", background: "#17140e", color: "#ead5aa", borderRadius: 7, padding: "10px 11px", fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
+                        {selectedPresentation.tipo === "link" ? "Ver apresentação online" : "Abrir apresentação em PDF"}
+                      </button> : <small style={{ color: "#71717a" }}>A apresentação ainda não foi liberada para esta curadoria.</small>}
+                      {units.length > 1 && <label style={{ color: "#d4d4d8", fontSize: 12 }}>Unidade liberada
+                        <select value={selectedUnit?.id || ""} onChange={(event) => setSelectedUnitsByOpportunity((current) => ({ ...current, [item.id]: event.target.value }))} style={{ ...input, marginTop: 5 }}>
+                          {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.codigo || unit.numero || "Unidade"}{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}</option>)}
+                        </select>
+                      </label>}
+                      {selectedUnit && <div style={{ borderTop: "1px solid #302a20", paddingTop: 10, display: "grid", gap: 5 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}><strong>Unidade {selectedUnit.codigo || selectedUnit.numero || "selecionada"}{selectedUnit.torre ? ` · Torre ${selectedUnit.torre}` : ""}</strong><strong style={{ color: "#edcf91", whiteSpace: "nowrap" }}>{money(commercial.finalPrice)}</strong></div>
+                        {commercial.discountValue > 0 ? <><small style={{ color: "#a1a1aa" }}>Valor de tabela: {money(commercial.tablePrice)}</small><strong style={{ color: "#b9d89c", fontSize: 12 }}>Condição especial: você economiza {money(commercial.discountValue)} ({commercial.percentage.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)</strong></> : <small style={{ color: "#a1a1aa" }}>Valor da unidade: {money(commercial.tablePrice)}</small>}
+                      </div>}
                     </div>
                   </article>
-                  <article style={{ border: "1px solid #3a3327", background: "linear-gradient(155deg,#17140e,#101012 58%)", color: "#fff", borderRadius: 13, padding: 16, width: "100%", boxSizing: "border-box", display: "grid", alignContent: "start", gap: 10 }}>
-                    <div><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: ".08em" }}>SIMULAÇÃO PERSONALIZADA</small><h2 style={{ margin: "5px 0", fontSize: 19 }}>Fluxo de pagamento</h2><p style={{ color: "#a1a1aa", fontSize: 12, lineHeight: 1.5, margin: 0 }}>Escolha uma unidade liberada e ajuste entrada, parcelas e reforços.</p></div>
-                    {units.length ? <div style={{ display: "grid", gap: 8 }}>{units.slice(0, 3).map((unit) => {
-                      const commercial = unitCommercial(item, unit);
-                      return <div key={unit.id} style={{ border: "1px solid #302a20", background: "#0d0d0f", borderRadius: 9, padding: 10, display: "grid", gap: 7 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "start" }}><span><strong>Unidade {unit.codigo || unit.numero || "selecionada"}</strong>{unit.torre && <small style={{ display: "block", color: "#a1a1aa" }}>Torre {unit.torre}</small>}</span><strong style={{ color: "#edcf91", whiteSpace: "nowrap" }}>{money(commercial.finalPrice)}</strong></div>
-                        <small style={{ color: "#85858d" }}>Valor de tabela: {money(commercial.tablePrice)}</small>
-                        <button type="button" onClick={() => openProposal(item, unit)} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 7, padding: "9px 10px", fontWeight: 800, cursor: "pointer" }}>Montar fluxo desta unidade</button>
-                      </div>;
-                    })}{units.length > 3 && <button type="button" onClick={() => setComparisonOpen(true)} style={{ border: "1px solid #54452c", background: "#17140e", color: "#edcf91", borderRadius: 7, padding: 9, cursor: "pointer" }}>Comparar todas as {units.length} unidades</button>}</div> : <p style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.6, margin: 0 }}>{item.exibir_fluxo || item.permitir_proposta ? "O especialista ainda não liberou uma unidade para simulação." : "As condições de fluxo ainda não foram liberadas para este empreendimento."}</p>}
-                  </article>
+                  {canOpenFlow && <button type="button" onClick={() => openProposal(item, selectedUnit || undefined)} style={{ width: "100%", marginTop: 9, border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer" }}>{selectedUnit ? `Montar fluxo da unidade ${selectedUnit.codigo || selectedUnit.numero || "selecionada"}` : "Montar fluxo de pagamento"}</button>}
                 </div>
               );
             })}
@@ -1165,7 +1244,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           >
             <section
               style={{
-                width: "min(700px,100%)",
+                width: "min(960px,100%)",
                 background: "#111113",
                 border: "1px solid #514124",
                 borderRadius: 13,
@@ -1204,25 +1283,16 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               </header>
               {proposal.unidades?.length ? <div style={{marginTop:22,padding:12,border:"1px solid #514124",borderRadius:9,background:"#17140e"}}><strong style={{display:"block",color:"#edcf91",fontSize:12,marginBottom:8}}>Escolha a unidade para simular</strong><div style={{display:"grid",gap:7}}>{proposal.unidades.map((unit)=>{const active=proposalUnit?.id===unit.id;const unitPrice=unitCommercial(proposal,unit);return <button type="button" key={unit.id} onClick={()=>openProposal(proposal,unit)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,textAlign:"left",border:`1px solid ${active?"#d7ab63":"#3f3f46"}`,background:active?"#2a2112":"#111113",color:"#f5e0b2",borderRadius:7,padding:"9px 10px",cursor:"pointer",minWidth:0}}><span style={{minWidth:0,overflowWrap:"anywhere"}}><b>{unit.codigo||unit.numero||"Unidade"}</b>{unit.torre?` · Torre ${unit.torre}`:""}{unit.tipologia?` · ${unit.tipologia}`:""}</span><span style={{whiteSpace:"nowrap"}}>{money(unitPrice.finalPrice)}</span></button>})}</div></div> : null}
               {proposal && <FlowSchedule item={proposal} unit={proposalUnit} cub={cub} />}
-              <section style={{display:"grid",gap:10,marginTop:18,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
-                <strong style={{color:"#edcf91",fontSize:12}}>Dados para emissão da proposta</strong>
-                <small style={{color:"#a1a1aa"}}>Os dados já cadastrados foram preenchidos automaticamente. Corrija ou complete apenas o que estiver faltando.</small>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:9}}>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>Nome<input value={clientName} onChange={(e)=>setClientName(e.target.value)} style={{...input,marginTop:5}} /></label>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>Telefone<input value={clientPhone} onChange={(e)=>setClientPhone(e.target.value)} inputMode="tel" style={{...input,marginTop:5}} /></label>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>CPF<input value={clientCpf} onChange={(e)=>setClientCpf(e.target.value)} inputMode="numeric" style={{...input,marginTop:5}} /></label>
-                  <label style={{fontSize:12,color:"#d4d4d8"}}>E-mail<input value={clientEmail} onChange={(e)=>setClientEmail(e.target.value)} type="email" style={{...input,marginTop:5}} /></label>
-                </div>
-              </section>
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+                  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
                   gap: 13,
                   marginTop: 22,
                 }}
+                className="portal-payment-grid"
               >
-                {proposalUnit && <div style={{gridColumn:"1/-1",padding:12,borderRadius:8,background:"#17140e",color:"#ead5aa",fontSize:12}}>Valor da unidade: <strong>{money(proposalUnit.valor)}</strong>{proposal.desconto_percentual ? ` · condição especial de ${Number(proposal.desconto_percentual).toLocaleString("pt-BR")} % · valor de referência após condição: ${money(Number(proposalUnit.valor||0)*(1-Number(proposal.desconto_percentual)/100))}` : ""}</div>}
+                {proposalUnit && <div style={{gridColumn:"1/-1",padding:12,borderRadius:8,background:"#17140e",color:"#ead5aa",fontSize:12}}>Valor de tabela: <strong>{money(commercial?.tablePrice)}</strong>{commercial && commercial.discountValue > 0 ? <><span> · desconto negociado: <strong>{money(commercial.discountValue)} ({commercial.percentage.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)</strong></span><div style={{marginTop:5,color:"#b9d89c",fontWeight:800}}>Condição especial para você: valor final {money(commercial.finalPrice)}.</div></> : <div style={{marginTop:5}}>Valor atual da unidade: <strong>{money(commercial?.finalPrice)}</strong></div>}</div>}
                 <MoneyScenario
                   label="Entrada"
                   value={entry}
@@ -1264,26 +1334,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 />
                 {lockedKeysValue && <small style={{gridColumn:"1/-1",color:"#b9d89c",fontSize:12,lineHeight:1.5}}>Com o cadeado ativo, o valor nas chaves é recalculado automaticamente para completar a meta até às chaves. Ao adicionar balões, eles entram no mesmo cálculo; destrave para editar manualmente.</small>}
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
-                  gap: 10,
-                  marginTop: 12,
-                }}
-              >
-                <label style={{ fontSize: 12, color: "#d4d4d8" }}>
-                  Observação
-                  <textarea
-                    value={note}
-                    maxLength={1500}
-                    onChange={(e) => setNote(e.target.value)}
-                    rows={3}
-                    placeholder="Ex.: consigo ajustar a entrada em dois atos."
-                    style={{ ...input, marginTop: 5, resize: "vertical", minHeight: 72 }}
-                  />
-                </label>
-              </div>
               <section style={{display:"grid",gap:10,marginTop:13,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
                 <strong style={{fontSize:12,color:"#edcf91"}}>O que fazer com o saldo após as chaves?</strong>
                 <select value={postMode} onChange={(e)=>changePostMode(e.target.value as PostMode)} style={{...input,marginTop:2}}><option value="chaves">Quitar/financiar o saldo nas chaves</option><option value="parcelas_e_baloes">Pós-chaves: parcelas e balões</option><option value="somente_parcelas">Pós-chaves: somente parcelas</option><option value="somente_baloes">Pós-chaves: somente balões</option></select>
@@ -1310,10 +1360,49 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   : ""}
                 {postMonths ? `, pós-chaves ${postMonths}x de ${money(postMonthly)}` : ""}. A construtora valida condições e disponibilidade.
               </div>
+              {proposal.permitir_proposta ? <>
+              <section style={{display:"grid",gap:10,marginTop:16,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
+                <strong style={{fontSize:12,color:"#edcf91"}}>Observações para o especialista</strong>
+                <textarea value={note} maxLength={1500} onChange={(event)=>setNote(event.target.value)} rows={3} placeholder="Ex.: consigo ajustar a entrada em dois atos." style={{...input,resize:"vertical",minHeight:72}} />
+              </section>
+              <section style={{display:"grid",gap:10,marginTop:12,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
+                <strong style={{color:"#edcf91",fontSize:12}}>Dados para emissão da proposta</strong>
+                <small style={{color:"#a1a1aa"}}>Informe seus dados depois de montar o fluxo. Os campos com * são necessários para encaminhar a proposta.</small>
+                <div className="portal-proposal-data-grid" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:9}}>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Nome *<input value={clientName} onChange={(event)=>setClientName(event.target.value)} autoComplete="name" style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>CPF *<input value={clientCpf} onChange={(event)=>setClientCpf(event.target.value)} inputMode="numeric" autoComplete="off" style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Telefone celular *<input value={clientPhone} onChange={(event)=>setClientPhone(event.target.value)} inputMode="tel" autoComplete="tel" style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>E-mail *<input value={clientEmail} onChange={(event)=>setClientEmail(event.target.value)} type="email" autoComplete="email" style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Profissão *<input value={clientProfession} onChange={(event)=>setClientProfession(event.target.value)} autoComplete="organization-title" style={{...input,marginTop:5}} /></label>
+                  <label style={{fontSize:12,color:"#d4d4d8"}}>Estado civil *<select value={civilStatus} onChange={(event)=>setCivilStatus(event.target.value as CivilStatus)} style={{...input,marginTop:5}}><option value="">Selecione</option><option value="solteiro">Solteiro(a)</option><option value="casado_civil">Casado(a) no civil</option><option value="uniao_estavel">União estável</option><option value="divorciado">Divorciado(a)</option><option value="viuvo">Viúvo(a)</option></select></label>
+                </div>
+                {(civilStatus === "casado_civil" || civilStatus === "uniao_estavel") && <div style={{display:"grid",gap:9,borderTop:"1px solid #302a20",paddingTop:11}}>
+                  <strong style={{fontSize:12,color:"#edcf91"}}>Dados do cônjuge</strong>
+                  <div className="portal-proposal-data-grid" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:9}}>
+                    <label style={{fontSize:12,color:"#d4d4d8"}}>Nome *<input value={spouse.nome} onChange={(event)=>setSpouse((current)=>({...current,nome:event.target.value}))} autoComplete="off" style={{...input,marginTop:5}} /></label>
+                    <label style={{fontSize:12,color:"#d4d4d8"}}>CPF *<input value={spouse.cpf} onChange={(event)=>setSpouse((current)=>({...current,cpf:event.target.value}))} inputMode="numeric" style={{...input,marginTop:5}} /></label>
+                    <label style={{fontSize:12,color:"#d4d4d8"}}>Telefone celular *<input value={spouse.telefone} onChange={(event)=>setSpouse((current)=>({...current,telefone:event.target.value}))} inputMode="tel" style={{...input,marginTop:5}} /></label>
+                    <label style={{fontSize:12,color:"#d4d4d8"}}>E-mail *<input value={spouse.email} onChange={(event)=>setSpouse((current)=>({...current,email:event.target.value}))} type="email" style={{...input,marginTop:5}} /></label>
+                    <label style={{fontSize:12,color:"#d4d4d8"}}>Profissão *<input value={spouse.profissao} onChange={(event)=>setSpouse((current)=>({...current,profissao:event.target.value}))} style={{...input,marginTop:5}} /></label>
+                  </div>
+                  <label style={{display:"flex",alignItems:"flex-start",gap:8,color:"#d4d4d8",fontSize:12,lineHeight:1.5}}><input type="checkbox" checked={spouseConsent} onChange={(event)=>setSpouseConsent(event.target.checked)} style={{marginTop:2,accentColor:"#d7ab63"}} />Confirmo que meu cônjuge autorizou o envio dos dados dele(a) para análise desta proposta.</label>
+                </div>}
+              </section>
+              <section style={{display:"grid",gap:10,marginTop:12,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
+                <strong style={{fontSize:12,color:"#edcf91"}}>Documentos para análise</strong>
+                <small style={{color:"#a1a1aa",lineHeight:1.5}}>Os arquivos ficam em armazenamento privado no Supabase e só podem ser acessados por você e pela equipe autorizada. Aceitamos PDF, JPG, PNG ou WebP, até 10 MB cada. O comprovante de residência deve ter no máximo 60 dias.</small>
+                <div className="portal-document-grid" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:9}}>
+                  {proposalDocuments.filter((document)=>document.type !== "certidao_casamento" || civilStatus === "casado_civil").filter((document)=>document.type !== "identificacao_conjuge" || civilStatus === "casado_civil" || civilStatus === "uniao_estavel").map((document)=>{
+                    const file=proposalDocumentFiles[document.type];
+                    return <label key={document.type} style={{fontSize:12,color:"#d4d4d8"}}>{document.label}<small style={{display:"block",color:"#a1a1aa",marginTop:3}}>{document.hint}</small><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onChange={(event)=>{const file=event.target.files?.[0];if(file)setProposalDocumentFiles((current)=>({...current,[document.type]:file}));}} style={{...input,marginTop:6,fontSize:11,padding:8}} />{file && <small style={{display:"block",color:"#b9d89c",marginTop:4}}>{file.name} · {(file.size/1024/1024).toFixed(1)} MB</small>}</label>;
+                  })}
+                </div>
+                <label style={{display:"flex",alignItems:"flex-start",gap:8,color:"#d4d4d8",fontSize:12,lineHeight:1.55}}><input type="checkbox" checked={privacyConsent} onChange={(event)=>setPrivacyConsent(event.target.checked)} style={{marginTop:2,accentColor:"#d7ab63"}} />Autorizo o uso dos dados e documentos enviados para análise desta proposta e contato sobre este empreendimento. Entendo que esta simulação não é contrato, reserva nem aprovação de crédito.</label>
+              </section>
               {sent && (
                 <p
                   style={{
-                    color: sent.startsWith("Interesse") ? "#86efac" : "#fbbf24",
+                    color: sent.startsWith("Proposta enviada") ? "#86efac" : "#fbbf24",
                     fontSize: 13,
                   }}
                 >
@@ -1338,6 +1427,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 <Send size={15} />{" "}
                 {sending ? "Enviando…" : "Enviar cenário para análise"}
               </button>
+              </> : <div style={{marginTop:16,padding:12,border:"1px solid #54452c",borderRadius:8,background:"#17140e",color:"#ead5aa",fontSize:12,lineHeight:1.55}}>A simulação está disponível, mas o especialista ainda não liberou o envio de proposta para esta oportunidade. Nenhum dado pessoal ou documento será solicitado nesta etapa.</div>}
             </section>
           </div>
         )}
