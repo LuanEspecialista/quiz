@@ -876,7 +876,7 @@ export default function Clientes({
             </div>
             <p style={{ marginTop: 20, color: "#444", minHeight: 34 }}><b>Observações do cliente:</b> {proposalView.mensagem || "Sem observações adicionais."}</p>
             {proposalView.observacao_comercial && <p style={{ color: "#444", fontSize: 12 }}><b>Observação comercial interna:</b> {proposalView.observacao_comercial}</p>}
-            <div style={{ display: "grid", gridTemplateColumns: spouse ? "repeat(3,minmax(0,1fr))" : "repeat(2,minmax(0,1fr))", gap: 28, marginTop: 42, fontSize: 11, textAlign: "center" }}><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>Lua Santos<br /><small>Responsável pela proposta</small></div><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{applicant.nome || client?.nome || "Proponente"}<br /><small>Proponente · {applicantDocumentType} {applicantDocument || "—"}</small></div>{spouse && <div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{spouse.nome}<br /><small>Cônjuge · CPF {spouseDocument}</small></div>}</div>
+            <div style={{ display: "grid", gridTemplateColumns: spouse ? "repeat(3,minmax(0,1fr))" : "repeat(2,minmax(0,1fr))", gap: 28, marginTop: 42, fontSize: 11, textAlign: "center" }}><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>Luan Santos<br /><small>Responsável pela proposta</small></div><div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{applicant.nome || client?.nome || "Proponente"}<br /><small>Proponente · {applicantDocumentType} {applicantDocument || "—"}</small></div>{spouse && <div style={{ borderTop: "1px solid #333", paddingTop: 7 }}>{spouse.nome}<br /><small>Cônjuge · CPF {spouseDocument}</small></div>}</div>
           </section>
         </div>;
       })()}
