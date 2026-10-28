@@ -120,6 +120,7 @@ type ClientProposal = {
   mensagem?: string | null;
   status: string;
   created_at: string;
+  arquivada_em?: string | null;
   cpf?: string | null;
   unidade_id?: string | null;
   valor_original?: number | null;
@@ -767,31 +768,22 @@ export default function Clientes({
     }
   }
 
-  const activeProposals = proposals.filter((proposal) => !["aceita", "recusada"].includes(proposal.status));
-  const historicalProposals = proposals.filter((proposal) => ["aceita", "recusada"].includes(proposal.status));
-  const renderProposalCard = (proposal: ClientProposal) => {
-    const client = items.find((item) => Number(item.id) === proposal.cliente_id);
-    const property = properties.find((item) => item.id === proposal.empreendimento_id);
-    return (
-      <article key={proposal.id} style={{ border: `1px solid ${proposal.status === "nova" ? "#c5a059" : "#303036"}`, borderRadius: 8, padding: 11, display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(140px,auto)", gap: 10 }}>
-        <div>
-          <small style={{ display: "block", color: "#a1a1aa", marginBottom: 4 }}>{proposal.status.replaceAll("_", " ")} · {new Date(proposal.created_at).toLocaleString("pt-BR")}</small>
-          <strong>{client?.nome || "Cliente"} · {property?.nome || proposal.empreendimento_id}</strong>
-          <small style={{ display: "block", color: "#a1a1aa", marginTop: 4 }}>Entrada {money(proposal.entrada)} · Mensais {money(proposal.parcela_mensal)}{proposal.quantidade_baloes ? ` · ${proposal.quantidade_baloes} balão(ões) de ${money(proposal.balao)}` : ""}</small>
-          {proposal.mensagem && <p style={{ fontSize: 12, color: "#d4d4d8" }}>{proposal.mensagem}</p>}
-          <button type="button" onClick={() => setProposalView(proposal)} style={{ ...button, marginTop: 8, fontSize: 11, background: "#c5a059", color: "#09090b" }}>Ver proposta formal</button>
-          <small style={{ display: "block", color: "#a1a1aa", marginTop: 5 }}>{proposal.documentos?.length || 0} documento(s) anexado(s)</small>
-        </div>
-        <select value={proposal.status} onChange={(event) => void updateProposal(proposal.id, event.target.value)} style={{ ...input, width: "100%", alignSelf: "start" }} aria-label={`Status da proposta de ${client?.nome || "cliente"}`}>
-          <option value="nova">Nova</option>
-          <option value="em_analise">Em análise</option>
-          <option value="contraproposta">Contraproposta</option>
-          <option value="aceita">Aceita</option>
-          <option value="recusada">Recusada</option>
-        </select>
-      </article>
-    );
-  };
+  async function archiveProposal(proposal: ClientProposal) {
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("cliente_propostas").update({ arquivada_em: now, updated_at: now }).eq("id", proposal.id);
+    setMessage(error?.message || "Proposta arquivada. Ela continua preservada no histórico.");
+    if (!error) { if (proposalView?.id === proposal.id) setProposalView(null); void load(); }
+  }
+  async function restoreProposal(proposal: ClientProposal) {
+    const { error } = await supabase.from("cliente_propostas").update({ arquivada_em: null, updated_at: new Date().toISOString() }).eq("id", proposal.id);
+    setMessage(error?.message || "Proposta devolvida para o histórico.");
+    if (!error) void load();
+  }
+  function openProposalView(proposal: ClientProposal) {
+    setProposalView(proposal);
+    if (proposal.status === "nova") void updateProposal(proposal.id, "em_analise");
+  }
+
 
   return (
     <div style={{ color: "#f4f4f5", display: "grid", gap: 14 }}>
@@ -851,23 +843,79 @@ export default function Clientes({
           </article>)}
         </div>
       </section>}
-      {proposals.some((item) => item.status === "nova") && <section style={{ ...panel, borderColor: "#c5a059", background: "#1c160b", color: "#f5e0b2" }}><strong>Nova proposta recebida</strong><span style={{ display: "block", marginTop: 4, fontSize: 12, color: "#d4d4d8" }}>A cliente enviou uma simulação. Abra a proposta para consultar os valores e imprimir a ficha formal.</span></section>}
+      {proposals.some((item) => item.status === "nova" && !item.arquivada_em) && <section style={{ ...panel, borderColor: "#c5a059", background: "#1c160b", color: "#f5e0b2" }}><strong>Nova proposta recebida</strong><span style={{ display: "block", marginTop: 4, fontSize: 12, color: "#d4d4d8" }}>A cliente enviou uma simulação. Abra a proposta para consultar os valores e imprimir a ficha formal.</span></section>}
       {siteOpportunityLeads.length > 0 && <details style={{...panel,borderColor:"#8a6a2e"}} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Solicitações de conversa ({siteOpportunityLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{siteOpportunityLeads.map((lead)=><article key={lead.id} style={{border:"1px solid #4a3a20",borderRadius:8,padding:11,background:"#15120d"}}><div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>Solicitação de {lead.nome}</strong><span style={{color:"#edcf91",fontSize:12}}>{lead.empreendimento_nome_interno || "Oportunidade selecionada"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.telefone || "Sem telefone"}{lead.email ? ` · ${lead.email}` : ""} · {new Date(lead.criado_em).toLocaleString("pt-BR")}</small>{lead.objetivo && <p style={{fontSize:12,color:"#d4d4d8",margin:"8px 0 0"}}>Objetivo: {lead.objetivo}</p>}<small style={{display:"block",color:"#888",marginTop:7}}>A oportunidade clicada foi vinculada internamente ao cadastro.</small></article>)}</div></details>}
       {blogLeads.length > 0 && <details style={panel} open><summary style={{cursor:"pointer",fontWeight:800,color:"#edcf91"}}>Leads identificados pelo Blog ({blogLeads.length})</summary><div style={{display:"grid",gap:9,marginTop:12}}>{blogLeads.map((lead)=><article key={lead.user_id} style={{border:"1px solid #303036",borderRadius:8,padding:11}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}><strong>{lead.nome || "Leitor identificado"}</strong><span style={{color:lead.consentiu_contato?"#9bd4ac":"#a1a1aa",fontSize:11}}>{lead.consentiu_contato?"Autorizou contato":"Sem autorização para contato"}</span></div><small style={{display:"block",color:"#a1a1aa",marginTop:4}}>{lead.email}{lead.blog_posts?.titulo ? ` · Origem: ${lead.blog_posts.titulo}` : ""}</small>{lead.interesses?.length ? <p style={{fontSize:12,color:"#d4d4d8",marginBottom:0}}>Interesses: {lead.interesses.join(" · ")}</p> : <small style={{color:"#71717a"}}>Ainda não informou interesses.</small>}</article>)}</div></details>}
-      {proposals.length > 0 && (
-        <section style={panel}>
-          <details open>
-            <summary style={{ cursor: "pointer", fontWeight: 800, color: "#edcf91" }}>Fila de propostas ({activeProposals.length} ativa(s) · {activeProposals.filter((item) => item.status === "nova").length} nova(s))</summary>
-            <div style={{ display: "grid", gap: 9, marginTop: 12 }}>
-              {activeProposals.length ? activeProposals.slice(0, 30).map(renderProposalCard) : <p style={{ margin: 0, color: "#a1a1aa", fontSize: 13 }}>Nenhuma proposta pendente de análise.</p>}
-            </div>
-          </details>
-          {historicalProposals.length > 0 && <details style={{ marginTop: 12 }}>
-            <summary style={{ cursor: "pointer", fontWeight: 800, color: "#a1a1aa" }}>Histórico de propostas aceitas/recusadas ({historicalProposals.length})</summary>
-            <div style={{ display: "grid", gap: 9, marginTop: 12 }}>{historicalProposals.slice(0, 50).map(renderProposalCard)}</div>
-          </details>}
-        </section>
-      )}
+      {proposals.length > 0 && (() => {
+        const visibleProposals = proposals.filter((item) => !item.arquivada_em);
+        const activeProposals = visibleProposals.filter((item) => !["aceita", "recusada"].includes(item.status));
+        const resolvedProposals = visibleProposals.filter((item) => ["aceita", "recusada"].includes(item.status));
+        const archivedProposals = proposals.filter((item) => item.arquivada_em);
+        const renderProposal = (proposal: ClientProposal, archived = false) => {
+              const client = items.find(
+                (item) => Number(item.id) === proposal.cliente_id,
+              );
+              const property = properties.find(
+                (item) => item.id === proposal.empreendimento_id,
+              );
+              return <article
+                  key={proposal.id}
+                  style={{
+                    border: `1px solid ${proposal.status === "nova" ? "#c5a059" : "#303036"}`,
+                    borderRadius: 8,
+                    padding: 11,
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto",
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <strong>
+                      {client?.nome || "Cliente"} ·{" "}
+                      {property?.nome || proposal.empreendimento_id}
+                    </strong>
+                    <small
+                      style={{
+                        display: "block",
+                        color: "#a1a1aa",
+                        marginTop: 4,
+                      }}
+                    >
+                      Entrada {money(proposal.entrada)} · Mensais{" "}
+                      {money(proposal.parcela_mensal)}
+                      {proposal.quantidade_baloes
+                        ? ` · ${proposal.quantidade_baloes} balão(ões) de ${money(proposal.balao)}`
+                        : ""}
+                    </small>
+                    {proposal.mensagem && (
+                      <p style={{ fontSize: 12, color: "#d4d4d8" }}>
+                        {proposal.mensagem}
+                      </p>
+                    )}
+                    <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 8 }}><button type="button" onClick={() => openProposalView(proposal)} style={{ ...button, fontSize: 11, background: "#c5a059", color: "#09090b" }}>Ver proposta formal</button>{archived ? <button type="button" onClick={() => void restoreProposal(proposal)} style={{ ...button, fontSize: 11, background: "#27272a", color: "#f4f4f5" }}>Restaurar</button> : <button type="button" onClick={() => void archiveProposal(proposal)} style={{ ...button, fontSize: 11, background: "#27272a", color: "#f4f4f5" }}><Trash2 size={13} /> Arquivar</button>}</div>
+                  </div>
+                  <select
+                    value={proposal.status}
+                    onChange={(event) =>
+                      void updateProposal(proposal.id, event.target.value)
+                    }
+                    style={{ ...input, width: 150 }}
+                  >
+                    <option value="nova">Nova</option>
+                    <option value="em_analise">Em análise</option>
+                    <option value="contraproposta">Contraproposta</option>
+                    <option value="aceita">Aceita</option>
+                    <option value="recusada">Recusada</option>
+                  </select>
+                </article>;
+        };
+        return <>
+          {activeProposals.length > 0 && <details style={panel} open><summary style={{ cursor: "pointer", fontWeight: 800, color: "#edcf91" }}>Fila de propostas ({activeProposals.filter((item) => item.status === "nova").length} nova(s) · {activeProposals.length} ativa(s))</summary><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{activeProposals.slice(0, 30).map((proposal) => renderProposal(proposal))}</div></details>}
+          {resolvedProposals.length > 0 && <details style={panel} open><summary style={{ cursor: "pointer", fontWeight: 800, color: "#a1a1aa" }}>Histórico recente ({resolvedProposals.length})</summary><p style={{ color: "#8b8b95", fontSize: 12, margin: "10px 0 0" }}>Propostas aceitas ou recusadas ficam aqui até serem arquivadas.</p><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{resolvedProposals.slice(0, 30).map((proposal) => renderProposal(proposal))}</div></details>}
+          {archivedProposals.length > 0 && <details style={panel}><summary style={{ cursor: "pointer", fontWeight: 800, color: "#71717a" }}>Arquivo de propostas ({archivedProposals.length})</summary><p style={{ color: "#71717a", fontSize: 12, margin: "10px 0 0" }}>Arquivadas ficam ocultas da fila, mas não são apagadas e continuam disponíveis para consulta.</p><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{archivedProposals.slice(0, 50).map((proposal) => renderProposal(proposal, true))}</div></details>}
+        </>;
+      })()}
+
       {proposalView && (() => {
         const client = items.find((item) => Number(item.id) === proposalView.cliente_id);
         const property = properties.find((item) => item.id === proposalView.empreendimento_id);
