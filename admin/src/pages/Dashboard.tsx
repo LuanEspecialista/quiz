@@ -18,6 +18,7 @@ const AfiliadosModule = lazy(() => import("./modules/Afiliados"));
 const PromptsModule = lazy(() => import("./modules/Prompts"));
 const LinksTemporariosModule = lazy(() => import("./modules/LinksTemporarios"));
 const BlogModule = lazy(() => import("./modules/Blog"));
+const ModoLigacaoModule = lazy(() => import("./modules/ModoLigacao"));
 const TipologiasModule = lazy(() => import("./modules/Tipologias"));
 const MinhaContaModule = lazy(() => import("./modules/MinhaConta"));
 const UsuariosAcessosModule = lazy(() => import("./modules/UsuariosAcessos"));
@@ -87,6 +88,17 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
   }, [activeTab]);
 
   const searchUnits = (filters: SmartUnitFilters) => { setSmartUnitFilters(filters); setActiveTab("unidades"); };
+  const openUnitsFromCall = (filters: SmartUnitFilters) => {
+    setSmartUnitFilters(filters);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("empreendimento");
+    url.searchParams.delete("empreendimentos");
+    url.searchParams.delete("disponibilidade");
+    url.searchParams.delete("tipologia");
+    url.searchParams.set("tab", "unidades");
+    window.history.replaceState(null, "", url);
+    setActiveTab("unidades");
+  };
   const openFlow = (units: any[]) => {
     const selected = units.filter((unit) => unit?.id).slice(0, 4);
     if (!selected.length) return;
@@ -127,7 +139,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         {role !== "afiliado" && activeTab === "fluxos" && <FluxosModule initialUnitIds={flowUnitIds} initialUnits={flowUnits} initialClientId={flowClientId} />}
         {role !== "afiliado" && activeTab === "clientes" && <><ClientesModule onOpenFlow={(ids,clientId) => { setFlowClientId(clientId); setFlowUnits([]); setFlowUnitIds(ids); setActiveTab("fluxos"); }} /><details style={{marginTop:18,border:"1px solid #29292e",borderRadius:10,padding:14}}><summary style={{cursor:"pointer",color:"#d7ab63",fontWeight:800}}>Criar ou administrar acesso temporário de cliente</summary><div style={{marginTop:14}}><LinksTemporariosModule defaultPublic="cliente" embedded /></div></details></>}
         {role === "admin" && activeTab === "usuarios-acessos" && <UsuariosAcessosModule />}
-        {role !== "afiliado" && activeTab === "playbook" && <section style={{ maxWidth: 860, margin: "0 auto", padding: "clamp(24px,6vw,72px) clamp(18px,4vw,48px)", border: "1px solid #3b3020", borderRadius: 16, background: "linear-gradient(135deg,#17130d,#101012)", color: "#f4f4f5" }}><small style={{ color: "#d7ab63", fontWeight: 800, letterSpacing: 1.4 }}>NÚCLEO COMERCIAL</small><h1 style={{ margin: "10px 0 12px", fontSize: "clamp(28px,4vw,46px)" }}>Playbook em reconstrução</h1><p style={{ maxWidth: 640, color: "#b8b8bf", lineHeight: 1.7, margin: 0 }}>Estamos reorganizando este módulo para entregar uma experiência comercial mais clara, segura e conectada à base principal de clientes. Os dados existentes foram preservados.</p><div style={{ display: "inline-flex", marginTop: 24, padding: "9px 12px", borderRadius: 999, border: "1px solid #6d562c", color: "#edcf91", background: "#211a0d", fontSize: 12, fontWeight: 700 }}>Nenhuma alteração foi feita nos dados</div></section>}
+        {role !== "afiliado" && activeTab === "playbook" && <ModoLigacaoModule onOpenUnits={openUnitsFromCall} />}
         {activeTab === "afiliados" && <><AfiliadosModule role={role} />{role!=="afiliado"&&<details style={{marginTop:18,border:"1px solid #29292e",borderRadius:10,padding:14}}><summary style={{cursor:"pointer",color:"#d7ab63",fontWeight:800}}>Criar ou administrar acesso temporário de indicador</summary><div style={{marginTop:14}}><LinksTemporariosModule defaultPublic="afiliado" embedded /></div></details>}</>}
         {role !== "afiliado" && activeTab === "indicadores" && <ModuleErrorBoundary moduleName="Indicadores"><IndicadoresModule /></ModuleErrorBoundary>}
         {role !== "afiliado" && activeTab === "configuracoes" && <ConfiguracoesModule />}
