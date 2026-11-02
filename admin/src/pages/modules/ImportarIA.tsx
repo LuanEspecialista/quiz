@@ -4,7 +4,7 @@ import { deliveryDateIso, normalizeDeliveryMonth } from "../../lib/deliveryDate"
 import { isUnitAvailable, normalizeUnitAvailability, parseStandardTypology, unitAvailabilityLabel } from "../../lib/realEstateStandard";
 import { canonicalSku, normalizeTower, normalizeUnitCode, unitIdentity } from "../../lib/unitIdentity";
 import type { TowerStructure } from "../../lib/unitIdentity";
-import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks } from "lucide-react";
+import { Sparkles, CheckCircle2, AlertCircle, Loader2, FileJson, ArrowRight, Building2, Trash2, History, Home, ListChecks, ClipboardPaste, UserPlus } from "lucide-react";
 import CitySelect from "../../components/CitySelect";
 import { sameCity } from "../../lib/cities";
 
@@ -856,8 +856,121 @@ const LandingImporter: React.FC = () => {
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:18}}><section style={panelStyle}><h2 style={panelTitle}><FileJson size={18}/> JSON da landing</h2><p style={helpStyle}>Cole o resultado do Prompt de Landing Persuasiva. Nada será salvo antes da confirmação.</p><textarea rows={20} value={jsonInput} onChange={e=>setJsonInput(e.target.value)} style={textareaStyle}/><button onClick={parse} style={secondaryActionStyle}>Identificar e revisar <ArrowRight size={16}/></button></section><section style={panelStyle}><h2 style={panelTitle}><Sparkles size={18}/> Prévia e destino</h2>{status?.error&&<div style={errorBox}>{status.error}</div>}{status?.success&&<div style={successBox}>{status.success}</div>}{parsed&&<><label style={labelStyle}>Empreendimento identificado *</label><select value={selectedId} onChange={e=>setSelectedId(e.target.value)} style={selectStyle}><option value="">Confirme o destino...</option>{items.map(item=><option key={item.id} value={item.id}>{item.nome} · {item.cidade}</option>)}</select><div style={{display:"grid",gap:8,marginTop:14}}>{parsed.landing_page.blocos.map((block:any,index:number)=><div key={index} style={itemStyle}><span><b style={{color:"#fff"}}>{index+1}. {block.titulo||block.tipo}</b><small style={{display:"block"}}>{block.tipo} · imagem: {block.categoria_imagem||"automática"}</small></span></div>)}</div><button disabled={!selectedId||saving} onClick={()=>void save()} style={{...primaryActionStyle,opacity:!selectedId||saving?.5:1}}>{saving?"Salvando...":"Adicionar blocos ao empreendimento"}</button></>}</section></div>;
 };
 
+type CrmClientDraft = {
+  nome: string;
+  email: string;
+  telefone: string;
+  cidade: string;
+  origem: string;
+  interesse: string;
+  bloco: number;
+};
+
+const normalizeClientKey = (value: unknown) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const normalizeClientEmail = (value: unknown) => normalizeClientKey(value);
+const normalizeClientPhone = (value: unknown) => String(value || "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+const formatImportedPhone = (value: string) => {
+  const digits = normalizeClientPhone(value);
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return value.trim();
+};
+
+function parseCrmClientText(raw: string): CrmClientDraft[] {
+  const blocks = raw.split(/\n\s*\n+/).map((block) => block.trim()).filter(Boolean);
+  const globalCity = raw.match(/(?:^|\n)\s*(?:city|cidade)\s*=\s*([^,\n]+)/i)?.[1]?.trim() || "";
+  const drafts: CrmClientDraft[] = [];
+  blocks.forEach((block, index) => {
+    const lines = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const valueAfter = (patterns: RegExp[]) => {
+      const line = lines.find((item) => patterns.some((pattern) => pattern.test(item)));
+      if (!line) return "";
+      return line.replace(/^[^:=-]+[:=-]\s*/i, "").trim().replace(/[;,]\s*$/, "");
+    };
+    const cityLine = lines.find((line) => /^cidade\s*=/i.test(line) || /^city\s*=/i.test(line));
+    const leadLine = lines.find((line) => /^lead\s*[-:]/i.test(line) || /^origem\s*:/i.test(line));
+    const propertyLine = lines.find((line) => /^(im[oó]vel|interesse|unidade|empreendimento)/i.test(line));
+    const email = valueAfter([/^(e-?mail|email)\s*:/i]) || (block.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "");
+    const phone = valueAfter([/^(fone|telefone|celular|whatsapp)\s*:/i]) || (block.match(/(?:\+?55\s*)?\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4}/)?.[0] || "");
+    const nome = valueAfter([/^(nome|cliente)\s*:/i]);
+    const cidade = cityLine ? cityLine.replace(/^[^=]+=?\s*/i, "").replace(/[;,]\s*$/, "").trim() : valueAfter([/^(cidade|city)\s*:/i]) || globalCity;
+    const origem = leadLine ? leadLine.replace(/^lead\s*[-:]\s*/i, "Lead - ").replace(/^origem\s*:\s*/i, "").trim() : "Importado do CRM";
+    const interesse = propertyLine ? propertyLine.replace(/^[^:]+:\s*/i, "").trim() : "";
+    if (nome || email || phone) drafts.push({ nome: nome || "Cliente sem nome", email: email.trim(), telefone: formatImportedPhone(phone), cidade, origem, interesse, bloco: index + 1 });
+  });
+  return drafts;
+}
+
+const CrmClientImporter: React.FC = () => {
+  const [raw, setRaw] = useState("");
+  const [drafts, setDrafts] = useState<CrmClientDraft[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ success?: string; error?: string } | null>(null);
+
+  function preview() {
+    const parsed = parseCrmClientText(raw);
+    setDrafts(parsed);
+    setStatus(parsed.length ? null : { error: "Não encontrei blocos de clientes. Cole o texto exatamente como sai do CRM e deixe uma linha em branco entre clientes." });
+  }
+
+  async function save() {
+    if (!drafts.length) return;
+    setSaving(true); setStatus(null);
+    const { data: existing, error: readError } = await supabase.from("clientes").select("id,nome,email,telefone,whatsapp").limit(5000);
+    if (readError) { setSaving(false); setStatus({ error: readError.message }); return; }
+    const knownEmails = new Set((existing || []).map((item: any) => normalizeClientEmail(item.email)).filter(Boolean));
+    const knownPhones = new Set((existing || []).flatMap((item: any) => [item.telefone, item.whatsapp].map(normalizeClientPhone)).filter(Boolean));
+    const batchEmails = new Set<string>();
+    const batchPhones = new Set<string>();
+    const newClients = drafts.filter((client) => {
+      const email = normalizeClientEmail(client.email); const phone = normalizeClientPhone(client.telefone);
+      const duplicate = (email && (knownEmails.has(email) || batchEmails.has(email))) || (phone && (knownPhones.has(phone) || batchPhones.has(phone)));
+      if (!duplicate) { if (email) batchEmails.add(email); if (phone) batchPhones.add(phone); }
+      return !duplicate;
+    }).map((client) => ({
+      nome: client.nome,
+      email: client.email || null,
+      telefone: client.telefone || null,
+      whatsapp: client.telefone || null,
+      cidade: client.cidade || null,
+      cidades_preferencia: client.cidade ? [client.cidade] : [],
+      origem: client.origem || "Importado do CRM",
+      objetivo: client.interesse ? `Interesse: ${client.interesse}` : null,
+      observacoes: client.interesse ? `Imóvel(is): ${client.interesse}` : "Importado por colagem do CRM",
+      status: "novo",
+      etapa_funil: "novo",
+    }));
+    if (!newClients.length) { setSaving(false); setStatus({ success: `${drafts.length} registro(s) já existiam por e-mail ou telefone. Nenhuma duplicidade foi criada.` }); return; }
+    const { error } = await supabase.from("clientes").insert(newClients);
+    setSaving(false);
+    if (error) setStatus({ error: error.message });
+    else setStatus({ success: `${newClients.length} cliente(s) cadastrado(s). ${drafts.length - newClients.length} já existente(s) foram ignorado(s).` });
+  }
+
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 18 }}>
+    <section style={panelStyle}>
+      <h2 style={panelTitle}><ClipboardPaste size={18} /> Colar dados do CRM</h2>
+      <p style={helpStyle}>Cole um ou vários blocos exatamente como aparecem no CRM. Separe clientes diferentes com uma linha em branco. Nada é cadastrado antes da revisão.</p>
+      <textarea rows={18} value={raw} onChange={(event) => setRaw(event.target.value)} placeholder={'city=Curitiba,\n\nNome: Renata Marche\nE-mail: cliente@exemplo.com\nFone: 41 9924-1921\nLead - Facebook\nImóvel(is): 4786'} style={textareaStyle} />
+      <button onClick={preview} style={secondaryActionStyle}>Ler e revisar clientes <ArrowRight size={16} /></button>
+    </section>
+    <section style={panelStyle}>
+      <h2 style={panelTitle}><UserPlus size={18} /> Prévia do cadastro</h2>
+      {status?.error && <div style={errorBox}>{status.error}</div>}
+      {status?.success && <div style={successBox}>{status.success}</div>}
+      {drafts.length > 0 && <>
+        <div style={summaryStyle}><span>Registros lidos<br /><strong style={{ color: "#fff", fontSize: 18 }}>{drafts.length}</strong></span><span>Deduplicação<br /><strong style={{ color: "#fff" }}>e-mail ou telefone</strong></span></div>
+        <div style={{ maxHeight: 330, overflowY: "auto", border: "1px solid #27272a", borderRadius: 6 }}>
+          {drafts.map((client) => <div key={`${client.bloco}-${client.email}-${client.telefone}`} style={itemStyle}><span><strong style={{ color: "#fff" }}>{client.nome}</strong><small style={{ display: "block" }}>{client.email || "Sem e-mail"} · {client.telefone || "Sem telefone"}</small><small style={{ display: "block" }}>{client.cidade || "Cidade não informada"} · {client.origem}{client.interesse ? ` · Imóvel(is): ${client.interesse}` : ""}</small></span><span style={{ color: "#71717a", whiteSpace: "nowrap" }}>Bloco {client.bloco}</span></div>)}
+        </div>
+        <button disabled={saving} onClick={() => void save()} style={{ ...primaryActionStyle, opacity: saving ? .55 : 1 }}>{saving ? <Loader2 size={18} /> : <CheckCircle2 size={18} />}{saving ? "Cadastrando..." : `Cadastrar ${drafts.length} cliente(s)`}</button>
+      </>}
+    </section>
+  </div>;
+};
+
 export const ImportarIAModule: React.FC = () => {
-  const [mode, setMode] = useState<"unidades" | "empreendimento" | "landing">("unidades");
+  const [mode, setMode] = useState<"unidades" | "empreendimento" | "landing" | "clientes">("unidades");
   return <div>
     <div style={{ marginBottom: "1.5rem" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: ".5rem" }}><Sparkles style={{ color: "#c5a059" }} /> Importador Inteligente por IA</h1>
@@ -867,8 +980,9 @@ export const ImportarIAModule: React.FC = () => {
       <button onClick={() => setMode("unidades")} style={modeButton(mode === "unidades")}><Building2 size={17} /><span><strong>Leitor de unidades</strong><small>Tabelas, preços, estoque e fluxos</small></span></button>
       <button onClick={() => setMode("empreendimento")} style={modeButton(mode === "empreendimento")}><Home size={17} /><span><strong>Leitor de empreendimento</strong><small>Cadastro, lazer e características</small></span></button>
       <button onClick={() => setMode("landing")} style={modeButton(mode === "landing")}><Sparkles size={17}/><span><strong>Landing persuasiva</strong><small>Frases, narrativa e blocos visuais</small></span></button>
+      <button onClick={() => setMode("clientes")} style={modeButton(mode === "clientes")}><UserPlus size={17}/><span><strong>Clientes do CRM</strong><small>Cole blocos e cadastre sem duplicar</small></span></button>
     </div>
-    {mode === "unidades" ? <UnidadesImporter /> : mode === "empreendimento" ? <EmpreendimentoImporter /> : <LandingImporter />}
+    {mode === "unidades" ? <UnidadesImporter /> : mode === "empreendimento" ? <EmpreendimentoImporter /> : mode === "landing" ? <LandingImporter /> : <CrmClientImporter />}
   </div>;
 };
 
