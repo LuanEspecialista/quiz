@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Edit3, ExternalLink, FileText, Link2, Loader2, Play, RefreshCw, Save, Search, Upload, X } from "lucide-react";
+import { Building2, Edit3, ExternalLink, FileText, Link2, Loader2, Play, RefreshCw, Save, Search, Upload, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cityKey, sameCity } from "@/lib/cities";
 import { isR2Path, r2PublicUrl, uploadR2Media } from "@/lib/r2Media";
@@ -27,6 +27,7 @@ type Apresentacao = {
   updated_at?: string | null;
 };
 type BlogPostOption = { id: string; titulo: string; slug: string; empreendimento_id?: string | null; publicado_em?: string | null };
+type AgencyInstitutional = { imobiliaria_institucional_ativo?: boolean; imobiliaria_institucional_tipo?: "pdf" | "link" | null; imobiliaria_institucional_pdf_path?: string | null; imobiliaria_institucional_link_url?: string | null; imobiliaria_institucional_titulo?: string | null };
 type ViewerState = { url: string; title: string };
 
 const BUCKET = "pdfs";
@@ -80,6 +81,11 @@ export default function Apresentacoes() {
   const [builderPdfFile, setBuilderPdfFile] = useState<File | null>(null);
   const [builderLinkUrl, setBuilderLinkUrl] = useState("");
   const [builderTitle, setBuilderTitle] = useState("");
+  const [agencyInstitutional, setAgencyInstitutional] = useState<AgencyInstitutional | null>(null);
+  const [agencyType, setAgencyType] = useState<"" | "pdf" | "link">("");
+  const [agencyPdfFile, setAgencyPdfFile] = useState<File | null>(null);
+  const [agencyLinkUrl, setAgencyLinkUrl] = useState("");
+  const [agencyTitle, setAgencyTitle] = useState("");
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("Todas");
   const [loading, setLoading] = useState(true);
@@ -98,12 +104,20 @@ export default function Apresentacoes() {
       const missingLinkColumns = Boolean(presentationResult.error && /link_url|tipo_preferido/i.test(presentationResult.error.message || ""));
       if (missingLinkColumns) presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, updated_at");
       const postPromise = supabase.from("blog_posts").select("id,titulo,slug,empreendimento_id,publicado_em").eq("status", "publicado").lte("publicado_em", new Date().toISOString()).order("titulo").limit(500);
-      const [empResult, imageResult, postResult] = await Promise.all([empPromise, imagePromise, postPromise]);
+      const agencyPromise = supabase.from("site_configuracoes").select("imobiliaria_institucional_ativo,imobiliaria_institucional_tipo,imobiliaria_institucional_pdf_path,imobiliaria_institucional_link_url,imobiliaria_institucional_titulo").eq("id", 1).maybeSingle();
+      const [empResult, imageResult, postResult, agencyResult] = await Promise.all([empPromise, imagePromise, postPromise, agencyPromise]);
       setSupportsLinks(!missingLinkColumns);
       if (empResult.error) throw empResult.error;
       if (imageResult.error) throw imageResult.error;
       if (presentationResult.error) throw presentationResult.error;
       if (!postResult.error) setClientPosts((postResult.data || []) as BlogPostOption[]);
+      if (!agencyResult.error) {
+        const agency = (agencyResult.data || null) as AgencyInstitutional | null;
+        setAgencyInstitutional(agency);
+        setAgencyType(agency?.imobiliaria_institucional_tipo || "");
+        setAgencyLinkUrl(agency?.imobiliaria_institucional_link_url || "");
+        setAgencyTitle(agency?.imobiliaria_institucional_titulo || "");
+      }
       const firstImageByEnterprise = new Map<string, EmpreendimentoImagem>();
       ((imageResult.data || []) as EmpreendimentoImagem[]).forEach((image) => {
         if (image.empreendimento_id && !firstImageByEnterprise.has(image.empreendimento_id)) firstImageByEnterprise.set(image.empreendimento_id, image);
@@ -230,6 +244,53 @@ export default function Apresentacoes() {
       setMessage({ success: builderType ? "Institucional da construtora salvo." : "Institucional da construtora removido." });
     } catch (error: unknown) { if (uploadedPath) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([uploadedPath]); setMessage({ error: errorMessage(error, "Não foi possível salvar o institucional da construtora.") }); }
     finally { setSaving(false); }
+  }
+
+  async function saveAgencyInstitutional() {
+    const normalizedLink = agencyLinkUrl.trim();
+    if (agencyType === "link") {
+      try {
+        const parsed = new URL(normalizedLink);
+        if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
+      } catch {
+        setMessage({ error: "Informe um link completo e seguro para o institucional da imobiliária." });
+        return;
+      }
+    }
+    if (agencyType === "pdf" && !agencyPdfFile && !agencyInstitutional?.imobiliaria_institucional_pdf_path) {
+      setMessage({ error: "Envie o PDF institucional da imobiliária antes de salvar." });
+      return;
+    }
+    if (agencyPdfFile && (agencyPdfFile.type !== "application/pdf" && !agencyPdfFile.name.toLowerCase().endsWith(".pdf"))) {
+      setMessage({ error: "Selecione um arquivo PDF válido." });
+      return;
+    }
+    if (agencyPdfFile && agencyPdfFile.size > MAX_PDF_BYTES) {
+      setMessage({ error: `O PDF deve ter no máximo ${MAX_PDF_MB} MB.` });
+      return;
+    }
+    setSaving(true); setMessage(null);
+    let uploadedPath: string | null = null;
+    try {
+      let pdfPath = agencyInstitutional?.imobiliaria_institucional_pdf_path || null;
+      if (agencyType === "pdf" && agencyPdfFile) {
+        pdfPath = `institucionais/imobiliaria/${crypto.randomUUID()}.pdf`;
+        const { error } = await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).upload(pdfPath, agencyPdfFile, { contentType: "application/pdf", cacheControl: "60", upsert: false });
+        if (error) throw error;
+        uploadedPath = pdfPath;
+      }
+      const payload = { id: 1, imobiliaria_institucional_ativo: Boolean(agencyType), imobiliaria_institucional_tipo: agencyType || null, imobiliaria_institucional_pdf_path: agencyType === "pdf" ? pdfPath : null, imobiliaria_institucional_link_url: agencyType === "link" ? normalizedLink : null, imobiliaria_institucional_titulo: agencyTitle.trim() || null, updated_at: new Date().toISOString() };
+      const { data, error } = await supabase.from("site_configuracoes").upsert(payload, { onConflict: "id" }).select("imobiliaria_institucional_ativo,imobiliaria_institucional_tipo,imobiliaria_institucional_pdf_path,imobiliaria_institucional_link_url,imobiliaria_institucional_titulo").single();
+      if (error) throw error;
+      const previousPath = agencyInstitutional?.imobiliaria_institucional_pdf_path;
+      setAgencyInstitutional(data as AgencyInstitutional);
+      setAgencyPdfFile(null);
+      if (previousPath && previousPath !== payload.imobiliaria_institucional_pdf_path) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([previousPath]);
+      setMessage({ success: agencyType ? "Institucional da imobiliária salvo." : "Institucional da imobiliária removido." });
+    } catch (error: unknown) {
+      if (uploadedPath) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([uploadedPath]);
+      setMessage({ error: errorMessage(error, "Não foi possível salvar o institucional da imobiliária.") });
+    } finally { setSaving(false); }
   }
 
   async function saveClientPresentation() {
@@ -429,6 +490,20 @@ export default function Apresentacoes() {
       <label style={labelStyle}>Buscar<div style={inputWrapStyle}><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome ou cidade" style={inputStyle} /></div></label>
       <label style={labelStyle}>Cidade<select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)} style={selectStyle}>{cities.map((city) => <option key={city}>{city}</option>)}</select></label>
     </div>
+
+    <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(260px, 1fr)", gap: 14, padding: 14, background: "linear-gradient(135deg,#1b1710,#111113)", border: "1px solid #65502a", borderRadius: 10, marginBottom: 18 }}>
+      <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+        <div style={{ display: "grid", placeItems: "center", width: 34, height: 34, flex: "0 0 auto", borderRadius: 8, background: "#302512", color: "#e8c77d" }}><Building2 size={18} /></div>
+        <div><small style={{ color: "#c5a059", fontWeight: 800, letterSpacing: ".1em" }}>INSTITUCIONAL DA IMOBILIÁRIA</small><h2 style={{ color: "#fff", fontSize: 15, margin: "4px 0" }}>{agencyTitle || "Apresente a sua imobiliária"}</h2><p style={{ color: "#a1a1aa", fontSize: 12, lineHeight: 1.45, margin: 0 }}>Um único material, reutilizado nas apresentações dos clientes quando você marcar o seletor da imobiliária.</p><small style={{ display: "block", color: agencyInstitutional?.imobiliaria_institucional_ativo ? "#86efac" : "#fbbf24", marginTop: 7 }}>{agencyInstitutional?.imobiliaria_institucional_ativo ? `Ativo · ${agencyInstitutional.imobiliaria_institucional_tipo === "pdf" ? "PDF privado" : "link externo"}` : "Ainda não cadastrado"}</small></div>
+      </div>
+      <div style={{ display: "grid", gap: 8 }}>
+        <select aria-label="Formato do institucional da imobiliária" value={agencyType} onChange={(event) => setAgencyType(event.target.value as "" | "pdf" | "link")} style={selectStyle}><option value="">Não oferecer institucional</option><option value="pdf">PDF privado</option><option value="link">Link externo</option></select>
+        {agencyType === "pdf" && <label style={labelStyle}>PDF (até {MAX_PDF_MB} MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setAgencyPdfFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "3px 0" }} /><small style={{ color: "#a1a1aa" }}>{agencyPdfFile ? `${agencyPdfFile.name} · ${(agencyPdfFile.size / 1024 / 1024).toFixed(1)} MB` : agencyInstitutional?.imobiliaria_institucional_pdf_path ? "PDF cadastrado; deixe vazio para manter." : "O arquivo ficará privado."}</small></label>}
+        {agencyType === "link" && <label style={labelStyle}>Link<div style={inputWrapStyle}><Link2 size={14} /><input type="url" value={agencyLinkUrl} onChange={(event) => setAgencyLinkUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>}
+        {agencyType && <input aria-label="Título do institucional da imobiliária" value={agencyTitle} onChange={(event) => setAgencyTitle(event.target.value)} placeholder="Título do institucional" style={inputStyle} />}
+        <button disabled={saving} onClick={() => void saveAgencyInstitutional()} style={{ ...primaryButtonStyle, opacity: saving ? .5 : 1, justifySelf: "end" }}>{saving ? <Loader2 size={15} /> : <Save size={15} />} Salvar institucional</button>
+      </div>
+    </section>
 
     {message?.error && <p role="alert" style={{ color: "#f87171", fontSize: 13 }}>{message.error}</p>}
     {message?.success && <p role="status" style={{ color: "#4ade80", fontSize: 13 }}>{message.success}</p>}
