@@ -75,11 +75,10 @@ export function getCommercialFlowProfile(unit: any, priceOverride?: number) {
   const tableComponentsPercent = n(flow.ato_percentual) + n(flow.parcelas_percentual, flow.mensais_percentual) + n(flow.baloes_percentual, flow.balao_percentual);
   const preKeysPercent = n(flow.percentual_ate_chaves, flow.percentual_pre_chaves, flow.percentual_durante_obra, summary.obra, summary.ate_chaves, summary.pre_chaves, commercial.percentual_ate_chaves, commercial.percentual_pre_chaves, rules.percentual_ate_chaves, rules.percentual_pre_chaves, distributedPreKeysPercent, tableComponentsPercent, calculatedPreKeysPercent, financingPercent ? 100 - financingPercent : 0, percentFromRule(flow.regra_pagamento, flow.regra_pos_chaves, rules.regra_pagamento, rules.regra_pos_chaves));
   if (!preKeysPercent || preKeysPercent >= 100) return null;
-  // O filtro usa faixas comerciais padronizadas (10/90, 20/80, 30/70...).
-  // O cálculo da unidade mantém o percentual exato, sem arredondar valores.
-  const pre = Math.max(0, Math.min(100, Math.round(preKeysPercent / 10) * 10));
-  const post = 100 - pre;
-  return { preKeysPercent, postKeysPercent: 100 - preKeysPercent, label: `${pre}/${post}` };
+  // Cada empreendimento possui uma regra própria (por exemplo 35/65, 67/33 ou 73/27).
+  // O rótulo também preserva o percentual exato, sem arredondar para uma faixa padrão.
+  const post = 100 - preKeysPercent;
+  return { preKeysPercent, postKeysPercent: post, label: `${preKeysPercent}/${post}` };
 }
 
 export function analyzeFlow(unit: any, client: ClientCapacity): FlowCompatibility {

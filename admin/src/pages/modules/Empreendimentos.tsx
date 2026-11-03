@@ -671,10 +671,14 @@ export default function Empreendimentos() {
       setError("Informe o nome do empreendimento.");
       return;
     }
+    if (!form.entrega.trim()) {
+      setError("Informe a previsão de entrega/chaves do empreendimento antes de salvar o fluxo comercial.");
+      return;
+    }
     const preKeys = form.percentual_ate_chaves === "" ? null : Number(form.percentual_ate_chaves.replace(",", "."));
     const postKeys = form.percentual_pos_chaves === "" ? null : Number(form.percentual_pos_chaves.replace(",", "."));
-    if ((preKeys !== null || postKeys !== null) && (!Number.isFinite(preKeys) || !Number.isFinite(postKeys) || Math.abs((preKeys || 0) + (postKeys || 0) - 100) > 0.01)) {
-      setError("O fluxo deve fechar 100%: informe o percentual até as chaves e o percentual pós-chaves.");
+    if (preKeys === null || postKeys === null || !Number.isFinite(preKeys) || !Number.isFinite(postKeys) || preKeys < 0 || postKeys < 0 || preKeys > 100 || postKeys > 100 || Math.abs(preKeys + postKeys - 100) > 0.01) {
+      setError("O fluxo é obrigatório e deve fechar 100%: informe percentuais válidos até as chaves e pós-chaves.");
       return;
     }
 
@@ -1540,13 +1544,7 @@ export default function Empreendimentos() {
                   <div style={{ borderTop: "1px solid #2c2418", paddingTop: 16 }}>
                     <strong style={{ color: "#e2b45e", fontSize: 13 }}>Inteligência de fluxo comercial</strong>
                     <p style={{ color: "#8d8d96", fontSize: 11, margin: "5px 0 0" }}>Essas regras permitem encontrar unidades pela capacidade real de pagamento do cliente.</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 10 }}>
-                      <span style={{ color: "#a1a1aa", fontSize: 11 }}>Aplicar padrão:</span>
-                      {[['67/33 Pinna', '67', '33', '10', 'direto_construtora'], ['35/65 Ayra', '35', '65', '10', 'financiamento_bancario'], ['73/27 Park Beach', '73', '27', '10', 'direto_construtora'], ['30/70', '30', '70', '10', 'financiamento_bancario'], ['40/60', '40', '60', '10', 'financiamento_bancario'], ['50/50', '50', '50', '10', 'financiamento_bancario'], ['100% quitação', '100', '0', '10', 'quitacao_chaves']].map(([label, untilKeys, postKeys, entry, model]) => (
-                        <button key={label} type="button" className="emp-secondary" style={{ minHeight: 28, padding: "0 9px", fontSize: 11 }} onClick={() => setForm((current) => ({ ...current, percentual_ate_chaves: untilKeys, percentual_pos_chaves: postKeys, percentual_ato: entry, modelo_pos_chaves: model }))}>{label}</button>
-                      ))}
-                      <span style={{ color: "#71717a", fontSize: 11 }}>Você pode ajustar os dois percentuais abaixo.</span>
-                    </div>
+                    <p style={{ color: "#71717a", fontSize: 11, margin: "10px 0 0" }}>Não existe percentual padrão. Informe os percentuais exatamente conforme a tabela vigente deste empreendimento; o fluxo precisa fechar 100% antes de salvar.</p>
                   </div>
                 </div>
                 <div className="emp-field">
