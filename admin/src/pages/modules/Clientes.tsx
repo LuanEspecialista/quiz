@@ -303,6 +303,7 @@ export default function Clientes({
     [saving, setSaving] = useState(false),
     [message, setMessage] = useState("");
   const [searchArmed, setSearchArmed] = useState(false);
+  const [archiveStatusFilter, setArchiveStatusFilter] = useState<"todos" | "em_analise" | "aceita" | "recusada">("todos");
   const [accessBusy, setAccessBusy] = useState<string | null>(null);
   const [unitQueries, setUnitQueries] = useState<Record<string, string>>({});
   const [credentials, setCredentials] = useState<{ nome: string; email: string; usuario: string; senha: string } | null>(null);
@@ -863,7 +864,8 @@ export default function Clientes({
         const visibleProposals = proposals.filter((item) => !item.arquivada_em);
         const activeProposals = visibleProposals.filter((item) => !["aceita", "recusada"].includes(item.status));
         const resolvedProposals = visibleProposals.filter((item) => ["aceita", "recusada"].includes(item.status));
-        const archivedProposals = proposals.filter((item) => item.arquivada_em);
+        const archivedProposals = proposals.filter((item) => item.arquivada_em && (archiveStatusFilter === "todos" || item.status === archiveStatusFilter));
+        const archivedTotal = proposals.filter((item) => item.arquivada_em).length;
         const renderProposal = (proposal: ClientProposal, archived = false) => {
               const client = items.find(
                 (item) => Number(item.id) === proposal.cliente_id,
@@ -925,7 +927,7 @@ export default function Clientes({
         return <>
           {activeProposals.length > 0 && <details style={panel} open><summary style={{ cursor: "pointer", fontWeight: 800, color: "#edcf91" }}>Fila de propostas ({activeProposals.filter((item) => item.status === "nova").length} nova(s) · {activeProposals.length} ativa(s))</summary><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{activeProposals.slice(0, 30).map((proposal) => renderProposal(proposal))}</div></details>}
           {resolvedProposals.length > 0 && <details style={panel} open><summary style={{ cursor: "pointer", fontWeight: 800, color: "#a1a1aa" }}>Histórico recente ({resolvedProposals.length})</summary><p style={{ color: "#8b8b95", fontSize: 12, margin: "10px 0 0" }}>Propostas aceitas ou recusadas ficam aqui até serem arquivadas.</p><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{resolvedProposals.slice(0, 30).map((proposal) => renderProposal(proposal))}</div></details>}
-          {archivedProposals.length > 0 && <details style={panel}><summary style={{ cursor: "pointer", fontWeight: 800, color: "#71717a" }}>Arquivo de propostas ({archivedProposals.length})</summary><p style={{ color: "#71717a", fontSize: 12, margin: "10px 0 0" }}>Arquivadas ficam ocultas da fila, mas não são apagadas e continuam disponíveis para consulta.</p><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{archivedProposals.slice(0, 50).map((proposal) => renderProposal(proposal, true))}</div></details>}
+          {archivedTotal > 0 && <details style={panel}><summary style={{ cursor: "pointer", fontWeight: 800, color: "#71717a" }}>Arquivo de propostas ({archivedTotal})</summary><div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 12 }}><label style={{ color: "#a1a1aa", fontSize: 12, fontWeight: 700 }} htmlFor="archive-status-filter">Filtrar por status</label><select id="archive-status-filter" value={archiveStatusFilter} onChange={(event) => setArchiveStatusFilter(event.target.value as typeof archiveStatusFilter)} style={{ ...input, width: "min(220px,100%)" }}><option value="todos">Todos</option><option value="em_analise">Em análise</option><option value="aceita">Aceitas</option><option value="recusada">Recusadas</option></select></div><p style={{ color: "#71717a", fontSize: 12, margin: "10px 0 0" }}>Arquivadas ficam ocultas da fila, mas não são apagadas e continuam disponíveis para consulta.</p><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{archivedProposals.length ? archivedProposals.slice(0, 50).map((proposal) => renderProposal(proposal, true)) : <p style={{ color: "#71717a", fontSize: 13 }}>Nenhuma proposta arquivada com este status.</p>}</div></details>}
         </>;
       })()}
 
