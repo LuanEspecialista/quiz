@@ -745,7 +745,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [documentDeleteBusy, setDocumentDeleteBusy] = useState<string | null>(null);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [spouseConsent, setSpouseConsent] = useState(false);
-  const [selectedUnitsByOpportunity, setSelectedUnitsByOpportunity] = useState<Record<string, string>>({});
   const [secondsUntilExpiry, setSecondsUntilExpiry] = useState<number | null>(null);
   const [lockedEntry, setLockedEntry] = useState(true);
   const [lockedMonthly, setLockedMonthly] = useState(true);
@@ -1491,35 +1490,29 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               const selectedPresentation = (item.apresentacao?.url || (item.apresentacao?.tipo === "pdf" && item.apresentacao.storage_path))
                 ? item.apresentacao
                 : item.apresentacoes?.find((resource) => resource.url || (resource.tipo === "pdf" && resource.storage_path)) || null;
-              const units = item.unidades || [];
-              const selectedUnit = units.find((unit) => unit.id === selectedUnitsByOpportunity[item.id]) || units[0] || null;
-              const commercial = unitCommercial(item, selectedUnit);
               const canOpenFlow = Boolean(item.permitir_proposta || item.exibir_fluxo);
+              const institutionalCards = [
+                { key: "construtora", label: "Institucional da construtora", resource: item.institucional_construtora },
+                { key: "imobiliaria", label: "Institucional da imobiliária", resource: item.institucional_imobiliaria },
+              ].filter((card): card is { key: string; label: string; resource: InstitutionalResource } => Boolean(card.resource?.url || card.resource?.storage_path));
               return (
                 <div key={item.id} style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column" }}>
                   <article style={{ flex: "1 1 auto", border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
-                    <button type="button" onClick={() => selectedPresentation ? void openPresentation(item, selectedPresentation) : setActiveOpportunity(item)} style={{ display: "block", width: "100%", padding: 0, textAlign: "left", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
-                      {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 155, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
-                      <div style={{ padding: "14px 15px 12px", display: "grid", gap: 7 }}>
-                        <small style={{ color: "#d7ab63", fontWeight: 800 }}>{[item.bairro, item.cidade].filter(Boolean).join(" · ") || item.status}</small>
-                        <span style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.2, height: "2.4em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.nome}</span>
-                        <span style={{ color: "#a1a1aa", fontSize: 12, lineHeight: 1.4, height: "2.8em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.descricao || "Confira os detalhes selecionados para você."}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#edcf91", fontWeight: 800, marginTop: 3 }}>Detalhes do empreendimento <ChevronRight size={17} /></span>
+                    {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 155, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
+                    <div style={{ padding: "16px 15px 15px", display: "grid", gap: 10 }}>
+                      <small style={{ color: "#d7ab63", fontWeight: 800 }}>{[item.bairro, item.cidade].filter(Boolean).join(" · ") || item.status}</small>
+                      <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{item.nome}</span>
+                      <span style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.descricao || "Confira os detalhes selecionados para você."}</span>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, marginTop: 2 }}>
+                        {selectedPresentation && <button type="button" onClick={() => void openPresentation(item, selectedPresentation)} style={{ border: "1px solid #5a4828", background: "#18140e", color: "#edcf91", borderRadius: 8, padding: "10px 9px", fontWeight: 800, cursor: "pointer" }}>Ver apresentação</button>}
+                        {canOpenFlow && <button type="button" onClick={() => setActiveOpportunity(item)} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: "10px 9px", fontWeight: 900, cursor: "pointer" }}>Acessar fluxos</button>}
                       </div>
-                    </button>
-                    <div style={{ padding: "0 15px 15px", display: "grid", gap: 11 }}>
-                      {units.length > 1 && <label style={{ color: "#d4d4d8", fontSize: 12 }}>Unidade liberada
-                        <select value={selectedUnit?.id || ""} onChange={(event) => setSelectedUnitsByOpportunity((current) => ({ ...current, [item.id]: event.target.value }))} style={{ ...input, marginTop: 5 }}>
-                          {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.codigo || unit.numero || "Unidade"}{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}</option>)}
-                        </select>
-                      </label>}
-                      {selectedUnit && <div style={{ borderTop: "1px solid #302a20", paddingTop: 10, display: "grid", gap: 5 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}><strong>Unidade {selectedUnit.codigo || selectedUnit.numero || "selecionada"}{selectedUnit.torre ? ` · Torre ${selectedUnit.torre}` : ""}</strong><strong style={{ color: "#edcf91", whiteSpace: "nowrap" }}>{money(commercial.finalPrice)}</strong></div>
-                        {commercial.discountValue > 0 ? <><small style={{ color: "#a1a1aa" }}>Valor de tabela: {money(commercial.tablePrice)}</small><strong style={{ color: "#b9d89c", fontSize: 12 }}>Condição especial: você economiza {money(commercial.discountValue)} ({commercial.percentage.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)</strong></> : <small style={{ color: "#a1a1aa" }}>Valor da unidade: {money(commercial.tablePrice)}</small>}
+                      {institutionalCards.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, paddingTop: 5, borderTop: "1px solid #302a20" }}>
+                        {institutionalCards.map(({ key, label, resource }) => <button key={key} type="button" onClick={() => void openPresentation(item, resource)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, border: "1px solid #393329", background: "#15130f", color: "#d8c18f", borderRadius: 8, padding: "9px 10px", textAlign: "left", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>{label}<ChevronRight size={15} /></button>)}
                       </div>}
                     </div>
                   </article>
-                  {canOpenFlow ? <button type="button" onClick={() => openProposal(item, selectedUnit || undefined)} style={{ display: "block", width: "min(340px,100%)", minHeight: 52, margin: "9px auto 0", border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer", textAlign: "center" }}>{selectedUnit ? `Montar fluxo da unidade ${selectedUnit.codigo || selectedUnit.numero || "selecionada"}` : "Montar fluxo de pagamento"}</button> : <div aria-hidden="true" style={{ height: 61, flex: "0 0 61px" }} />}
+                  <div aria-hidden="true" style={{ height: 9, flex: "0 0 9px" }} />
                 </div>
               );
             })}
