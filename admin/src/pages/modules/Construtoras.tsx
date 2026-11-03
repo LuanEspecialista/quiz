@@ -16,7 +16,8 @@ import {
   LayoutGrid,
   List,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Link2
 } from "lucide-react";
 
 const formatCompactCurrency = (value: number) => {
@@ -72,6 +73,10 @@ export const ConstrutorasModule: FC = () => {
   const [formSite, setFormSite] = useState("");
   const [formContato, setFormContato] = useState("");
   const [unlockSku, setUnlockSku] = useState(false);
+  const [institutionalType, setInstitutionalType] = useState<"" | "pdf" | "link">("");
+  const [institutionalFile, setInstitutionalFile] = useState<File | null>(null);
+  const [institutionalLink, setInstitutionalLink] = useState("");
+  const [institutionalTitle, setInstitutionalTitle] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -159,6 +164,10 @@ export const ConstrutorasModule: FC = () => {
       setFormSite(item.site || "");
       setFormContato(item.contato || "");
       setUnlockSku(false);
+      setInstitutionalType(item.institucional_tipo || "");
+      setInstitutionalFile(null);
+      setInstitutionalLink(item.institucional_link_url || "");
+      setInstitutionalTitle(item.institucional_titulo || "");
     } else {
       setEditingItem(null);
       setFormNome("");
@@ -167,6 +176,10 @@ export const ConstrutorasModule: FC = () => {
       setFormSite("");
       setFormContato("");
       setUnlockSku(false);
+      setInstitutionalType("");
+      setInstitutionalFile(null);
+      setInstitutionalLink("");
+      setInstitutionalTitle("");
     }
     setIsModalOpen(true);
   };
@@ -188,15 +201,57 @@ export const ConstrutorasModule: FC = () => {
       return;
     }
 
+    const normalizedInstitutionalLink = institutionalLink.trim();
+    if (institutionalType === "link") {
+      try {
+        const parsed = new URL(normalizedInstitutionalLink);
+        if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
+      } catch {
+        alert("Informe um link HTTPS válido para o institucional da construtora.");
+        return;
+      }
+    }
+    if (institutionalType === "pdf" && !institutionalFile && !editingItem?.institucional_pdf_path) {
+      alert("Envie o PDF institucional da construtora antes de salvar.");
+      return;
+    }
+    if (institutionalFile && (institutionalFile.type !== "application/pdf" && !institutionalFile.name.toLowerCase().endsWith(".pdf"))) {
+      alert("Selecione um arquivo PDF válido.");
+      return;
+    }
+    if (institutionalFile && institutionalFile.size > 250 * 1024 * 1024) {
+      alert("O PDF institucional deve ter no máximo 250 MB.");
+      return;
+    }
+
+    setLoading(true);
+    let uploadedPath: string | null = null;
+    let institutionalPdfPath = editingItem?.institucional_pdf_path || null;
+    try {
+      if (institutionalType === "pdf" && institutionalFile) {
+        institutionalPdfPath = `institucionais/construtora/${editingItem?.id || crypto.randomUUID()}/${crypto.randomUUID()}.pdf`;
+        const { error: uploadError } = await supabase.storage.from("cliente-apresentacoes").upload(institutionalPdfPath, institutionalFile, { contentType: "application/pdf", cacheControl: "60", upsert: false });
+        if (uploadError) throw uploadError;
+        uploadedPath = institutionalPdfPath;
+      }
+    } catch (error) {
+      setLoading(false);
+      alert(`Não foi possível enviar o PDF institucional: ${error instanceof Error ? error.message : "erro desconhecido"}`);
+      return;
+    }
+
     const payload = {
       nome: formNome.trim(),
       sku: skuClean,
       cidades_atuacao: formCidades,
       site: formSite.trim(),
       contato: formContato.trim(),
+      institucional_ativo: Boolean(institutionalType),
+      institucional_tipo: institutionalType || null,
+      institucional_pdf_path: institutionalType === "pdf" ? institutionalPdfPath : null,
+      institucional_link_url: institutionalType === "link" ? normalizedInstitutionalLink : null,
+      institucional_titulo: institutionalTitle.trim() || null,
     };
-
-    setLoading(true);
 
     let error;
     if (editingItem) {
@@ -208,8 +263,17 @@ export const ConstrutorasModule: FC = () => {
     }
 
     if (error) {
+      if (uploadedPath) await supabase.storage.from("cliente-apresentacoes").remove([uploadedPath]);
       alert("Erro ao salvar: " + error.message);
     } else {
+      if (editingItem?.institucional_pdf_path && editingItem.institucional_pdf_path !== payload.institucional_pdf_path) await supabase.storage.from("cliente-apresentacoes").remove([editingItem.institucional_pdf_path]);
+      if (editingItem?.id) {
+        const { data: linkedEnterprises } = await supabase.from("empreendimentos").select("id").eq("construtora_id", editingItem.id).limit(500);
+        const enterpriseIds = (linkedEnterprises || []).map((enterprise) => enterprise.id).filter(Boolean);
+        if (enterpriseIds.length) {
+          await supabase.from("apresentacoes").update({ construtora_institucional_ativo: Boolean(institutionalType), construtora_institucional_tipo: institutionalType || null, construtora_institucional_pdf_path: institutionalType === "pdf" ? institutionalPdfPath : null, construtora_institucional_link_url: institutionalType === "link" ? normalizedInstitutionalLink : null, construtora_institucional_titulo: institutionalTitle.trim() || null, updated_at: new Date().toISOString() }).in("empreendimento_id", enterpriseIds);
+        }
+      }
       setIsModalOpen(false);
       fetchData();
     }
@@ -592,6 +656,14 @@ export const ConstrutorasModule: FC = () => {
                     </span>
                   ))}
                 </div>
+              </div>
+
+              <div style={{ display: "grid", gap: "0.55rem", padding: "0.8rem", border: "1px solid #65502a", borderRadius: "7px", background: "#1a160f" }}>
+                <div><small style={{ color: "#c5a059", fontWeight: 800, letterSpacing: ".08em" }}>INSTITUCIONAL DA CONSTRUTORA</small><p style={{ color: "#a1a1aa", fontSize: "0.72rem", margin: "0.25rem 0 0", lineHeight: 1.4 }}>Cadastre um único PDF ou link para esta construtora. Ele poderá ser liberado junto de qualquer empreendimento vinculado.</p></div>
+                <select value={institutionalType} onChange={(event) => setInstitutionalType(event.target.value as "" | "pdf" | "link")} style={{ width: "100%", background: "#18181b", border: "1px solid #3f3f46", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem" }}><option value="">Não oferecer institucional</option><option value="pdf">PDF privado</option><option value="link">Link externo</option></select>
+                {institutionalType === "pdf" && <label style={{ color: "#a1a1aa", fontSize: "0.72rem" }}>PDF institucional (até 250 MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setInstitutionalFile(event.target.files?.[0] || null)} style={{ display: "block", color: "#d4d4d8", padding: "0.45rem 0" }} /><small style={{ color: "#a1a1aa" }}>{institutionalFile ? `${institutionalFile.name} · ${(institutionalFile.size / 1024 / 1024).toFixed(1)} MB` : editingItem?.institucional_pdf_path ? "PDF cadastrado; deixe vazio para manter." : "O arquivo ficará protegido para clientes autorizados."}</small></label>}
+                {institutionalType === "link" && <label style={{ color: "#a1a1aa", fontSize: "0.72rem" }}>Link institucional<div style={{ display: "flex", alignItems: "center", gap: 6, background: "#18181b", border: "1px solid #3f3f46", borderRadius: 4, padding: "0 8px", marginTop: 4 }}><Link2 size={14} /><input type="url" value={institutionalLink} onChange={(event) => setInstitutionalLink(event.target.value)} placeholder="https://..." style={{ width: "100%", border: 0, outline: 0, background: "transparent", color: "#fff", padding: "8px 0" }} /></div></label>}
+                {institutionalType && <input value={institutionalTitle} onChange={(event) => setInstitutionalTitle(event.target.value)} placeholder="Título do institucional (opcional)" style={{ width: "100%", background: "#18181b", border: "1px solid #3f3f46", color: "#fff", padding: "0.5rem", borderRadius: "4px", fontSize: "0.8rem", boxSizing: "border-box" }} />}
               </div>
 
               {/* BOTOES */}
