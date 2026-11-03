@@ -19,6 +19,11 @@ type Apresentacao = {
   cliente_pdf_path?: string | null;
   cliente_link_url?: string | null;
   cliente_blog_post_id?: string | null;
+  construtora_institucional_ativo?: boolean;
+  construtora_institucional_tipo?: "pdf" | "link" | null;
+  construtora_institucional_pdf_path?: string | null;
+  construtora_institucional_link_url?: string | null;
+  construtora_institucional_titulo?: string | null;
   updated_at?: string | null;
 };
 type BlogPostOption = { id: string; titulo: string; slug: string; empreendimento_id?: string | null; publicado_em?: string | null };
@@ -71,6 +76,10 @@ export default function Apresentacoes() {
   const [clientPostId, setClientPostId] = useState("");
   const [clientPosts, setClientPosts] = useState<BlogPostOption[]>([]);
   const [clientActive, setClientActive] = useState(false);
+  const [builderType, setBuilderType] = useState<"" | "pdf" | "link">("");
+  const [builderPdfFile, setBuilderPdfFile] = useState<File | null>(null);
+  const [builderLinkUrl, setBuilderLinkUrl] = useState("");
+  const [builderTitle, setBuilderTitle] = useState("");
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("Todas");
   const [loading, setLoading] = useState(true);
@@ -85,7 +94,7 @@ export default function Apresentacoes() {
     try {
       const empPromise = supabase.from("empreendimentos").select("id, nome, cidade, imagem_url, caracteristicas").order("nome");
       const imagePromise = supabase.from("empreendimento_imagens").select("empreendimento_id, url, storage_path, ordem").order("ordem", { ascending: true });
-      let presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, imagem_capa, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at");
+      let presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, imagem_capa, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, construtora_institucional_ativo, construtora_institucional_tipo, construtora_institucional_pdf_path, construtora_institucional_link_url, construtora_institucional_titulo, updated_at");
       const missingLinkColumns = Boolean(presentationResult.error && /link_url|tipo_preferido/i.test(presentationResult.error.message || ""));
       if (missingLinkColumns) presentationResult = await supabase.from("apresentacoes").select("empreendimento_id, ativo, pdf_url, storage_path, updated_at");
       const postPromise = supabase.from("blog_posts").select("id,titulo,slug,empreendimento_id,publicado_em").eq("status", "publicado").lte("publicado_em", new Date().toISOString()).order("titulo").limit(500);
@@ -143,6 +152,10 @@ export default function Apresentacoes() {
     setClientLinkUrl(current?.cliente_link_url || "");
     setClientPostId(current?.cliente_blog_post_id || "");
     setClientActive(Boolean(current?.cliente_ativo));
+    setBuilderType(current?.construtora_institucional_tipo || "");
+    setBuilderPdfFile(null);
+    setBuilderLinkUrl(current?.construtora_institucional_link_url || "");
+    setBuilderTitle(current?.construtora_institucional_titulo || "");
     setMessage(null);
   }
 
@@ -164,7 +177,7 @@ export default function Apresentacoes() {
     const ativo = !(previous?.ativo ?? false);
     setApresentacoes((state) => ({ ...state, [item.id]: { ...previous, empreendimento_id: item.id, ativo } }));
     const query = supabase.from("apresentacoes").upsert({ empreendimento_id: item.id, ativo }, { onConflict: "empreendimento_id" });
-    const { data, error } = await query.select(supportsLinks ? "empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at" : "empreendimento_id, ativo, pdf_url, storage_path, updated_at").single();
+    const { data, error } = await query.select(supportsLinks ? "empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, construtora_institucional_ativo, construtora_institucional_tipo, construtora_institucional_pdf_path, construtora_institucional_link_url, construtora_institucional_titulo, updated_at" : "empreendimento_id, ativo, pdf_url, storage_path, updated_at").single();
     if (error) {
       setApresentacoes((state) => {
         const next = { ...state };
@@ -185,9 +198,38 @@ export default function Apresentacoes() {
     }
     const cliente_ativo = !current.cliente_ativo;
     const { data, error } = await supabase.from("apresentacoes").upsert({ empreendimento_id: item.id, cliente_ativo, updated_at: new Date().toISOString() }, { onConflict: "empreendimento_id" })
-      .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at").single();
+      .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, construtora_institucional_ativo, construtora_institucional_tipo, construtora_institucional_pdf_path, construtora_institucional_link_url, construtora_institucional_titulo, updated_at").single();
     if (error) setMessage({ error: error.message || "Não foi possível atualizar o acesso do cliente." });
     else setApresentacoes((state) => ({ ...state, [item.id]: { ...current, ...(data as unknown as Apresentacao) } }));
+  }
+
+  async function saveBuilderInstitutional() {
+    if (!editing) return;
+    const current = apresentacoes[editing.id];
+    const normalizedLink = builderLinkUrl.trim();
+    if (builderType === "link") {
+      try { const parsed = new URL(normalizedLink); if (!["http:", "https:"].includes(parsed.protocol)) throw new Error(); }
+      catch { setMessage({ error: "Informe um link completo e seguro para o institucional da construtora." }); return; }
+    }
+    if (builderType === "pdf" && !builderPdfFile && !current?.construtora_institucional_pdf_path) { setMessage({ error: "Envie o PDF institucional da construtora antes de salvar." }); return; }
+    if (builderPdfFile && (builderPdfFile.type !== "application/pdf" && !builderPdfFile.name.toLowerCase().endsWith(".pdf"))) { setMessage({ error: "Selecione um arquivo PDF válido." }); return; }
+    if (builderPdfFile && builderPdfFile.size > MAX_PDF_BYTES) { setMessage({ error: `O PDF deve ter no máximo ${MAX_PDF_MB} MB.` }); return; }
+    setSaving(true); setMessage(null); let uploadedPath: string | null = null;
+    try {
+      let pdfPath = current?.construtora_institucional_pdf_path || null;
+      if (builderType === "pdf" && builderPdfFile) {
+        pdfPath = `institucionais/construtora/${editing.id}/${crypto.randomUUID()}.pdf`;
+        const { error } = await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).upload(pdfPath, builderPdfFile, { contentType: "application/pdf", cacheControl: "60", upsert: false });
+        if (error) throw error; uploadedPath = pdfPath;
+      }
+      const payload = { empreendimento_id: editing.id, construtora_institucional_ativo: Boolean(builderType), construtora_institucional_tipo: builderType || null, construtora_institucional_pdf_path: builderType === "pdf" ? pdfPath : null, construtora_institucional_link_url: builderType === "link" ? normalizedLink : null, construtora_institucional_titulo: builderTitle.trim() || null, updated_at: new Date().toISOString() };
+      const { data, error } = await supabase.from("apresentacoes").upsert(payload, { onConflict: "empreendimento_id" }).select("*").single();
+      if (error) throw error;
+      setApresentacoes((state) => ({ ...state, [editing.id]: { ...current, ...(data as unknown as Apresentacao) } })); setBuilderPdfFile(null);
+      if (current?.construtora_institucional_pdf_path && current.construtora_institucional_pdf_path !== payload.construtora_institucional_pdf_path) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([current.construtora_institucional_pdf_path]);
+      setMessage({ success: builderType ? "Institucional da construtora salvo." : "Institucional da construtora removido." });
+    } catch (error: unknown) { if (uploadedPath) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([uploadedPath]); setMessage({ error: errorMessage(error, "Não foi possível salvar o institucional da construtora.") }); }
+    finally { setSaving(false); }
   }
 
   async function saveClientPresentation() {
@@ -235,7 +277,7 @@ export default function Apresentacoes() {
           cliente_blog_post_id: null,
           updated_at: new Date().toISOString(),
         }, { onConflict: "empreendimento_id" })
-          .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at").single();
+          .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, construtora_institucional_ativo, construtora_institucional_tipo, construtora_institucional_pdf_path, construtora_institucional_link_url, construtora_institucional_titulo, updated_at").single();
         if (error) throw error;
         setApresentacoes((state) => ({ ...state, [editing.id]: { ...current, ...(data as unknown as Apresentacao) } }));
         setClientPdfFile(null);
@@ -267,7 +309,7 @@ export default function Apresentacoes() {
         updated_at: new Date().toISOString(),
       };
       const { data, error } = await supabase.from("apresentacoes").upsert(payload, { onConflict: "empreendimento_id" })
-        .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, updated_at").single();
+        .select("empreendimento_id, ativo, pdf_url, storage_path, link_url, tipo_preferido, cliente_ativo, cliente_tipo, cliente_pdf_path, cliente_link_url, cliente_blog_post_id, construtora_institucional_ativo, construtora_institucional_tipo, construtora_institucional_pdf_path, construtora_institucional_link_url, construtora_institucional_titulo, updated_at").single();
       if (error) throw error;
       setApresentacoes((state) => ({ ...state, [editing.id]: { ...current, ...(data as unknown as Apresentacao) } }));
       setClientPdfFile(null);
@@ -444,6 +486,14 @@ export default function Apresentacoes() {
         <hr style={{ border: 0, borderTop: "1px solid #27272a", margin: "18px 0" }} />
         <label style={labelStyle}>Novo PDF (até 250 MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "10px 0" }} /></label>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}><button onClick={() => setEditing(null)} style={secondaryButtonStyle}>Cancelar</button><button disabled={!file || saving} onClick={() => void uploadPdf()} style={{ ...primaryButtonStyle, opacity: !file || saving ? .5 : 1 }}>{saving ? <Loader2 size={16} /> : <Upload size={16} />}{saving ? "Enviando..." : "Salvar PDF"}</button></div>
+        <section style={{ display: "grid", gap: 11, marginTop: 22, padding: 15, border: "1px solid #3f3422", borderRadius: 10, background: "#14120f" }}>
+          <div><small style={{ color: "#c5a059", fontWeight: 800, letterSpacing: ".1em" }}>INSTITUCIONAL DA CONSTRUTORA</small><h3 style={{ color: "#fff", margin: "5px 0" }}>Material institucional deste empreendimento</h3><p style={{ color: "#a1a1aa", fontSize: 12, margin: 0, lineHeight: 1.5 }}>Cadastre um PDF ou link para aparecer como botão separado no portal do cliente, quando liberado na curadoria.</p></div>
+          <label style={labelStyle}>Formato<select value={builderType} onChange={(event) => setBuilderType(event.target.value as "" | "pdf" | "link")} style={selectStyle}><option value="">Não oferecer institucional</option><option value="pdf">PDF privado</option><option value="link">Link externo</option></select></label>
+          {builderType === "pdf" && <label style={labelStyle}>PDF institucional (até {MAX_PDF_MB} MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setBuilderPdfFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "8px 0" }} /><small style={{ color: "#a1a1aa" }}>{builderPdfFile ? `${builderPdfFile.name} · ${(builderPdfFile.size / 1024 / 1024).toFixed(1)} MB` : apresentacoes[editing.id]?.construtora_institucional_pdf_path ? "Já existe um PDF; deixe vazio para mantê-lo." : "O arquivo ficará privado."}</small></label>}
+          {builderType === "link" && <label style={labelStyle}>Link institucional<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={builderLinkUrl} onChange={(event) => setBuilderLinkUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>}
+          {builderType && <label style={labelStyle}>Título do botão (opcional)<input value={builderTitle} onChange={(event) => setBuilderTitle(event.target.value)} placeholder="Institucional da construtora" style={inputStyle} /></label>}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}><button disabled={saving} onClick={() => void saveBuilderInstitutional()} style={{ ...primaryButtonStyle, opacity: saving ? .5 : 1 }}><Save size={15} /> Salvar institucional</button></div>
+        </section>
         <section style={{ display: "grid", gap: 11, marginTop: 22, padding: 15, border: "1px solid #65502a", borderRadius: 10, background: "linear-gradient(145deg,#1b1710,#111113)" }}>
           <div><small style={{ color: "#c5a059", fontWeight: 800, letterSpacing: ".1em" }}>MATERIAL SEPARADO PARA CLIENTES</small><h3 style={{ color: "#fff", margin: "5px 0" }}>Acesso pelo portal com prazo de validade</h3><p style={{ color: "#a1a1aa", fontSize: 12, margin: 0, lineHeight: 1.5 }}>Este material é independente da apresentação ao vivo acima. O portal só o mostra para clientes com curadoria e acesso válidos.</p></div>
           <label style={labelStyle}>Formato para o cliente<select value={clientType} onChange={(event) => setClientType(event.target.value as "" | "pdf" | "link" | "post")} style={selectStyle}><option value="">Sem material para cliente</option><option value="pdf">PDF privado</option><option value="link">Link externo / blog</option><option value="post">Post publicado do blog (modo limpo)</option></select></label>

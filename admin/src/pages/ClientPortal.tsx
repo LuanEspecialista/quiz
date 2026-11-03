@@ -37,6 +37,7 @@ type PortalPresentation = {
   storage_bucket?: string | null;
   origem?: "post" | "link" | "pdf";
 };
+type InstitutionalResource = PortalPresentation;
 type LandingBlock = {
   tipo?: "hero" | "texto" | "destaque" | "galeria" | "plantas" | "cidade";
   titulo?: string;
@@ -78,6 +79,8 @@ type Opportunity = {
   observacao_comercial?: string | null;
   apresentacao?: PortalPresentation | null;
   apresentacoes?: PortalPresentation[];
+  institucional_construtora?: InstitutionalResource | null;
+  institucional_imobiliaria?: InstitutionalResource | null;
   unidades?: PortalUnit[];
 };
 type PortalUnit = {
@@ -774,6 +777,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           return;
         }
         const result = (data || {}) as Portal;
+        const { data: institutionalData } = await supabase.rpc("portal_cliente_institucionais");
+        const institutionalById = Object.fromEntries(((institutionalData || []) as Array<{ empreendimento_id: string; institucional_construtora?: InstitutionalResource | null; institucional_imobiliaria?: InstitutionalResource | null }>).map((entry) => [entry.empreendimento_id, entry]));
         const profileRequest = supabase.rpc("portal_cliente_proposta_perfil");
         const opportunities = await Promise.all(
           (result.oportunidades || []).map(async (item) => {
@@ -807,6 +812,14 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               return { ...presentation, url };
             }));
             const presentation = presentations.find((itemPresentation) => itemPresentation.tipo === item.apresentacao?.tipo) || presentations[0] || null;
+            const signInstitutional = async (resource?: InstitutionalResource | null) => {
+              if (!resource?.storage_path || resource.tipo === "link") return resource;
+              const signedFor = secondsUntilExpiry === null ? 300 : Math.max(1, Math.min(300, secondsUntilExpiry));
+              const { data: signedPdf } = await supabase.storage.from(resource.storage_bucket || "cliente-apresentacoes").createSignedUrl(resource.storage_path, signedFor);
+              return signedPdf?.signedUrl ? { ...resource, url: signedPdf.signedUrl } : resource;
+            };
+            const institutionalBuilder = await signInstitutional(item.institucional_construtora);
+            const institutionalAgency = await signInstitutional(item.institucional_imobiliaria);
             const storedCoverPath = coverStoragePath(item);
             let coverUrl: string | undefined =
               item.imagem_url &&
@@ -850,6 +863,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             ) as LandingBlock[];
             return {
               ...item,
+              ...(institutionalById[item.id] || {}),
+              institucional_construtora: institutionalBuilder,
+              institucional_imobiliaria: institutionalAgency,
               imagem_url: cardCover,
               imagens: displayImages,
               plantas: plants,
