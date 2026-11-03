@@ -870,6 +870,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               plantas: plants,
               apresentacao: presentation,
               apresentacoes: presentations,
+              unidades: (item.unidades || []).filter((unit) => ["disponivel", "reservada"].includes(String(unit.status || "").toLowerCase())),
               caracteristicas: {
                 ...item.caracteristicas,
                 landing_blocos: blocks.map((block) => ({
