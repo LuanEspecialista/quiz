@@ -817,8 +817,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               const { data: signedPdf } = await supabase.storage.from(resource.storage_bucket || "cliente-apresentacoes").createSignedUrl(resource.storage_path, signedFor);
               return signedPdf?.signedUrl ? { ...resource, url: signedPdf.signedUrl } : resource;
             };
-            const institutionalBuilder = await signInstitutional(item.institucional_construtora);
-            const institutionalAgency = await signInstitutional(item.institucional_imobiliaria);
+            const institutionalPayload = institutionalById[item.id] || {};
+            const institutionalBuilder = await signInstitutional(institutionalPayload.institucional_construtora || item.institucional_construtora);
+            const institutionalAgency = await signInstitutional(institutionalPayload.institucional_imobiliaria || item.institucional_imobiliaria);
             const storedCoverPath = coverStoragePath(item);
             let coverUrl: string | undefined =
               item.imagem_url &&
