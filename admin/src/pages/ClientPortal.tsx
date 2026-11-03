@@ -254,14 +254,15 @@ function flowSummary(item: Opportunity, unit?: PortalUnit | null, cub?: CubQuote
   return { flow, rules, delivery, preCount, elapsed, remaining, postCount, postIndex, postInterest, nominalInstallment, correctedInstallment, baseCub };
 }
 
-function commercialSchedule(item: Opportunity) {
+function commercialSchedule(item: Opportunity, unit?: PortalUnit | null) {
   const custom = item.caracteristicas?.fluxo_comercial || {};
+  const unitFlow = unit?.fluxo_dados || {};
   return {
     launch: String(custom.lancamento || item.regras_correcao?.lancamento || ""),
     works: String(custom.inicio_obras || item.cronograma?.inicio_obras || item.regras_correcao?.inicio_obras || ""),
     keys: String(custom.entrega || item.data_entrega_chaves || item.entrega_date || item.previsao_entrega || ""),
     preIndex: String(custom.correcao_ate_chaves || item.regras_correcao?.indice_ate_chaves || "CUB"),
-    keysMode: String(custom.nas_chaves || item.regras_correcao?.modalidade_chaves || "Financiamento"),
+    keysMode: String(unitFlow.modalidade || unitFlow.tipo || unitFlow.destino_saldo || custom.nas_chaves || item.regras_correcao?.modalidade_chaves || "Financiamento"),
   };
 }
 
@@ -955,7 +956,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     const initialPostMonths = Math.max(0, summary.postCount);
     const initialPostBalloon = Number(summary.flow.reforco_pos_chaves_valor || 0);
     const initialPostBalloonCount = Number(summary.flow.quantidade_reforcos_pos_chaves || 0);
-    const initialPostMode: PostMode = /financiamento/i.test(commercialSchedule(item).keysMode) ? "chaves" : "parcelas_e_baloes";
+    const initialPostMode: PostMode = /financiamento|banc[aá]rio|cr[eé]dito/i.test(commercialSchedule(item, unit || null).keysMode) ? "chaves" : "parcelas_e_baloes";
     const initialTargets = flowTargets(item, unit || null, commercial.finalPrice);
     const initialMonthly = initialPreMonths > 0
       ? Math.max(0, Number(((initialTargets.preTarget - initialEntry) / initialPreMonths).toFixed(2)))

@@ -61,7 +61,12 @@ export function getCommercialFlowProfile(unit: any, priceOverride?: number) {
   const enterprise = unit?.empreendimentos || {};
   const rules = enterprise.regras_correcao || {};
   const commercial = readCommercialFlow(enterprise);
-  const financingPercent = n(flow.percentual_financiamento, flow.percentual_pos_chaves, summary.pos_chaves, summary.financiamento, commercial.percentual_financiamento, commercial.percentual_pos_chaves, rules.percentual_financiamento);
+  const modalityText = [flow.modalidade, flow.tipo, flow.destino_saldo, flow.regra_pos_chaves, rules.modalidade_chaves].filter(Boolean).join(" ").toLowerCase();
+  const isDirectBuilder = /direto|construtora/.test(modalityText) && !/financi|banc|cr[eé]dito/.test(modalityText);
+  const explicitFinancingPercent = n(flow.percentual_financiamento, summary.financiamento, commercial.percentual_financiamento, rules.percentual_financiamento);
+  const financingPercent = isDirectBuilder
+    ? explicitFinancingPercent
+    : n(explicitFinancingPercent, flow.percentual_pos_chaves, summary.pos_chaves, commercial.percentual_pos_chaves);
   const distributedPreKeysPercent =
     n(flow.percentual_ato, commercial.percentual_ato, rules.percentual_ato) +
     n(flow.percentual_mensais, flow.percentual_parcelas, commercial.percentual_mensais, commercial.percentual_parcelas, rules.percentual_mensais) +
