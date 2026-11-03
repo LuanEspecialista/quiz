@@ -250,6 +250,11 @@ const formatPhone = (value: string) => {
 };
 const normalizePhone = (value: string) => `55${phoneDigits(value)}`;
 const emailDomains = ["gmail.com", "hotmail.com", "outlook.com", "icloud.com"];
+const normalizeClientEmail = (value: unknown) => {
+  const source = String(value || "").trim().replace(/^\s*(?:e[- ]?mail|mail)\s*:\s*/i, "");
+  return source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0].toLowerCase() || "";
+};
+const isValidClientEmail = (value: unknown) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeClientEmail(value));
 const monetaryFields = new Set<keyof Form>([
   "faixa_investimento",
   "entrada_disponivel",
@@ -436,7 +441,7 @@ export default function Clientes({
     setForm({
       nome: item.nome,
       telefone: formatPhone(item.telefone || ""),
-      email: item.email || "",
+      email: normalizeClientEmail(item.email),
       cidade: item.cidade || "",
       objetivo: item.objetivo || "investimento",
       modo_apresentacao: item.modo_apresentacao || "investidor",
@@ -474,7 +479,8 @@ export default function Clientes({
     if (!error) void load();
   };
   async function generateClientAccess(item: Client) {
-    if (!item.email) return setMessage("Cadastre um e-mail para gerar o acesso.");
+    const email = normalizeClientEmail(item.email);
+    if (!isValidClientEmail(email)) return setMessage("Cadastre um e-mail completo e válido antes de gerar o acesso.");
     setAccessBusy(String(item.id));
     setCredentials(null);
     setMessage("");
@@ -485,7 +491,7 @@ export default function Clientes({
         headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
         body: {
           nome: item.nome,
-          email: item.email,
+          email,
           tipo: "cliente",
           usuario: "",
           aniversario_dia: item.aniversario_dia || 1,
@@ -493,7 +499,7 @@ export default function Clientes({
         },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Não foi possível gerar o acesso.");
-      setCredentials({ nome: item.nome, email: data.email || item.email, usuario: data.usuario || "", senha: data.temporary_password || "" });
+      setCredentials({ nome: item.nome, email: data.email || email, usuario: data.usuario || "", senha: data.temporary_password || "" });
       setMessage(item.user_id ? "Nova senha temporária gerada. Copie e envie agora; ela não ficará armazenada no painel." : "Acesso criado e vinculado à cliente. Copie e envie as credenciais agora.");
       void load();
     } catch (error) {
@@ -544,14 +550,15 @@ export default function Clientes({
       return setMessage(
         "Informe o WhatsApp com DDD, por exemplo: 47 99999-9999.",
       );
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      return setMessage("Informe um e-mail válido.");
+    const normalizedEmail = normalizeClientEmail(form.email);
+    if (form.email && !isValidClientEmail(normalizedEmail))
+      return setMessage("Informe um e-mail completo e válido, por exemplo: nome@provedor.com.");
     setSaving(true);
     const balloonValue = parseBRL(form.balao_maximo) || null;
     const payload = {
       nome: form.nome.trim(),
       telefone: formatPhone(form.telefone) || null,
-      email: form.email.trim().toLowerCase() || null,
+      email: normalizedEmail || null,
       cidade: form.cidade.trim() || null,
       objetivo: form.objetivo,
       modo_apresentacao: form.modo_apresentacao,
@@ -593,7 +600,7 @@ export default function Clientes({
     }
   }
   const selectEmailDomain = (domain: string) => {
-    const local = form.email.split("@")[0].trim();
+    const local = normalizeClientEmail(form.email).split("@")[0].trim() || form.email.replace(/^\s*(?:e[- ]?mail|mail)\s*:\s*/i, "").split("@")[0].trim();
     update("email", local ? `${local}@${domain}` : `@${domain}`);
   };
   async function toggleProperty(client: Client, property: Property) {

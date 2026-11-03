@@ -866,8 +866,10 @@ type CrmClientDraft = {
   bloco: number;
 };
 
-const normalizeClientKey = (value: unknown) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-const normalizeClientEmail = (value: unknown) => normalizeClientKey(value);
+const normalizeClientEmail = (value: unknown) => {
+  const source = String(value || "").trim().replace(/^\s*(?:e[- ]?mail|mail)\s*:\s*/i, "");
+  return source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0].toLowerCase() || "";
+};
 const normalizeClientPhone = (value: unknown) => String(value || "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
 const formatImportedPhone = (value: string) => {
   const digits = normalizeClientPhone(value);
@@ -890,7 +892,7 @@ function parseCrmClientText(raw: string): CrmClientDraft[] {
     const cityLine = lines.find((line) => /^cidade\s*=/i.test(line) || /^city\s*=/i.test(line));
     const leadLine = lines.find((line) => /^lead\s*[-:]/i.test(line) || /^origem\s*:/i.test(line));
     const propertyLine = lines.find((line) => /^(im[oó]vel|interesse|unidade|empreendimento)/i.test(line));
-    const email = valueAfter([/^(e-?mail|email)\s*:/i]) || (block.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "");
+    const email = normalizeClientEmail(valueAfter([/^(e-?mail|email)\s*:/i]) || (block.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ""));
     const phone = valueAfter([/^(fone|telefone|celular|whatsapp)\s*:/i]) || (block.match(/(?:\+?55\s*)?\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4}/)?.[0] || "");
     const nome = valueAfter([/^(nome|cliente)\s*:/i]);
     const cidade = cityLine ? cityLine.replace(/^[^=]+=?\s*/i, "").replace(/[;,]\s*$/, "").trim() : valueAfter([/^(cidade|city)\s*:/i]) || globalCity;
@@ -929,7 +931,7 @@ const CrmClientImporter: React.FC = () => {
       return !duplicate;
     }).map((client) => ({
       nome: client.nome,
-      email: client.email || null,
+      email: normalizeClientEmail(client.email) || null,
       telefone: client.telefone || null,
       whatsapp: client.telefone || null,
       cidade: client.cidade || null,
