@@ -31,6 +31,13 @@ REGRAS OBRIGATÓRIAS
 20. Se o documento imprimir um resumo de estoque, transcreva-o literalmente em resumo_oficial ANTES de contar o array. Depois confronte total e cada status com unidades + unidades_pendentes. Se houver diferença, releia e corrija; se não conseguir conciliar, use PENDENTE_INFORMACAO e descreva a divergência.
 21. Para empreendimentos grandes ou multitorres, processe apenas a torre solicitada por vez. Nunca misture uma parte da Torre 1 com uma parte da Torre 2 para reduzir o tamanho da resposta.
 22. Preencha lote_importacao. Em escopo "torre", todas as unidades e pendências devem pertencer exatamente à torre informada. O resumo e a validação devem contar somente esse lote, salvo quando o documento imprimir explicitamente um resumo geral; nesse caso, registre o resumo geral nos alertas e não o use para invalidar a contagem do lote.
+23. O campo fluxo_dados é obrigatório em cada unidade válida. Além de alternativas_fluxo e fases, repita nele os campos canônicos usados pelo sistema: percentual_ato, percentual_ate_chaves, percentual_financiamento, percentual_pos_chaves, meses_ate_chaves, parcelas_antes_chaves, quantidade_parcelas_obra, quantidade_reforcos, parcela_obra_valor, reforco_obra_valor, valor_ate_chaves, financiamento_valor, vencimento_ato, vencimento_primeira_parcela, vencimento_primeiro_reforco e modalidade.
+24. A quantidade impressa no cabeçalho da coluna vence qualquer inferência por calendário. Se o cabeçalho disser "(46x)", grave exatamente 46 em meses_ate_chaves, parcelas_antes_chaves e quantidade_parcelas_obra; nunca troque por 47 por calcular meses entre datas. Se disser "(7x)", grave 7 em quantidade_reforcos. Se o cabeçalho valer para todas as linhas da tabela, herde-o para todas as unidades e registre "origem_quantidade": "cabecalho".
+25. Diferencie quantidade, periodicidade e data: "46x" é quantidade; "mensais" é periodicidade de 1 mês; "7x semestral" é quantidade de 7 e periodicidade de 6 meses; uma data de vencimento não altera a quantidade impressa. Registre também as datas exatamente como aparecem, normalizadas para YYYY-MM-DD quando o dia estiver disponível.
+26. Para cada unidade, valide a composição: entrada + (quantidade_parcelas_obra × parcela_obra_valor) + (quantidade_reforcos × reforco_obra_valor) + financiamento + demais fases = valor total, com tolerância máxima de R$ 0,02. Valide também os percentuais contra 100%. Se houver diferença real, mantenha os números publicados e adicione alerta; não corrija silenciosamente.
+27. Quando a tabela tiver um fluxo geral (por exemplo, 35/65) e valores por unidade, aplique o percentual geral a cada unidade somente quando o cabeçalho deixar claro que ele é comum. Preserve no fluxo os percentuais exatos e os valores individuais; não substitua um valor publicado por um percentual arredondado.
+28. Uma coluna de financiamento com "1x" significa uma fase única de financiamento, não uma parcela mensal. Registre modalidade "financiamento", quantidade 1 e o valor publicado em financiamento_valor; não misture financiamento com parcelas de obra.
+29. Se o PDF não informar cidade ou entrega, deixe esses campos null e registre alerta; não invente nem use conhecimento externo. O cadastro do empreendimento poderá fornecer esses dados no sistema, mas isso não autoriza inventar no JSON.
 
 SAÍDA
 Responda com um único bloco JSON válido, sem markdown, comentários ou reticências, neste formato:
@@ -80,6 +87,18 @@ Responda com um único bloco JSON válido, sem markdown, comentários ou reticê
         ],
         "comissao_valor": null, "comissao_percentual": null,
         "aceita_permuta": null, "restricoes_divulgacao": [], "observacoes": []
+      },
+      "fluxo_dados": {
+        "versao_padrao": 2, "modalidade": null, "origem_quantidade": null,
+        "percentual_ato": null, "percentual_ate_chaves": null,
+        "percentual_financiamento": null, "percentual_pos_chaves": null,
+        "meses_ate_chaves": null, "parcelas_antes_chaves": null,
+        "quantidade_parcelas_obra": null, "quantidade_reforcos": null,
+        "parcela_obra_valor": null, "reforco_obra_valor": null,
+        "valor_ate_chaves": null, "financiamento_valor": null,
+        "vencimento_ato": null, "vencimento_primeira_parcela": null,
+        "vencimento_primeiro_reforco": null,
+        "alternativas_fluxo": [], "fases": [], "alertas": []
       },
       "fonte": { "pagina": null, "linha_original": null, "conferido": true }
     }
