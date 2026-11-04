@@ -986,7 +986,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     const initialPostMonths = Math.max(0, summary.postCount);
     const initialPostBalloon = Number(summary.flow.reforco_pos_chaves_valor || 0);
     const initialPostBalloonCount = Number(summary.flow.quantidade_reforcos_pos_chaves || 0);
-    const initialPostMode: PostMode = /financiamento|banc[aá]rio|cr[eé]dito/i.test(commercialSchedule(item, unit || null).keysMode) ? "chaves" : "parcelas_e_baloes";
+    // Deixar financiamento nas chaves como escolha explícita, não como compensação silenciosa do saldo.
+    const initialPostMode: PostMode = "parcelas_e_baloes";
     const initialTargets = flowTargets(item, unit || null, commercial.finalPrice);
     const initialMonthly = initialPreMonths > 0
       ? Math.max(0, Number(((initialTargets.preTarget - initialEntry) / initialPreMonths).toFixed(2)))
@@ -1204,16 +1205,19 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
   const targets = proposal && commercial ? flowTargets(proposal, proposalUnit, commercial.finalPrice) : { prePct: 100, postPct: 0, preTarget: 0, postTarget: 0 };
   const financingAtKeys = postMode === "chaves";
+  const scenarioMax = commercial ? Math.max(0, commercial.finalPrice) : proposal?.preco || 500000;
+  const monthlyMax = Math.min(scenarioMax, Math.max(20000, scenarioMax * 0.08));
   const preTotal = Number((entry + monthly * preMonths + balloon * balloonCount + keysValue).toFixed(2));
   const postTotal = Number((postMonthly * postMonths + postBalloon * postBalloonCount).toFixed(2));
   const remainingAfterPre = commercial ? Math.max(0, Number((commercial.finalPrice - preTotal).toFixed(2))) : 0;
   const financingTotal = financingAtKeys ? remainingAfterPre : 0;
   const flowTotal = Number((preTotal + postTotal + financingTotal).toFixed(2));
   const flowDifference = commercial ? Number((commercial.finalPrice - flowTotal).toFixed(2)) : 0;
+  const flowDifferenceCents = Math.round(flowDifference * 100);
   const preShare = commercial?.finalPrice ? preTotal / commercial.finalPrice * 100 : 0;
   const shareDeviation = Math.abs(preShare - targets.prePct);
-  const hasExcess = Boolean(commercial && preTotal > commercial.finalPrice + 0.02);
-  const acceptance = hasExcess ? { label: "Não fecha", color: "#f87171", detail: "Os valores até as chaves ultrapassam o valor da unidade." } : !financingAtKeys && Math.abs(flowDifference) > 0.02 ? { label: "Não fecha", color: "#f87171", detail: "Há saldo ou excesso no cálculo." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: financingAtKeys ? "O valor até as chaves atende à meta; o saldo restante será quitado ou financiado nas chaves." : "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
+  const hasExcess = Boolean(commercial && Math.round(preTotal * 100) > Math.round(commercial.finalPrice * 100));
+  const acceptance = hasExcess ? { label: "Não fecha", color: "#f87171", detail: "Os valores até as chaves ultrapassam o valor final da unidade." } : flowDifferenceCents !== 0 ? { label: "Não fecha", color: "#f87171", detail: "A soma precisa fechar exatamente, ao centavo, antes de enviar." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: financingAtKeys ? "O saldo indicado será quitado ou financiado nas chaves." : "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
   useEffect(() => {
     if (!commercial || !lockedKeysValue) return;
     const automaticKeys = Math.max(0, Number((targets.preTarget - entry - monthly * preMonths - balloon * balloonCount).toFixed(2)));
@@ -1278,8 +1282,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     if (documentDeleteBusy) { setSent("Aguarde a exclusão do documento anterior terminar antes de enviar."); return; }
     if (!proposal.permitir_proposta) { setSent("Este empreendimento está liberado para simulação, mas o envio de proposta ainda não foi autorizado pelo especialista."); return; }
     if (secondsUntilExpiry !== null && secondsUntilExpiry <= 0) { setSent("Seu acesso expirou. Solicite ao especialista uma nova validade para enviar a proposta."); return; }
-    if (!proposalUnit || !commercial || Math.abs(flowTotal - commercial.finalPrice) > 0.02) {
-      setSent(`O fluxo ainda não fecha. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Distribua o saldo entre até as chaves e pós-chaves antes de enviar.`);
+    if (!proposalUnit || !commercial || flowDifferenceCents !== 0 || hasExcess) {
+      setSent(`O fluxo precisa fechar exatamente ao centavo. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Distribua o saldo antes de enviar.`);
       return;
     }
     const documentValue = normalizeDocument(clientCpf, clientDocumentType);
@@ -1709,7 +1713,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   label="Entrada"
                   value={entry}
                   setValue={setEntry}
-                  max={proposal.preco || 500000}
+                  max={scenarioMax}
                   locked={lockedEntry}
                   onToggleLock={() => setLockedEntry((value) => !value)}
                 />
@@ -1717,7 +1721,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   label="Parcela mensal"
                   value={monthly}
                   setValue={setMonthly}
-                  max={Math.max(20000, (proposal.preco || 500000) * 0.08)}
+                  max={monthlyMax}
                   locked={lockedMonthly}
                   onToggleLock={() => setLockedMonthly((value) => !value)}
                   count={preMonths}
@@ -1728,7 +1732,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   label="Balão"
                   value={balloon}
                   setValue={setBalloon}
-                  max={proposal.preco || 500000}
+                  max={scenarioMax}
                   locked={lockedBalloon}
                   onToggleLock={() => setLockedBalloon((value) => !value)}
                   count={balloonCount}
@@ -1740,7 +1744,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   label="Valor nas chaves"
                   value={keysValue}
                   setValue={setKeysValue}
-                  max={proposal.preco || 500000}
+                  max={scenarioMax}
                   locked={lockedKeysValue}
                   onToggleLock={() => setLockedKeysValue((value) => !value)}
                 />
@@ -1748,10 +1752,10 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               </div>
               <section style={{display:"grid",gap:10,marginTop:13,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
                 <strong style={{fontSize:12,color:"#edcf91"}}>O que fazer com o saldo após as chaves?</strong>
-                <select value={postMode} onChange={(e)=>changePostMode(e.target.value as PostMode)} style={{...input,marginTop:2}}><option value="chaves">Quitar/financiar o saldo nas chaves</option><option value="parcelas_e_baloes">Pós-chaves: parcelas e balões</option><option value="somente_parcelas">Pós-chaves: somente parcelas</option><option value="somente_baloes">Pós-chaves: somente balões</option></select>
-                {financingAtKeys ? <span style={{fontSize:12,color:"#d4d4d8"}}>O saldo restante será quitado ou financiado nas chaves: <strong>{money(financingTotal)}</strong>.</span> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
-                  {(postMode === "parcelas_e_baloes" || postMode === "somente_parcelas") && <MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={changePostMonthly} max={Math.max(20000,(commercial?.finalPrice || 500000)*0.08)} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} count={postMonths} setCount={changePostMonths} countLabel="Quantidade de parcelas" />}
-                  {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={commercial?.finalPrice || 500000} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} count={postBalloonCount} setCount={changePostBalloonCount} countMax={120} countLabel="Quantidade de balões" />}
+                <select value={postMode} onChange={(e)=>changePostMode(e.target.value as PostMode)} style={{...input,marginTop:2}}><option value="chaves">Quitar/financiar o saldo nas chaves (escolha explícita)</option><option value="parcelas_e_baloes">Pós-chaves: parcelas e balões</option><option value="somente_parcelas">Pós-chaves: somente parcelas</option><option value="somente_baloes">Pós-chaves: somente balões</option></select>
+                {financingAtKeys ? <span style={{fontSize:12,color:"#f5e0b2"}}>Atenção: o saldo de <strong>{money(financingTotal)}</strong> será quitado ou financiado nas chaves. Esse valor conta no total da unidade; escolha essa opção somente se essa condição estiver prevista.</span> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
+                  {(postMode === "parcelas_e_baloes" || postMode === "somente_parcelas") && <MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={changePostMonthly} max={monthlyMax} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} count={postMonths} setCount={changePostMonths} countLabel="Quantidade de parcelas" />}
+                  {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={scenarioMax} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} count={postBalloonCount} setCount={changePostBalloonCount} countMax={120} countLabel="Quantidade de balões" />}
                 </div>}
               </section>
               <div style={{display:"grid",gap:5,marginTop:13,padding:12,border:`1px solid ${acceptance.color}`,borderRadius:9,background:"#17140e",color:"#d4d4d8",fontSize:12}}><strong style={{color:acceptance.color}}>Aderência: {acceptance.label}</strong><span>{acceptance.detail}</span><span>Meta até as chaves: {targets.prePct}% ({money(targets.preTarget)}) · meta pós-chaves: {targets.postPct}% ({money(targets.postTarget)}).</span><span>Até as chaves: {money(preTotal)}{keysValue ? ` · valor informado nas chaves: ${money(keysValue)}` : ""} · {financingAtKeys ? `financiamento nas chaves: ${money(financingTotal)}` : `pós-chaves: ${money(postTotal)}`} · saldo: <strong style={{color:acceptance.color}}>{money(flowDifference)}</strong></span><button type="button" onClick={redistributeFlow} style={{border:"1px solid #8f7138",borderRadius:7,padding:9,background:"#211a0f",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Redistribuir respeitando o fluxo e fechar o valor</button></div>
@@ -1847,7 +1851,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 </p>
               )}
               <button
-                disabled={sending}
+                disabled={sending || !proposalUnit || !commercial || flowDifferenceCents !== 0 || hasExcess}
                 onClick={() => void sendProposal()}
                 style={{
                   marginTop: 16,
@@ -1862,7 +1866,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 }}
               >
                 <Send size={15} />{" "}
-                {sending ? "Enviando…" : "Enviar cenário para análise"}
+                {sending ? "Enviando…" : flowDifferenceCents !== 0 || hasExcess ? "Ajuste o fluxo para fechar o valor" : "Enviar cenário para análise"}
               </button>
               </> : <div style={{marginTop:16,padding:12,border:"1px solid #54452c",borderRadius:8,background:"#17140e",color:"#ead5aa",fontSize:12,lineHeight:1.55}}>A simulação está disponível, mas o especialista ainda não liberou o envio de proposta para esta oportunidade. Nenhum dado pessoal ou documento será solicitado nesta etapa.</div>}
             </section>
