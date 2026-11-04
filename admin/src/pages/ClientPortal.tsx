@@ -1219,7 +1219,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const acceptance = hasExcess ? { label: "Não fecha", color: "#f87171", detail: "Os valores até as chaves ultrapassam o valor final da unidade." } : flowDifferenceCents !== 0 ? { label: "Não fecha", color: "#f87171", detail: "A soma precisa fechar exatamente, ao centavo, antes de enviar." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: financingAtKeys ? "O saldo indicado será quitado ou financiado nas chaves." : "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
   const floorMoney = (value: number) => Math.max(0, Math.floor((value + 0.000001) * 100) / 100);
   const priceBudget = floorMoney(commercial?.finalPrice || 0);
-  const preMonthsAvailable = proposal ? Math.max(0, flowSummary(proposal, proposalUnit, cub).remaining) : 0;
   const activePostTotal = financingAtKeys ? 0 : postTotal;
   const fixedOtherPreTotal = balloon * balloonCount + (lockedKeysValue ? 0 : keysValue) + activePostTotal;
   const entryAllowedMax = floorMoney(Math.min(
@@ -1230,12 +1229,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const monthlyAllowedMax = preMonths > 0
     ? floorMoney(Math.min(monthlyMax, installmentBudget / preMonths))
     : 0;
-  const preMonthsAllowedMax = Math.min(
-    preMonthsAvailable,
-    lockedMonthly && monthly > 0
-      ? Math.floor((installmentBudget * 100 + 0.000001) / Math.round(monthly * 100))
-      : preMonthsAvailable,
-  );
   useEffect(() => {
     if (!commercial || !lockedKeysValue) return;
     const automaticKeys = Math.max(0, Number((targets.preTarget - entry - monthly * preMonths - balloon * balloonCount).toFixed(2)));
@@ -1295,15 +1288,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   };
   const changeMonthly = (requested: number) => {
     setMonthly(floorMoney(Math.min(monthlyAllowedMax, requested)));
-  };
-  const changePreMonths = (requested: number) => {
-    const next = Math.max(0, Math.min(preMonthsAllowedMax, Math.round(requested)));
-    setPreMonths(next);
-    if (!lockedMonthly) {
-      if (next === 0) { setMonthly(0); return; }
-      const availableForInstallments = floorMoney(priceBudget - entry - fixedOtherPreTotal);
-      setMonthly((current) => Math.min(current, monthlyMax, floorMoney(availableForInstallments / next)));
-    }
   };
   const redistributeFlow = () => {
     if (!commercial) return;
@@ -1764,8 +1748,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   locked={lockedMonthly}
                   onToggleLock={() => setLockedMonthly((value) => !value)}
                   count={preMonths}
-                  setCount={changePreMonths}
-                  countMax={preMonthsAllowedMax}
+                  setCount={setPreMonths}
                   countLabel="Parcelas até as chaves"
                 />
                 <MoneyScenario
@@ -1789,7 +1772,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   onToggleLock={() => setLockedKeysValue((value) => !value)}
                 />
                 {lockedKeysValue && <small style={{gridColumn:"1/-1",color:"#b9d89c",fontSize:12,lineHeight:1.5}}>Com o cadeado ativo, o valor nas chaves é recalculado automaticamente para completar a meta até às chaves. Ao adicionar balões, eles entram no mesmo cálculo; destrave para editar manualmente.</small>}
-                <small style={{gridColumn:"1/-1",color:"#a1a1aa",fontSize:12,lineHeight:1.5}}>Com as parcelas destravadas, aumentar a entrada reduz a parcela para caber no valor da unidade. Com as parcelas travadas, o limite da entrada considera o total delas. A quantidade de parcelas até as chaves não ultrapassa o prazo restante.</small>
+                <small style={{gridColumn:"1/-1",color:"#a1a1aa",fontSize:12,lineHeight:1.5}}>A quantidade de parcelas parte do fluxo cadastrado para esta unidade. Com as parcelas destravadas, aumentar a entrada reduz o valor mensal; com elas travadas, a entrada fica limitada pelo saldo disponível.</small>
               </div>
               <section style={{display:"grid",gap:10,marginTop:13,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
                 <strong style={{fontSize:12,color:"#edcf91"}}>O que fazer com o saldo após as chaves?</strong>
