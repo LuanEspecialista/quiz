@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarDays,
   ChevronRight,
+  ExternalLink,
   Images,
   Landmark,
   Lock,
@@ -1521,7 +1522,14 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                       </div>}
                       {documents.length > 0 && <div style={{ display: "grid", gap: 6, paddingTop: 8, borderTop: "1px solid #302a20" }}>
                         <small style={{ color: "#a1a1aa", fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase" }}>Documentos</small>
-                        {documents.map((resource, index) => <button key={`${resource.storage_path || resource.url || resource.titulo}-${index}`} type="button" onClick={() => void openPresentation(item, resource)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: "1px solid #302a20", background: "#131315", color: "#d8c18f", borderRadius: 7, padding: "8px 9px", textAlign: "left", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>{resource.titulo || "Documento"}<ChevronRight size={14} /></button>)}
+                        {documents.map((resource, index) => {
+                          const key = `${resource.storage_path || resource.url || resource.titulo}-${index}`;
+                          const externalUrl = resource.url && /^https:\/\//i.test(resource.url) ? resource.url : null;
+                          const linkStyle = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: "1px solid #302a20", background: "#131315", color: "#d8c18f", borderRadius: 7, padding: "8px 9px", textAlign: "left" as const, cursor: "pointer", fontSize: 11, fontWeight: 700 };
+                          return externalUrl
+                            ? <a key={key} href={externalUrl} target="_blank" rel="noopener noreferrer" style={{ ...linkStyle, textDecoration: "none" }}>{resource.titulo || "Documento"}<ExternalLink size={14} /></a>
+                            : <button key={key} type="button" onClick={() => void openPresentation(item, resource)} style={linkStyle}>{resource.titulo || "Documento"}<ChevronRight size={14} /></button>;
+                        })}
                       </div>}
                     </div>
                   </article>
