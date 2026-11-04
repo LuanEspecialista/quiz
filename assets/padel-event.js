@@ -1,19 +1,20 @@
 (() => {
-  const form = document.getElementById("padel-form");
-  if (!form) return;
+  document.addEventListener("submit", async (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || form.id !== "padel-form") return;
 
-  const status = document.getElementById("form-status");
-  const submit = form.querySelector('button[type="submit"]');
-  const setMessage = (text, error = false) => {
-    if (!status) return;
-    status.textContent = text;
-    status.classList.toggle("error", error);
-  };
-
-  form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const status = form.querySelector("#form-status");
+    const submit = form.querySelector('button[type="submit"]');
+    const setMessage = (text, error = false) => {
+      if (!status) return;
+      status.textContent = text;
+      status.classList.toggle("error", error);
+    };
+
     setMessage("");
     if (!form.reportValidity()) return;
+    if (form.dataset.submitting === "true") return;
 
     const data = new FormData(form);
     const cfg = window.LUAN_SITE_CONFIG || {};
@@ -31,11 +32,12 @@
       p_consentimento: data.get("consentimento") === "on",
       p_site: String(data.get("site") || "").trim(),
     };
-    if (!payload.nome || !payload.telefone || !payload.email || !payload.p_consentimento) {
+    if (!payload.p_nome || !payload.p_telefone || !payload.p_email || !payload.p_consentimento) {
       setMessage("Confira nome, telefone, e-mail e a autorização para continuar.", true);
       return;
     }
 
+    form.dataset.submitting = "true";
     if (submit) {
       submit.disabled = true;
       submit.textContent = "Enviando…";
@@ -64,6 +66,7 @@
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível concluir o cadastro. Fale com a equipe no estande.", true);
     } finally {
+      delete form.dataset.submitting;
       if (submit) {
         submit.disabled = false;
         submit.textContent = "Quero concorrer";

@@ -417,9 +417,17 @@ function renderDestinationMap(post) {
   return `<section class="destination-map" aria-labelledby="destination-map-title"><div class="destination-map-card"><div class="destination-map-copy"><span class="destination-map-eyebrow">${esc(eyebrow)}</span><h2 id="destination-map-title">${esc(title)}</h2><p>${esc(text)}</p><a href="${esc(src)}" target="_blank" rel="sponsored noopener noreferrer">Ver opções de hospedagem <span aria-hidden="true">↗</span></a></div><div class="destination-map-frame"><iframe title="Opções de hospedagem próximas a ${esc(venue)}" width="100%" height="450" src="${esc(src)}" frameborder="0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><p class="destination-map-note">Ao reservar por opções deste mapa, podemos receber uma comissão, sem custo adicional para você. Valores e disponibilidade são definidos pelos fornecedores.</p></div></section>`;
 }
 
+function renderPadelSignupForm() {
+  return `<section class="padel-blog-form content-block" aria-labelledby="padel-form-title"><p class="padel-form-eyebrow">LIGA BRASILEIRA DE PÁDEL</p><h2 id="padel-form-title">Cadastre-se para concorrer à raquete NOX</h2><p class="padel-form-description">Preencha seus dados para participar da ação. Consulte no estande as condições completas da promoção.</p><form id="padel-form" novalidate><div class="padel-form-fields"><label class="padel-field" for="padel-lead-name">Nome<input id="padel-lead-name" name="nome" type="text" maxlength="120" autocomplete="name" required placeholder="Seu nome"></label><label class="padel-field" for="padel-lead-email">E-mail<input id="padel-lead-email" name="email" type="email" maxlength="254" autocomplete="email" required placeholder="voce@exemplo.com"></label><label class="padel-field" for="padel-lead-phone">Telefone<input id="padel-lead-phone" name="telefone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" required placeholder="(47) 99999-9999"></label></div><div class="padel-honeypot" aria-hidden="true"><label for="padel-lead-site">Deixe este campo vazio</label><input id="padel-lead-site" name="site" tabindex="-1" autocomplete="off"></div><label class="padel-consent"><input type="checkbox" name="consentimento" required><span>Autorizo o uso destes dados para registrar minha participação e receber contato da equipe sobre a promoção e os serviços da imobiliária, conforme a <a href="/privacidade/" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span></label><button class="padel-submit" type="submit">Quero concorrer</button><p class="padel-form-status" id="form-status" role="status" aria-live="polite"></p></form></section>`;
+}
+
 function renderArticle(post, presentationMode = false) {
   const blocks = post.blocos || {};
-  const sections = Array.isArray(blocks.secoes) ? blocks.secoes : [];
+  const isPadelPost = post.slug === "padel-liga-brasileira-balneario-camboriu-raquete-nox";
+  const sourceSections = Array.isArray(blocks.secoes) ? blocks.secoes : [];
+  const sections = isPadelPost
+    ? sourceSections.filter((section) => section.id !== "padel-participar")
+    : sourceSections;
   const images = Array.isArray(post.imagens) ? post.imagens : [];
   const hero = safeImage(post.imagem_capa_url);
   const showHero = Boolean(hero && blocks.exibir_hero !== false);
@@ -427,8 +435,18 @@ function renderArticle(post, presentationMode = false) {
   const useOverlayHero = showHero && !isAyra;
   const used = new Set();
   if (showHero) used.add(imageKey(hero));
+  const formIndex = Math.max(0, sections.findIndex((section) => section.id === "padel-conheca"));
   const body = sections.length
-    ? sections.map((section) => renderSection(section, post, used)).join("")
+    ? sections
+        .map(
+          (section, index) =>
+            `${renderSection(section, post, used)}${
+              isPadelPost && !presentationMode && index === formIndex
+                ? renderPadelSignupForm()
+                : ""
+            }`,
+        )
+        .join("")
     : paragraphs(post.conteudo || post.resumo);
   const gallery = renderRemainingImages(images, used);
   const hasInlineCta = sections.some((section) => section.tipo === "cta");
@@ -535,6 +553,7 @@ function renderPage(post, presentationMode = false) {
   const preload = hero
     ? `<link rel="preload" as="image" href="${esc(hero)}" fetchpriority="high"><link rel="preconnect" href="https://santerempreendimentos.com.br" crossorigin>`
     : "";
+  const padelCampaign = post.slug === "padel-liga-brasileira-balneario-camboriu-raquete-nox" && !presentationMode;
   const meta = [
     setMeta("description", description),
     setMeta("keywords", keywords),
@@ -586,6 +605,7 @@ function renderPage(post, presentationMode = false) {
   ${preload}
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/blog.css">
+  ${padelCampaign ? '<link rel="stylesheet" href="/assets/padel-blog-form.css?v=20261104-1">' : ""}
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
   <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
@@ -597,7 +617,8 @@ function renderPage(post, presentationMode = false) {
   ${presentationStyles}
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261026-client-presentation-map-1"></script>
+  <script defer src="/assets/blog.js?v=20261104-padel-inline-1"></script>
+  ${padelCampaign ? '<script defer src="/assets/padel-event.js?v=20261104-2"></script>' : ""}
   ${presentationMode ? "" : '<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261007-1"></script>'}
 </head>
 <body class="${presentationMode ? "blog-presentation-mode" : ""}">
