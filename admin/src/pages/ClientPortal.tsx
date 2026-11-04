@@ -319,7 +319,7 @@ function PresentationSlides({ url, title, onClose }: { url: string; title: strin
   useEffect(() => {
     let disposed = false;
     setLoading(true); setMessage(""); setPage(1); setPdf(null);
-    const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false, disableAutoFetch: false, disableStream: false, rangeChunkSize: 1024 * 1024 });
+    const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false, disableAutoFetch: true, disableStream: true, rangeChunkSize: 256 * 1024 });
     loadingTask.promise.then((document) => {
       if (disposed) return;
       setPdf(document);
