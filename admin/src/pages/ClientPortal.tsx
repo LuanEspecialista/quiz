@@ -315,15 +315,21 @@ function PresentationSlides({ url, title, onClose }: { url: string; title: strin
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [downloadProgress, setDownloadProgress] = useState<{ loaded: number; total: number } | null>(null);
   const [message, setMessage] = useState("");
   useEffect(() => {
     let disposed = false;
-    setLoading(true); setMessage(""); setPage(1);
-    pdfjsLib.getDocument({ url, withCredentials: false, disableAutoFetch: false, disableStream: false, rangeChunkSize: 1024 * 1024 }).promise.then((document) => {
+    setLoading(true); setMessage(""); setPage(1); setPdf(null); setDownloadProgress(null);
+    const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false, disableAutoFetch: false, disableStream: false, rangeChunkSize: 1024 * 1024 });
+    loadingTask.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+      if (!disposed) setDownloadProgress({ loaded, total });
+    };
+    loadingTask.promise.then((document) => {
       if (disposed) return;
       setPdf(document);
-    }).catch(() => { if (!disposed) setMessage("Não foi possível carregar esta apresentação."); setLoading(false); });
-    return () => { disposed = true; };
+      setDownloadProgress(null);
+    }).catch(() => { if (!disposed) setMessage("Não foi possível carregar esta apresentação. Feche e tente novamente; se continuar, fale com seu especialista."); setLoading(false); });
+    return () => { disposed = true; void loadingTask.destroy(); };
   }, [url]);
   useEffect(() => {
     let disposed = false;
@@ -346,11 +352,38 @@ function PresentationSlides({ url, title, onClose }: { url: string; title: strin
     }).catch(() => { if (!disposed) { setMessage("Não foi possível renderizar esta página."); setLoading(false); } });
     return () => { disposed = true; };
   }, [pdf, page]);
-  return <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1200,background:"#09090bf7",display:"grid",gridTemplateRows:"auto 1fr auto",padding:12}}>
-    <header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,maxWidth:1180,width:"100%",margin:"0 auto",color:"#fff"}}><strong>{title}</strong><button type="button" onClick={onClose} style={{border:"1px solid #5a4828",background:"#18140e",color:"#edcf91",borderRadius:8,padding:"9px 12px",cursor:"pointer"}}>Fechar</button></header>
-    <main style={{display:"grid",placeItems:"center",overflow:"auto",padding:12}}>{message ? <p style={{color:"#fca5a5"}}>{message}</p> : <div style={{position:"relative",minHeight:160,display:"grid",placeItems:"center"}}><canvas ref={canvasRef} style={{maxWidth:"100%",height:"auto",background:"#fff",boxShadow:"0 16px 60px #000"}} />{loading && <span style={{position:"absolute",color:"#edcf91",background:"#111113dd",padding:"10px 14px",borderRadius:8}}>Carregando slide…</span>}</div>}</main>
-    <footer style={{display:"flex",justifyContent:"center",alignItems:"center",gap:12,padding:"10px 0",color:"#d4d4d8"}}><button type="button" disabled={!pdf || page<=1} onClick={()=>setPage((value)=>Math.max(1,value-1))} style={{border:"1px solid #54452c",background:"#17140e",color:"#ead5aa",borderRadius:7,padding:"9px 14px",cursor:"pointer"}}>‹ Anterior</button><span>{pdf ? `Slide ${page} de ${pdf.numPages}` : ""}</span><button type="button" disabled={!pdf || page >= (pdf?.numPages || 1)} onClick={()=>setPage((value)=>Math.min(pdf?.numPages || value,value+1))} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 14px",fontWeight:800,cursor:"pointer"}}>Próximo ›</button></footer>
-  </div>;
+  const progressPercent = downloadProgress?.total && downloadProgress.total > 0 ? Math.min(100, Math.round(downloadProgress.loaded / downloadProgress.total * 100)) : null;
+  const downloadedMb = downloadProgress ? (downloadProgress.loaded / (1024 * 1024)).toFixed(1) : "0.0";
+  const totalMb = downloadProgress?.total ? (downloadProgress.total / (1024 * 1024)).toFixed(1) : null;
+  return (
+    <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 1200, background: "#09090bf7", display: "grid", gridTemplateRows: "auto 1fr auto", padding: 12 }}>
+      <style>{"@keyframes portal-progress-indeterminate{from{transform:translateX(-80%)}to{transform:translateX(190%)}}"}</style>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, maxWidth: 1180, width: "100%", margin: "0 auto", color: "#fff" }}>
+        <strong>{title}</strong>
+        <button type="button" onClick={onClose} style={{ border: "1px solid #5a4828", background: "#18140e", color: "#edcf91", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>Fechar</button>
+      </header>
+      <main style={{ display: "grid", placeItems: "center", overflow: "auto", padding: 12 }}>
+        {message ? <p role="alert" style={{ color: "#fca5a5", maxWidth: 540, textAlign: "center", lineHeight: 1.6 }}>{message}</p> : (
+          <div style={{ position: "relative", minHeight: 160, width: "min(900px,100%)", display: "grid", placeItems: "center" }}>
+            <canvas ref={canvasRef} style={{ maxWidth: "100%", height: "auto", background: "#fff", boxShadow: "0 16px 60px #000" }} />
+            {loading && (
+              <div role="status" aria-live="polite" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(360px,calc(100% - 32px))", boxSizing: "border-box", color: "#edcf91", background: "#111113f2", padding: "16px 18px", borderRadius: 10, border: "1px solid #514124", boxShadow: "0 12px 36px #0009" }}>
+                <strong style={{ display: "block", fontSize: 14 }}>{pdf ? "Renderizando a página…" : "Baixando a apresentação…"}</strong>
+                <small style={{ display: "block", marginTop: 7, color: "#d4d4d8" }}>{pdf ? `Preparando slide ${page} de ${pdf.numPages}` : progressPercent !== null ? `${progressPercent}% · ${downloadedMb} de ${totalMb} MB` : `${downloadedMb} MB recebidos · aguardando o tamanho total do arquivo`}</small>
+                {!pdf && <div style={{ height: 7, marginTop: 11, borderRadius: 99, background: "#393329", overflow: "hidden" }}><div style={{ height: "100%", width: progressPercent !== null ? `${progressPercent}%` : "35%", background: "linear-gradient(90deg,#d7ab63,#f5e0b2)", borderRadius: 99, transition: "width .2s ease", animation: progressPercent === null ? "portal-progress-indeterminate 1.2s ease-in-out infinite alternate" : undefined }} />
+                </div>}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+      <footer style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "10px 0", color: "#d4d4d8" }}>
+        <button type="button" disabled={!pdf || page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} style={{ border: "1px solid #54452c", background: "#17140e", color: "#ead5aa", borderRadius: 7, padding: "9px 14px", cursor: "pointer" }}>‹ Anterior</button>
+        <span>{pdf ? `Slide ${page} de ${pdf.numPages}` : ""}</span>
+        <button type="button" disabled={!pdf || page >= (pdf?.numPages || 1)} onClick={() => setPage((value) => Math.min(pdf?.numPages || value, value + 1))} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 7, padding: "9px 14px", fontWeight: 800, cursor: "pointer" }}>Próximo ›</button>
+      </footer>
+    </div>
+  );
 }
 
 const COVER_STORAGE_PREFIX = "storage://empreendimentos/";
@@ -707,6 +740,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [presentation, setPresentation] = useState<{ url: string; title: string } | null>(null);
   const [presentationLink, setPresentationLink] = useState<{ url: string; title: string } | null>(null);
   const [presentationError, setPresentationError] = useState("");
+  const [presentationOpening, setPresentationOpening] = useState<{ opportunityId: string; title: string; phase: string } | null>(null);
+  const presentationOpeningRef = useRef(false);
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
@@ -1112,55 +1147,70 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   };
   const openPresentation = async (item: Opportunity, selected?: PortalPresentation | null) => {
     const presentation = selected || item.apresentacao;
-    if (!presentation) return;
+    if (!presentation || presentationOpeningRef.current) return;
+    presentationOpeningRef.current = true;
+    const title = presentation.titulo || item.nome || "Apresentação";
+    setPresentationOpening({ opportunityId: item.id, title, phase: "Verificando seu acesso…" });
     setPresentationError("");
-    if (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0)) {
-      setPresentationError("Seu acesso expirou. Solicite ao especialista uma nova validade.");
-      return;
-    }
-    const { data: accessStatus } = await supabase.rpc("portal_access_status");
-    if (accessStatus?.status !== "ativo") {
-      setAccessExpired(accessStatus?.status === "expirado");
-      setPortal(null);
-      setProposal(null);
-      setPresentation(null);
-      setPresentationLink(null);
-      setPresentationError("Seu acesso não está mais ativo. Solicite ao especialista uma nova validade.");
-      return;
-    }
-    if (presentation.tipo === "link") {
-      let destinationUrl = presentation.url;
-      if (!destinationUrl) return;
-      try {
-        const publicSiteUrl = new URL(import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin);
-        const destination = new URL(destinationUrl, publicSiteUrl.origin);
-        const destinationHost = destination.hostname.replace(/^www\./i, "");
-        const publicSiteHost = publicSiteUrl.hostname.replace(/^www\./i, "");
-        if (destinationHost === publicSiteHost && /^\/blog\/[^/]+\/?$/.test(destination.pathname)) {
-          destination.searchParams.set("apresentacao", "1");
-          destinationUrl = destination.toString();
-        }
-      } catch {
-        // Se o link estiver fora do formato esperado, abre-se como foi configurado.
-      }
-      setPresentationLink({ url: destinationUrl, title: presentation.titulo || item.nome || "Apresentação" });
-      return;
-    }
-    let pdfUrl = presentation.url;
-    if (presentation.storage_path && presentation.storage_bucket === "cliente-apresentacoes") {
-      const signedFor = secondsUntilExpiry === null ? 300 : Math.max(1, Math.min(300, secondsUntilExpiry));
-      const { data, error: signedError } = await supabase.storage.from("cliente-apresentacoes").createSignedUrl(presentation.storage_path, signedFor);
-      if (signedError || !data?.signedUrl) {
-        setPresentationError("Não foi possível abrir o PDF. Confirme se a curadoria e o acesso estão ativos.");
+    try {
+      if (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0)) {
+        setPresentationError("Seu acesso expirou. Solicite ao especialista uma nova validade.");
         return;
       }
-      pdfUrl = data.signedUrl;
+      const { data: accessStatus, error: accessError } = await supabase.rpc("portal_access_status");
+      if (accessError) throw accessError;
+      if (accessStatus?.status !== "ativo") {
+        setAccessExpired(accessStatus?.status === "expirado");
+        setPortal(null);
+        setProposal(null);
+        setPresentation(null);
+        setPresentationLink(null);
+        setPresentationError("Seu acesso não está mais ativo. Solicite ao especialista uma nova validade.");
+        return;
+      }
+      if (presentation.tipo === "link") {
+        let destinationUrl = presentation.url;
+        if (!destinationUrl) {
+          setPresentationError("O link deste material não está configurado. Avise seu especialista.");
+          return;
+        }
+        try {
+          const publicSiteUrl = new URL(import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin);
+          const destination = new URL(destinationUrl, publicSiteUrl.origin);
+          const destinationHost = destination.hostname.replace(/^www\./i, "");
+          const publicSiteHost = publicSiteUrl.hostname.replace(/^www\./i, "");
+          if (destinationHost === publicSiteHost && /^\/blog\/[^/]+\/?$/.test(destination.pathname)) {
+            destination.searchParams.set("apresentacao", "1");
+            destinationUrl = destination.toString();
+          }
+        } catch {
+          // Se o link estiver fora do formato esperado, abre-se como foi configurado.
+        }
+        setPresentationLink({ url: destinationUrl, title });
+        return;
+      }
+      let pdfUrl = presentation.url;
+      if (presentation.storage_path && presentation.storage_bucket === "cliente-apresentacoes") {
+        setPresentationOpening({ opportunityId: item.id, title, phase: "Preparando um link seguro para o PDF…" });
+        const signedFor = secondsUntilExpiry === null ? 300 : Math.max(1, Math.min(300, secondsUntilExpiry));
+        const { data, error: signedError } = await supabase.storage.from("cliente-apresentacoes").createSignedUrl(presentation.storage_path, signedFor);
+        if (signedError || !data?.signedUrl) {
+          setPresentationError("Não foi possível preparar o PDF. Confirme se a curadoria e o acesso estão ativos e tente novamente.");
+          return;
+        }
+        pdfUrl = data.signedUrl;
+      }
+      if (!pdfUrl) {
+        setPresentationError("O material ainda não está disponível. Fale com seu especialista.");
+        return;
+      }
+      setPresentation({ url: pdfUrl, title });
+    } catch (error) {
+      setPresentationError(error instanceof Error ? `Não foi possível preparar o material: ${error.message}` : "Não foi possível preparar o material. Tente novamente.");
+    } finally {
+      presentationOpeningRef.current = false;
+      setPresentationOpening(null);
     }
-    if (!pdfUrl) {
-      setPresentationError("O material ainda não está disponível. Fale com seu especialista.");
-      return;
-    }
-    setPresentation({ url: pdfUrl, title: presentation.titulo || item.nome || "Apresentação" });
   };
   const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
   const targets = proposal && commercial ? flowTargets(proposal, proposalUnit, commercial.finalPrice) : { prePct: 100, postPct: 0, preTarget: 0, postTarget: 0 };
@@ -1514,12 +1564,16 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                       <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{item.nome}</span>
                       <span style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.descricao || "Confira os detalhes selecionados para você."}</span>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, marginTop: 2 }}>
-                        {selectedPresentation && <button type="button" onClick={() => void openPresentation(item, selectedPresentation)} style={{ border: "1px solid #5a4828", background: "#18140e", color: "#edcf91", borderRadius: 8, padding: "10px 9px", fontWeight: 800, cursor: "pointer" }}>Ver apresentação</button>}
+                        {selectedPresentation && <button type="button" disabled={Boolean(presentationOpening)} aria-busy={Boolean(presentationOpening)} onClick={() => void openPresentation(item, selectedPresentation)} style={{ border: "1px solid #5a4828", background: "#18140e", color: "#edcf91", borderRadius: 8, padding: "10px 9px", fontWeight: 800, cursor: presentationOpening ? "wait" : "pointer", opacity: presentationOpening ? .65 : 1 }}>{presentationOpening?.opportunityId === item.id && presentationOpening.title === (selectedPresentation.titulo || item.nome) ? "Preparando…" : "Ver apresentação"}</button>}
                         {canOpenFlow && <button type="button" onClick={() => setActiveOpportunity(item)} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: "10px 9px", fontWeight: 900, cursor: "pointer" }}>Acessar fluxos</button>}
                       </div>
                       {institutionalCards.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, paddingTop: 5, borderTop: "1px solid #302a20" }}>
-                        {institutionalCards.map(({ key, label, resource }) => <button key={key} type="button" onClick={() => void openPresentation(item, resource)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, border: "1px solid #393329", background: "#15130f", color: "#d8c18f", borderRadius: 8, padding: "9px 10px", textAlign: "left", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>{label}<ChevronRight size={15} /></button>)}
+                        {institutionalCards.map(({ key, label, resource }) => {
+                          const isOpening = presentationOpening?.opportunityId === item.id && presentationOpening.title === (resource.titulo || item.nome || "Apresentação");
+                          return <button key={key} type="button" disabled={Boolean(presentationOpening)} aria-busy={isOpening} onClick={() => void openPresentation(item, resource)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, border: "1px solid #393329", background: "#15130f", color: "#d8c18f", borderRadius: 8, padding: "9px 10px", textAlign: "left", cursor: presentationOpening ? "wait" : "pointer", fontSize: 11, fontWeight: 800, opacity: presentationOpening ? .65 : 1 }}>{isOpening ? "Preparando…" : label}<ChevronRight size={15} /></button>;
+                        })}
                       </div>}
+                      {presentationOpening?.opportunityId === item.id && <div role="status" aria-live="polite" style={{ display: "grid", gap: 4, padding: "9px 10px", border: "1px solid #514124", borderRadius: 8, background: "#17140e", color: "#edcf91", fontSize: 12 }}><strong>{presentationOpening.phase}</strong><small style={{ color: "#a1a1aa", lineHeight: 1.45 }}>Estamos preparando “{presentationOpening.title}” para visualização. Não está enviando cadastro nem proposta.</small></div>}
                       {documents.length > 0 && <div style={{ display: "grid", gap: 6, paddingTop: 8, borderTop: "1px solid #302a20" }}>
                         <small style={{ color: "#a1a1aa", fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase" }}>Documentos</small>
                         {documents.map((resource, index) => {
@@ -1528,7 +1582,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                           const linkStyle = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: "1px solid #302a20", background: "#131315", color: "#d8c18f", borderRadius: 7, padding: "8px 9px", textAlign: "left" as const, cursor: "pointer", fontSize: 11, fontWeight: 700 };
                           return externalUrl
                             ? <a key={key} href={externalUrl} target="_blank" rel="noopener noreferrer" style={{ ...linkStyle, textDecoration: "none" }}>{resource.titulo || "Documento"}<ExternalLink size={14} /></a>
-                            : <button key={key} type="button" onClick={() => void openPresentation(item, resource)} style={linkStyle}>{resource.titulo || "Documento"}<ChevronRight size={14} /></button>;
+                            : <button key={key} type="button" disabled={Boolean(presentationOpening)} onClick={() => void openPresentation(item, resource)} style={{ ...linkStyle, cursor: presentationOpening ? "wait" : "pointer", opacity: presentationOpening ? .65 : 1 }}>{resource.titulo || "Documento"}<ChevronRight size={14} /></button>;
                         })}
                       </div>}
                     </div>
