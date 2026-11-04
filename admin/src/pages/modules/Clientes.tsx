@@ -51,6 +51,8 @@ type Client = {
 };
 type Property = {
   id: string;
+  construtora_id?: string | null;
+  construtoras?: { institucional_ativo?: boolean; institucional_tipo?: "pdf" | "link" | null; institucional_pdf_path?: string | null; institucional_link_url?: string | null; institucional_titulo?: string | null } | null;
   nome?: string | null;
   cidade?: string | null;
   bairro?: string | null;
@@ -89,6 +91,7 @@ type Selection = {
   visivel?: boolean;
   exibir_imagens?: boolean;
   exibir_descricao?: boolean;
+  exibir_documentos?: boolean;
   exibir_preco?: boolean;
   exibir_especificacoes?: boolean;
   exibir_investimento?: boolean;
@@ -107,7 +110,6 @@ type Selection = {
   unidade_ids?: string[];
 };
 type CuradoriaMedia = { id:string; empreendimento_id:string; titulo?:string|null; categoria?:string|null; storage_path?:string|null; url?:string|null; preview_url?:string|null };
-type PresentationOption = { empreendimento_id:string; titulo?:string|null; ativo:boolean; pdf_url?:string|null; storage_path?:string|null; link_url?:string|null; tipo_preferido?:"pdf"|"link"; cliente_ativo?:boolean; cliente_tipo?:"pdf"|"link"|"post"|null; cliente_pdf_path?:string|null; cliente_link_url?:string|null; cliente_blog_post_id?:string|null; construtora_institucional_ativo?:boolean; construtora_institucional_tipo?:"pdf"|"link"|null; construtora_institucional_pdf_path?:string|null; construtora_institucional_link_url?:string|null; construtora_institucional_titulo?:string|null };
 type AgencyInstitutional = { imobiliaria_institucional_ativo?: boolean; imobiliaria_institucional_tipo?: "pdf" | "link" | null; imobiliaria_institucional_pdf_path?: string | null; imobiliaria_institucional_link_url?: string | null; imobiliaria_institucional_titulo?: string | null };
 type ProposalPerson = { nome?: string; cpf?: string; documento_tipo?: "CPF" | "CNPJ"; telefone?: string; email?: string; profissao?: string; estado_civil?: string };
 type ProposalDocument = { tipo: string; nome_original: string; mime_type: string; tamanho_bytes: number; storage_path: string; enviado_em?: string };
@@ -294,7 +296,7 @@ export default function Clientes({
   const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [siteOpportunityLeads, setSiteOpportunityLeads] = useState<SiteOpportunityLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
-  const [presentationOptions, setPresentationOptions] = useState<Record<string, PresentationOption>>({});
+  const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({});
   const [agencyInstitutional, setAgencyInstitutional] = useState<AgencyInstitutional | null>(null);
   const [flowSelection, setFlowSelection] = useState<string[]>([]);
   const [form, setForm] = useState<Form>(empty),
@@ -339,7 +341,7 @@ export default function Clientes({
   }, [open, curating, comparing]);
 
   async function load() {
-    const [c, p, s, u, cp, media, leads, opportunityLeads, presentationResult, agencyResult, pendingDeletionResult] = await Promise.all([
+    const [c, p, s, u, cp, media, leads, opportunityLeads, agencyResult, pendingDeletionResult, enterpriseDocumentsResult] = await Promise.all([
       supabase
         .from("clientes")
         .select("*")
@@ -348,7 +350,7 @@ export default function Clientes({
       supabase
         .from("empreendimentos")
         .select(
-          "id,nome,cidade,bairro,status,imagem_url,descricao,faixa_preco,area_minima,area_maxima,numero_pavimentos,caracteristicas,ativo",
+          "id,nome,cidade,bairro,status,imagem_url,descricao,faixa_preco,area_minima,area_maxima,numero_pavimentos,caracteristicas,ativo,construtora_id,construtoras(institucional_ativo,institucional_tipo,institucional_pdf_path,institucional_link_url,institucional_titulo)",
         )
         .eq("ativo", true)
         .order("nome"),
@@ -362,9 +364,9 @@ export default function Clientes({
       supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem").limit(5000),
       supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,consentiu_contato,consentimento_em,consentimento_revogado_em,blog_posts(titulo)").order("criado_em", { ascending:false }).limit(500),
       supabase.from("playbook_leads").select("id,nome,telefone,email,objetivo,codigo_oportunidade,empreendimento_nome_interno,oportunidade_publica_id,criado_em,etapa,notas").eq("origem", "site_oportunidade").order("criado_em", { ascending:false }).limit(40),
-      supabase.from("apresentacoes").select("empreendimento_id,titulo,ativo,pdf_url,storage_path,link_url,tipo_preferido,cliente_ativo,cliente_tipo,cliente_pdf_path,cliente_link_url,cliente_blog_post_id,construtora_institucional_ativo,construtora_institucional_tipo,construtora_institucional_pdf_path,construtora_institucional_link_url,construtora_institucional_titulo").limit(500),
       supabase.from("site_configuracoes").select("imobiliaria_institucional_ativo,imobiliaria_institucional_tipo,imobiliaria_institucional_pdf_path,imobiliaria_institucional_link_url,imobiliaria_institucional_titulo").eq("id", 1).maybeSingle(),
       supabase.rpc("admin_listar_cliente_proposta_exclusoes_pendentes"),
+      supabase.from("empreendimento_documentos").select("empreendimento_id,url,storage_path").limit(10000),
     ]);
     if (c.error) {
       setMessage(`Não foi possível carregar os clientes: ${c.error.message}`);
@@ -379,12 +381,13 @@ export default function Clientes({
       );
     if (!s.error) setSelections((s.data || []) as Selection[]);
     if (!u.error) setUnits((u.data || []) as Unit[]);
-    if (!presentationResult.error) {
-      const byEnterprise: Record<string, PresentationOption> = {};
-      ((presentationResult.data || []) as PresentationOption[]).forEach((presentation) => {
-        if (presentation.empreendimento_id) byEnterprise[presentation.empreendimento_id] = presentation;
+    if (!enterpriseDocumentsResult.error) {
+      const counts: Record<string, number> = {};
+      (enterpriseDocumentsResult.data || []).forEach((document: { empreendimento_id: string; url?: string | null; storage_path?: string | null }) => {
+        if (!document.url?.trim() && !document.storage_path?.trim()) return;
+        counts[document.empreendimento_id] = (counts[document.empreendimento_id] || 0) + 1;
       });
-      setPresentationOptions(byEnterprise);
+      setDocumentCounts(counts);
     }
     if (!agencyResult.error) setAgencyInstitutional((agencyResult.data || null) as AgencyInstitutional | null);
     if (!cp.error) {
@@ -1505,8 +1508,8 @@ export default function Clientes({
                   (item) => item.empreendimento_id === property.id,
                 );
                 const checked = Boolean(selection);
-                const presentationOption = presentationOptions[property.id];
-                const hasBuilderInstitutional = Boolean(presentationOption?.construtora_institucional_ativo && presentationOption.construtora_institucional_tipo && (presentationOption.construtora_institucional_tipo === "pdf" ? presentationOption.construtora_institucional_pdf_path : presentationOption.construtora_institucional_link_url));
+                const builderInstitutional = property.construtoras;
+                const hasBuilderInstitutional = Boolean(builderInstitutional?.institucional_ativo && builderInstitutional.institucional_tipo && (builderInstitutional.institucional_tipo === "pdf" ? builderInstitutional.institucional_pdf_path : builderInstitutional.institucional_link_url));
                 const hasAgencyInstitutional = Boolean(agencyInstitutional?.imobiliaria_institucional_ativo && agencyInstitutional.imobiliaria_institucional_tipo && (agencyInstitutional.imobiliaria_institucional_tipo === "pdf" ? agencyInstitutional.imobiliaria_institucional_pdf_path : agencyInstitutional.imobiliaria_institucional_link_url));
                 return (
                   <article
@@ -1562,12 +1565,16 @@ export default function Clientes({
                           }}
                         >
                           <div style={{display:"grid",gap:7}}>
-                            <strong style={{fontSize:11,color:"#d4d4d8"}}>Materiais institucionais liberados</strong>
+                            <strong style={{fontSize:11,color:"#d4d4d8"}}>Conteúdos liberados</strong>
                             <small style={{color:"#71717a",fontSize:10}}>Escolha o que este cliente poderá consultar junto do empreendimento.</small>
-                            <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:7}}>
+                            <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:7}}>
                               <label style={{display:"flex",alignItems:"center",gap:7,padding:"8px 9px",border:`1px solid ${selection.exibir_institucional_construtora ? "#c5a059" : "#303036"}`,borderRadius:7,fontSize:11,color:hasBuilderInstitutional?"#d4d4d8":"#71717a",opacity:hasBuilderInstitutional?1:.7}}>
                                 <input type="checkbox" disabled={!hasBuilderInstitutional} checked={Boolean(selection.exibir_institucional_construtora)} onChange={(event)=>void updateSelection(curating.id,property.id,{exibir_institucional_construtora:event.target.checked})}/>
-                                <span><b style={{display:"block",color:hasBuilderInstitutional?"#f4f4f5":"#a1a1aa"}}>Institucional da construtora</b><small>{hasBuilderInstitutional ? (presentationOption?.construtora_institucional_tipo === "pdf" ? "PDF privado" : "Link externo") : "Material não cadastrado"}</small></span>
+                                <span><b style={{display:"block",color:hasBuilderInstitutional?"#f4f4f5":"#a1a1aa"}}>Institucional da construtora</b><small>{hasBuilderInstitutional ? (builderInstitutional?.institucional_tipo === "pdf" ? "PDF privado" : "Link externo") : "Material não cadastrado"}</small></span>
+                              </label>
+                              <label style={{display:"flex",alignItems:"center",gap:7,padding:"8px 9px",border:`1px solid ${selection.exibir_documentos ? "#c5a059" : "#303036"}`,borderRadius:7,fontSize:11,color:(documentCounts[property.id] || 0)>0?"#d4d4d8":"#71717a",opacity:(documentCounts[property.id] || 0)>0?1:.7}}>
+                                <input type="checkbox" disabled={(documentCounts[property.id] || 0)===0} checked={Boolean(selection.exibir_documentos)} onChange={(event)=>void updateSelection(curating.id,property.id,{exibir_documentos:event.target.checked})}/>
+                                <span><b style={{display:"block",color:(documentCounts[property.id] || 0)>0?"#f4f4f5":"#a1a1aa"}}>Documentos</b><small>{documentCounts[property.id] || 0} documento(s)</small></span>
                               </label>
                               <label style={{display:"flex",alignItems:"center",gap:7,padding:"8px 9px",border:`1px solid ${selection.exibir_institucional_imobiliaria ? "#c5a059" : "#303036"}`,borderRadius:7,fontSize:11,color:hasAgencyInstitutional?"#d4d4d8":"#71717a",opacity:hasAgencyInstitutional?1:.7}}>
                                 <input type="checkbox" disabled={!hasAgencyInstitutional} checked={Boolean(selection.exibir_institucional_imobiliaria)} onChange={(event)=>void updateSelection(curating.id,property.id,{exibir_institucional_imobiliaria:event.target.checked})}/>

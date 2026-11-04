@@ -32,6 +32,7 @@ type PortalMedia = {
 type PortalPresentation = {
   tipo?: "pdf" | "link";
   titulo?: string | null;
+  descricao?: string | null;
   url?: string | null;
   storage_path?: string | null;
   storage_bucket?: string | null;
@@ -81,6 +82,7 @@ type Opportunity = {
   apresentacoes?: PortalPresentation[];
   institucional_construtora?: InstitutionalResource | null;
   institucional_imobiliaria?: InstitutionalResource | null;
+  documentos?: InstitutionalResource[];
   unidades?: PortalUnit[];
 };
 type PortalUnit = {
@@ -778,7 +780,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         }
         const result = (data || {}) as Portal;
         const { data: institutionalData } = await supabase.rpc("portal_cliente_institucionais");
-        const institutionalById = Object.fromEntries(((institutionalData || []) as Array<{ empreendimento_id: string; institucional_construtora?: InstitutionalResource | null; institucional_imobiliaria?: InstitutionalResource | null }>).map((entry) => [entry.empreendimento_id, entry]));
+        const institutionalById = Object.fromEntries(((institutionalData || []) as Array<{ empreendimento_id: string; institucional_construtora?: InstitutionalResource | null; institucional_imobiliaria?: InstitutionalResource | null; documentos?: InstitutionalResource[] }>).map((entry) => [entry.empreendimento_id, entry]));
         const profileRequest = supabase.rpc("portal_cliente_proposta_perfil");
         const opportunities = await Promise.all(
           (result.oportunidades || []).map(async (item) => {
@@ -821,6 +823,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             const institutionalPayload = institutionalById[item.id] || {};
             const institutionalBuilder = await signInstitutional(institutionalPayload.institucional_construtora || item.institucional_construtora);
             const institutionalAgency = await signInstitutional(institutionalPayload.institucional_imobiliaria || item.institucional_imobiliaria);
+            const documents = (await Promise.all((institutionalPayload.documentos || []).map(signInstitutional)))
+              .filter((resource): resource is InstitutionalResource => resource !== null && resource !== undefined);
             const storedCoverPath = coverStoragePath(item);
             let coverUrl: string | undefined =
               item.imagem_url &&
@@ -867,6 +871,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               ...(institutionalById[item.id] || {}),
               institucional_construtora: institutionalBuilder,
               institucional_imobiliaria: institutionalAgency,
+              documentos: documents,
               imagem_url: cardCover,
               imagens: displayImages,
               plantas: plants,
@@ -1498,6 +1503,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 { key: "construtora", label: "Institucional da construtora", resource: item.institucional_construtora },
                 { key: "imobiliaria", label: "Institucional da imobiliária", resource: item.institucional_imobiliaria },
               ].filter((card): card is { key: string; label: string; resource: InstitutionalResource } => Boolean(card.resource?.url || card.resource?.storage_path));
+              const documents = (item.documentos || []).filter((resource) => Boolean(resource.url || resource.storage_path));
               return (
                 <div key={item.id} style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column" }}>
                   <article style={{ flex: "1 1 auto", border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
@@ -1512,6 +1518,10 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                       </div>
                       {institutionalCards.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, paddingTop: 5, borderTop: "1px solid #302a20" }}>
                         {institutionalCards.map(({ key, label, resource }) => <button key={key} type="button" onClick={() => void openPresentation(item, resource)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, border: "1px solid #393329", background: "#15130f", color: "#d8c18f", borderRadius: 8, padding: "9px 10px", textAlign: "left", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>{label}<ChevronRight size={15} /></button>)}
+                      </div>}
+                      {documents.length > 0 && <div style={{ display: "grid", gap: 6, paddingTop: 8, borderTop: "1px solid #302a20" }}>
+                        <small style={{ color: "#a1a1aa", fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase" }}>Documentos</small>
+                        {documents.map((resource, index) => <button key={`${resource.storage_path || resource.url || resource.titulo}-${index}`} type="button" onClick={() => void openPresentation(item, resource)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: "1px solid #302a20", background: "#131315", color: "#d8c18f", borderRadius: 7, padding: "8px 9px", textAlign: "left", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>{resource.titulo || "Documento"}<ChevronRight size={14} /></button>)}
                       </div>}
                     </div>
                   </article>

@@ -267,13 +267,6 @@ export const ConstrutorasModule: FC = () => {
       alert("Erro ao salvar: " + error.message);
     } else {
       if (editingItem?.institucional_pdf_path && editingItem.institucional_pdf_path !== payload.institucional_pdf_path) await supabase.storage.from("cliente-apresentacoes").remove([editingItem.institucional_pdf_path]);
-      if (editingItem?.id) {
-        const { data: linkedEnterprises } = await supabase.from("empreendimentos").select("id").eq("construtora_id", editingItem.id).limit(500);
-        const enterpriseIds = (linkedEnterprises || []).map((enterprise) => enterprise.id).filter(Boolean);
-        if (enterpriseIds.length) {
-          await supabase.from("apresentacoes").update({ construtora_institucional_ativo: Boolean(institutionalType), construtora_institucional_tipo: institutionalType || null, construtora_institucional_pdf_path: institutionalType === "pdf" ? institutionalPdfPath : null, construtora_institucional_link_url: institutionalType === "link" ? normalizedInstitutionalLink : null, construtora_institucional_titulo: institutionalTitle.trim() || null, updated_at: new Date().toISOString() }).in("empreendimento_id", enterpriseIds);
-        }
-      }
       setIsModalOpen(false);
       fetchData();
     }
