@@ -4,3 +4,6 @@
 .article img[src*="/imagens/logo.png"],
 .article img[src$="/logo.png"],
 .article img[alt*="Luan Especialista" i] { display: none !important; }
+
+/* Nos posts, o logo do ticker já identifica a marca; remove a repetição no cabeçalho do artigo. */
+body.blog-post-page .site-header .brand { display: none !important; }

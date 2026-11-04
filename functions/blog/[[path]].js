@@ -605,7 +605,7 @@ function renderPage(post, presentationMode = false) {
   <link rel="canonical" href="${esc(canonical)}">
   ${preload}
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/assets/blog.css?v=20261104-padel-cleanup-2">
+  <link rel="stylesheet" href="/assets/blog.css?v=20261104-padel-cleanup-3">
   ${padelCampaign ? '<link rel="stylesheet" href="/assets/padel-blog-form.css?v=20261104-2">' : ""}
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
   <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
@@ -618,11 +618,11 @@ function renderPage(post, presentationMode = false) {
   ${presentationStyles}
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261104-padel-cleanup-3"></script>
+  <script defer src="/assets/blog.js?v=20261104-padel-cleanup-4"></script>
   ${padelCampaign ? '<script defer src="/assets/padel-event.js?v=20261104-3"></script>' : ""}
   ${presentationMode ? "" : '<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261007-1"></script>'}
 </head>
-<body class="${presentationMode ? "blog-presentation-mode" : ""}">
+<body class="${presentationMode ? "blog-presentation-mode" : padelCampaign ? "blog-post-page" : ""}">
   ${siteHeader}
   <main>
     <section class="intro" id="intro" hidden><p class="eyebrow">CONHECIMENTO PARA DECIDIR MELHOR</p><h1>Insights</h1></section>
@@ -772,7 +772,7 @@ function renderBlogIndex(posts) {
   <link rel="preload" as="image" href="${esc(socialImage)}" fetchpriority="high">
   <link rel="preconnect" href="https://santerempreendimentos.com.br" crossorigin>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/assets/blog.css?v=20261104-padel-cleanup-2">
+  <link rel="stylesheet" href="/assets/blog.css?v=20261104-padel-cleanup-3">
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
   <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
@@ -783,7 +783,7 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261104-padel-cleanup-3"></script>
+  <script defer src="/assets/blog.js?v=20261104-padel-cleanup-4"></script>
   <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
