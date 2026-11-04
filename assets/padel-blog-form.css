@@ -5,7 +5,7 @@
 .padel-blog-form form{display:grid;gap:14px}
 .padel-blog-form .padel-form-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .padel-blog-form .padel-field{display:grid;gap:6px;color:#d7d0c4;font-size:12px;font-weight:700}
-.padel-blog-form .padel-field input{width:100%;min-height:46px;border:1px solid #51493d;border-radius:7px;background:#0d0d0c;color:#fff;padding:0 12px;font:14px Inter,Arial,sans-serif;outline-color:#d8a74f}
+.padel-blog-form .padel-field input,.padel-blog-form .padel-field select{width:100%;min-height:46px;border:1px solid #51493d;border-radius:7px;background:#0d0d0c;color:#fff;padding:0 12px;font:14px Inter,Arial,sans-serif;outline-color:#d8a74f}
 .padel-blog-form .padel-consent{display:flex;align-items:flex-start;gap:9px;margin:0;color:#aaa49a;font-size:11px;line-height:1.5}
 .padel-blog-form .padel-consent input{flex:0 0 auto;min-height:16px;margin:2px 0 0;accent-color:#d8a74f}
 .padel-blog-form .padel-consent a{color:#e4bf77;text-underline-offset:2px}

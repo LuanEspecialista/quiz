@@ -418,7 +418,7 @@ function renderDestinationMap(post) {
 }
 
 function renderPadelSignupForm() {
-  return `<section class="padel-blog-form content-block" aria-labelledby="padel-form-title"><p class="padel-form-eyebrow">LIGA BRASILEIRA DE PÁDEL</p><h2 id="padel-form-title">Cadastre-se para concorrer à raquete NOX</h2><p class="padel-form-description">Preencha seus dados para participar da ação. Consulte no estande as condições completas da promoção.</p><form id="padel-form" novalidate><div class="padel-form-fields"><label class="padel-field" for="padel-lead-name">Nome<input id="padel-lead-name" name="nome" type="text" maxlength="120" autocomplete="name" required placeholder="Seu nome"></label><label class="padel-field" for="padel-lead-email">E-mail<input id="padel-lead-email" name="email" type="email" maxlength="254" autocomplete="email" required placeholder="voce@exemplo.com"></label><label class="padel-field" for="padel-lead-phone">Telefone<input id="padel-lead-phone" name="telefone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" required placeholder="(47) 99999-9999"></label></div><div class="padel-honeypot" aria-hidden="true"><label for="padel-lead-site">Deixe este campo vazio</label><input id="padel-lead-site" name="site" tabindex="-1" autocomplete="off"></div><label class="padel-consent"><input type="checkbox" name="consentimento" required><span>Autorizo o uso destes dados para registrar minha participação e receber contato da equipe sobre a promoção e os serviços da imobiliária, conforme a <a href="/privacidade/" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span></label><button class="padel-submit" type="submit">Quero concorrer</button><p class="padel-form-status" id="form-status" role="status" aria-live="polite"></p></form></section>`;
+  return `<section class="padel-blog-form content-block" aria-labelledby="padel-form-title"><p class="padel-form-eyebrow">LIGA BRASILEIRA DE PÁDEL</p><h2 id="padel-form-title">Cadastre-se para concorrer à raquete NOX</h2><p class="padel-form-description">Preencha seus dados para participar da ação. Consulte no estande as condições completas da promoção.</p><form id="padel-form" novalidate><div class="padel-form-fields"><label class="padel-field" for="padel-lead-name">Nome<input id="padel-lead-name" name="nome" type="text" maxlength="120" autocomplete="name" required placeholder="Seu nome"></label><label class="padel-field" for="padel-lead-email">E-mail<input id="padel-lead-email" name="email" type="email" maxlength="254" autocomplete="email" required placeholder="voce@exemplo.com"></label><label class="padel-field" for="padel-lead-phone">Telefone<input id="padel-lead-phone" name="telefone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" required placeholder="(47) 99999-9999"></label><label class="padel-field" for="padel-lead-broker">Corretor responsável<select id="padel-lead-broker" name="corretor_responsavel" required><option value="" selected disabled>Selecione o corretor</option><option value="Cris">Cris</option><option value="Marcelo">Marcelo</option><option value="Vanessa">Vanessa</option><option value="Luan">Luan</option><option value="Mirtes">Mirtes</option><option value="Caroline">Caroline</option></select></label></div><div class="padel-honeypot" aria-hidden="true"><label for="padel-lead-site">Deixe este campo vazio</label><input id="padel-lead-site" name="site" tabindex="-1" autocomplete="off"></div><label class="padel-consent"><input type="checkbox" name="consentimento" required><span>Autorizo o uso destes dados para registrar minha participação e receber contato da equipe sobre a promoção e os serviços da imobiliária, conforme a <a href="/privacidade/" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span></label><button class="padel-submit" type="submit">Quero concorrer</button><p class="padel-form-status" id="form-status" role="status" aria-live="polite"></p></form></section>`;
 }
 
 function renderArticle(post, presentationMode = false) {
@@ -500,6 +500,7 @@ function renderArticle(post, presentationMode = false) {
 
   const articleBody = `${articleHeader}${heroMarkup}<main class="article-flow">${renderReadingMap(sections)}${body}${gallery}</main>`;
   if (presentationMode) return articleBody;
+  if (isPadelPost) return `${articleBody}${renderSources(blocks)}${renderDestinationMap(post)}${finalCta}`;
   return `${articleBody}${renderSources(blocks)}${renderDestinationMap(post)}${finalCta}<section class="engagement" aria-labelledby="engagement-title"><div class="engagement-header"><div class="engagement-question"><p class="eyebrow">OPINIÃO DOS LEITORES</p><h2 id="engagement-title">Este conteúdo foi útil?</h2><p>Uma nota rápida ajuda outras pessoas a decidir por onde começar.</p></div><div class="rating-summary" aria-live="polite"><strong class="rating-average">—</strong><span class="rating-summary-stars" aria-hidden="true">☆☆☆☆☆</span><small class="rating-count">Carregando avaliações…</small></div></div><div class="stars" role="group" aria-label="Avalie este conteúdo de uma a cinco estrelas">${[
     1, 2, 3, 4, 5,
   ]
@@ -577,7 +578,7 @@ function renderPage(post, presentationMode = false) {
     <a class="contact" href="https://api.whatsapp.com/send?phone=5547992120915">Falar com especialista</a>
   </header>`;
   const postBack = presentationMode ? "" : '<div class="blog-post-back-wrap"><a class="blog-post-back" href="/blog/" aria-label="Voltar aos posts"><span class="blog-post-back-arrow" aria-hidden="true">←</span><span>Voltar aos posts</span></a></div>';
-  const newsletter = presentationMode ? "" : `<section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
+  const newsletter = presentationMode || padelCampaign ? "" : `<section class="newsletter newsletter--site" aria-labelledby="newsletter-title">
       <div><p class="eyebrow">NEWSLETTER</p><h2 id="newsletter-title">Oportunidades e leituras,<br>com discrição.</h2><p>Seleção periódica. Sem excesso de mensagens.</p></div>
       <form id="newsletter-form" novalidate><label for="newsletter-name">Seu nome</label><input id="newsletter-name" name="name" autocomplete="name" maxlength="120" placeholder="Digite seu nome"><label for="newsletter-email">Seu e-mail</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="Digite seu e-mail"><input class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="consent"><input id="newsletter-consent" type="checkbox" required><span>Autorizo o uso do meu e-mail para receber conteúdos e oportunidades, conforme a <a href="/privacidade/">Política de Privacidade</a>.</span></label><button type="submit">Quero receber insights</button><p class="form-status" id="newsletter-status" role="status"></p></form>
     </section>`;
@@ -604,8 +605,8 @@ function renderPage(post, presentationMode = false) {
   <link rel="canonical" href="${esc(canonical)}">
   ${preload}
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/assets/blog.css">
-  ${padelCampaign ? '<link rel="stylesheet" href="/assets/padel-blog-form.css?v=20261104-1">' : ""}
+  <link rel="stylesheet" href="/assets/blog.css?v=20261104-padel-cleanup-2">
+  ${padelCampaign ? '<link rel="stylesheet" href="/assets/padel-blog-form.css?v=20261104-2">' : ""}
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
   <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
@@ -617,8 +618,8 @@ function renderPage(post, presentationMode = false) {
   ${presentationStyles}
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261104-padel-inline-1"></script>
-  ${padelCampaign ? '<script defer src="/assets/padel-event.js?v=20261104-2"></script>' : ""}
+  <script defer src="/assets/blog.js?v=20261104-padel-cleanup-3"></script>
+  ${padelCampaign ? '<script defer src="/assets/padel-event.js?v=20261104-3"></script>' : ""}
   ${presentationMode ? "" : '<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261007-1"></script>'}
 </head>
 <body class="${presentationMode ? "blog-presentation-mode" : ""}">
@@ -771,7 +772,7 @@ function renderBlogIndex(posts) {
   <link rel="preload" as="image" href="${esc(socialImage)}" fetchpriority="high">
   <link rel="preconnect" href="https://santerempreendimentos.com.br" crossorigin>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/assets/blog.css">
+  <link rel="stylesheet" href="/assets/blog.css?v=20261104-padel-cleanup-2">
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
   <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3">
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
@@ -782,7 +783,7 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261022-park-beach-media-2"></script>
+  <script defer src="/assets/blog.js?v=20261104-padel-cleanup-3"></script>
   <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
@@ -808,7 +809,7 @@ function renderBlogIndex(posts) {
 function errorPage(status, heading, message) {
   const body = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${esc(
     heading,
-  )} | Luan Especialista</title><link rel="stylesheet" href="/assets/blog.css">
+  )} | Luan Especialista</title><link rel="stylesheet" href="/assets/blog.css?v=20261104-padel-cleanup-2">
   <link rel="stylesheet" href="/assets/pinna-landing.css?v=20261022-4">
   <link rel="stylesheet" href="/assets/park-beach-landing.css?v=20261022-3"><link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13"><link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1"></head><body><main><section class="empty"><strong>${esc(
     heading,

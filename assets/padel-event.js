@@ -29,11 +29,13 @@
       p_nome: String(data.get("nome") || "").trim(),
       p_telefone: String(data.get("telefone") || "").trim(),
       p_email: String(data.get("email") || "").trim(),
+      p_corretor: String(data.get("corretor_responsavel") || "").trim(),
       p_consentimento: data.get("consentimento") === "on",
       p_site: String(data.get("site") || "").trim(),
     };
-    if (!payload.p_nome || !payload.p_telefone || !payload.p_email || !payload.p_consentimento) {
-      setMessage("Confira nome, telefone, e-mail e a autorização para continuar.", true);
+    const corretores = ["Cris", "Marcelo", "Vanessa", "Luan", "Mirtes", "Caroline"];
+    if (!payload.p_nome || !payload.p_telefone || !payload.p_email || !payload.p_corretor || !corretores.includes(payload.p_corretor) || !payload.p_consentimento) {
+      setMessage("Confira nome, telefone, e-mail, corretor responsável e a autorização para continuar.", true);
       return;
     }
 
@@ -57,7 +59,7 @@
         let message = "Não foi possível concluir o cadastro. Tente novamente ou fale com a equipe no estande.";
         try {
           const body = await response.json();
-          if (body?.message && /inválid|informe|telefone|e-mail/i.test(body.message)) message = body.message;
+          if (body?.message && /inválid|informe|telefone|e-mail|corretor/i.test(body.message)) message = body.message;
         } catch { /* mensagem de segurança genérica */ }
         throw new Error(message);
       }
