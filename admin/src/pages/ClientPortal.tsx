@@ -986,8 +986,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     const initialPostMonths = Math.max(0, summary.postCount);
     const initialPostBalloon = Number(summary.flow.reforco_pos_chaves_valor || 0);
     const initialPostBalloonCount = Number(summary.flow.quantidade_reforcos_pos_chaves || 0);
-    // Deixar financiamento nas chaves como escolha explícita, não como compensação silenciosa do saldo.
-    const initialPostMode: PostMode = "parcelas_e_baloes";
+    const initialPostMode: PostMode = /financiamento|banc[aá]rio|cr[eé]dito/i.test(commercialSchedule(item, unit || null).keysMode) ? "chaves" : "parcelas_e_baloes";
     const initialTargets = flowTargets(item, unit || null, commercial.finalPrice);
     const initialMonthly = initialPreMonths > 0
       ? Math.max(0, Number(((initialTargets.preTarget - initialEntry) / initialPreMonths).toFixed(2)))
@@ -1752,8 +1751,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               </div>
               <section style={{display:"grid",gap:10,marginTop:13,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
                 <strong style={{fontSize:12,color:"#edcf91"}}>O que fazer com o saldo após as chaves?</strong>
-                <select value={postMode} onChange={(e)=>changePostMode(e.target.value as PostMode)} style={{...input,marginTop:2}}><option value="chaves">Quitar/financiar o saldo nas chaves (escolha explícita)</option><option value="parcelas_e_baloes">Pós-chaves: parcelas e balões</option><option value="somente_parcelas">Pós-chaves: somente parcelas</option><option value="somente_baloes">Pós-chaves: somente balões</option></select>
-                {financingAtKeys ? <span style={{fontSize:12,color:"#f5e0b2"}}>Atenção: o saldo de <strong>{money(financingTotal)}</strong> será quitado ou financiado nas chaves. Esse valor conta no total da unidade; escolha essa opção somente se essa condição estiver prevista.</span> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
+                <select value={postMode} onChange={(e)=>changePostMode(e.target.value as PostMode)} style={{...input,marginTop:2}}><option value="chaves">Quitar/financiar o saldo nas chaves</option><option value="parcelas_e_baloes">Pós-chaves: parcelas e balões</option><option value="somente_parcelas">Pós-chaves: somente parcelas</option><option value="somente_baloes">Pós-chaves: somente balões</option></select>
+                {financingAtKeys ? <span style={{fontSize:12,color:"#d4d4d8"}}>O saldo restante será quitado ou financiado nas chaves: <strong>{money(financingTotal)}</strong>.</span> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
                   {(postMode === "parcelas_e_baloes" || postMode === "somente_parcelas") && <MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={changePostMonthly} max={monthlyMax} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} count={postMonths} setCount={changePostMonths} countLabel="Quantidade de parcelas" />}
                   {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={scenarioMax} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} count={postBalloonCount} setCount={changePostBalloonCount} countMax={120} countLabel="Quantidade de balões" />}
                 </div>}
