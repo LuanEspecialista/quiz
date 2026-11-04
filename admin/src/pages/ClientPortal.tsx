@@ -315,19 +315,14 @@ function PresentationSlides({ url, title, onClose }: { url: string; title: strin
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [downloadProgress, setDownloadProgress] = useState<{ loaded: number; total: number } | null>(null);
   const [message, setMessage] = useState("");
   useEffect(() => {
     let disposed = false;
-    setLoading(true); setMessage(""); setPage(1); setPdf(null); setDownloadProgress(null);
+    setLoading(true); setMessage(""); setPage(1); setPdf(null);
     const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false, disableAutoFetch: false, disableStream: false, rangeChunkSize: 1024 * 1024 });
-    loadingTask.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
-      if (!disposed) setDownloadProgress({ loaded, total });
-    };
     loadingTask.promise.then((document) => {
       if (disposed) return;
       setPdf(document);
-      setDownloadProgress(null);
     }).catch(() => { if (!disposed) setMessage("Não foi possível carregar esta apresentação. Feche e tente novamente; se continuar, fale com seu especialista."); setLoading(false); });
     return () => { disposed = true; void loadingTask.destroy(); };
   }, [url]);
@@ -352,12 +347,8 @@ function PresentationSlides({ url, title, onClose }: { url: string; title: strin
     }).catch(() => { if (!disposed) { setMessage("Não foi possível renderizar esta página."); setLoading(false); } });
     return () => { disposed = true; };
   }, [pdf, page]);
-  const progressPercent = downloadProgress?.total && downloadProgress.total > 0 ? Math.min(100, Math.round(downloadProgress.loaded / downloadProgress.total * 100)) : null;
-  const downloadedMb = downloadProgress ? (downloadProgress.loaded / (1024 * 1024)).toFixed(1) : "0.0";
-  const totalMb = downloadProgress?.total ? (downloadProgress.total / (1024 * 1024)).toFixed(1) : null;
   return (
     <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 1200, background: "#09090bf7", display: "grid", gridTemplateRows: "auto 1fr auto", padding: 12 }}>
-      <style>{"@keyframes portal-progress-indeterminate{from{transform:translateX(-80%)}to{transform:translateX(190%)}}"}</style>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, maxWidth: 1180, width: "100%", margin: "0 auto", color: "#fff" }}>
         <strong>{title}</strong>
         <button type="button" onClick={onClose} style={{ border: "1px solid #5a4828", background: "#18140e", color: "#edcf91", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>Fechar</button>
@@ -368,10 +359,8 @@ function PresentationSlides({ url, title, onClose }: { url: string; title: strin
             <canvas ref={canvasRef} style={{ maxWidth: "100%", height: "auto", background: "#fff", boxShadow: "0 16px 60px #000" }} />
             {loading && (
               <div role="status" aria-live="polite" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(360px,calc(100% - 32px))", boxSizing: "border-box", color: "#edcf91", background: "#111113f2", padding: "16px 18px", borderRadius: 10, border: "1px solid #514124", boxShadow: "0 12px 36px #0009" }}>
-                <strong style={{ display: "block", fontSize: 14 }}>{pdf ? "Renderizando a página…" : "Baixando a apresentação…"}</strong>
-                <small style={{ display: "block", marginTop: 7, color: "#d4d4d8" }}>{pdf ? `Preparando slide ${page} de ${pdf.numPages}` : progressPercent !== null ? `${progressPercent}% · ${downloadedMb} de ${totalMb} MB` : `${downloadedMb} MB recebidos · aguardando o tamanho total do arquivo`}</small>
-                {!pdf && <div style={{ height: 7, marginTop: 11, borderRadius: 99, background: "#393329", overflow: "hidden" }}><div style={{ height: "100%", width: progressPercent !== null ? `${progressPercent}%` : "35%", background: "linear-gradient(90deg,#d7ab63,#f5e0b2)", borderRadius: 99, transition: "width .2s ease", animation: progressPercent === null ? "portal-progress-indeterminate 1.2s ease-in-out infinite alternate" : undefined }} />
-                </div>}
+                <strong style={{ display: "block", fontSize: 14 }}>{pdf ? "Preparando a apresentação…" : "Carregando a apresentação…"}</strong>
+                <small style={{ display: "block", marginTop: 7, color: "#d4d4d8" }}>{pdf ? `Preparando slide ${page} de ${pdf.numPages}` : "Isso pode levar alguns instantes."}</small>
               </div>
             )}
           </div>

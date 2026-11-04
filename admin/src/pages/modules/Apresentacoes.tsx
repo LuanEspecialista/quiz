@@ -25,6 +25,7 @@ type BlogPostOption = { id: string; titulo: string; slug: string; empreendimento
 type AgencyInstitutional = { imobiliaria_institucional_ativo?: boolean; imobiliaria_institucional_tipo?: "pdf" | "link" | null; imobiliaria_institucional_pdf_path?: string | null; imobiliaria_institucional_link_url?: string | null; imobiliaria_institucional_titulo?: string | null };
 type ViewerState = { url: string; title: string };
 type EmpreendimentoDocumento = { id: string; empreendimento_id: string; nome: string; tipo: "pdf" | "link"; storage_path: string | null; url: string | null; descricao: string | null; created_at?: string };
+type UploadProgress = { label: string; loaded: number; total: number };
 
 const BUCKET = "pdfs";
 const CLIENT_PRESENTATION_BUCKET = "cliente-apresentacoes";
@@ -39,6 +40,55 @@ function errorMessage(error: unknown, fallback: string) {
     return error.message;
   }
   return fallback;
+}
+
+function uploadSupabaseFileWithProgress(bucket: string, path: string, file: File, onProgress: (loaded: number, total: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const start = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      const accessToken = data.session?.access_token;
+      const projectUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
+      const anonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || "");
+      if (!accessToken || !projectUrl || !anonKey) throw new Error("A sessão expirou ou a configuração do armazenamento está indisponível. Entre novamente.");
+
+      const encodedPath = path.split("/").map((part) => encodeURIComponent(part)).join("/");
+      const request = new XMLHttpRequest();
+      request.open("POST", `${projectUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`);
+      request.timeout = UPLOAD_TIMEOUT_MS;
+      request.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+      request.setRequestHeader("apikey", anonKey);
+      request.setRequestHeader("Content-Type", "application/pdf");
+      request.setRequestHeader("cache-control", "max-age=60");
+      request.setRequestHeader("x-upsert", "false");
+      request.upload.onprogress = (event) => onProgress(event.loaded, event.lengthComputable && event.total > 0 ? event.total : file.size);
+      request.onload = () => {
+        if (request.status >= 200 && request.status < 300) { resolve(); return; }
+        let detail = "";
+        try {
+          const payload = JSON.parse(request.responseText || "{}") as { message?: string; error?: string; error_description?: string };
+          detail = payload.message || payload.error_description || payload.error || "";
+        } catch { /* use the generic response below */ }
+        reject(new Error(detail || `Não foi possível enviar o PDF (HTTP ${request.status}).`));
+      };
+      request.onerror = () => reject(new Error("Falha de rede durante o upload do PDF. Verifique sua conexão e tente novamente."));
+      request.ontimeout = () => reject(new Error("O upload excedeu o limite de 10 minutos. Tente novamente."));
+      request.onabort = () => reject(new Error("O upload do PDF foi interrompido."));
+      request.send(file);
+    };
+    void start().catch(reject);
+  });
+}
+
+function UploadProgressPanel({ progress }: { progress: UploadProgress }) {
+  const percentage = progress.total > 0 ? Math.min(100, Math.floor(progress.loaded / progress.total * 100)) : 0;
+  const loadedMb = (progress.loaded / (1024 * 1024)).toFixed(1);
+  const totalMb = (progress.total / (1024 * 1024)).toFixed(1);
+  return <div role="status" aria-live="polite" style={{ display: "grid", gap: 7, padding: 11, border: "1px solid #65502a", borderRadius: 8, background: "#12100c" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}><strong style={{ color: "#f4d58f", fontSize: 12 }}>{progress.label}</strong><strong style={{ color: "#fff", fontSize: 12 }}>{percentage}%</strong></div>
+    <div role="progressbar" aria-label={progress.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage} style={{ height: 8, borderRadius: 99, overflow: "hidden", background: "#393329" }}><div style={{ height: "100%", width: `${percentage}%`, borderRadius: 99, background: "linear-gradient(90deg,#c5a059,#f5e0b2)", transition: "width .15s linear" }} /></div>
+    <small style={{ color: "#c4c4c7", fontSize: 11 }}>{loadedMb} de {totalMb} MB enviados · não feche esta janela até a conclusão.</small>
+  </div>;
 }
 
 async function resolveEnterpriseCover(item: Empreendimento, fallbackCover?: string | null): Promise<Empreendimento> {
@@ -88,9 +138,19 @@ export default function Apresentacoes() {
   const [cityFilter, setCityFilter] = useState("Todas");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [supportsLinks, setSupportsLinks] = useState(true);
   const [message, setMessage] = useState<{ error?: string; success?: string } | null>(null);
   const [viewer, setViewer] = useState<ViewerState | null>(null);
+
+  function beginUpload(label: string, selectedFile: File) {
+    setUploadProgress({ label, loaded: 0, total: selectedFile.size });
+  }
+
+  function reportUploadProgress(label: string, selectedFile: File, loaded: number, reportedTotal: number) {
+    const fraction = reportedTotal > 0 ? Math.max(0, Math.min(1, loaded / reportedTotal)) : 0;
+    setUploadProgress({ label, loaded: Math.min(selectedFile.size, Math.round(selectedFile.size * fraction)), total: selectedFile.size });
+  }
 
   async function load() {
     setLoading(true);
@@ -148,10 +208,17 @@ export default function Apresentacoes() {
 
   useEffect(() => {
     if (!editing) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setEditing(null); };
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape" && !saving) setEditing(null); };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [editing]);
+  }, [editing, saving]);
+
+  useEffect(() => {
+    if (!uploadProgress) return;
+    const confirmBeforeLeaving = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", confirmBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", confirmBeforeLeaving);
+  }, [uploadProgress]);
 
   function openEditor(item: Empreendimento) {
     const current = apresentacoes[item.id];
@@ -232,12 +299,13 @@ export default function Apresentacoes() {
     if (documentFile && documentFile.size > MAX_PDF_BYTES) { setMessage({ error: `O PDF deve ter no máximo ${MAX_PDF_MB} MB.` }); return; }
     let url = "";
     if (documentType === "link") { try { const parsed = new URL(documentUrl.trim()); if (parsed.protocol !== "https:") throw new Error(); url = parsed.toString(); } catch { setMessage({ error: "Informe um link HTTPS válido." }); return; } }
-    setSaving(true); setMessage(null); let uploadedPath: string | null = null;
+    setSaving(true); setMessage(null); setUploadProgress(null); let uploadedPath: string | null = null;
     try {
       if (documentType === "pdf" && documentFile) {
         uploadedPath = `documentos/empreendimentos/${editing.id}/${crypto.randomUUID()}.pdf`;
-        const { error } = await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).upload(uploadedPath, documentFile, { contentType: "application/pdf", cacheControl: "60", upsert: false });
-        if (error) throw error;
+        const label = "Enviando documento PDF";
+        beginUpload(label, documentFile);
+        await uploadSupabaseFileWithProgress(CLIENT_PRESENTATION_BUCKET, uploadedPath, documentFile, (loaded, total) => reportUploadProgress(label, documentFile, loaded, total));
       }
       const { error } = await supabase.from("empreendimento_documentos").insert({ empreendimento_id: editing.id, nome: title, descricao: description || null, tipo: documentType, storage_path: uploadedPath, url: documentType === "link" ? url : null });
       if (error) throw error;
@@ -246,7 +314,7 @@ export default function Apresentacoes() {
     } catch (error: unknown) {
       if (uploadedPath) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([uploadedPath]);
       setMessage({ error: errorMessage(error, "Não foi possível adicionar o documento.") });
-    } finally { setSaving(false); }
+    } finally { setUploadProgress(null); setSaving(false); }
   }
 
   async function deleteDocument(document: EmpreendimentoDocumento) {
@@ -287,14 +355,15 @@ export default function Apresentacoes() {
       setMessage({ error: `O PDF deve ter no máximo ${MAX_PDF_MB} MB.` });
       return;
     }
-    setSaving(true); setMessage(null);
+    setSaving(true); setMessage(null); setUploadProgress(null);
     let uploadedPath: string | null = null;
     try {
       let pdfPath = agencyInstitutional?.imobiliaria_institucional_pdf_path || null;
       if (agencyType === "pdf" && agencyPdfFile) {
         pdfPath = `institucionais/imobiliaria/${crypto.randomUUID()}.pdf`;
-        const { error } = await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).upload(pdfPath, agencyPdfFile, { contentType: "application/pdf", cacheControl: "60", upsert: false });
-        if (error) throw error;
+        const label = "Enviando institucional da imobiliária";
+        beginUpload(label, agencyPdfFile);
+        await uploadSupabaseFileWithProgress(CLIENT_PRESENTATION_BUCKET, pdfPath, agencyPdfFile, (loaded, total) => reportUploadProgress(label, agencyPdfFile, loaded, total));
         uploadedPath = pdfPath;
       }
       const payload = { id: 1, imobiliaria_institucional_ativo: Boolean(agencyType), imobiliaria_institucional_tipo: agencyType || null, imobiliaria_institucional_pdf_path: agencyType === "pdf" ? pdfPath : null, imobiliaria_institucional_link_url: agencyType === "link" ? normalizedLink : null, imobiliaria_institucional_titulo: agencyTitle.trim() || null, updated_at: new Date().toISOString() };
@@ -308,7 +377,7 @@ export default function Apresentacoes() {
     } catch (error: unknown) {
       if (uploadedPath) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([uploadedPath]);
       setMessage({ error: errorMessage(error, "Não foi possível salvar o institucional da imobiliária.") });
-    } finally { setSaving(false); }
+    } finally { setUploadProgress(null); setSaving(false); }
   }
 
   async function saveClientPresentation() {
@@ -344,6 +413,7 @@ export default function Apresentacoes() {
 
     setSaving(true);
     setMessage(null);
+    setUploadProgress(null);
     let uploadedPath: string | null = null;
     try {
       if (!clientType) {
@@ -369,12 +439,9 @@ export default function Apresentacoes() {
       let pdfPath = current?.cliente_pdf_path || null;
       if (clientType === "pdf" && clientPdfFile) {
         pdfPath = `${editing.id}/${crypto.randomUUID()}.pdf`;
-        const uploadPromise = supabase.storage.from(CLIENT_PRESENTATION_BUCKET).upload(pdfPath, clientPdfFile, { contentType: "application/pdf", cacheControl: "60", upsert: false });
-        const { error: uploadError } = await Promise.race([
-          uploadPromise,
-          new Promise<never>((_, reject) => { window.setTimeout(() => reject(new Error("O upload excedeu o limite de 10 minutos. Tente novamente.")), UPLOAD_TIMEOUT_MS); }),
-        ]);
-        if (uploadError) throw uploadError;
+        const label = "Enviando PDF do cliente";
+        beginUpload(label, clientPdfFile);
+        await uploadSupabaseFileWithProgress(CLIENT_PRESENTATION_BUCKET, pdfPath, clientPdfFile, (loaded, total) => reportUploadProgress(label, clientPdfFile, loaded, total));
         uploadedPath = pdfPath;
       }
 
@@ -401,6 +468,7 @@ export default function Apresentacoes() {
       if (uploadedPath) await supabase.storage.from(CLIENT_PRESENTATION_BUCKET).remove([uploadedPath]);
       setMessage({ error: errorMessage(error, "Não foi possível salvar o material para clientes.") });
     } finally {
+      setUploadProgress(null);
       setSaving(false);
     }
   }
@@ -417,11 +485,11 @@ export default function Apresentacoes() {
     }
     setSaving(true);
     setMessage(null);
+    setUploadProgress(null);
       try {
-      const upload = await Promise.race([
-        uploadR2Media(file, { kind: "presentation", enterpriseId: editing.id, enterpriseName: editing.nome || "Empreendimento" }),
-        new Promise<never>((_, reject) => { window.setTimeout(() => reject(new Error("O upload excedeu o tempo limite de 10 minutos. Tente novamente.")), UPLOAD_TIMEOUT_MS); }),
-      ]);
+      const label = "Enviando apresentação em PDF";
+      beginUpload(label, file);
+      const upload = await uploadR2Media(file, { kind: "presentation", enterpriseId: editing.id, enterpriseName: editing.nome || "Empreendimento" }, (loaded, total) => reportUploadProgress(label, file, loaded, total));
       const current = apresentacoes[editing.id];
       const payload = { empreendimento_id: editing.id, ativo: current?.ativo ?? true, pdf_url: upload.url, storage_path: upload.path, ...(supportsLinks ? { link_url: current?.link_url || linkUrl.trim() || null, tipo_preferido: current?.tipo_preferido || preferredType } : {}), updated_at: new Date().toISOString() };
       const { data, error } = await supabase.from("apresentacoes").upsert(payload, { onConflict: "empreendimento_id" })
@@ -433,6 +501,7 @@ export default function Apresentacoes() {
     } catch (error: unknown) {
       setMessage({ error: errorMessage(error, "Não foi possível salvar o PDF.") });
     } finally {
+      setUploadProgress(null);
       setSaving(false);
     }
   }
@@ -513,10 +582,11 @@ export default function Apresentacoes() {
       <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><div style={{ display: "grid", placeItems: "center", width: 25, height: 25, flex: "0 0 auto", borderRadius: 6, background: "#302512", color: "#e8c77d" }}><Building2 size={14} /></div><div style={{ minWidth: 0 }}><strong style={{ display: "block", color: "#fff", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Institucional da imobiliária</strong><small style={{ color: agencyInstitutional?.imobiliaria_institucional_ativo ? "#86efac" : "#fbbf24", fontSize: 10 }}>{agencyInstitutional?.imobiliaria_institucional_ativo ? "Cadastrado" : "Não cadastrado"}</small></div></div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 7, flexWrap: "wrap" }}>
         <select aria-label="Formato do institucional da imobiliária" value={agencyType} onChange={(event) => setAgencyType(event.target.value as "" | "pdf" | "link")} style={{ ...selectStyle, padding: "6px 8px", fontSize: 11, width: 145 }}><option value="">Desativado</option><option value="pdf">PDF privado</option><option value="link">Link externo</option></select>
-        {agencyType === "pdf" && <label style={{ color: "#a1a1aa", fontSize: 10, display: "flex", alignItems: "center", gap: 5 }}>PDF<input type="file" accept="application/pdf,.pdf" onChange={(event) => setAgencyPdfFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", maxWidth: 180, fontSize: 10 }} /></label>}
+        {agencyType === "pdf" && <label style={{ color: "#a1a1aa", fontSize: 10, display: "flex", alignItems: "center", gap: 5 }}>PDF<input disabled={saving} type="file" accept="application/pdf,.pdf" onChange={(event) => setAgencyPdfFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", maxWidth: 180, fontSize: 10 }} /></label>}
         {agencyType === "link" && <div style={{ ...inputWrapStyle, padding: "0 7px", minWidth: 190, maxWidth: 300 }}><Link2 size={13} /><input type="url" value={agencyLinkUrl} onChange={(event) => setAgencyLinkUrl(event.target.value)} placeholder="https://..." style={{ ...inputStyle, padding: "6px 0", fontSize: 11 }} /></div>}
         <button disabled={saving} onClick={() => void saveAgencyInstitutional()} style={{ ...primaryButtonStyle, padding: "7px 9px", fontSize: 11, opacity: saving ? .5 : 1 }}>{saving ? <Loader2 size={13} /> : <Save size={13} />} Salvar</button>
       </div>
+      {uploadProgress?.label === "Enviando institucional da imobiliária" && <div style={{ gridColumn: "1 / -1" }}><UploadProgressPanel progress={uploadProgress} /></div>}
     </section>
 
     {message?.error && <p role="alert" style={{ color: "#f87171", fontSize: 13 }}>{message.error}</p>}
@@ -561,34 +631,35 @@ export default function Apresentacoes() {
       </div>
     </div>}
 
-    {editing && <div role="dialog" aria-modal="true" aria-labelledby="presentation-modal-title" style={overlayStyle} onMouseDown={(event) => { if (event.target === event.currentTarget) setEditing(null); }}>
+    {editing && <div role="dialog" aria-modal="true" aria-labelledby="presentation-modal-title" style={overlayStyle} onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setEditing(null); }}>
       <div style={{ ...modalStyle, width: "min(760px, 100%)", maxHeight: "calc(100dvh - 40px)", overflowY: "auto" }}>
-        <button onClick={() => setEditing(null)} aria-label="Fechar" style={closeStyle}><X size={18} /></button>
+        <button disabled={saving} onClick={() => setEditing(null)} aria-label="Fechar" style={{ ...closeStyle, opacity: saving ? .45 : 1, cursor: saving ? "not-allowed" : "pointer" }}><X size={18} /></button>
         <h2 id="presentation-modal-title" style={{ margin: "0 36px 4px 0", color: "#fff", fontSize: 18 }}>Editar apresentações do empreendimento</h2>
         <p style={{ color: "#c5a059", fontWeight: 700, margin: "0 0 18px" }}>{editing.nome || "Empreendimento sem nome"}</p>
+        {uploadProgress && uploadProgress.label !== "Enviando institucional da imobiliária" && <UploadProgressPanel progress={uploadProgress} />}
         <div style={{ padding: 12, border: "1px solid #27272a", borderRadius: 8, background: "#18181b", marginBottom: 16 }}><span style={{ display: "block", color: "#a1a1aa", fontSize: 11 }}>Fontes disponíveis</span><strong style={{ color: apresentacoes[editing.id]?.pdf_url || apresentacoes[editing.id]?.link_url ? "#4ade80" : "#fbbf24", fontSize: 13 }}>{apresentacoes[editing.id]?.pdf_url ? "PDF" : "Sem PDF"} · {supportsLinks ? (apresentacoes[editing.id]?.link_url ? "Link" : "Sem link") : "Link aguardando atualização do banco"}</strong></div>
         <label style={labelStyle}>Fonte de apresentação incorporada<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>
         {!supportsLinks&&<p style={{color:"#a1a1aa",fontSize:11,margin:"7px 0 0"}}>Compatibilidade ativa: o link será salvo com segurança no cadastro do empreendimento e migrado depois para a coluna definitiva.</p>}
         <>
-        <label style={{ ...labelStyle, marginTop: 14 }}>Abrir por padrão<select value={preferredType} onChange={(event) => setPreferredType(event.target.value as "pdf" | "link")} style={selectStyle}><option value="pdf">PDF privado</option><option value="link">Fonte incorporada</option></select></label>
+        <label style={{ ...labelStyle, marginTop: 14 }}>Abrir por padrão<select disabled={saving} value={preferredType} onChange={(event) => setPreferredType(event.target.value as "pdf" | "link")} style={selectStyle}><option value="pdf">PDF privado</option><option value="link">Fonte incorporada</option></select></label>
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}><button disabled={saving} onClick={() => void saveSettings()} style={{ ...secondaryButtonStyle, opacity: saving ? .5 : 1 }}>{preferredType === "link" ? <ExternalLink size={15} /> : <Save size={15} />} Salvar link e preferência</button></div></>
         <hr style={{ border: 0, borderTop: "1px solid #27272a", margin: "18px 0" }} />
-        <label style={labelStyle}>Novo PDF (até 250 MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "10px 0" }} /></label>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}><button onClick={() => setEditing(null)} style={secondaryButtonStyle}>Cancelar</button><button disabled={!file || saving} onClick={() => void uploadPdf()} style={{ ...primaryButtonStyle, opacity: !file || saving ? .5 : 1 }}>{saving ? <Loader2 size={16} /> : <Upload size={16} />}{saving ? "Enviando..." : "Salvar PDF"}</button></div>
+        <label style={labelStyle}>Novo PDF (até 250 MB)<input disabled={saving} type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "10px 0" }} /></label>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}><button disabled={saving} onClick={() => setEditing(null)} style={{ ...secondaryButtonStyle, opacity: saving ? .5 : 1 }}>Cancelar</button><button disabled={!file || saving} onClick={() => void uploadPdf()} style={{ ...primaryButtonStyle, opacity: !file || saving ? .5 : 1 }}>{saving ? <Loader2 size={16} /> : <Upload size={16} />}{saving ? "Enviando..." : "Salvar PDF"}</button></div>
         <section style={{ display: "grid", gap: 11, marginTop: 22, padding: 15, border: "1px solid #3f3422", borderRadius: 10, background: "#14120f" }}>
           <div><small style={{ color: "#c5a059", fontWeight: 800, letterSpacing: ".1em" }}>DOCUMENTOS</small><h3 style={{ color: "#fff", margin: "5px 0" }}>Documentos deste empreendimento</h3><p style={{ color: "#a1a1aa", fontSize: 12, margin: 0 }}>Adicione PDFs privados ou links HTTPS.</p></div>
           <label style={labelStyle}>Título<input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="Ex.: Memorial descritivo" style={inputStyle} /></label>
           <label style={labelStyle}>Descrição (opcional)<textarea value={documentDescription} onChange={(event) => setDocumentDescription(event.target.value)} rows={2} style={{ ...inputStyle, border: "1px solid #3f3f46", borderRadius: 6, padding: 9 }} /></label>
-          <label style={labelStyle}>Formato<select value={documentType} onChange={(event) => setDocumentType(event.target.value as "pdf" | "link")} style={selectStyle}><option value="pdf">PDF privado</option><option value="link">Link HTTPS</option></select></label>
-          {documentType === "pdf" ? <label style={labelStyle}>PDF (até {MAX_PDF_MB} MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setDocumentFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "8px 0" }} /></label> : <label style={labelStyle}>URL HTTPS<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={documentUrl} onChange={(event) => setDocumentUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>}
+          <label style={labelStyle}>Formato<select disabled={saving} value={documentType} onChange={(event) => setDocumentType(event.target.value as "pdf" | "link")} style={selectStyle}><option value="pdf">PDF privado</option><option value="link">Link HTTPS</option></select></label>
+          {documentType === "pdf" ? <label style={labelStyle}>PDF (até {MAX_PDF_MB} MB)<input disabled={saving} type="file" accept="application/pdf,.pdf" onChange={(event) => setDocumentFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "8px 0" }} /></label> : <label style={labelStyle}>URL HTTPS<div style={inputWrapStyle}><Link2 size={15} /><input type="url" disabled={saving} value={documentUrl} onChange={(event) => setDocumentUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>}
           {documentType === "link" && <small style={{ color: "#a1a1aa", fontSize: 11, lineHeight: 1.5 }}>Para pastas do Google Drive, selecione “Link HTTPS” e compartilhe como “Qualquer pessoa com o link — Leitor”. O portal abrirá o link em uma nova aba.</small>}
           <button disabled={saving} onClick={() => void saveDocument()} style={{ ...primaryButtonStyle, opacity: saving ? .5 : 1, justifySelf: "end" }}>{saving ? <Loader2 size={15} /> : <Upload size={15} />} Adicionar documento</button>
           <div style={{ display: "grid", gap: 7 }}>{documents.map((doc) => <div key={doc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: 9, background: "#0c0c0e", border: "1px solid #29292e", borderRadius: 7 }}><div style={{ minWidth: 0, flex: 1 }}><strong style={{ color: "#fff", fontSize: 12 }}>{doc.nome}</strong><small style={{ display: "block", color: "#a1a1aa", overflowWrap: "anywhere" }}>{doc.descricao || (doc.tipo === "pdf" ? "PDF privado" : doc.url)}</small>{doc.tipo === "link" && doc.url && <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, color: "#edcf91", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>Testar link <ExternalLink size={12} /></a>}</div><button disabled={saving} onClick={() => void deleteDocument(doc)} style={secondaryButtonStyle}><X size={14} /> Remover</button></div>)}{!documents.length && <small style={{ color: "#a1a1aa" }}>Ainda não há documentos cadastrados.</small>}</div>
         </section>
         <section style={{ display: "grid", gap: 11, marginTop: 22, padding: 15, border: "1px solid #65502a", borderRadius: 10, background: "linear-gradient(145deg,#1b1710,#111113)" }}>
           <div><small style={{ color: "#c5a059", fontWeight: 800, letterSpacing: ".1em" }}>MATERIAL SEPARADO PARA CLIENTES</small><h3 style={{ color: "#fff", margin: "5px 0" }}>Acesso pelo portal com prazo de validade</h3><p style={{ color: "#a1a1aa", fontSize: 12, margin: 0, lineHeight: 1.5 }}>Este material é independente da apresentação ao vivo acima. O portal só o mostra para clientes com curadoria e acesso válidos.</p></div>
-          <label style={labelStyle}>Formato para o cliente<select value={clientType} onChange={(event) => setClientType(event.target.value as "" | "pdf" | "link" | "post")} style={selectStyle}><option value="">Sem material para cliente</option><option value="pdf">PDF privado</option><option value="link">Link externo / blog</option><option value="post">Post publicado do blog (modo limpo)</option></select></label>
-          {clientType === "pdf" && <div style={{ display: "grid", gap: 5 }}><label style={labelStyle}>PDF enxuto do cliente (até {MAX_PDF_MB} MB)<input type="file" accept="application/pdf,.pdf" onChange={(event) => setClientPdfFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "8px 0" }} /></label><small style={{ color: "#a1a1aa" }}>{clientPdfFile ? `${clientPdfFile.name} · ${(clientPdfFile.size / 1024 / 1024).toFixed(1)} MB` : apresentacoes[editing.id]?.cliente_pdf_path ? "Já existe um PDF privado; deixe o campo vazio para mantê-lo." : "O arquivo é privado e não substitui o PDF da apresentação ao vivo."}</small></div>}
+          <label style={labelStyle}>Formato para o cliente<select disabled={saving} value={clientType} onChange={(event) => setClientType(event.target.value as "" | "pdf" | "link" | "post")} style={selectStyle}><option value="">Sem material para cliente</option><option value="pdf">PDF privado</option><option value="link">Link externo / blog</option><option value="post">Post publicado do blog (modo limpo)</option></select></label>
+          {clientType === "pdf" && <div style={{ display: "grid", gap: 5 }}><label style={labelStyle}>PDF enxuto do cliente (até {MAX_PDF_MB} MB)<input disabled={saving} type="file" accept="application/pdf,.pdf" onChange={(event) => setClientPdfFile(event.target.files?.[0] || null)} style={{ color: "#d4d4d8", padding: "8px 0" }} /></label><small style={{ color: "#a1a1aa" }}>{clientPdfFile ? `${clientPdfFile.name} · ${(clientPdfFile.size / 1024 / 1024).toFixed(1)} MB` : apresentacoes[editing.id]?.cliente_pdf_path ? "Já existe um PDF privado; deixe o campo vazio para mantê-lo." : "O arquivo é privado e não substitui o PDF da apresentação ao vivo."}</small></div>}
           {clientType === "link" && <label style={labelStyle}>Link que o cliente poderá abrir<div style={inputWrapStyle}><Link2 size={15} /><input type="url" value={clientLinkUrl} onChange={(event) => setClientLinkUrl(event.target.value)} placeholder="https://..." style={inputStyle} /></div></label>}
           {clientType === "post" && <label style={labelStyle}>Post publicado vinculado a {editing.nome || "este empreendimento"}<select value={clientPostId} onChange={(event) => setClientPostId(event.target.value)} style={selectStyle}><option value="">Selecione um post</option>{clientPosts.filter((post) => !post.empreendimento_id || post.empreendimento_id === editing.id).map((post) => <option key={post.id} value={post.id}>{post.titulo} · /blog/{post.slug}/</option>)}</select><small style={{ color: "#a1a1aa" }}>{clientPosts.filter((post) => !post.empreendimento_id || post.empreendimento_id === editing.id).length ? "O cliente abrirá o conteúdo limpo, sem navegação, rodapé ou newsletter; o mapa de hospedagem do artigo será mantido." : "Não há posts publicados disponíveis para vincular. Publique o artigo primeiro."}</small></label>}
           {clientType && <small style={{ color: clientActive ? "#86efac" : "#fbbf24" }}>{clientActive ? "Este material está ativo para curadorias de clientes." : "Salvar o material o ativa; a visibilidade individual continua controlada pela curadoria e pelo prazo do cliente."}</small>}
