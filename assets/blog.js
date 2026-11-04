@@ -400,6 +400,8 @@ function bindParkCarousels() {
 }
 		function article(p){if(presentationMode)document.body.classList.add('blog-presentation-mode');
   const b=p.blocos||{};
+  const usesStandardPostHeader=!['ayra-landing','pinna-landing','park-beach-landing'].includes(b.template);
+  if(!presentationMode&&usesStandardPostHeader)document.body.classList.add('blog-post-page');
 	  if(b.template==='ayra-landing'){
 	    document.body.classList.add('ayra-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel ayra-article';applySeo(p);root.innerHTML=ayraLanding(p);bindAyraLanding();return;
 	  }
@@ -438,7 +440,6 @@ function bindParkCarousels() {
   const imgs=Array.isArray(p.imagens)?p.imagens:[],hero=media(p.imagem_capa_url),used=new Set(),show=b.exibir_hero!==false&&!!hero;
   if(show)used.add(key(hero));
   const isPadelPost=p.slug==='padel-liga-brasileira-balneario-camboriu-raquete-nox';
-  if(isPadelPost) document.body.classList.add('blog-post-page');
   const sourceSections=b.secoes||[];
   const sections=isPadelPost?sourceSections.filter(item=>item.id!=='padel-participar'):sourceSections;
   const padelFormIndex=Math.max(0,sections.findIndex(item=>item.id==='padel-conheca'));
