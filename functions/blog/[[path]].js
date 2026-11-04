@@ -612,13 +612,13 @@ function renderPage(post, presentationMode = false) {
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
-  <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
+  <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261104-1">
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
   <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   ${presentationStyles}
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261104-padel-cleanup-5"></script>
+  <script defer src="/assets/blog.js?v=20261104-ayra-video-1"></script>
   ${padelCampaign ? '<script defer src="/assets/padel-event.js?v=20261104-3"></script>' : ""}
   ${presentationMode ? "" : '<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261007-1"></script>'}
 </head>
@@ -778,12 +778,12 @@ function renderBlogIndex(posts) {
   <link rel="stylesheet" href="/assets/blog-editorial.css?v=20260905-1">
   <link rel="stylesheet" href="/assets/blog-compact.css?v=20261007-13">
   <link rel="stylesheet" href="/assets/blog-brand.css?v=20261005-1">
-  <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261020-3">
+  <link rel="stylesheet" href="/assets/ayra-landing.css?v=20261104-1">
   <link rel="stylesheet" href="/assets/blog-enhancements.css?v=20261021-2">
   <link rel="stylesheet" href="/assets/blog-footer.css?v=20261022-2">
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
-  <script defer src="/assets/blog.js?v=20261104-padel-cleanup-5"></script>
+  <script defer src="/assets/blog.js?v=20261104-ayra-video-1"></script>
   <script defer src="/assets/site-runtime.js?v=20261022-4"></script>
   <script defer src="/assets/public-quotations.js?v=20261007-1"></script>
 </head>
