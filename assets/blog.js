@@ -400,8 +400,7 @@ function bindParkCarousels() {
 }
 		function article(p){if(presentationMode)document.body.classList.add('blog-presentation-mode');
   const b=p.blocos||{};
-  const usesStandardPostHeader=!['ayra-landing','pinna-landing','park-beach-landing'].includes(b.template);
-  if(!presentationMode&&usesStandardPostHeader)document.body.classList.add('blog-post-page');
+  if(!presentationMode)document.body.classList.add('blog-post-page');
 	  if(b.template==='ayra-landing'){
 	    document.body.classList.add('ayra-page');document.getElementById('intro').hidden=true;filters.hidden=true;root.className='article article-imovel ayra-article';applySeo(p);root.innerHTML=ayraLanding(p);bindAyraLanding();return;
 	  }

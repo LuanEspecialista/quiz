@@ -555,7 +555,6 @@ function renderPage(post, presentationMode = false) {
     ? `<link rel="preload" as="image" href="${esc(hero)}" fetchpriority="high"><link rel="preconnect" href="https://santerempreendimentos.com.br" crossorigin>`
     : "";
   const padelCampaign = post.slug === "padel-liga-brasileira-balneario-camboriu-raquete-nox" && !presentationMode;
-  const standardBlogPost = !presentationMode && !["ayra-landing", "pinna-landing", "park-beach-landing"].includes(post.blocos?.template);
   const meta = [
     setMeta("description", description),
     setMeta("keywords", keywords),
@@ -623,7 +622,7 @@ function renderPage(post, presentationMode = false) {
   ${padelCampaign ? '<script defer src="/assets/padel-event.js?v=20261104-3"></script>' : ""}
   ${presentationMode ? "" : '<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261007-1"></script>'}
 </head>
-  <body class="${presentationMode ? "blog-presentation-mode" : standardBlogPost ? "blog-post-page" : ""}">
+<body class="${presentationMode ? "blog-presentation-mode" : "blog-post-page"}">
   ${siteHeader}
   <main>
     <section class="intro" id="intro" hidden><p class="eyebrow">CONHECIMENTO PARA DECIDIR MELHOR</p><h1>Insights</h1></section>
