@@ -619,7 +619,7 @@ function renderPage(post, presentationMode = false) {
   <script type="application/ld+json">${jsonLd}</script>
   <script src="/assets/site-config.js"></script>
   <script defer src="/assets/blog.js?v=20261104-ayra-video-1"></script>
-  ${padelCampaign ? '<script defer src="/assets/padel-event.js?v=20261104-3"></script>' : ""}
+  ${padelCampaign ? '<script defer src="/assets/padel-event.js?v=20261104-4"></script>' : ""}
   ${presentationMode ? "" : '<script defer src="/assets/site-runtime.js?v=20261022-4"></script><script defer src="/assets/public-quotations.js?v=20261007-1"></script>'}
 </head>
 <body class="${presentationMode ? "blog-presentation-mode" : "blog-post-page"}">
