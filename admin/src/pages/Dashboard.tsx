@@ -18,6 +18,7 @@ const AfiliadosModule = lazy(() => import("./modules/Afiliados"));
 const PromptsModule = lazy(() => import("./modules/Prompts"));
 const LinksTemporariosModule = lazy(() => import("./modules/LinksTemporarios"));
 const BlogModule = lazy(() => import("./modules/Blog"));
+const EventosPadelModule = lazy(() => import("./modules/EventosPadel"));
 const PlaybookModule = lazy(() => import("./modules/Playbook"));
 const TipologiasModule = lazy(() => import("./modules/Tipologias"));
 const MinhaContaModule = lazy(() => import("./modules/MinhaConta"));
@@ -122,6 +123,7 @@ export default function Dashboard({ userName, role = "admin" }: DashboardProps) 
         {role !== "afiliado" && activeTab === "unidades" && <UnidadesModule empreendimentoId={empreendimentoId} empreendimentoIds={empreendimentoIds} disponibilidadeInicial={disponibilidade} tipologiaInicial={tipologiaInicial} filtrosIniciais={smartUnitFilters} onSimular={openFlow} />}
         {role !== "afiliado" && activeTab === "apresentacoes" && <ApresentacoesModule />}
         {role !== "afiliado" && activeTab === "blog" && <BlogModule />}
+        {role === "admin" && activeTab === "eventos" && <EventosPadelModule />}
         {role !== "afiliado" && activeTab === "tipologias" && <TipologiasModule />}
         {role !== "afiliado" && activeTab === "importar-ia" && <ImportarIAModule />}
         {role !== "afiliado" && activeTab === "prompts" && <PromptsModule />}
