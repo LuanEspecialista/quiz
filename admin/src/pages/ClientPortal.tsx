@@ -1143,23 +1143,25 @@ export default function ClientPortal({ userName, previewClientId }: { userName?:
     if (!presentation || presentationOpeningRef.current) return;
     presentationOpeningRef.current = true;
     const title = presentation.titulo || item.nome || "Apresentação";
-    setPresentationOpening({ opportunityId: item.id, title, phase: "Verificando seu acesso…" });
+    setPresentationOpening({ opportunityId: item.id, title, phase: isPreview ? "Abrindo visualização…" : "Verificando seu acesso…" });
     setPresentationError("");
     try {
-      if (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0)) {
+      if (!isPreview && (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0))) {
         setPresentationError("Seu acesso expirou. Solicite ao especialista uma nova validade.");
         return;
       }
-      const { data: accessStatus, error: accessError } = await supabase.rpc("portal_access_status");
-      if (accessError) throw accessError;
-      if (accessStatus?.status !== "ativo") {
-        setAccessExpired(accessStatus?.status === "expirado");
-        setPortal(null);
-        setProposal(null);
-        setPresentation(null);
-        setPresentationLink(null);
-        setPresentationError("Seu acesso não está mais ativo. Solicite ao especialista uma nova validade.");
-        return;
+      if (!isPreview) {
+        const { data: accessStatus, error: accessError } = await supabase.rpc("portal_access_status");
+        if (accessError) throw accessError;
+        if (accessStatus?.status !== "ativo") {
+          setAccessExpired(accessStatus?.status === "expirado");
+          setPortal(null);
+          setProposal(null);
+          setPresentation(null);
+          setPresentationLink(null);
+          setPresentationError("Seu acesso não está mais ativo. Solicite ao especialista uma nova validade.");
+          return;
+        }
       }
       if (presentation.tipo === "link") {
         let destinationUrl = presentation.url;
