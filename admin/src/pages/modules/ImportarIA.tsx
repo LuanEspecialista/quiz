@@ -14,7 +14,7 @@ const UnidadesImporter: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [empreendimentos, setEmpreendimentos] = useState<any[]>([]);
   const [selectedEmpId, setSelectedEmpId] = useState("");
-  const [limparAntes, setLimparAntes] = useState(false);
+  const [limparAntes, setLimparAntes] = useState(true);
   const [estruturaTorres, setEstruturaTorres] = useState<TowerStructure>("nao_informada");
   const [importStatus, setImportStatus] = useState<{ success?: string; error?: string } | null>(null);
 
@@ -30,7 +30,7 @@ const UnidadesImporter: React.FC = () => {
   useEffect(() => {
     const selected = empreendimentos.find((item) => item.id === selectedEmpId);
     setEstruturaTorres((selected?.estrutura_torres as TowerStructure) || "nao_informada");
-    setLimparAntes(false);
+    setLimparAntes(true);
   }, [selectedEmpId, empreendimentos]);
 
   const fetchEmpreendimentos = async () => {
@@ -384,7 +384,7 @@ const UnidadesImporter: React.FC = () => {
       const summary = syncResult as { atualizadas?: number; inseridas?: number; indisponibilizadas?: number; historico?: number } | null;
 
       setImportStatus({
-        success: `Sucesso! ${summary?.atualizadas || 0} unidade(s) atualizada(s), ${summary?.inseridas || 0} nova(s), ${summary?.indisponibilizadas || 0} indisponibilizada(s) e ${summary?.historico || 0} registro(s) no histórico de ${mesReferencia}/${anoReferencia}.${unidadesPendentesSemPreco.length ? ` ${unidadesPendentesSemPreco.length} unidade(s) disponível(is) sem preço permaneceram pendentes.` : ""}${invalid.length ? ` ${invalid.length} linha(s) sem código ou com status desconhecido não foram gravadas.` : ""}`,
+        success: `Sucesso! ${summary?.atualizadas || 0} unidade(s) atualizada(s), ${summary?.inseridas || 0} nova(s), ${summary?.indisponibilizadas || 0} indisponibilizada(s) e ${summary?.historico || 0} registro(s) no histórico de ${mesReferencia}/${anoReferencia}.${!limparAntes ? " Atenção: unidades ausentes foram preservadas com o preço anterior; use a reconciliação quando a tabela for completa." : ""}${unidadesPendentesSemPreco.length ? ` ${unidadesPendentesSemPreco.length} unidade(s) disponível(is) sem preço permaneceram pendentes.` : ""}${invalid.length ? ` ${invalid.length} linha(s) sem código ou com status desconhecido não foram gravadas.` : ""}`,
       });
       if (!invalid.length) setJsonInput("");
       setParsedData(null);
@@ -526,9 +526,9 @@ const UnidadesImporter: React.FC = () => {
                     disabled={parsedData.unidades.some((unit: any) => blockingUnitIssues(unit).length > 0)}
                     onChange={(e) => setLimparAntes(e.target.checked)}
                   />
-                  <Trash2 style={{ width: "14px", height: "14px" }} /> Sincronizar estoque ativo com esta tabela
+                  <Trash2 style={{ width: "14px", height: "14px" }} /> Reconciliar estoque: marcar ausentes como indisponíveis
                 </label>
-                <small style={{ display: "block", color: "#a1a1aa", marginTop: 6 }}>Não apaga unidades. Em multitorres, sincroniza somente as torres presentes neste lote; as demais permanecem intactas. Preços ausentes são preservados quando já existe cadastro.</small>
+                <small style={{ display: "block", color: "#a1a1aa", marginTop: 6 }}>Recomendado: deixe marcado. Não apaga unidades nem altera preços das linhas recebidas. Em multitorres, considera somente as torres presentes neste lote; as demais permanecem intactas. As unidades antigas ausentes da tabela ficam indisponíveis e deixam de ser oferecidas ao cliente.</small>
                 {parsedData.unidades.some((unit: any) => blockingUnitIssues(unit).length > 0) && <small style={{ display: "block", color: "#fbbf24", marginTop: 6 }}>Desativado porque existem linhas sem código, impedindo uma conciliação segura.</small>}
               </div>
 
@@ -866,8 +866,10 @@ type CrmClientDraft = {
   bloco: number;
 };
 
-const normalizeClientKey = (value: unknown) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-const normalizeClientEmail = (value: unknown) => normalizeClientKey(value);
+const normalizeClientEmail = (value: unknown) => {
+  const source = String(value || "").trim().replace(/^\s*(?:e[- ]?mail|mail)\s*:\s*/i, "");
+  return source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0].toLowerCase() || "";
+};
 const normalizeClientPhone = (value: unknown) => String(value || "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
 const formatImportedPhone = (value: string) => {
   const digits = normalizeClientPhone(value);
@@ -890,7 +892,7 @@ function parseCrmClientText(raw: string): CrmClientDraft[] {
     const cityLine = lines.find((line) => /^cidade\s*=/i.test(line) || /^city\s*=/i.test(line));
     const leadLine = lines.find((line) => /^lead\s*[-:]/i.test(line) || /^origem\s*:/i.test(line));
     const propertyLine = lines.find((line) => /^(im[oó]vel|interesse|unidade|empreendimento)/i.test(line));
-    const email = valueAfter([/^(e-?mail|email)\s*:/i]) || (block.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "");
+    const email = normalizeClientEmail(valueAfter([/^(e-?mail|email)\s*:/i]) || (block.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ""));
     const phone = valueAfter([/^(fone|telefone|celular|whatsapp)\s*:/i]) || (block.match(/(?:\+?55\s*)?\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4}/)?.[0] || "");
     const nome = valueAfter([/^(nome|cliente)\s*:/i]);
     const cidade = cityLine ? cityLine.replace(/^[^=]+=?\s*/i, "").replace(/[;,]\s*$/, "").trim() : valueAfter([/^(cidade|city)\s*:/i]) || globalCity;
@@ -929,7 +931,7 @@ const CrmClientImporter: React.FC = () => {
       return !duplicate;
     }).map((client) => ({
       nome: client.nome,
-      email: client.email || null,
+      email: normalizeClientEmail(client.email) || null,
       telefone: client.telefone || null,
       whatsapp: client.telefone || null,
       cidade: client.cidade || null,

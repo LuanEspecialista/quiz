@@ -5,6 +5,7 @@ import {
   Building2,
   Check,
   Copy,
+  Eye,
   KeyRound,
   MessageCircle,
   Pencil,
@@ -51,6 +52,8 @@ type Client = {
 };
 type Property = {
   id: string;
+  construtora_id?: string | null;
+  construtoras?: { institucional_ativo?: boolean; institucional_tipo?: "pdf" | "link" | null; institucional_pdf_path?: string | null; institucional_link_url?: string | null; institucional_titulo?: string | null } | null;
   nome?: string | null;
   cidade?: string | null;
   bairro?: string | null;
@@ -89,6 +92,7 @@ type Selection = {
   visivel?: boolean;
   exibir_imagens?: boolean;
   exibir_descricao?: boolean;
+  exibir_documentos?: boolean;
   exibir_preco?: boolean;
   exibir_especificacoes?: boolean;
   exibir_investimento?: boolean;
@@ -102,10 +106,12 @@ type Selection = {
   observacao_comercial?: string | null;
   landing_layout?: "automatico" | "editorial" | "imersivo" | "investidor";
   apresentacao_modo?: "preferida" | "nenhuma";
+  exibir_institucional_construtora?: boolean;
+  exibir_institucional_imobiliaria?: boolean;
   unidade_ids?: string[];
 };
 type CuradoriaMedia = { id:string; empreendimento_id:string; titulo?:string|null; categoria?:string|null; storage_path?:string|null; url?:string|null; preview_url?:string|null };
-type PresentationOption = { empreendimento_id:string; titulo?:string|null; ativo:boolean; pdf_url?:string|null; storage_path?:string|null; link_url?:string|null; tipo_preferido?:"pdf"|"link"; cliente_ativo?:boolean; cliente_tipo?:"pdf"|"link"|"post"|null; cliente_pdf_path?:string|null; cliente_link_url?:string|null; cliente_blog_post_id?:string|null };
+type AgencyInstitutional = { imobiliaria_institucional_ativo?: boolean; imobiliaria_institucional_tipo?: "pdf" | "link" | null; imobiliaria_institucional_pdf_path?: string | null; imobiliaria_institucional_link_url?: string | null; imobiliaria_institucional_titulo?: string | null };
 type ProposalPerson = { nome?: string; cpf?: string; documento_tipo?: "CPF" | "CNPJ"; telefone?: string; email?: string; profissao?: string; estado_civil?: string };
 type ProposalDocument = { tipo: string; nome_original: string; mime_type: string; tamanho_bytes: number; storage_path: string; enviado_em?: string };
 type PendingDocumentDeletion = { cliente_id: string | number; cliente_nome?: string | null; storage_path: string; documento_tipo?: string | null; nome_original?: string | null; requested_at: string; last_attempt_at?: string | null; last_error?: string | null };
@@ -247,6 +253,11 @@ const formatPhone = (value: string) => {
 };
 const normalizePhone = (value: string) => `55${phoneDigits(value)}`;
 const emailDomains = ["gmail.com", "hotmail.com", "outlook.com", "icloud.com"];
+const normalizeClientEmail = (value: unknown) => {
+  const source = String(value || "").trim().replace(/^\s*(?:e[- ]?mail|mail)\s*:\s*/i, "");
+  return source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0].toLowerCase() || "";
+};
+const isValidClientEmail = (value: unknown) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeClientEmail(value));
 const monetaryFields = new Set<keyof Form>([
   "faixa_investimento",
   "entrada_disponivel",
@@ -286,7 +297,8 @@ export default function Clientes({
   const [blogLeads, setBlogLeads] = useState<BlogLead[]>([]);
   const [siteOpportunityLeads, setSiteOpportunityLeads] = useState<SiteOpportunityLead[]>([]);
   const [curadoriaMidias, setCuradoriaMidias] = useState<CuradoriaMedia[]>([]);
-  const [presentationOptions, setPresentationOptions] = useState<Record<string, PresentationOption>>({});
+  const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({});
+  const [agencyInstitutional, setAgencyInstitutional] = useState<AgencyInstitutional | null>(null);
   const [flowSelection, setFlowSelection] = useState<string[]>([]);
   const [form, setForm] = useState<Form>(empty),
     [query, setQuery] = useState(""),
@@ -294,6 +306,7 @@ export default function Clientes({
     [saving, setSaving] = useState(false),
     [message, setMessage] = useState("");
   const [searchArmed, setSearchArmed] = useState(false);
+  const [archiveStatusFilter, setArchiveStatusFilter] = useState<"todos" | "em_analise" | "aceita" | "recusada">("todos");
   const [accessBusy, setAccessBusy] = useState<string | null>(null);
   const [unitQueries, setUnitQueries] = useState<Record<string, string>>({});
   const [credentials, setCredentials] = useState<{ nome: string; email: string; usuario: string; senha: string } | null>(null);
@@ -329,7 +342,7 @@ export default function Clientes({
   }, [open, curating, comparing]);
 
   async function load() {
-    const [c, p, s, u, cp, media, leads, opportunityLeads, presentationResult, pendingDeletionResult] = await Promise.all([
+    const [c, p, s, u, cp, media, leads, opportunityLeads, agencyResult, pendingDeletionResult, enterpriseDocumentsResult] = await Promise.all([
       supabase
         .from("clientes")
         .select("*")
@@ -338,7 +351,7 @@ export default function Clientes({
       supabase
         .from("empreendimentos")
         .select(
-          "id,nome,cidade,bairro,status,imagem_url,descricao,faixa_preco,area_minima,area_maxima,numero_pavimentos,caracteristicas,ativo",
+          "id,nome,cidade,bairro,status,imagem_url,descricao,faixa_preco,area_minima,area_maxima,numero_pavimentos,caracteristicas,ativo,construtora_id,construtoras(institucional_ativo,institucional_tipo,institucional_pdf_path,institucional_link_url,institucional_titulo)",
         )
         .eq("ativo", true)
         .order("nome"),
@@ -352,8 +365,9 @@ export default function Clientes({
       supabase.from("empreendimento_imagens").select("id,empreendimento_id,titulo,categoria,storage_path,url,ordem").order("ordem").limit(5000),
       supabase.from("blog_leads").select("user_id,nome,email,interesses,status,criado_em,consentiu_contato,consentimento_em,consentimento_revogado_em,blog_posts(titulo)").order("criado_em", { ascending:false }).limit(500),
       supabase.from("playbook_leads").select("id,nome,telefone,email,objetivo,codigo_oportunidade,empreendimento_nome_interno,oportunidade_publica_id,criado_em,etapa,notas").eq("origem", "site_oportunidade").order("criado_em", { ascending:false }).limit(40),
-      supabase.from("apresentacoes").select("empreendimento_id,titulo,ativo,pdf_url,storage_path,link_url,tipo_preferido,cliente_ativo,cliente_tipo,cliente_pdf_path,cliente_link_url,cliente_blog_post_id").limit(500),
+      supabase.from("site_configuracoes").select("imobiliaria_institucional_ativo,imobiliaria_institucional_tipo,imobiliaria_institucional_pdf_path,imobiliaria_institucional_link_url,imobiliaria_institucional_titulo").eq("id", 1).maybeSingle(),
       supabase.rpc("admin_listar_cliente_proposta_exclusoes_pendentes"),
+      supabase.from("empreendimento_documentos").select("empreendimento_id,url,storage_path").limit(10000),
     ]);
     if (c.error) {
       setMessage(`Não foi possível carregar os clientes: ${c.error.message}`);
@@ -368,13 +382,15 @@ export default function Clientes({
       );
     if (!s.error) setSelections((s.data || []) as Selection[]);
     if (!u.error) setUnits((u.data || []) as Unit[]);
-    if (!presentationResult.error) {
-      const byEnterprise: Record<string, PresentationOption> = {};
-      ((presentationResult.data || []) as PresentationOption[]).forEach((presentation) => {
-        if (presentation.empreendimento_id) byEnterprise[presentation.empreendimento_id] = presentation;
+    if (!enterpriseDocumentsResult.error) {
+      const counts: Record<string, number> = {};
+      (enterpriseDocumentsResult.data || []).forEach((document: { empreendimento_id: string; url?: string | null; storage_path?: string | null }) => {
+        if (!document.url?.trim() && !document.storage_path?.trim()) return;
+        counts[document.empreendimento_id] = (counts[document.empreendimento_id] || 0) + 1;
       });
-      setPresentationOptions(byEnterprise);
+      setDocumentCounts(counts);
     }
+    if (!agencyResult.error) setAgencyInstitutional((agencyResult.data || null) as AgencyInstitutional | null);
     if (!cp.error) {
       const nextProposals = (cp.data || []) as ClientProposal[];
       const nextNewCount = nextProposals.filter((item) => item.status === "nova").length;
@@ -430,7 +446,7 @@ export default function Clientes({
     setForm({
       nome: item.nome,
       telefone: formatPhone(item.telefone || ""),
-      email: item.email || "",
+      email: normalizeClientEmail(item.email),
       cidade: item.cidade || "",
       objetivo: item.objetivo || "investimento",
       modo_apresentacao: item.modo_apresentacao || "investidor",
@@ -468,7 +484,8 @@ export default function Clientes({
     if (!error) void load();
   };
   async function generateClientAccess(item: Client) {
-    if (!item.email) return setMessage("Cadastre um e-mail para gerar o acesso.");
+    const email = normalizeClientEmail(item.email);
+    if (!isValidClientEmail(email)) return setMessage("Cadastre um e-mail completo e válido antes de gerar o acesso.");
     setAccessBusy(String(item.id));
     setCredentials(null);
     setMessage("");
@@ -479,7 +496,7 @@ export default function Clientes({
         headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
         body: {
           nome: item.nome,
-          email: item.email,
+          email,
           tipo: "cliente",
           usuario: "",
           aniversario_dia: item.aniversario_dia || 1,
@@ -487,7 +504,7 @@ export default function Clientes({
         },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Não foi possível gerar o acesso.");
-      setCredentials({ nome: item.nome, email: data.email || item.email, usuario: data.usuario || "", senha: data.temporary_password || "" });
+      setCredentials({ nome: item.nome, email: data.email || email, usuario: data.usuario || "", senha: data.temporary_password || "" });
       setMessage(item.user_id ? "Nova senha temporária gerada. Copie e envie agora; ela não ficará armazenada no painel." : "Acesso criado e vinculado à cliente. Copie e envie as credenciais agora.");
       void load();
     } catch (error) {
@@ -532,20 +549,19 @@ export default function Clientes({
   };
   async function save() {
     if (!form.nome.trim()) return setMessage("Informe o nome do cliente.");
-    const birthdayDay=Number(form.aniversario_dia),birthdayMonth=Number(form.aniversario_mes);
-    if(birthdayMonth<1||birthdayMonth>12||birthdayDay<1||birthdayDay>new Date(2000,birthdayMonth,0).getDate())return setMessage("Informe o dia e o mês de aniversário do cliente.");
     if (form.telefone && phoneDigits(form.telefone).length < 10)
       return setMessage(
         "Informe o WhatsApp com DDD, por exemplo: 47 99999-9999.",
       );
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      return setMessage("Informe um e-mail válido.");
+    const normalizedEmail = normalizeClientEmail(form.email);
+    if (form.email && !isValidClientEmail(normalizedEmail))
+      return setMessage("Informe um e-mail completo e válido, por exemplo: nome@provedor.com.");
     setSaving(true);
     const balloonValue = parseBRL(form.balao_maximo) || null;
     const payload = {
       nome: form.nome.trim(),
       telefone: formatPhone(form.telefone) || null,
-      email: form.email.trim().toLowerCase() || null,
+      email: normalizedEmail || null,
       cidade: form.cidade.trim() || null,
       objetivo: form.objetivo,
       modo_apresentacao: form.modo_apresentacao,
@@ -587,7 +603,7 @@ export default function Clientes({
     }
   }
   const selectEmailDomain = (domain: string) => {
-    const local = form.email.split("@")[0].trim();
+    const local = normalizeClientEmail(form.email).split("@")[0].trim() || form.email.replace(/^\s*(?:e[- ]?mail|mail)\s*:\s*/i, "").split("@")[0].trim();
     update("email", local ? `${local}@${domain}` : `@${domain}`);
   };
   async function toggleProperty(client: Client, property: Property) {
@@ -850,7 +866,8 @@ export default function Clientes({
         const visibleProposals = proposals.filter((item) => !item.arquivada_em);
         const activeProposals = visibleProposals.filter((item) => !["aceita", "recusada"].includes(item.status));
         const resolvedProposals = visibleProposals.filter((item) => ["aceita", "recusada"].includes(item.status));
-        const archivedProposals = proposals.filter((item) => item.arquivada_em);
+        const archivedProposals = proposals.filter((item) => item.arquivada_em && (archiveStatusFilter === "todos" || item.status === archiveStatusFilter));
+        const archivedTotal = proposals.filter((item) => item.arquivada_em).length;
         const renderProposal = (proposal: ClientProposal, archived = false) => {
               const client = items.find(
                 (item) => Number(item.id) === proposal.cliente_id,
@@ -912,7 +929,7 @@ export default function Clientes({
         return <>
           {activeProposals.length > 0 && <details style={panel} open><summary style={{ cursor: "pointer", fontWeight: 800, color: "#edcf91" }}>Fila de propostas ({activeProposals.filter((item) => item.status === "nova").length} nova(s) · {activeProposals.length} ativa(s))</summary><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{activeProposals.slice(0, 30).map((proposal) => renderProposal(proposal))}</div></details>}
           {resolvedProposals.length > 0 && <details style={panel} open><summary style={{ cursor: "pointer", fontWeight: 800, color: "#a1a1aa" }}>Histórico recente ({resolvedProposals.length})</summary><p style={{ color: "#8b8b95", fontSize: 12, margin: "10px 0 0" }}>Propostas aceitas ou recusadas ficam aqui até serem arquivadas.</p><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{resolvedProposals.slice(0, 30).map((proposal) => renderProposal(proposal))}</div></details>}
-          {archivedProposals.length > 0 && <details style={panel}><summary style={{ cursor: "pointer", fontWeight: 800, color: "#71717a" }}>Arquivo de propostas ({archivedProposals.length})</summary><p style={{ color: "#71717a", fontSize: 12, margin: "10px 0 0" }}>Arquivadas ficam ocultas da fila, mas não são apagadas e continuam disponíveis para consulta.</p><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{archivedProposals.slice(0, 50).map((proposal) => renderProposal(proposal, true))}</div></details>}
+          {archivedTotal > 0 && <details style={panel}><summary style={{ cursor: "pointer", fontWeight: 800, color: "#71717a" }}>Arquivo de propostas ({archivedTotal})</summary><div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 12 }}><label style={{ color: "#a1a1aa", fontSize: 12, fontWeight: 700 }} htmlFor="archive-status-filter">Filtrar por status</label><select id="archive-status-filter" value={archiveStatusFilter} onChange={(event) => setArchiveStatusFilter(event.target.value as typeof archiveStatusFilter)} style={{ ...input, width: "min(220px,100%)" }}><option value="todos">Todos</option><option value="em_analise">Em análise</option><option value="aceita">Aceitas</option><option value="recusada">Recusadas</option></select></div><p style={{ color: "#71717a", fontSize: 12, margin: "10px 0 0" }}>Arquivadas ficam ocultas da fila, mas não são apagadas e continuam disponíveis para consulta.</p><div style={{ display: "grid", gap: 9, marginTop: 12 }}>{archivedProposals.length ? archivedProposals.slice(0, 50).map((proposal) => renderProposal(proposal, true)) : <p style={{ color: "#71717a", fontSize: 13 }}>Nenhuma proposta arquivada com este status.</p>}</div></details>}
         </>;
       })()}
 
@@ -1167,6 +1184,14 @@ export default function Clientes({
                     Comparar
                   </button>
                 )}
+                <button
+                  onClick={() => window.open(`${window.location.pathname}?visualizar_cliente=${encodeURIComponent(String(item.id))}`, "_blank", "noopener,noreferrer")}
+                  style={{ ...button, background: "#3f3f46", color: "#f4f4f5", fontSize: 11 }}
+                  title="Abrir uma réplica do portal deste cliente"
+                >
+                  <Eye size={14} />
+                  Visualizar como
+                </button>
               </div>
             </article>
           );
@@ -1490,9 +1515,9 @@ export default function Clientes({
                   (item) => item.empreendimento_id === property.id,
                 );
                 const checked = Boolean(selection);
-                const presentationOption = presentationOptions[property.id];
-                const hasClientMaterial = Boolean(presentationOption?.cliente_ativo && presentationOption.cliente_tipo && (presentationOption.cliente_tipo === "pdf" ? presentationOption.cliente_pdf_path : presentationOption.cliente_tipo === "link" ? presentationOption.cliente_link_url : presentationOption.cliente_blog_post_id));
-                const clientTypeLabel = presentationOption?.cliente_tipo === "pdf" ? "PDF privado" : presentationOption?.cliente_tipo === "link" ? "link" : presentationOption?.cliente_tipo === "post" ? "post publicado" : "sem material";
+                const builderInstitutional = property.construtoras;
+                const hasBuilderInstitutional = Boolean(builderInstitutional?.institucional_ativo && builderInstitutional.institucional_tipo && (builderInstitutional.institucional_tipo === "pdf" ? builderInstitutional.institucional_pdf_path : builderInstitutional.institucional_link_url));
+                const hasAgencyInstitutional = Boolean(agencyInstitutional?.imobiliaria_institucional_ativo && agencyInstitutional.imobiliaria_institucional_tipo && (agencyInstitutional.imobiliaria_institucional_tipo === "pdf" ? agencyInstitutional.imobiliaria_institucional_pdf_path : agencyInstitutional.imobiliaria_institucional_link_url));
                 return (
                   <article
                     key={property.id}
@@ -1546,75 +1571,25 @@ export default function Clientes({
                             borderTop: "1px solid #27272a",
                           }}
                         >
-                          <strong style={{ fontSize: 11 }}>
-                            Conteúdo liberado no portal
-                          </strong>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: 9,
-                            }}
-                          >
-                            {(
-                              [
-                                ["exibir_imagens", "Imagens"],
-                                ["exibir_descricao", "Descrição"],
-                                ["exibir_preco", "Preço"],
-                                ["exibir_especificacoes", "Especificações"],
-                                ["exibir_investimento", "Investimento"],
-                                ["exibir_fluxo", "Fluxo"],
-                              ] as const
-                            ).map(([key, label]) => (
-                              <label
-                                key={key}
-                                style={{
-                                  fontSize: 11,
-                                  color: selection[key] ? "#86efac" : "#a1a1aa",
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(selection[key])}
-                                  onChange={(event) =>
-                                    void updateSelection(
-                                      curating.id,
-                                      property.id,
-                                      { [key]: event.target.checked },
-                                    )
-                                  }
-                                />{" "}
-                                {label}
+                          <div style={{display:"grid",gap:7}}>
+                            <strong style={{fontSize:11,color:"#d4d4d8"}}>Conteúdos liberados</strong>
+                            <small style={{color:"#71717a",fontSize:10}}>Escolha o que este cliente poderá consultar junto do empreendimento.</small>
+                            <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:7}}>
+                              <label style={{display:"flex",alignItems:"center",gap:7,padding:"8px 9px",border:`1px solid ${selection.exibir_institucional_construtora ? "#c5a059" : "#303036"}`,borderRadius:7,fontSize:11,color:hasBuilderInstitutional?"#d4d4d8":"#71717a",opacity:hasBuilderInstitutional?1:.7}}>
+                                <input type="checkbox" disabled={!hasBuilderInstitutional} checked={Boolean(selection.exibir_institucional_construtora)} onChange={(event)=>void updateSelection(curating.id,property.id,{exibir_institucional_construtora:event.target.checked})}/>
+                                <span><b style={{display:"block",color:hasBuilderInstitutional?"#f4f4f5":"#a1a1aa"}}>Institucional da construtora</b><small>{hasBuilderInstitutional ? (builderInstitutional?.institucional_tipo === "pdf" ? "PDF privado" : "Link externo") : "Material não cadastrado"}</small></span>
                               </label>
-                            ))}
-                          </div>
-                          <label style={{fontSize:11,color:"#d4d4d8"}}>Layout desta apresentação
-                            <select value={selection.landing_layout || "automatico"} onChange={(event)=>void updateSelection(curating.id,property.id,{landing_layout:event.target.value as Selection["landing_layout"]})} style={{...input,marginTop:5}}>
-                              <option value="automatico">Automático — alterna conforme a ordem</option>
-                              <option value="editorial">Editorial — narrativa equilibrada</option>
-                              <option value="imersivo">Imersivo — imagens maiores</option>
-                              <option value="investidor">Investidor — conteúdo e números</option>
-                            </select>
-                          </label>
-                          <label style={{ fontSize: 11, color: "#d4d4d8" }}>Apresentação exibida para este cliente
-                            <select value={selection.apresentacao_modo || "preferida"} onChange={(event) => void updateSelection(curating.id, property.id, { apresentacao_modo: event.target.value as Selection["apresentacao_modo"] })} style={{ ...input, marginTop: 5 }}>
-                              <option value="preferida">Material do cliente configurado em Apresentações</option>
-                              <option value="nenhuma">Não exibir apresentação</option>
-                            </select>
-                          </label>
-                          <small style={{ color: hasClientMaterial ? "#86efac" : "#a1a1aa", fontSize: 10 }}>
-                            {hasClientMaterial
-                              ? `Apresentação para clientes pronta: ${clientTypeLabel}. O material ao vivo é independente.`
-                              : "Configure e ative o PDF, link ou post para clientes na aba Apresentações; a opção ao vivo não é usada neste portal."}
-                          </small>
-                          {presentationOption?.cliente_tipo === "post" && hasClientMaterial && <small style={{ color: "#a1a1aa", fontSize: 10 }}>O post abre em modo limpo, sem newsletter ou rodapé, mantendo o mapa do empreendimento/região.</small>}
-                          {selection.exibir_fluxo && <div style={{display:"grid",gap:7,padding:"9px 0",borderTop:"1px solid #27272a"}}>
-                            <strong style={{fontSize:11}}>Unidades liberadas para o Fluxo ({selection.unidade_ids?.length || 0})</strong>
-                            <small style={{color:"#71717a"}}>Selecione somente as unidades que {curating.nome} poderá simular no portal.</small>
-                            <div style={{display:"grid",gap:5,maxHeight:220,overflow:"auto"}}>
-                              {units.filter(u=>u.empreendimento_id===property.id && !["vendida","bloqueada","fora de tabela"].includes(String(u.status||"").toLowerCase())).map(u=>{const ids=selection.unidade_ids || []; const checked=ids.includes(u.id); return <label key={u.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"7px 8px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}><span><input type="checkbox" checked={checked} onChange={()=>{const next=checked?ids.filter(id=>id!==u.id):[...ids,u.id];void updateSelection(curating.id,property.id,{unidade_ids:next,unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> Unidade {u.numero || u.id.slice(0,8)}{u.tipologia ? ` · ${u.tipologia}` : ""}</span><b>{money(u.valor_tabela || u.valor)}</b></label>})}
+                              <label style={{display:"flex",alignItems:"center",gap:7,padding:"8px 9px",border:`1px solid ${selection.exibir_documentos ? "#c5a059" : "#303036"}`,borderRadius:7,fontSize:11,color:(documentCounts[property.id] || 0)>0?"#d4d4d8":"#71717a",opacity:(documentCounts[property.id] || 0)>0?1:.7}}>
+                                <input type="checkbox" disabled={(documentCounts[property.id] || 0)===0} checked={Boolean(selection.exibir_documentos)} onChange={(event)=>void updateSelection(curating.id,property.id,{exibir_documentos:event.target.checked})}/>
+                                <span><b style={{display:"block",color:(documentCounts[property.id] || 0)>0?"#f4f4f5":"#a1a1aa"}}>Documentos</b><small>{documentCounts[property.id] || 0} documento(s)</small></span>
+                              </label>
+                              <label style={{display:"flex",alignItems:"center",gap:7,padding:"8px 9px",border:`1px solid ${selection.exibir_institucional_imobiliaria ? "#c5a059" : "#303036"}`,borderRadius:7,fontSize:11,color:hasAgencyInstitutional?"#d4d4d8":"#71717a",opacity:hasAgencyInstitutional?1:.7}}>
+                                <input type="checkbox" disabled={!hasAgencyInstitutional} checked={Boolean(selection.exibir_institucional_imobiliaria)} onChange={(event)=>void updateSelection(curating.id,property.id,{exibir_institucional_imobiliaria:event.target.checked})}/>
+                                <span><b style={{display:"block",color:hasAgencyInstitutional?"#f4f4f5":"#a1a1aa"}}>Institucional da imobiliária</b><small>{hasAgencyInstitutional ? (agencyInstitutional?.imobiliaria_institucional_tipo === "pdf" ? "PDF privado" : "Link externo") : "Material não cadastrado"}</small></span>
+                              </label>
                             </div>
-                          </div>}
+                            <small style={{color:"#71717a",fontSize:10}}>As unidades selecionadas abaixo continuam sendo a parte principal da experiência do cliente.</small>
+                          </div>
                           {selection.exibir_imagens && <div style={{display:"grid",gap:7}}>
                             <strong style={{fontSize:11}}>Imagens desta landing ({selection.imagem_ids_selecionadas?.length || 0}/10)</strong>
                             <small style={{color:"#71717a"}}>Toque na ordem desejada. Somente estas imagens serão entregues a este cliente.</small>
@@ -1628,15 +1603,21 @@ export default function Clientes({
                           </div>}
                           <div style={{display:"grid",gap:7}}>
                             <strong style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({selection.unidade_ids_selecionadas?.length || 0})</strong>
-                            <small style={{color:"#71717a"}}>Pesquise por torre, código, número ou tipologia. A cliente verá somente as unidades marcadas.</small>
+                            <small style={{color:"#71717a"}}>As unidades selecionadas ficam fixadas no topo para conferência. Pesquise por torre, código, número ou tipologia para localizar outras opções.</small>
                             <input value={unitQueries[property.id] || ""} onChange={(event)=>setUnitQueries(current=>({...current,[property.id]:event.target.value}))} placeholder="Pesquisar: Torre A, 304, 807, Studio..." style={{...input,marginTop:2}} />
                             <div style={{display:"grid",gap:5,maxHeight:260,overflow:"auto"}}>
                               {units.filter(unit=>{
                                 if(unit.empreendimento_id!==property.id || ["vendida","bloqueada","fora de tabela"].includes(String(unit.status||"").toLowerCase())) return false;
+                                const selected=(selection.unidade_ids_selecionadas || []).includes(unit.id);
                                 const term=(unitQueries[property.id]||"").trim().toLocaleLowerCase("pt-BR");
+                                if(selected) return true;
                                 if(!term) return true;
                                 return [unit.torre,unit.codigo,unit.codigo_unidade,unit.numero,unit.numero_unidade,unit.tipologia,unit.andar].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR").includes(term);
-                              }).sort((a,b)=>String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true})).map(unit=>{
+                              }).sort((a,b)=>{
+                                const selected=(selection.unidade_ids_selecionadas || []);
+                                const selectedOrder=(selected.includes(a.id)?0:1)-(selected.includes(b.id)?0:1);
+                                return selectedOrder || String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true});
+                              }).map(unit=>{
                                 const selected=selection.unidade_ids_selecionadas || [];
                                 const checked=selected.includes(unit.id);
                                 const tower=unit.torre || "Torre não informada";
@@ -1645,7 +1626,7 @@ export default function Clientes({
                                 const rule=selection.condicoes_unidades?.[unit.id];
                                 const discountPercent=rule?.desconto_percentual != null ? Number(rule.desconto_percentual) : rule?.desconto_valor != null ? (tablePrice>0?Number((Number(rule.desconto_valor)/tablePrice*100).toFixed(2)):0) : Number(selection.desconto_percentual || 0);
                                 const negotiated=rule?.desconto_valor != null ? Number(rule.desconto_valor) : Number((tablePrice*discountPercent/100).toFixed(2));
-                                return <div key={unit.id} style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",gap:9,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}>
+                                return <div key={unit.id} style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",gap:9,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11,background:checked?"#19160f":"transparent"}}>
                                   <span style={{minWidth:0,flex:"1 1 155px"}}><input type="checkbox" checked={checked} onChange={()=>{const next=checked?selected.filter(id=>id!==unit.id):[...selected,unit.id];void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> <b>{tower}</b> · Unidade {code}{unit.andar ? ` · ${unit.andar}º andar` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#8b8b95",marginTop:3}}>Tabela: {money(tablePrice)}</small></span>
                                   <span style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:7,minWidth:175,flex:"1 1 175px"}}>
                                     <label style={{display:"grid",gap:3,color:"#a1a1aa"}}>Desconto (R$)<CurrencyInput value={negotiated} ariaLabel={`Desconto em reais da unidade ${code}`} onChange={(value)=>updateUnitDiscountDraft(curating.id,property.id,unit.id,tablePrice,"valor",value)} onBlur={()=>void saveUnitDiscount(curating.id,property.id)} style={{...input,padding:"6px 7px",fontSize:11}} /></label>

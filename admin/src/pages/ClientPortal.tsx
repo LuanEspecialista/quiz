@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarDays,
   ChevronRight,
+  ExternalLink,
   Images,
   Landmark,
   Lock,
@@ -32,11 +33,13 @@ type PortalMedia = {
 type PortalPresentation = {
   tipo?: "pdf" | "link";
   titulo?: string | null;
+  descricao?: string | null;
   url?: string | null;
   storage_path?: string | null;
   storage_bucket?: string | null;
   origem?: "post" | "link" | "pdf";
 };
+type InstitutionalResource = PortalPresentation;
 type LandingBlock = {
   tipo?: "hero" | "texto" | "destaque" | "galeria" | "plantas" | "cidade";
   titulo?: string;
@@ -78,6 +81,9 @@ type Opportunity = {
   observacao_comercial?: string | null;
   apresentacao?: PortalPresentation | null;
   apresentacoes?: PortalPresentation[];
+  institucional_construtora?: InstitutionalResource | null;
+  institucional_imobiliaria?: InstitutionalResource | null;
+  documentos?: InstitutionalResource[];
   unidades?: PortalUnit[];
 };
 type PortalUnit = {
@@ -251,14 +257,15 @@ function flowSummary(item: Opportunity, unit?: PortalUnit | null, cub?: CubQuote
   return { flow, rules, delivery, preCount, elapsed, remaining, postCount, postIndex, postInterest, nominalInstallment, correctedInstallment, baseCub };
 }
 
-function commercialSchedule(item: Opportunity) {
+function commercialSchedule(item: Opportunity, unit?: PortalUnit | null) {
   const custom = item.caracteristicas?.fluxo_comercial || {};
+  const unitFlow = unit?.fluxo_dados || {};
   return {
     launch: String(custom.lancamento || item.regras_correcao?.lancamento || ""),
     works: String(custom.inicio_obras || item.cronograma?.inicio_obras || item.regras_correcao?.inicio_obras || ""),
     keys: String(custom.entrega || item.data_entrega_chaves || item.entrega_date || item.previsao_entrega || ""),
     preIndex: String(custom.correcao_ate_chaves || item.regras_correcao?.indice_ate_chaves || "CUB"),
-    keysMode: String(custom.nas_chaves || item.regras_correcao?.modalidade_chaves || "Financiamento"),
+    keysMode: String(unitFlow.modalidade || unitFlow.tipo || unitFlow.destino_saldo || custom.nas_chaves || item.regras_correcao?.modalidade_chaves || "Financiamento"),
   };
 }
 
@@ -305,57 +312,67 @@ function FlowSchedule({ item, unit, cub }: { item: Opportunity; unit?: PortalUni
 
 function PresentationSlides({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pageContainerRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
-  const [containerWidth, setContainerWidth] = useState(0);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   useEffect(() => {
     let disposed = false;
-    setLoading(true); setMessage(""); setPage(1);
-    pdfjsLib.getDocument({ url, withCredentials: false, disableAutoFetch: false, disableStream: false, rangeChunkSize: 1024 * 1024 }).promise.then((document) => {
+    setLoading(true); setMessage(""); setPage(1); setPdf(null);
+    const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false, disableAutoFetch: true, disableStream: true, rangeChunkSize: 256 * 1024 });
+    loadingTask.promise.then((document) => {
       if (disposed) return;
       setPdf(document);
-    }).catch(() => { if (!disposed) setMessage("Não foi possível carregar esta apresentação."); setLoading(false); });
-    return () => { disposed = true; };
+    }).catch(() => { if (!disposed) setMessage("Não foi possível carregar esta apresentação. Feche e tente novamente; se continuar, fale com seu especialista."); setLoading(false); });
+    return () => { disposed = true; void loadingTask.destroy(); };
   }, [url]);
   useEffect(() => {
     let disposed = false;
-    if (!pdf || !canvasRef.current || !pageContainerRef.current) return;
+    if (!pdf || !canvasRef.current) return;
     setLoading(true);
     pdf.getPage(page).then((pdfPage) => {
-      if (disposed || !canvasRef.current || !pageContainerRef.current) return;
+      if (disposed || !canvasRef.current) return;
       const base = pdfPage.getViewport({ scale: 1 });
-      const availableWidth = Math.max(240, (containerWidth || pageContainerRef.current.clientWidth) - 16);
-      const scale = Math.min(1.8, availableWidth / base.width);
+      const maxWidth = Math.min(window.innerWidth - 48, 1100);
+      const scale = Math.max(0.65, Math.min(2.2, maxWidth / base.width));
       const viewport = pdfPage.getViewport({ scale });
       const canvas = canvasRef.current;
       const ratio = window.devicePixelRatio || 1;
       canvas.width = Math.floor(viewport.width * ratio); canvas.height = Math.floor(viewport.height * ratio);
-      canvas.style.width = "100%"; canvas.style.height = "auto"; canvas.style.maxWidth = "100%"; canvas.style.display = "block";
+      canvas.style.width = `${viewport.width}px`; canvas.style.height = `${viewport.height}px`;
       const context = canvas.getContext("2d");
       if (!context) return;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       void pdfPage.render({ canvas, canvasContext: context, viewport }).promise.finally(() => { if (!disposed) setLoading(false); });
     }).catch(() => { if (!disposed) { setMessage("Não foi possível renderizar esta página."); setLoading(false); } });
     return () => { disposed = true; };
-  }, [pdf, page, containerWidth]);
-  useEffect(() => {
-    const element = pageContainerRef.current;
-    if (!element) return;
-    const observer = new ResizeObserver((entries) => {
-      const width = Math.round(entries[0]?.contentRect.width || 0);
-      if (width) setContainerWidth(width);
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [pdf, message]);
-  return <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1200,background:"#09090b",isolation:"isolate",display:"grid",gridTemplateRows:"auto minmax(0,1fr) auto",padding:"max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))",boxSizing:"border-box",overflow:"hidden"}}>
-    <header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,width:"min(100%,1180px)",margin:"0 auto",padding:"4px 4px 10px",color:"#fff",minWidth:0}}><strong style={{minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:"clamp(16px,4vw,22px)"}}>{title}</strong><button type="button" onClick={onClose} style={{border:"1px solid #5a4828",background:"#18140e",color:"#edcf91",borderRadius:8,padding:"9px 12px",cursor:"pointer",flex:"0 0 auto"}}>Fechar</button></header>
-    <main style={{display:"flex",justifyContent:"center",alignItems:"flex-start",minWidth:0,minHeight:0,overflowY:"auto",overflowX:"hidden",padding:"8px 0 12px"}}>{message ? <p style={{color:"#fca5a5"}}>{message}</p> : <div ref={pageContainerRef} style={{position:"relative",width:"min(100%,1100px)",minWidth:0,minHeight:160,display:"flex",justifyContent:"center",alignItems:"flex-start",padding:"0 8px",boxSizing:"border-box"}}><canvas ref={canvasRef} style={{width:"100%",maxWidth:"100%",height:"auto",background:"#fff",boxShadow:"0 16px 60px #000"}} />{loading && <span style={{position:"absolute",top:16,left:"50%",transform:"translateX(-50%)",color:"#edcf91",background:"#111113",padding:"10px 14px",borderRadius:8,whiteSpace:"nowrap"}}>Carregando slide…</span>}</div>}</main>
-    <footer style={{display:"flex",justifyContent:"center",alignItems:"center",gap:"clamp(6px,2vw,12px)",padding:"8px 0 4px",color:"#d4d4d8",minWidth:0}}><button type="button" disabled={!pdf || page<=1} onClick={()=>setPage((value)=>Math.max(1,value-1))} style={{border:"1px solid #54452c",background:"#17140e",color:"#ead5aa",borderRadius:7,padding:"9px clamp(9px,3vw,14px)",cursor:"pointer",whiteSpace:"nowrap"}}>‹ Anterior</button><span style={{fontSize:"clamp(12px,3.2vw,16px)",whiteSpace:"nowrap"}}>{pdf ? `Slide ${page} de ${pdf.numPages}` : ""}</span><button type="button" disabled={!pdf || page >= (pdf?.numPages || 1)} onClick={()=>setPage((value)=>Math.min(pdf?.numPages || value,value+1))} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px clamp(9px,3vw,14px)",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap"}}>Próximo ›</button></footer>
-  </div>;
+  }, [pdf, page]);
+  return (
+    <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 1200, background: "#09090bf7", display: "grid", gridTemplateRows: "auto 1fr auto", padding: 12 }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, maxWidth: 1180, width: "100%", margin: "0 auto", color: "#fff" }}>
+        <strong>{title}</strong>
+        <button type="button" onClick={onClose} style={{ border: "1px solid #5a4828", background: "#18140e", color: "#edcf91", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>Fechar</button>
+      </header>
+      <main style={{ display: "grid", placeItems: "center", overflow: "auto", padding: 12 }}>
+        {message ? <p role="alert" style={{ color: "#fca5a5", maxWidth: 540, textAlign: "center", lineHeight: 1.6 }}>{message}</p> : (
+          <div style={{ position: "relative", minHeight: 160, width: "min(900px,100%)", display: "grid", placeItems: "center" }}>
+            <canvas ref={canvasRef} style={{ maxWidth: "100%", height: "auto", background: "#fff", boxShadow: "0 16px 60px #000" }} />
+            {loading && (
+              <div role="status" aria-live="polite" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(360px,calc(100% - 32px))", boxSizing: "border-box", color: "#edcf91", background: "#111113f2", padding: "16px 18px", borderRadius: 10, border: "1px solid #514124", boxShadow: "0 12px 36px #0009" }}>
+                <strong style={{ display: "block", fontSize: 14 }}>{pdf ? "Preparando a apresentação…" : "Carregando a apresentação…"}</strong>
+                <small style={{ display: "block", marginTop: 7, color: "#d4d4d8" }}>{pdf ? `Preparando slide ${page} de ${pdf.numPages}` : "Isso pode levar alguns instantes."}</small>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+      <footer style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "10px 0", color: "#d4d4d8" }}>
+        <button type="button" disabled={!pdf || page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} style={{ border: "1px solid #54452c", background: "#17140e", color: "#ead5aa", borderRadius: 7, padding: "9px 14px", cursor: "pointer" }}>‹ Anterior</button>
+        <span>{pdf ? `Slide ${page} de ${pdf.numPages}` : ""}</span>
+        <button type="button" disabled={!pdf || page >= (pdf?.numPages || 1)} onClick={() => setPage((value) => Math.min(pdf?.numPages || value, value + 1))} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 7, padding: "9px 14px", fontWeight: 800, cursor: "pointer" }}>Próximo ›</button>
+      </footer>
+    </div>
+  );
 }
 
 const COVER_STORAGE_PREFIX = "storage://empreendimentos/";
@@ -703,7 +720,8 @@ function OpportunityLanding({
   );
 }
 
-export default function ClientPortal({ userName }: { userName?: string }) {
+export default function ClientPortal({ userName, previewClientId }: { userName?: string; previewClientId?: string | null }) {
+  const isPreview = Boolean(previewClientId);
   const [portal, setPortal] = useState<Portal | null>(null);
   const [error, setError] = useState("");
   const [accessExpired, setAccessExpired] = useState(false);
@@ -712,6 +730,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [presentation, setPresentation] = useState<{ url: string; title: string } | null>(null);
   const [presentationLink, setPresentationLink] = useState<{ url: string; title: string } | null>(null);
   const [presentationError, setPresentationError] = useState("");
+  const [presentationOpening, setPresentationOpening] = useState<{ opportunityId: string; title: string; phase: string } | null>(null);
+  const presentationOpeningRef = useRef(false);
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [activeOpportunity, setActiveOpportunity] =
     useState<Opportunity | null>(null);
@@ -754,7 +774,6 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   const [documentDeleteBusy, setDocumentDeleteBusy] = useState<string | null>(null);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [spouseConsent, setSpouseConsent] = useState(false);
-  const [selectedUnitsByOpportunity, setSelectedUnitsByOpportunity] = useState<Record<string, string>>({});
   const [secondsUntilExpiry, setSecondsUntilExpiry] = useState<number | null>(null);
   const [lockedEntry, setLockedEntry] = useState(true);
   const [lockedMonthly, setLockedMonthly] = useState(true);
@@ -772,11 +791,14 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       .then((response) => response.ok ? response.json() : null)
       .then((data) => { if (data?.value) setCub(data as CubQuote); })
       .catch(() => undefined);
-    void supabase.rpc("portal_access_status").then(async ({ data: status }) => {
+    const portalRequest = previewClientId
+      ? supabase.rpc("portal_cliente_preview", { p_cliente_id: previewClientId })
+      : supabase.rpc("portal_access_status").then(async ({ data: status }) => {
       if (status?.status === "expirado") { setAccessExpired(true); setError("Acesso expirado. Solicite ao especialista uma nova validade para voltar a consultar os empreendimentos."); return null; }
       if (status?.status !== "ativo") { setError("Seu acesso está bloqueado. Fale com seu especialista."); return null; }
       return supabase.rpc("portal_cliente_experiencia");
-    }).then(async (response) => {
+    });
+    void portalRequest.then(async (response) => {
         if (!response) return;
         const { data, error: requestError } = response;
         if (requestError) {
@@ -786,7 +808,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           return;
         }
         const result = (data || {}) as Portal;
-        const profileRequest = supabase.rpc("portal_cliente_proposta_perfil");
+        const { data: institutionalData } = isPreview ? { data: null } : await supabase.rpc("portal_cliente_institucionais");
+        const institutionalById = Object.fromEntries(((institutionalData || []) as Array<{ empreendimento_id: string; institucional_construtora?: InstitutionalResource | null; institucional_imobiliaria?: InstitutionalResource | null; documentos?: InstitutionalResource[] }>).map((entry) => [entry.empreendimento_id, entry]));
+        const profileRequest = isPreview ? Promise.resolve({ data: null, error: null }) : supabase.rpc("portal_cliente_proposta_perfil");
         const opportunities = await Promise.all(
           (result.oportunidades || []).map(async (item) => {
             const sign = async (media: PortalMedia) => {
@@ -819,6 +843,17 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               return { ...presentation, url };
             }));
             const presentation = presentations.find((itemPresentation) => itemPresentation.tipo === item.apresentacao?.tipo) || presentations[0] || null;
+            const signInstitutional = async (resource?: InstitutionalResource | null) => {
+              if (!resource?.storage_path || resource.tipo === "link") return resource;
+              const signedFor = secondsUntilExpiry === null ? 300 : Math.max(1, Math.min(300, secondsUntilExpiry));
+              const { data: signedPdf } = await supabase.storage.from(resource.storage_bucket || "cliente-apresentacoes").createSignedUrl(resource.storage_path, signedFor);
+              return signedPdf?.signedUrl ? { ...resource, url: signedPdf.signedUrl } : resource;
+            };
+            const institutionalPayload = institutionalById[item.id] || {};
+            const institutionalBuilder = await signInstitutional(institutionalPayload.institucional_construtora || item.institucional_construtora);
+            const institutionalAgency = await signInstitutional(institutionalPayload.institucional_imobiliaria || item.institucional_imobiliaria);
+            const documents = (await Promise.all((institutionalPayload.documentos || []).map(signInstitutional)))
+              .filter((resource): resource is InstitutionalResource => resource !== null && resource !== undefined);
             const storedCoverPath = coverStoragePath(item);
             let coverUrl: string | undefined =
               item.imagem_url &&
@@ -862,11 +897,16 @@ export default function ClientPortal({ userName }: { userName?: string }) {
             ) as LandingBlock[];
             return {
               ...item,
+              ...(institutionalById[item.id] || {}),
+              institucional_construtora: institutionalBuilder,
+              institucional_imobiliaria: institutionalAgency,
+              documentos: documents,
               imagem_url: cardCover,
               imagens: displayImages,
               plantas: plants,
               apresentacao: presentation,
               apresentacoes: presentations,
+              unidades: (item.unidades || []).filter((unit) => ["disponivel", "reservada"].includes(String(unit.status || "").toLowerCase())),
               caracteristicas: {
                 ...item.caracteristicas,
                 landing_blocos: blocks.map((block) => ({
@@ -916,7 +956,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         }
       });
     return () => { document.removeEventListener("contextmenu", protectContent); document.removeEventListener("keydown", blockPrint); };
-  }, []);
+  }, [previewClientId]);
 
   const hasExpiry = secondsUntilExpiry !== null;
   useEffect(() => {
@@ -950,7 +990,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     const initialPostMonths = Math.max(0, summary.postCount);
     const initialPostBalloon = Number(summary.flow.reforco_pos_chaves_valor || 0);
     const initialPostBalloonCount = Number(summary.flow.quantidade_reforcos_pos_chaves || 0);
-    const initialPostMode: PostMode = /financiamento/i.test(commercialSchedule(item).keysMode) ? "chaves" : "parcelas_e_baloes";
+    const initialPostMode: PostMode = /financiamento|banc[aá]rio|cr[eé]dito/i.test(commercialSchedule(item, unit || null).keysMode) ? "chaves" : "parcelas_e_baloes";
     const initialTargets = flowTargets(item, unit || null, commercial.finalPrice);
     const initialMonthly = initialPreMonths > 0
       ? Math.max(0, Number(((initialTargets.preTarget - initialEntry) / initialPreMonths).toFixed(2)))
@@ -1100,69 +1140,101 @@ export default function ClientPortal({ userName }: { userName?: string }) {
   };
   const openPresentation = async (item: Opportunity, selected?: PortalPresentation | null) => {
     const presentation = selected || item.apresentacao;
-    if (!presentation) return;
+    if (!presentation || presentationOpeningRef.current) return;
+    presentationOpeningRef.current = true;
+    const title = presentation.titulo || item.nome || "Apresentação";
+    setPresentationOpening({ opportunityId: item.id, title, phase: isPreview ? "Abrindo visualização…" : "Verificando seu acesso…" });
     setPresentationError("");
-    if (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0)) {
-      setPresentationError("Seu acesso expirou. Solicite ao especialista uma nova validade.");
-      return;
-    }
-    const { data: accessStatus } = await supabase.rpc("portal_access_status");
-    if (accessStatus?.status !== "ativo") {
-      setAccessExpired(accessStatus?.status === "expirado");
-      setPortal(null);
-      setProposal(null);
-      setPresentation(null);
-      setPresentationLink(null);
-      setPresentationError("Seu acesso não está mais ativo. Solicite ao especialista uma nova validade.");
-      return;
-    }
-    if (presentation.tipo === "link") {
-      let destinationUrl = presentation.url;
-      if (!destinationUrl) return;
-      try {
-        const publicSiteUrl = new URL(import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin);
-        const destination = new URL(destinationUrl, publicSiteUrl.origin);
-        const destinationHost = destination.hostname.replace(/^www\./i, "");
-        const publicSiteHost = publicSiteUrl.hostname.replace(/^www\./i, "");
-        if (destinationHost === publicSiteHost && /^\/blog\/[^/]+\/?$/.test(destination.pathname)) {
-          destination.searchParams.set("apresentacao", "1");
-          destinationUrl = destination.toString();
-        }
-      } catch {
-        // Se o link estiver fora do formato esperado, abre-se como foi configurado.
-      }
-      setPresentationLink({ url: destinationUrl, title: presentation.titulo || item.nome || "Apresentação" });
-      return;
-    }
-    let pdfUrl = presentation.url;
-    if (presentation.storage_path && presentation.storage_bucket === "cliente-apresentacoes") {
-      const signedFor = secondsUntilExpiry === null ? 300 : Math.max(1, Math.min(300, secondsUntilExpiry));
-      const { data, error: signedError } = await supabase.storage.from("cliente-apresentacoes").createSignedUrl(presentation.storage_path, signedFor);
-      if (signedError || !data?.signedUrl) {
-        setPresentationError("Não foi possível abrir o PDF. Confirme se a curadoria e o acesso estão ativos.");
+    try {
+      if (!isPreview && (accessExpired || (secondsUntilExpiry !== null && secondsUntilExpiry <= 0))) {
+        setPresentationError("Seu acesso expirou. Solicite ao especialista uma nova validade.");
         return;
       }
-      pdfUrl = data.signedUrl;
+      if (!isPreview) {
+        const { data: accessStatus, error: accessError } = await supabase.rpc("portal_access_status");
+        if (accessError) throw accessError;
+        if (accessStatus?.status !== "ativo") {
+          setAccessExpired(accessStatus?.status === "expirado");
+          setPortal(null);
+          setProposal(null);
+          setPresentation(null);
+          setPresentationLink(null);
+          setPresentationError("Seu acesso não está mais ativo. Solicite ao especialista uma nova validade.");
+          return;
+        }
+      }
+      if (presentation.tipo === "link") {
+        let destinationUrl = presentation.url;
+        if (!destinationUrl) {
+          setPresentationError("O link deste material não está configurado. Avise seu especialista.");
+          return;
+        }
+        try {
+          const publicSiteUrl = new URL(import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin);
+          const destination = new URL(destinationUrl, publicSiteUrl.origin);
+          const destinationHost = destination.hostname.replace(/^www\./i, "");
+          const publicSiteHost = publicSiteUrl.hostname.replace(/^www\./i, "");
+          if (destinationHost === publicSiteHost && /^\/blog\/[^/]+\/?$/.test(destination.pathname)) {
+            destination.searchParams.set("apresentacao", "1");
+            destinationUrl = destination.toString();
+          }
+        } catch {
+          // Se o link estiver fora do formato esperado, abre-se como foi configurado.
+        }
+        setPresentationLink({ url: destinationUrl, title });
+        return;
+      }
+      let pdfUrl = presentation.url;
+      if (presentation.storage_path && presentation.storage_bucket === "cliente-apresentacoes") {
+        setPresentationOpening({ opportunityId: item.id, title, phase: "Preparando um link seguro para o PDF…" });
+        const signedFor = secondsUntilExpiry === null ? 300 : Math.max(1, Math.min(300, secondsUntilExpiry));
+        const { data, error: signedError } = await supabase.storage.from("cliente-apresentacoes").createSignedUrl(presentation.storage_path, signedFor);
+        if (signedError || !data?.signedUrl) {
+          setPresentationError("Não foi possível preparar o PDF. Confirme se a curadoria e o acesso estão ativos e tente novamente.");
+          return;
+        }
+        pdfUrl = data.signedUrl;
+      }
+      if (!pdfUrl) {
+        setPresentationError("O material ainda não está disponível. Fale com seu especialista.");
+        return;
+      }
+      setPresentation({ url: pdfUrl, title });
+    } catch (error) {
+      setPresentationError(error instanceof Error ? `Não foi possível preparar o material: ${error.message}` : "Não foi possível preparar o material. Tente novamente.");
+    } finally {
+      presentationOpeningRef.current = false;
+      setPresentationOpening(null);
     }
-    if (!pdfUrl) {
-      setPresentationError("O material ainda não está disponível. Fale com seu especialista.");
-      return;
-    }
-    setPresentation({ url: pdfUrl, title: presentation.titulo || item.nome || "Apresentação" });
   };
   const commercial = proposal ? unitCommercial(proposal, proposalUnit) : null;
   const targets = proposal && commercial ? flowTargets(proposal, proposalUnit, commercial.finalPrice) : { prePct: 100, postPct: 0, preTarget: 0, postTarget: 0 };
   const financingAtKeys = postMode === "chaves";
+  const scenarioMax = commercial ? Math.max(0, commercial.finalPrice) : proposal?.preco || 500000;
+  const monthlyMax = Math.min(scenarioMax, Math.max(20000, scenarioMax * 0.08));
   const preTotal = Number((entry + monthly * preMonths + balloon * balloonCount + keysValue).toFixed(2));
   const postTotal = Number((postMonthly * postMonths + postBalloon * postBalloonCount).toFixed(2));
   const remainingAfterPre = commercial ? Math.max(0, Number((commercial.finalPrice - preTotal).toFixed(2))) : 0;
   const financingTotal = financingAtKeys ? remainingAfterPre : 0;
   const flowTotal = Number((preTotal + postTotal + financingTotal).toFixed(2));
   const flowDifference = commercial ? Number((commercial.finalPrice - flowTotal).toFixed(2)) : 0;
+  const flowDifferenceCents = Math.round(flowDifference * 100);
   const preShare = commercial?.finalPrice ? preTotal / commercial.finalPrice * 100 : 0;
   const shareDeviation = Math.abs(preShare - targets.prePct);
-  const hasExcess = Boolean(commercial && preTotal > commercial.finalPrice + 0.02);
-  const acceptance = hasExcess ? { label: "Não fecha", color: "#f87171", detail: "Os valores até as chaves ultrapassam o valor da unidade." } : !financingAtKeys && Math.abs(flowDifference) > 0.02 ? { label: "Não fecha", color: "#f87171", detail: "Há saldo ou excesso no cálculo." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: financingAtKeys ? "O valor até as chaves atende à meta; o saldo restante será quitado ou financiado nas chaves." : "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
+  const hasExcess = Boolean(commercial && Math.round(preTotal * 100) > Math.round(commercial.finalPrice * 100));
+  const acceptance = hasExcess ? { label: "Não fecha", color: "#f87171", detail: "Os valores até as chaves ultrapassam o valor final da unidade." } : flowDifferenceCents !== 0 ? { label: "Não fecha", color: "#f87171", detail: "A soma precisa fechar exatamente, ao centavo, antes de enviar." } : shareDeviation <= 2 ? { label: "Excelente aderência", color: "#86efac", detail: financingAtKeys ? "O saldo indicado será quitado ou financiado nas chaves." : "Distribuição alinhada ao fluxo da construtora." } : shareDeviation <= 10 ? { label: "Aceitável para negociação", color: "#fbbf24", detail: "O total fecha, mas a distribuição foge parcialmente do padrão." } : { label: "Difícil aceitação", color: "#f87171", detail: "O total fecha, porém a distribuição está distante do fluxo oficial." };
+  const floorMoney = (value: number) => Math.max(0, Math.floor((value + 0.000001) * 100) / 100);
+  const priceBudget = floorMoney(commercial?.finalPrice || 0);
+  const activePostTotal = financingAtKeys ? 0 : postTotal;
+  const fixedOtherPreTotal = balloon * balloonCount + (lockedKeysValue ? 0 : keysValue) + activePostTotal;
+  const entryAllowedMax = floorMoney(Math.min(
+    scenarioMax,
+    priceBudget - fixedOtherPreTotal - (lockedMonthly ? monthly * preMonths : 0),
+  ));
+  const installmentBudget = floorMoney(priceBudget - entry - fixedOtherPreTotal);
+  const monthlyAllowedMax = preMonths > 0
+    ? floorMoney(Math.min(monthlyMax, installmentBudget / preMonths))
+    : 0;
   useEffect(() => {
     if (!commercial || !lockedKeysValue) return;
     const automaticKeys = Math.max(0, Number((targets.preTarget - entry - monthly * preMonths - balloon * balloonCount).toFixed(2)));
@@ -1211,6 +1283,18 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     if (next === "somente_parcelas") { setPostBalloon(0); setPostBalloonCount(0); }
     if (next === "somente_baloes") { setPostMonthly(0); setPostMonths(0); }
   };
+  const changeEntry = (requested: number) => {
+    const next = floorMoney(Math.min(entryAllowedMax, requested));
+    setEntry(next);
+    if (!lockedMonthly && preMonths > 0) {
+      const availableForInstallments = floorMoney(priceBudget - next - fixedOtherPreTotal);
+      const nextMonthlyMax = floorMoney(Math.min(monthlyMax, availableForInstallments / preMonths));
+      setMonthly((current) => Math.min(current, nextMonthlyMax));
+    }
+  };
+  const changeMonthly = (requested: number) => {
+    setMonthly(floorMoney(Math.min(monthlyAllowedMax, requested)));
+  };
   const redistributeFlow = () => {
     if (!commercial) return;
     const nextMonthly = preMonths > 0 ? Math.max(0, Number(((targets.preTarget - entry - keysValue - balloon * balloonCount) / preMonths).toFixed(2))) : 0;
@@ -1227,8 +1311,8 @@ export default function ClientPortal({ userName }: { userName?: string }) {
     if (documentDeleteBusy) { setSent("Aguarde a exclusão do documento anterior terminar antes de enviar."); return; }
     if (!proposal.permitir_proposta) { setSent("Este empreendimento está liberado para simulação, mas o envio de proposta ainda não foi autorizado pelo especialista."); return; }
     if (secondsUntilExpiry !== null && secondsUntilExpiry <= 0) { setSent("Seu acesso expirou. Solicite ao especialista uma nova validade para enviar a proposta."); return; }
-    if (!proposalUnit || !commercial || Math.abs(flowTotal - commercial.finalPrice) > 0.02) {
-      setSent(`O fluxo ainda não fecha. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Distribua o saldo entre até as chaves e pós-chaves antes de enviar.`);
+    if (!proposalUnit || !commercial || flowDifferenceCents !== 0 || hasExcess) {
+      setSent(`O fluxo precisa fechar exatamente ao centavo. Total atual: ${money(flowTotal)} · Valor final: ${money(commercial?.finalPrice)}. Distribua o saldo antes de enviar.`);
       return;
     }
     const documentValue = normalizeDocument(clientCpf, clientDocumentType);
@@ -1386,6 +1470,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       }}
     >
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+        {isPreview && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 18, padding: "10px 13px", border: "1px solid #8a6a2d", borderRadius: 9, background: "#241b0d", color: "#f5d58b", fontSize: 12, fontWeight: 800 }}><span>Visualização administrativa — esta é a experiência configurada para este cliente.</span><button type="button" onClick={() => window.close()} style={{ border: "1px solid #8a6a2d", background: "transparent", color: "#f5d58b", borderRadius: 6, padding: "6px 9px", cursor: "pointer", fontWeight: 800 }}>Fechar visualização</button></div>}
         <header
           style={{
             display: "flex",
@@ -1487,35 +1572,45 @@ export default function ClientPortal({ userName }: { userName?: string }) {
               const selectedPresentation = (item.apresentacao?.url || (item.apresentacao?.tipo === "pdf" && item.apresentacao.storage_path))
                 ? item.apresentacao
                 : item.apresentacoes?.find((resource) => resource.url || (resource.tipo === "pdf" && resource.storage_path)) || null;
-              const units = item.unidades || [];
-              const selectedUnit = units.find((unit) => unit.id === selectedUnitsByOpportunity[item.id]) || units[0] || null;
-              const commercial = unitCommercial(item, selectedUnit);
               const canOpenFlow = Boolean(item.permitir_proposta || item.exibir_fluxo);
+              const institutionalCards = [
+                { key: "construtora", label: "Institucional da construtora", resource: item.institucional_construtora },
+                { key: "imobiliaria", label: "Institucional da imobiliária", resource: item.institucional_imobiliaria },
+              ].filter((card): card is { key: string; label: string; resource: InstitutionalResource } => Boolean(card.resource?.url || card.resource?.storage_path));
+              const documents = (item.documentos || []).filter((resource) => Boolean(resource.url || resource.storage_path));
               return (
                 <div key={item.id} style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column" }}>
                   <article style={{ flex: "1 1 auto", border: "1px solid #332d22", background: "#101012", color: "#fff", borderRadius: 13, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
-                    <button type="button" onClick={() => selectedPresentation ? void openPresentation(item, selectedPresentation) : setActiveOpportunity(item)} style={{ display: "block", width: "100%", padding: 0, textAlign: "left", border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
-                      {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 155, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
-                      <div style={{ padding: "14px 15px 12px", display: "grid", gap: 7 }}>
-                        <small style={{ color: "#d7ab63", fontWeight: 800 }}>{[item.bairro, item.cidade].filter(Boolean).join(" · ") || item.status}</small>
-                        <span style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.2, height: "2.4em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.nome}</span>
-                        <span style={{ color: "#a1a1aa", fontSize: 12, lineHeight: 1.4, height: "2.8em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.descricao || "Confira os detalhes selecionados para você."}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#edcf91", fontWeight: 800, marginTop: 3 }}>Detalhes do empreendimento <ChevronRight size={17} /></span>
+                    {cover ? <img src={cover} alt={item.nome || "Empreendimento"} style={{ width: "100%", height: 155, objectFit: "cover", display: "block" }} /> : <div style={{ height: 155, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#18140e,#111113)", color: "#806a43" }}><Building2 size={34} /></div>}
+                    <div style={{ padding: "16px 15px 15px", display: "grid", gap: 10 }}>
+                      <small style={{ color: "#d7ab63", fontWeight: 800 }}>{[item.bairro, item.cidade].filter(Boolean).join(" · ") || item.status}</small>
+                      <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{item.nome}</span>
+                      <span style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.descricao || "Confira os detalhes selecionados para você."}</span>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, marginTop: 2 }}>
+                        {selectedPresentation && <button type="button" disabled={Boolean(presentationOpening)} aria-busy={Boolean(presentationOpening)} onClick={() => void openPresentation(item, selectedPresentation)} style={{ border: "1px solid #5a4828", background: "#18140e", color: "#edcf91", borderRadius: 8, padding: "10px 9px", fontWeight: 800, cursor: presentationOpening ? "wait" : "pointer", opacity: presentationOpening ? .65 : 1 }}>{presentationOpening?.opportunityId === item.id && presentationOpening.title === (selectedPresentation.titulo || item.nome) ? "Preparando…" : "Ver apresentação"}</button>}
+                        {canOpenFlow && <button type="button" onClick={() => setActiveOpportunity(item)} style={{ border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: "10px 9px", fontWeight: 900, cursor: "pointer" }}>Acessar fluxos</button>}
                       </div>
-                    </button>
-                    <div style={{ padding: "0 15px 15px", display: "grid", gap: 11 }}>
-                      {units.length > 1 && <label style={{ color: "#d4d4d8", fontSize: 12 }}>Unidade liberada
-                        <select value={selectedUnit?.id || ""} onChange={(event) => setSelectedUnitsByOpportunity((current) => ({ ...current, [item.id]: event.target.value }))} style={{ ...input, marginTop: 5 }}>
-                          {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.codigo || unit.numero || "Unidade"}{unit.torre ? ` · Torre ${unit.torre}` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}</option>)}
-                        </select>
-                      </label>}
-                      {selectedUnit && <div style={{ borderTop: "1px solid #302a20", paddingTop: 10, display: "grid", gap: 5 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}><strong>Unidade {selectedUnit.codigo || selectedUnit.numero || "selecionada"}{selectedUnit.torre ? ` · Torre ${selectedUnit.torre}` : ""}</strong><strong style={{ color: "#edcf91", whiteSpace: "nowrap" }}>{money(commercial.finalPrice)}</strong></div>
-                        {commercial.discountValue > 0 ? <><small style={{ color: "#a1a1aa" }}>Valor de tabela: {money(commercial.tablePrice)}</small><strong style={{ color: "#b9d89c", fontSize: 12 }}>Condição especial: você economiza {money(commercial.discountValue)} ({commercial.percentage.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)</strong></> : <small style={{ color: "#a1a1aa" }}>Valor da unidade: {money(commercial.tablePrice)}</small>}
+                      {institutionalCards.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, paddingTop: 5, borderTop: "1px solid #302a20" }}>
+                        {institutionalCards.map(({ key, label, resource }) => {
+                          const isOpening = presentationOpening?.opportunityId === item.id && presentationOpening.title === (resource.titulo || item.nome || "Apresentação");
+                          return <button key={key} type="button" disabled={Boolean(presentationOpening)} aria-busy={isOpening} onClick={() => void openPresentation(item, resource)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, border: "1px solid #393329", background: "#15130f", color: "#d8c18f", borderRadius: 8, padding: "9px 10px", textAlign: "left", cursor: presentationOpening ? "wait" : "pointer", fontSize: 11, fontWeight: 800, opacity: presentationOpening ? .65 : 1 }}>{isOpening ? "Preparando…" : label}<ChevronRight size={15} /></button>;
+                        })}
+                      </div>}
+                      {presentationOpening?.opportunityId === item.id && <div role="status" aria-live="polite" style={{ display: "grid", gap: 4, padding: "9px 10px", border: "1px solid #514124", borderRadius: 8, background: "#17140e", color: "#edcf91", fontSize: 12 }}><strong>{presentationOpening.phase}</strong><small style={{ color: "#a1a1aa", lineHeight: 1.45 }}>Estamos preparando “{presentationOpening.title}” para visualização. Não está enviando cadastro nem proposta.</small></div>}
+                      {documents.length > 0 && <div style={{ display: "grid", gap: 6, paddingTop: 8, borderTop: "1px solid #302a20" }}>
+                        <small style={{ color: "#a1a1aa", fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase" }}>Documentos</small>
+                        {documents.map((resource, index) => {
+                          const key = `${resource.storage_path || resource.url || resource.titulo}-${index}`;
+                          const externalUrl = resource.url && /^https:\/\//i.test(resource.url) ? resource.url : null;
+                          const linkStyle = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: "1px solid #302a20", background: "#131315", color: "#d8c18f", borderRadius: 7, padding: "8px 9px", textAlign: "left" as const, cursor: "pointer", fontSize: 11, fontWeight: 700 };
+                          return externalUrl
+                            ? <a key={key} href={externalUrl} target="_blank" rel="noopener noreferrer" style={{ ...linkStyle, textDecoration: "none" }}>{resource.titulo || "Documento"}<ExternalLink size={14} /></a>
+                            : <button key={key} type="button" disabled={Boolean(presentationOpening)} onClick={() => void openPresentation(item, resource)} style={{ ...linkStyle, cursor: presentationOpening ? "wait" : "pointer", opacity: presentationOpening ? .65 : 1 }}>{resource.titulo || "Documento"}<ChevronRight size={14} /></button>;
+                        })}
                       </div>}
                     </div>
                   </article>
-                  {canOpenFlow ? <button type="button" onClick={() => openProposal(item, selectedUnit || undefined)} style={{ display: "block", width: "min(340px,100%)", minHeight: 52, margin: "9px auto 0", border: 0, background: "#d7ab63", color: "#09090b", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer", textAlign: "center" }}>{selectedUnit ? `Montar fluxo da unidade ${selectedUnit.codigo || selectedUnit.numero || "selecionada"}` : "Montar fluxo de pagamento"}</button> : <div aria-hidden="true" style={{ height: 61, flex: "0 0 61px" }} />}
+                  <div aria-hidden="true" style={{ height: 9, flex: "0 0 9px" }} />
                 </div>
               );
             })}
@@ -1647,16 +1742,16 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 <MoneyScenario
                   label="Entrada"
                   value={entry}
-                  setValue={setEntry}
-                  max={proposal.preco || 500000}
+                  setValue={changeEntry}
+                  max={entryAllowedMax}
                   locked={lockedEntry}
                   onToggleLock={() => setLockedEntry((value) => !value)}
                 />
                 <MoneyScenario
                   label="Parcela mensal"
                   value={monthly}
-                  setValue={setMonthly}
-                  max={Math.max(20000, (proposal.preco || 500000) * 0.08)}
+                  setValue={changeMonthly}
+                  max={monthlyAllowedMax}
                   locked={lockedMonthly}
                   onToggleLock={() => setLockedMonthly((value) => !value)}
                   count={preMonths}
@@ -1667,7 +1762,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   label="Balão"
                   value={balloon}
                   setValue={setBalloon}
-                  max={proposal.preco || 500000}
+                  max={scenarioMax}
                   locked={lockedBalloon}
                   onToggleLock={() => setLockedBalloon((value) => !value)}
                   count={balloonCount}
@@ -1679,18 +1774,19 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                   label="Valor nas chaves"
                   value={keysValue}
                   setValue={setKeysValue}
-                  max={proposal.preco || 500000}
+                  max={scenarioMax}
                   locked={lockedKeysValue}
                   onToggleLock={() => setLockedKeysValue((value) => !value)}
                 />
                 {lockedKeysValue && <small style={{gridColumn:"1/-1",color:"#b9d89c",fontSize:12,lineHeight:1.5}}>Com o cadeado ativo, o valor nas chaves é recalculado automaticamente para completar a meta até às chaves. Ao adicionar balões, eles entram no mesmo cálculo; destrave para editar manualmente.</small>}
+                <small style={{gridColumn:"1/-1",color:"#a1a1aa",fontSize:12,lineHeight:1.5}}>A quantidade de parcelas parte do fluxo cadastrado para esta unidade. Com as parcelas destravadas, aumentar a entrada reduz o valor mensal; com elas travadas, a entrada fica limitada pelo saldo disponível.</small>
               </div>
               <section style={{display:"grid",gap:10,marginTop:13,padding:13,border:"1px solid #3a3327",borderRadius:9,background:"#17140e"}}>
                 <strong style={{fontSize:12,color:"#edcf91"}}>O que fazer com o saldo após as chaves?</strong>
                 <select value={postMode} onChange={(e)=>changePostMode(e.target.value as PostMode)} style={{...input,marginTop:2}}><option value="chaves">Quitar/financiar o saldo nas chaves</option><option value="parcelas_e_baloes">Pós-chaves: parcelas e balões</option><option value="somente_parcelas">Pós-chaves: somente parcelas</option><option value="somente_baloes">Pós-chaves: somente balões</option></select>
                 {financingAtKeys ? <span style={{fontSize:12,color:"#d4d4d8"}}>O saldo restante será quitado ou financiado nas chaves: <strong>{money(financingTotal)}</strong>.</span> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}>
-                  {(postMode === "parcelas_e_baloes" || postMode === "somente_parcelas") && <MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={changePostMonthly} max={Math.max(20000,(commercial?.finalPrice || 500000)*0.08)} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} count={postMonths} setCount={changePostMonths} countLabel="Quantidade de parcelas" />}
-                  {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={commercial?.finalPrice || 500000} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} count={postBalloonCount} setCount={changePostBalloonCount} countMax={120} countLabel="Quantidade de balões" />}
+                  {(postMode === "parcelas_e_baloes" || postMode === "somente_parcelas") && <MoneyScenario label="Parcela pós-chaves" value={postMonthly} setValue={changePostMonthly} max={monthlyMax} locked={lockedPostMonthly} onToggleLock={() => setLockedPostMonthly((value) => !value)} count={postMonths} setCount={changePostMonths} countLabel="Quantidade de parcelas" />}
+                  {(postMode === "parcelas_e_baloes" || postMode === "somente_baloes") && <MoneyScenario label="Balão pós-chaves" value={postBalloon} setValue={changePostBalloon} max={scenarioMax} locked={lockedPostBalloon} onToggleLock={() => setLockedPostBalloon((value) => !value)} count={postBalloonCount} setCount={changePostBalloonCount} countMax={120} countLabel="Quantidade de balões" />}
                 </div>}
               </section>
               <div style={{display:"grid",gap:5,marginTop:13,padding:12,border:`1px solid ${acceptance.color}`,borderRadius:9,background:"#17140e",color:"#d4d4d8",fontSize:12}}><strong style={{color:acceptance.color}}>Aderência: {acceptance.label}</strong><span>{acceptance.detail}</span><span>Meta até as chaves: {targets.prePct}% ({money(targets.preTarget)}) · meta pós-chaves: {targets.postPct}% ({money(targets.postTarget)}).</span><span>Até as chaves: {money(preTotal)}{keysValue ? ` · valor informado nas chaves: ${money(keysValue)}` : ""} · {financingAtKeys ? `financiamento nas chaves: ${money(financingTotal)}` : `pós-chaves: ${money(postTotal)}`} · saldo: <strong style={{color:acceptance.color}}>{money(flowDifference)}</strong></span><button type="button" onClick={redistributeFlow} style={{border:"1px solid #8f7138",borderRadius:7,padding:9,background:"#211a0f",color:"#edcf91",fontWeight:800,cursor:"pointer"}}>Redistribuir respeitando o fluxo e fechar o valor</button></div>
@@ -1786,7 +1882,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 </p>
               )}
               <button
-                disabled={sending}
+                disabled={sending || !proposalUnit || !commercial || flowDifferenceCents !== 0 || hasExcess}
                 onClick={() => void sendProposal()}
                 style={{
                   marginTop: 16,
@@ -1801,7 +1897,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
                 }}
               >
                 <Send size={15} />{" "}
-                {sending ? "Enviando…" : "Enviar cenário para análise"}
+                {sending ? "Enviando…" : flowDifferenceCents !== 0 || hasExcess ? "Ajuste o fluxo para fechar o valor" : "Enviar cenário para análise"}
               </button>
               </> : <div style={{marginTop:16,padding:12,border:"1px solid #54452c",borderRadius:8,background:"#17140e",color:"#ead5aa",fontSize:12,lineHeight:1.55}}>A simulação está disponível, mas o especialista ainda não liberou o envio de proposta para esta oportunidade. Nenhum dado pessoal ou documento será solicitado nesta etapa.</div>}
             </section>

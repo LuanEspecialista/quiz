@@ -30,7 +30,7 @@ Deno.serve(async(req:Request)=>{
   const birthday={aniversario_dia:Number(body.aniversario_dia)||null,aniversario_mes:Number(body.aniversario_mes)||null};
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return reply({error:"E-mail inválido."},400);
   if(requestedUsername&&!/^[a-z0-9][a-z0-9._-]{2,23}$/.test(requestedUsername))return reply({error:"Nickname inválido."},400);
-  if(!birthday.aniversario_dia||!birthday.aniversario_mes)return reply({error:"Informe dia e mês de aniversário."},400);
+  if(body.solicitacao_id && (!birthday.aniversario_dia||!birthday.aniversario_mes))return reply({error:"Informe dia e mês de aniversário."},400);
   let target=null as any;
   for(let page=1;page<=10&&!target;page++){
    const {data,error}=await admin.auth.admin.listUsers({page,perPage:100});

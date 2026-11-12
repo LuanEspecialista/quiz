@@ -137,5 +137,7 @@ export default function App() {
   const metadata = session.user.user_metadata || {};
   const userName = String(metadata.full_name || metadata.name || "").trim();
   if (accessRole === "cliente") return <ClientPortal userName={userName} />;
+  const previewClientId = accessRole === "admin" ? new URLSearchParams(window.location.search).get("visualizar_cliente") : null;
+  if (previewClientId) return <ClientPortal userName={userName} previewClientId={previewClientId} />;
   return <ModuleErrorBoundary><Dashboard userName={userName} role={accessRole} /></ModuleErrorBoundary>;
 }
