@@ -1594,15 +1594,21 @@ export default function Clientes({
                           </div>}
                           <div style={{display:"grid",gap:7}}>
                             <strong style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({selection.unidade_ids_selecionadas?.length || 0})</strong>
-                            <small style={{color:"#71717a"}}>Pesquise por torre, código, número ou tipologia. A cliente verá somente as unidades marcadas.</small>
+                            <small style={{color:"#71717a"}}>As unidades selecionadas ficam fixadas no topo para conferência. Pesquise por torre, código, número ou tipologia para localizar outras opções.</small>
                             <input value={unitQueries[property.id] || ""} onChange={(event)=>setUnitQueries(current=>({...current,[property.id]:event.target.value}))} placeholder="Pesquisar: Torre A, 304, 807, Studio..." style={{...input,marginTop:2}} />
                             <div style={{display:"grid",gap:5,maxHeight:260,overflow:"auto"}}>
                               {units.filter(unit=>{
                                 if(unit.empreendimento_id!==property.id || ["vendida","bloqueada","fora de tabela"].includes(String(unit.status||"").toLowerCase())) return false;
+                                const selected=(selection.unidade_ids_selecionadas || []).includes(unit.id);
                                 const term=(unitQueries[property.id]||"").trim().toLocaleLowerCase("pt-BR");
+                                if(selected) return true;
                                 if(!term) return true;
                                 return [unit.torre,unit.codigo,unit.codigo_unidade,unit.numero,unit.numero_unidade,unit.tipologia,unit.andar].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR").includes(term);
-                              }).sort((a,b)=>String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true})).map(unit=>{
+                              }).sort((a,b)=>{
+                                const selected=(selection.unidade_ids_selecionadas || []);
+                                const selectedOrder=(selected.includes(a.id)?0:1)-(selected.includes(b.id)?0:1);
+                                return selectedOrder || String(a.torre||"").localeCompare(String(b.torre||""),"pt-BR",{numeric:true}) || String(a.numero||a.numero_unidade||a.codigo||a.codigo_unidade||"").localeCompare(String(b.numero||b.numero_unidade||b.codigo||b.codigo_unidade||""),"pt-BR",{numeric:true});
+                              }).map(unit=>{
                                 const selected=selection.unidade_ids_selecionadas || [];
                                 const checked=selected.includes(unit.id);
                                 const tower=unit.torre || "Torre não informada";
@@ -1611,7 +1617,7 @@ export default function Clientes({
                                 const rule=selection.condicoes_unidades?.[unit.id];
                                 const discountPercent=rule?.desconto_percentual != null ? Number(rule.desconto_percentual) : rule?.desconto_valor != null ? (tablePrice>0?Number((Number(rule.desconto_valor)/tablePrice*100).toFixed(2)):0) : Number(selection.desconto_percentual || 0);
                                 const negotiated=rule?.desconto_valor != null ? Number(rule.desconto_valor) : Number((tablePrice*discountPercent/100).toFixed(2));
-                                return <div key={unit.id} style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",gap:9,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11}}>
+                                return <div key={unit.id} style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",gap:9,alignItems:"center",padding:"8px 9px",border:"1px solid "+(checked?"#c5a059":"#303036"),borderRadius:6,fontSize:11,background:checked?"#19160f":"transparent"}}>
                                   <span style={{minWidth:0,flex:"1 1 155px"}}><input type="checkbox" checked={checked} onChange={()=>{const next=checked?selected.filter(id=>id!==unit.id):[...selected,unit.id];void updateSelection(curating.id,property.id,{unidade_ids_selecionadas:next,exibir_fluxo:true,permitir_proposta:true});}}/> <b>{tower}</b> · Unidade {code}{unit.andar ? ` · ${unit.andar}º andar` : ""}{unit.tipologia ? ` · ${unit.tipologia}` : ""}<small style={{display:"block",color:"#8b8b95",marginTop:3}}>Tabela: {money(tablePrice)}</small></span>
                                   <span style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:7,minWidth:175,flex:"1 1 175px"}}>
                                     <label style={{display:"grid",gap:3,color:"#a1a1aa"}}>Desconto (R$)<CurrencyInput value={negotiated} ariaLabel={`Desconto em reais da unidade ${code}`} onChange={(value)=>updateUnitDiscountDraft(curating.id,property.id,unit.id,tablePrice,"valor",value)} onBlur={()=>void saveUnitDiscount(curating.id,property.id)} style={{...input,padding:"6px 7px",fontSize:11}} /></label>
