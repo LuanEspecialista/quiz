@@ -548,8 +548,6 @@ export default function Clientes({
   };
   async function save() {
     if (!form.nome.trim()) return setMessage("Informe o nome do cliente.");
-    const birthdayDay=Number(form.aniversario_dia),birthdayMonth=Number(form.aniversario_mes);
-    if(birthdayMonth<1||birthdayMonth>12||birthdayDay<1||birthdayDay>new Date(2000,birthdayMonth,0).getDate())return setMessage("Informe o dia e o mês de aniversário do cliente.");
     if (form.telefone && phoneDigits(form.telefone).length < 10)
       return setMessage(
         "Informe o WhatsApp com DDD, por exemplo: 47 99999-9999.",
