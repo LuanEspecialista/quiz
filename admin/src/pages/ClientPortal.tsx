@@ -720,7 +720,8 @@ function OpportunityLanding({
   );
 }
 
-export default function ClientPortal({ userName }: { userName?: string }) {
+export default function ClientPortal({ userName, previewClientId }: { userName?: string; previewClientId?: string | null }) {
+  const isPreview = Boolean(previewClientId);
   const [portal, setPortal] = useState<Portal | null>(null);
   const [error, setError] = useState("");
   const [accessExpired, setAccessExpired] = useState(false);
@@ -790,11 +791,14 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       .then((response) => response.ok ? response.json() : null)
       .then((data) => { if (data?.value) setCub(data as CubQuote); })
       .catch(() => undefined);
-    void supabase.rpc("portal_access_status").then(async ({ data: status }) => {
+    const portalRequest = previewClientId
+      ? supabase.rpc("portal_cliente_preview", { p_cliente_id: previewClientId })
+      : supabase.rpc("portal_access_status").then(async ({ data: status }) => {
       if (status?.status === "expirado") { setAccessExpired(true); setError("Acesso expirado. Solicite ao especialista uma nova validade para voltar a consultar os empreendimentos."); return null; }
       if (status?.status !== "ativo") { setError("Seu acesso está bloqueado. Fale com seu especialista."); return null; }
       return supabase.rpc("portal_cliente_experiencia");
-    }).then(async (response) => {
+    });
+    void portalRequest.then(async (response) => {
         if (!response) return;
         const { data, error: requestError } = response;
         if (requestError) {
@@ -804,9 +808,9 @@ export default function ClientPortal({ userName }: { userName?: string }) {
           return;
         }
         const result = (data || {}) as Portal;
-        const { data: institutionalData } = await supabase.rpc("portal_cliente_institucionais");
+        const { data: institutionalData } = isPreview ? { data: null } : await supabase.rpc("portal_cliente_institucionais");
         const institutionalById = Object.fromEntries(((institutionalData || []) as Array<{ empreendimento_id: string; institucional_construtora?: InstitutionalResource | null; institucional_imobiliaria?: InstitutionalResource | null; documentos?: InstitutionalResource[] }>).map((entry) => [entry.empreendimento_id, entry]));
-        const profileRequest = supabase.rpc("portal_cliente_proposta_perfil");
+        const profileRequest = isPreview ? Promise.resolve({ data: null, error: null }) : supabase.rpc("portal_cliente_proposta_perfil");
         const opportunities = await Promise.all(
           (result.oportunidades || []).map(async (item) => {
             const sign = async (media: PortalMedia) => {
@@ -952,7 +956,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
         }
       });
     return () => { document.removeEventListener("contextmenu", protectContent); document.removeEventListener("keydown", blockPrint); };
-  }, []);
+  }, [previewClientId]);
 
   const hasExpiry = secondsUntilExpiry !== null;
   useEffect(() => {
@@ -1464,6 +1468,7 @@ export default function ClientPortal({ userName }: { userName?: string }) {
       }}
     >
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+        {isPreview && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 18, padding: "10px 13px", border: "1px solid #8a6a2d", borderRadius: 9, background: "#241b0d", color: "#f5d58b", fontSize: 12, fontWeight: 800 }}><span>Visualização administrativa — esta é a experiência configurada para este cliente.</span><button type="button" onClick={() => window.close()} style={{ border: "1px solid #8a6a2d", background: "transparent", color: "#f5d58b", borderRadius: 6, padding: "6px 9px", cursor: "pointer", fontWeight: 800 }}>Fechar visualização</button></div>}
         <header
           style={{
             display: "flex",

@@ -5,6 +5,7 @@ import {
   Building2,
   Check,
   Copy,
+  Eye,
   KeyRound,
   MessageCircle,
   Pencil,
@@ -1183,6 +1184,14 @@ export default function Clientes({
                     Comparar
                   </button>
                 )}
+                <button
+                  onClick={() => window.open(`${window.location.pathname}?visualizar_cliente=${encodeURIComponent(String(item.id))}`, "_blank", "noopener,noreferrer")}
+                  style={{ ...button, background: "#3f3f46", color: "#f4f4f5", fontSize: 11 }}
+                  title="Abrir uma réplica do portal deste cliente"
+                >
+                  <Eye size={14} />
+                  Visualizar como
+                </button>
               </div>
             </article>
           );
