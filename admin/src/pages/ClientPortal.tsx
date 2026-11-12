@@ -305,8 +305,10 @@ function FlowSchedule({ item, unit, cub }: { item: Opportunity; unit?: PortalUni
 
 function PresentationSlides({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pageContainerRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
+  const [containerWidth, setContainerWidth] = useState(0);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   useEffect(() => {
@@ -320,29 +322,39 @@ function PresentationSlides({ url, title, onClose }: { url: string; title: strin
   }, [url]);
   useEffect(() => {
     let disposed = false;
-    if (!pdf || !canvasRef.current) return;
+    if (!pdf || !canvasRef.current || !pageContainerRef.current) return;
     setLoading(true);
     pdf.getPage(page).then((pdfPage) => {
-      if (disposed || !canvasRef.current) return;
+      if (disposed || !canvasRef.current || !pageContainerRef.current) return;
       const base = pdfPage.getViewport({ scale: 1 });
-      const maxWidth = Math.min(window.innerWidth - 48, 1100);
-      const scale = Math.max(0.65, Math.min(2.2, maxWidth / base.width));
+      const availableWidth = Math.max(240, (containerWidth || pageContainerRef.current.clientWidth) - 16);
+      const scale = Math.min(1.8, availableWidth / base.width);
       const viewport = pdfPage.getViewport({ scale });
       const canvas = canvasRef.current;
       const ratio = window.devicePixelRatio || 1;
       canvas.width = Math.floor(viewport.width * ratio); canvas.height = Math.floor(viewport.height * ratio);
-      canvas.style.width = `${viewport.width}px`; canvas.style.height = `${viewport.height}px`;
+      canvas.style.width = "100%"; canvas.style.height = "auto"; canvas.style.maxWidth = "100%"; canvas.style.display = "block";
       const context = canvas.getContext("2d");
       if (!context) return;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       void pdfPage.render({ canvas, canvasContext: context, viewport }).promise.finally(() => { if (!disposed) setLoading(false); });
     }).catch(() => { if (!disposed) { setMessage("Não foi possível renderizar esta página."); setLoading(false); } });
     return () => { disposed = true; };
-  }, [pdf, page]);
-  return <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1200,background:"#09090bf7",display:"grid",gridTemplateRows:"auto 1fr auto",padding:12}}>
-    <header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,maxWidth:1180,width:"100%",margin:"0 auto",color:"#fff"}}><strong>{title}</strong><button type="button" onClick={onClose} style={{border:"1px solid #5a4828",background:"#18140e",color:"#edcf91",borderRadius:8,padding:"9px 12px",cursor:"pointer"}}>Fechar</button></header>
-    <main style={{display:"grid",placeItems:"center",overflow:"auto",padding:12}}>{message ? <p style={{color:"#fca5a5"}}>{message}</p> : <div style={{position:"relative",minHeight:160,display:"grid",placeItems:"center"}}><canvas ref={canvasRef} style={{maxWidth:"100%",height:"auto",background:"#fff",boxShadow:"0 16px 60px #000"}} />{loading && <span style={{position:"absolute",color:"#edcf91",background:"#111113dd",padding:"10px 14px",borderRadius:8}}>Carregando slide…</span>}</div>}</main>
-    <footer style={{display:"flex",justifyContent:"center",alignItems:"center",gap:12,padding:"10px 0",color:"#d4d4d8"}}><button type="button" disabled={!pdf || page<=1} onClick={()=>setPage((value)=>Math.max(1,value-1))} style={{border:"1px solid #54452c",background:"#17140e",color:"#ead5aa",borderRadius:7,padding:"9px 14px",cursor:"pointer"}}>‹ Anterior</button><span>{pdf ? `Slide ${page} de ${pdf.numPages}` : ""}</span><button type="button" disabled={!pdf || page >= (pdf?.numPages || 1)} onClick={()=>setPage((value)=>Math.min(pdf?.numPages || value,value+1))} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px 14px",fontWeight:800,cursor:"pointer"}}>Próximo ›</button></footer>
+  }, [pdf, page, containerWidth]);
+  useEffect(() => {
+    const element = pageContainerRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = Math.round(entries[0]?.contentRect.width || 0);
+      if (width) setContainerWidth(width);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [pdf, message]);
+  return <div role="dialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:1200,background:"#09090b",isolation:"isolate",display:"grid",gridTemplateRows:"auto minmax(0,1fr) auto",padding:"max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))",boxSizing:"border-box",overflow:"hidden"}}>
+    <header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,width:"min(100%,1180px)",margin:"0 auto",padding:"4px 4px 10px",color:"#fff",minWidth:0}}><strong style={{minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:"clamp(16px,4vw,22px)"}}>{title}</strong><button type="button" onClick={onClose} style={{border:"1px solid #5a4828",background:"#18140e",color:"#edcf91",borderRadius:8,padding:"9px 12px",cursor:"pointer",flex:"0 0 auto"}}>Fechar</button></header>
+    <main style={{display:"flex",justifyContent:"center",alignItems:"flex-start",minWidth:0,minHeight:0,overflowY:"auto",overflowX:"hidden",padding:"8px 0 12px"}}>{message ? <p style={{color:"#fca5a5"}}>{message}</p> : <div ref={pageContainerRef} style={{position:"relative",width:"min(100%,1100px)",minWidth:0,minHeight:160,display:"flex",justifyContent:"center",alignItems:"flex-start",padding:"0 8px",boxSizing:"border-box"}}><canvas ref={canvasRef} style={{width:"100%",maxWidth:"100%",height:"auto",background:"#fff",boxShadow:"0 16px 60px #000"}} />{loading && <span style={{position:"absolute",top:16,left:"50%",transform:"translateX(-50%)",color:"#edcf91",background:"#111113",padding:"10px 14px",borderRadius:8,whiteSpace:"nowrap"}}>Carregando slide…</span>}</div>}</main>
+    <footer style={{display:"flex",justifyContent:"center",alignItems:"center",gap:"clamp(6px,2vw,12px)",padding:"8px 0 4px",color:"#d4d4d8",minWidth:0}}><button type="button" disabled={!pdf || page<=1} onClick={()=>setPage((value)=>Math.max(1,value-1))} style={{border:"1px solid #54452c",background:"#17140e",color:"#ead5aa",borderRadius:7,padding:"9px clamp(9px,3vw,14px)",cursor:"pointer",whiteSpace:"nowrap"}}>‹ Anterior</button><span style={{fontSize:"clamp(12px,3.2vw,16px)",whiteSpace:"nowrap"}}>{pdf ? `Slide ${page} de ${pdf.numPages}` : ""}</span><button type="button" disabled={!pdf || page >= (pdf?.numPages || 1)} onClick={()=>setPage((value)=>Math.min(pdf?.numPages || value,value+1))} style={{border:0,background:"#d7ab63",color:"#09090b",borderRadius:7,padding:"9px clamp(9px,3vw,14px)",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap"}}>Próximo ›</button></footer>
   </div>;
 }
 
