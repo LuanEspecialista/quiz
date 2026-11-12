@@ -1602,12 +1602,12 @@ export default function Clientes({
                             </div>
                           </div>}
                           <div style={{display:"grid",gap:7}}>
-                            <strong style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({selection.unidade_ids_selecionadas?.length || 0})</strong>
-                            <small style={{color:"#71717a"}}>As unidades selecionadas ficam fixadas no topo para conferência. Pesquise por torre, código, número ou tipologia para localizar outras opções.</small>
+                            <strong style={{fontSize:11,color:"#d4d4d8"}}>Unidades liberadas para este cliente ({units.filter(unit=>unit.empreendimento_id===property.id && String(unit.status||"").toLowerCase()==="disponivel" && (selection.unidade_ids_selecionadas || []).includes(unit.id)).length})</strong>
+                            <small style={{color:"#71717a"}}>Somente unidades com status disponível podem ser selecionadas. Unidades reservadas ou indisponíveis deixam de aparecer como opção.</small>
                             <input value={unitQueries[property.id] || ""} onChange={(event)=>setUnitQueries(current=>({...current,[property.id]:event.target.value}))} placeholder="Pesquisar: Torre A, 304, 807, Studio..." style={{...input,marginTop:2}} />
                             <div style={{display:"grid",gap:5,maxHeight:260,overflow:"auto"}}>
                               {units.filter(unit=>{
-                                if(unit.empreendimento_id!==property.id || ["vendida","bloqueada","fora de tabela"].includes(String(unit.status||"").toLowerCase())) return false;
+                                if(unit.empreendimento_id!==property.id || String(unit.status||"").toLowerCase() !== "disponivel") return false;
                                 const selected=(selection.unidade_ids_selecionadas || []).includes(unit.id);
                                 const term=(unitQueries[property.id]||"").trim().toLocaleLowerCase("pt-BR");
                                 if(selected) return true;

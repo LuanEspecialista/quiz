@@ -906,11 +906,11 @@ export default function ClientPortal({ userName, previewClientId }: { userName?:
               plantas: plants,
               apresentacao: presentation,
               apresentacoes: presentations,
-              // A curadoria do especialista já define as unidades autorizadas pela RPC.
-              // Não filtrar novamente por status aqui: uma unidade selecionada pode estar
-              // indisponível ou reservada e ainda assim precisar ser apresentada ao cliente
-              // para análise, comparação ou negociação.
-              unidades: item.unidades || [],
+              // A curadoria define o conjunto autorizado, mas disponibilidade é
+              // revalidada no momento da consulta para não exibir estoque vencido.
+              unidades: (item.unidades || []).filter((unit) =>
+                String(unit.status || "").toLowerCase() === "disponivel",
+              ),
               caracteristicas: {
                 ...item.caracteristicas,
                 landing_blocos: blocks.map((block) => ({
