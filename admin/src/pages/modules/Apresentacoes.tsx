@@ -550,7 +550,9 @@ export default function Apresentacoes() {
     if (!presentation?.ativo) return;
     const useLink = presentation.tipo_preferido === "link" && presentation.link_url;
     const sourceType = useLink || (!presentation.pdf_url && presentation.link_url) ? "link" : "pdf";
-    const sourceUrl = sourceType === "link" ? presentation.link_url : presentation.pdf_url;
+    const sourceUrl = sourceType === "link"
+      ? presentation.link_url
+      : (isR2Path(presentation.storage_path) ? r2PublicUrl(presentation.storage_path) : presentation.pdf_url);
     if (!sourceUrl) return;
     const configuredOrigin = String(import.meta.env.VITE_PUBLIC_SITE_URL || "").trim();
     const isLocalPanel = ["localhost", "127.0.0.1"].includes(window.location.hostname) && window.location.port !== "5500";
