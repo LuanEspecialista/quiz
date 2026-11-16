@@ -33,14 +33,51 @@ AS $function$
       'exibir_investimento', ce.exibir_investimento, 'exibir_fluxo', ce.exibir_fluxo,
       'permitir_proposta', ce.permitir_proposta, 'desconto_percentual', ce.desconto_percentual,
       'observacao_comercial', ce.observacao_comercial,
-      'apresentacao', (
+      'apresentacoes', coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+          'tipo', CASE WHEN a.cliente_tipo = 'pdf' THEN 'pdf' ELSE 'link' END,
+          'origem', a.cliente_tipo,
+          'titulo', CASE
+            WHEN a.cliente_tipo = 'post' THEN post.titulo
+            WHEN a.cliente_tipo = 'pdf' THEN coalesce(nullif(a.titulo, ''), e.nome || ' · apresentação')
+            ELSE coalesce(nullif(a.titulo, ''), e.nome || ' · apresentação online')
+          END,
+          'url', CASE
+            WHEN a.cliente_tipo = 'link' THEN a.cliente_link_url
+            WHEN a.cliente_tipo = 'post' THEN '/blog/' || post.slug || '/?apresentacao=1'
+            ELSE NULL
+          END,
+          'storage_path', CASE WHEN a.cliente_tipo = 'pdf' THEN a.cliente_pdf_path ELSE NULL END,
+          'storage_bucket', CASE WHEN a.cliente_tipo = 'pdf' THEN 'cliente-apresentacoes' ELSE NULL END
+        ) ORDER BY a.updated_at DESC)
+        FROM public.apresentacoes a
+        LEFT JOIN public.blog_posts post ON post.id = a.cliente_blog_post_id
+        WHERE a.empreendimento_id=e.id AND a.cliente_ativo
+          AND ((a.cliente_tipo = 'pdf' AND nullif(btrim(a.cliente_pdf_path), '') IS NOT NULL)
+            OR (a.cliente_tipo = 'link' AND nullif(btrim(a.cliente_link_url), '') IS NOT NULL)
+            OR (a.cliente_tipo = 'post' AND post.status = 'publicado' AND post.publicado_em <= now()))
+      ), '[]'::jsonb),
+      'apresentacao', coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+          'tipo', CASE WHEN a.cliente_tipo = 'pdf' THEN 'pdf' ELSE 'link' END,
+          'origem', a.cliente_tipo,
+          'titulo', coalesce(nullif(a.titulo, ''), e.nome || ' · apresentação'),
+          'url', CASE WHEN a.cliente_tipo = 'link' THEN a.cliente_link_url ELSE NULL END,
+          'storage_path', CASE WHEN a.cliente_tipo = 'pdf' THEN a.cliente_pdf_path ELSE NULL END,
+          'storage_bucket', CASE WHEN a.cliente_tipo = 'pdf' THEN 'cliente-apresentacoes' ELSE NULL END
+        ) ORDER BY a.updated_at DESC)->0
+        FROM public.apresentacoes a
+        WHERE a.empreendimento_id=e.id AND a.cliente_ativo
+          AND ((a.cliente_tipo = 'pdf' AND nullif(btrim(a.cliente_pdf_path), '') IS NOT NULL)
+            OR (a.cliente_tipo = 'link' AND nullif(btrim(a.cliente_link_url), '') IS NOT NULL))
+      ), (
         SELECT jsonb_build_object(
           'url', CASE WHEN a.tipo_preferido='link' AND nullif(a.link_url,'') IS NOT NULL THEN a.link_url ELSE a.pdf_url END,
           'tipo', CASE WHEN a.tipo_preferido='link' AND nullif(a.link_url,'') IS NOT NULL THEN 'link' ELSE 'pdf' END
         ) FROM public.apresentacoes a
         WHERE a.empreendimento_id=e.id AND a.ativo AND (a.pdf_url IS NOT NULL OR a.link_url IS NOT NULL)
         ORDER BY a.updated_at DESC LIMIT 1
-      ),
+      )),
       'unidades', coalesce((SELECT jsonb_agg(jsonb_build_object(
         'id', u.id, 'codigo', coalesce(nullif(u.codigo_unidade,''),nullif(u.numero_unidade,''),nullif(u.numero,''),u.id::text),
         'numero', u.numero, 'torre', u.torre, 'andar', u.andar, 'tipologia', u.tipologia,

@@ -1575,9 +1575,8 @@ export default function ClientPortal({ userName, previewClientId }: { userName?:
           <section className="client-portal-opportunity-grid" data-columns={opportunities.length >= 4 ? 2 : Math.min(3, opportunities.length)}>
             {opportunities.map((item) => {
               const cover = item.imagens?.[0]?.url;
-              const selectedPresentation = (item.apresentacao?.url || (item.apresentacao?.tipo === "pdf" && item.apresentacao.storage_path))
-                ? item.apresentacao
-                : item.apresentacoes?.find((resource) => resource.url || (resource.tipo === "pdf" && resource.storage_path)) || null;
+              const selectedPresentation = item.apresentacoes?.find((resource) => resource.url || (resource.tipo === "pdf" && resource.storage_path))
+                || ((item.apresentacao?.url || (item.apresentacao?.tipo === "pdf" && item.apresentacao.storage_path)) ? item.apresentacao : null);
               const canOpenFlow = Boolean(item.permitir_proposta || item.exibir_fluxo);
               const institutionalCards = [
                 { key: "construtora", label: "Institucional da construtora", resource: item.institucional_construtora },
